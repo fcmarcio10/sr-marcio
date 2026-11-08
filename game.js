@@ -3346,6 +3346,11 @@ class Player {
     const Zf = Profile.zones ? Profile.zones.f : 0;
     if (Zf > 0.4 && !this.lampWarn) { this.lampWarn = true; toast('Farol avariado', 'A frente amassada deixou o farol fraco. Conserte na Oficina do Seu Zé.', 'bad'); }
     if (Zf < 0.2) this.lampWarn = false;
+    for (const sd of [-1, 1]) {
+      const off = playerLamp(sd) <= 0.01, key = sd < 0 ? 'lampOffL' : 'lampOffR';
+      if (off && !this[key] && Game.state === 'playing') toast('Farol ' + (sd < 0 ? 'esquerdo' : 'direito') + ' apagou', 'Esse lado amassou demais. A Oficina do Seu Zé troca a lâmpada.', 'bad');
+      this[key] = off;
+    }
     if (Zf > 0.45 && chance(0.08 + Zf * 0.25)) Particles.emit(Zf > 0.75 ? 'smoke' : 'steam', this.x + c * this.m.L * 0.38, this.y + s * this.m.L * 0.38, rnd(-10, 10), rnd(-10, 10), rnd(0.8, 1.6), 4);
     if (this.thr > 0.6 && chance(0.12)) Particles.emit('exhaust', this.x - c * this.m.L * 0.52, this.y - s * this.m.L * 0.52, -c * 30 + rnd(-8, 8), -s * 30 + rnd(-8, 8), rnd(0.4, 0.8), 2.5);
     if (this.prevThr > 0.8 && !inp.thr && this.rpm > 4300 && chance(0.6)) { Particles.emit('flame', this.x - c * this.m.L * 0.55, this.y - s * this.m.L * 0.55, -c * 60, -s * 60, 0.18, 5); AudioSys.noise(0.06, 900, 1, 0.25, 'engine', 'lowpass'); AudioSys.tone(70, 0.08, 'square', 0.12, 'engine'); }
@@ -4274,6 +4279,8 @@ function addZoneDamage(Z, car, hx, hy, k) {
   let zone;
   if (Math.abs(lx) > car.m.L * 0.28) zone = lx > 0 ? 'f' : 'r'; else zone = ly < 0 ? 'l' : 'rt';
   Z[zone] = clamp(Z[zone] + 0.12 + k * 0.7, 0, 1);
+  // batida na frente: guarda de que lado do para-choque foi (para o farol daquele lado)
+  if (zone === 'f') { const sk = ly < 0 ? 'fL' : 'fR'; Z[sk] = clamp((Z[sk] || 0) + (0.12 + k * 0.7) * (Math.abs(ly) > car.m.W * 0.15 ? 1 : 0.5), 0, 1); }
   Z.seed = (Z.seed || 0) + 1;
   return zone;
 }
@@ -5920,6 +5927,13 @@ function headlightK() {
   if (zf > 0.55) { const T = Game.time, f = Math.sin(T * 17.3) + Math.sin(T * 5.1 + 1.7) + Math.sin(T * 41 + 0.4) * 0.6; if (f > 1.5) k *= 0.3; }
   return clamp(k, 0.1, 1);
 }
+// farol de cada lado (s = -1 esquerdo, 1 direito): lado muito amassado apaga aquele farol
+function playerLamp(s) {
+  const Z = Profile.zones || {};
+  const side = Math.max(s < 0 ? Z.l || 0 : Z.rt || 0, s < 0 ? Z.fL || 0 : Z.fR || 0);
+  if (side > 0.72 || (Z.f || 0) > 0.95) return 0;
+  return headlightK() * (side > 0.45 ? 0.6 : 1);
+}
 function carLightsInfo(c, isPlayer) {
   const m = c.m, as = Math.atan2(Math.sin(c.a) * SQ, Math.cos(c.a)), ca = Math.cos(as), sa = Math.sin(as);
   const hl = m.L / 2, hw = Math.max(0, m.W / 2 - 4);
@@ -5958,8 +5972,15 @@ function lightPass(view, cx, cy) {
     cone(c, c.big ? 300 : 250, 0.85);
   }
   if (player && Game.state !== 'menu') {
-    const hk = headlightK();
-    cone(player, (player.highBeam ? 520 : 360) * (0.45 + 0.55 * hk), hk);
+    // um facho saindo de cada farol, na posição real da lâmpada
+    const I = carLightsInfo(player), base = player.highBeam ? 520 : 360;
+    for (const s of [-1, 1]) {
+      const k = playerLamp(s); if (k <= 0.01) continue;
+      const len = base * (0.45 + 0.55 * k);
+      lctx.save(); lctx.translate(I.fx + I.nx * s, I.fy + I.ny * s); lctx.rotate(player.a + s * 0.03); lctx.globalAlpha = 0.72 * k;
+      lctx.drawImage(CONE, -2, -len * 0.21, len, len * 0.42);
+      lctx.restore();
+    }
     lctx.globalAlpha = 0.55; lctx.drawImage(LSPR, player.x - 105, player.y - 105, 210, 210);
   }
   lctx.globalAlpha = 1;
@@ -6002,7 +6023,15 @@ function glowPass(view, cx, cy) {
     gctx.restore();
   };
   for (const c of Traffic.cars) if (inView(view, c.x, c.y, 300)) cone(c, c.big ? 300 : 250, 0.07);
-  if (player && Game.state !== 'menu') { const hk = headlightK(); cone(player, (player.highBeam ? 520 : 360) * (0.45 + 0.55 * hk), 0.12 * hk); }
+  if (player && Game.state !== 'menu') {
+    const I = carLightsInfo(player), base = player.highBeam ? 520 : 360;
+    for (const s of [-1, 1]) {
+      const k = playerLamp(s); if (k <= 0.01) continue;
+      const len = base * (0.45 + 0.55 * k);
+      gctx.globalAlpha = 0.08 * k; gctx.save(); gctx.translate(I.fx + I.nx * s, I.fy + I.ny * s); gctx.rotate(player.a + s * 0.03);
+      gctx.drawImage(CONE, -2, -len * 0.21, len, len * 0.42); gctx.restore();
+    }
+  }
   for (const o of _talls) {
     if (o.kind !== 'tlight') continue;
     const st = lightState(o.node, o.axis, T);
@@ -6021,8 +6050,8 @@ function emissivePass(view, talls) {
     const I = carLightsInfo(c);
     const Z = isPlayer ? Profile.zones : c.zones;
     const brokeF = (s) => Z && (Z.f > 0.85 || (Z.f > 0.6 && s < 0)), brokeR = (s) => Z && (Z.r > 0.85 || (Z.r > 0.6 && s < 0));
-    ctx.globalAlpha = 0.95 * (isPlayer ? 0.25 + 0.75 * headlightK() : 1);
-    for (const s of [1, -1]) if (!brokeF(s)) ctx.drawImage(head, I.fx + I.nx * s - 9, I.fy + I.ny * s - 9, 18, 18);
+    if (isPlayer) for (const s of [1, -1]) { const k = playerLamp(s); if (k <= 0.01) continue; ctx.globalAlpha = 0.95 * (0.25 + 0.75 * k); ctx.drawImage(head, I.fx + I.nx * s - 9, I.fy + I.ny * s - 9, 18, 18); }
+    else { ctx.globalAlpha = 0.95; for (const s of [1, -1]) if (!brokeF(s)) ctx.drawImage(head, I.fx + I.nx * s - 9, I.fy + I.ny * s - 9, 18, 18); }
     const tr = brake ? 15 : 9;
     ctx.globalAlpha = brake ? 1 : 0.7;
     for (const s of [1, -1]) if (!brokeR(s)) ctx.drawImage(tail, I.rx + I.nx * s - tr, I.ry + I.ny * s - tr, tr * 2, tr * 2);
