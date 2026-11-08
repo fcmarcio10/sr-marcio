@@ -1611,6 +1611,32 @@ function buildRural() {
     const cx = riverCX(y) - riverHW(y) - 14;
     World.animalsDef.push({ type: 'capybara', n: 2, rect: [cx - 10, y - 50, cx + 6, y + 50] });
   }
+  // cercas de arame farpado com mourões de madeira e porteiras nas estradas de terra
+  for (const e of World.edges) {
+    if (e.T.id !== 'dirt' || e.bridge) continue;
+    const nx = -e.dy, ny = e.dx;
+    for (const sd of [-1, 1]) {
+      let s = 70;
+      while (s < e.len - 70) {
+        const run = rnd(160, 520), s1 = Math.min(e.len - 70, s + run), o = e.hw + 16;
+        const posts = [];
+        for (let t = s; t <= s1; t += 34) {
+          const px = e.a.x + e.dx * t + nx * o * sd, py = e.a.y + e.dy * t + ny * o * sd, gt = groundAt(px, py);
+          if (gt !== SF.GRASS && gt !== SF.FIELD && gt !== SF.EARTH) { posts.length = 0; break; }
+          posts.push([px, py]);
+        }
+        if (posts.length > 2 && !areaBlocked(Math.min(posts[0][0], posts[posts.length - 1][0]) - 3, Math.min(posts[0][1], posts[posts.length - 1][1]) - 3, Math.max(posts[0][0], posts[posts.length - 1][0]) + 3, Math.max(posts[0][1], posts[posts.length - 1][1]) + 3)) {
+          const P = posts.slice(), xs = P.map((p) => p[0]), ys = P.map((p) => p[1]);
+          bake(Math.min(...xs) - 6, Math.min(...ys) - 6, Math.max(...xs) + 6, Math.max(...ys) + 6, 8, (g) => {
+            g.strokeStyle = 'rgba(190,195,200,0.55)'; g.lineWidth = 0.7;
+            for (const w of [-1.4, 1.4]) { g.beginPath(); P.forEach(([x, y], i) => { const xx = x + (e.h ? 0 : w), yy = y + (e.h ? w : 0); if (i) g.lineTo(xx, yy); else g.moveTo(xx, yy); }); g.stroke(); }
+            for (const [x, y] of P) { g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(x - 1, y, 4, 3); g.fillStyle = '#6a4a2c'; g.fillRect(x - 2, y - 2, 4, 4); g.fillStyle = '#8a6440'; g.fillRect(x - 2, y - 2, 4, 1.4); }
+          });
+        }
+        s = s1 + rnd(40, 90); // porteira / entrada de sítio
+      }
+    }
+  }
   // árvores na beira das estradas rurais
   for (const e of World.edges) {
     if (e.T.id !== 'dirt' && e.T.id !== 'road') continue;
@@ -1983,9 +2009,10 @@ function buildPatterns() {
     g.fillStyle = '#76756f';
     for (let i = 0; i < s; i += 16) { g.fillRect(i, 0, 1, s); g.fillRect(0, i, s, 1); }
   });
-  PSRC.dirt = tex(128, '#7a5e42', (g, s, R) => {
-    speck(g, s, R, 900, ['#6c523a', '#86694a', '#8f7354', '#604832', '#9a7e5c'], 1, 3);
-    for (let i = 0; i < 40; i++) { g.fillStyle = 'rgba(160,140,110,0.5)'; g.beginPath(); g.arc(R() * s, R() * s, 1 + R() * 1.5, 0, TAU); g.fill(); }
+  // barro vermelho do interior capixaba, com cascalho
+  PSRC.dirt = tex(128, '#8a5a3c', (g, s, R) => {
+    speck(g, s, R, 1100, ['#7c4f34', '#956345', '#a06e4c', '#6e462f', '#ab7a56', '#83563a'], 1, 3);
+    for (let i = 0; i < 70; i++) { g.fillStyle = R() < 0.5 ? 'rgba(190,170,140,0.55)' : 'rgba(120,110,100,0.5)'; g.beginPath(); g.arc(R() * s, R() * s, 0.8 + R() * 1.4, 0, TAU); g.fill(); }
   });
   PSRC.earth = tex(128, '#6b523a', (g, s, R) => speck(g, s, R, 900, ['#5e4833', '#7a5f44', '#836649', '#574230'], 1, 3));
   PSRC.soil = tex(128, '#4f3a29', (g, s, R) => speck(g, s, R, 900, ['#453223', '#5c4530', '#3e2d20', '#634b35'], 1, 2.5));
@@ -2220,13 +2247,41 @@ function drawEdgeBase(g, e) {
     for (let s = 0; s <= L; s += 16) g.lineTo(s, -hw - 3 + hash2((e.id * 131 + s) | 0, 7) * 8);
     for (let s = L; s >= 0; s -= 16) g.lineTo(s, hw + 3 - hash2((e.id * 131 + s) | 0, 11) * 8);
     g.closePath(); g.fill();
-    g.fillStyle = 'rgba(40,28,18,0.22)';
-    g.fillRect(0, -15 - 3, L, 6); g.fillRect(0, 15 - 3, L, 6);
-    g.fillStyle = 'rgba(160,140,100,0.18)'; g.fillRect(0, -2, L, 4);
     const R = mulberry32(e.id * 31 + 7);
-    for (let i = 0; i < L / 90; i++) { g.fillStyle = 'rgba(30,22,14,0.3)'; g.beginPath(); g.ellipse(R() * L, (R() - 0.5) * hw * 1.4, 4 + R() * 8, 3 + R() * 5, 0, 0, TAU); g.fill(); }
-    g.fillStyle = 'rgba(60,90,40,0.55)';
-    for (let i = 0; i < L / 14; i++) { const s = R() * L; g.fillRect(s, -hw - 4 + R() * 3, 2, 4); g.fillRect(s + 5, hw + R() * 3, 2, 4); }
+    const wob = (s, k) => Math.sin(s * 0.013 + k) * 2.2 + Math.sin(s * 0.041 + k * 3) * 1.1;
+    // capim invadindo as bordas
+    g.fillStyle = 'rgba(70,96,44,0.45)';
+    for (let s = 0; s < L; s += 10) { const w1 = 3 + hash2((e.id * 7 + s) | 0, 3) * 7, w2 = 3 + hash2((e.id * 7 + s) | 0, 5) * 7; g.fillRect(s, -hw - 2, 10, w1); g.fillRect(s, hw + 2 - w2, 10, w2); }
+    // trilhas dos pneus: terra mais escura e compactada
+    for (const y of [-25, -11, 11, 25]) {
+      g.strokeStyle = 'rgba(70,40,24,0.38)'; g.lineWidth = 5.5; g.beginPath();
+      for (let s = 0; s <= L; s += 24) { const yy = y + wob(s, y); if (s) g.lineTo(s, yy); else g.moveTo(s, yy); }
+      g.stroke();
+      g.strokeStyle = 'rgba(200,150,110,0.12)'; g.lineWidth = 1.2; g.stroke();
+    }
+    // faixa de capim no meio da estrada e entre as trilhas
+    for (const y of [-18, 0, 18]) {
+      for (let s = R() * 20; s < L; s += 6 + R() * 16) {
+        if (R() < (y === 0 ? 0.35 : 0.6)) continue;
+        g.fillStyle = R() < 0.5 ? 'rgba(84,112,50,0.75)' : 'rgba(104,128,60,0.7)';
+        g.beginPath(); g.ellipse(s, y + wob(s, y) + (R() - 0.5) * 3, 2 + R() * 3, 1.2 + R() * 1.6, 0, 0, TAU); g.fill();
+      }
+    }
+    // costela de vaca (ondulações) em alguns trechos
+    for (let i = 0; i < L / 260; i++) {
+      const s0 = R() * L, n = 6 + R() * 10;
+      g.strokeStyle = 'rgba(60,34,20,0.18)'; g.lineWidth = 1.4; g.beginPath();
+      for (let k = 0; k < n; k++) { const s = s0 + k * 6; g.moveTo(s, -hw + 8); g.lineTo(s + 1, hw - 8); }
+      g.stroke();
+    }
+    // buracos e poças d'água
+    for (let i = 0; i < L / 150; i++) {
+      const s = R() * L, y = (R() < 0.5 ? -1 : 1) * (6 + R() * (hw - 14)), rx = 5 + R() * 9, ry = 3 + R() * 5;
+      g.fillStyle = 'rgba(50,28,16,0.55)'; g.beginPath(); g.ellipse(s, y, rx + 2, ry + 1.5, R() * 0.6, 0, TAU); g.fill();
+      if (R() < 0.6) { g.fillStyle = 'rgba(120,140,160,0.55)'; g.beginPath(); g.ellipse(s - 1, y - 0.5, rx * 0.75, ry * 0.65, 0, 0, TAU); g.fill(); g.fillStyle = 'rgba(220,230,240,0.35)'; g.fillRect(s - rx * 0.4, y - ry * 0.3, rx * 0.5, 1); }
+    }
+    // pedras soltas
+    for (let i = 0; i < L / 18; i++) { g.fillStyle = R() < 0.5 ? 'rgba(170,160,145,0.8)' : 'rgba(110,100,92,0.8)'; g.fillRect(R() * L, (R() - 0.5) * hw * 1.8, 1.5 + R() * 1.5, 1.2 + R()); }
   }
   g.restore();
 }
@@ -3421,7 +3476,13 @@ function trafficRush() {
   if (t < 28 * 60 + 30) return { k: 0.42, label: 'madrugada' };
   return { k: 1.2, label: 'horário de pico' };
 }
-function trafficMax() { const base = Settings.quality === 'alta' ? 22 : Settings.quality === 'baixa' ? 11 : 17; return Math.max(5, Math.round(base * trafficRush().k)); }
+// área rural: 60% menos movimento que na cidade
+function ruralFactor(x, y) { const R = REGIONS[regionKeyAt(x, y)]; return 1 - 0.6 * clamp((R.rural - 0.3) / 0.5, 0, 1); }
+function trafficMax() {
+  const base = Settings.quality === 'alta' ? 22 : Settings.quality === 'baixa' ? 11 : 17;
+  const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
+  return Math.max(k < 0.7 ? 3 : 5, Math.round(base * trafficRush().k * k));
+}
 function lightState(n, axis, now) {
   const t = (now + n.light.off) % 15;
   if (axis === 'H') return t < 6 ? 'G' : t < 7.5 ? 'Y' : 'R';
@@ -3435,9 +3496,9 @@ function wpick(list) {
 }
 function trafficModelFor(e) {
   switch (e.T.id) {
-    case 'dirt': return wpick([['pickup', 4], ['quadrado', 2], ['besouro', 2], ['tractor', 1.6], ['santana', 1], ['van', 1.4]]);
+    case 'dirt': return wpick([['pickup', 4.5], ['tractor', 2.6], ['truck', 1.0], ['cacamba', 0.4], ['quadrado', 0.9], ['besouro', 0.7], ['moto', 0.9]]);
     case 'highway': return wpick([['truck', 1.5], ['bau', 1.4], ['tanker', 0.8], ['gas', 0.5], ['cacamba', 0.6], ['bus', 1.2], ['santana', 2], ['sedan', 1.5], ['quadrado', 1.5], ['escada', 1.2], ['hatch', 1], ['pickup', 2], ['van', 0.8], ['sport', 0.4], ['police', 0.5]]);
-    case 'road': return wpick([['pickup', 3], ['quadrado', 2], ['escada', 1.5], ['besouro', 1], ['santana', 2], ['truck', 0.6], ['bau', 0.5], ['cacamba', 0.4], ['van', 1]]);
+    case 'road': return wpick([['pickup', 4], ['tractor', 1.4], ['truck', 1.6], ['bau', 0.7], ['cacamba', 0.5], ['gas', 0.3], ['quadrado', 1], ['santana', 0.8], ['besouro', 0.6], ['moto', 0.6]]);
     case 'avenue': return wpick([['quadrado', 2.5], ['escada', 2], ['besouro', 1.2], ['hatch', 1.5], ['santana', 2], ['sedan', 1.5], ['taxi', 1.5], ['bus', 1.1], ['pickup', 1.2], ['van', 1], ['sport', 0.5], ['truck', 0.4], ['moto', 1.8], ['police', 0.6]]);
     default: return wpick([['gas', 0.35], ['quadrado', 3], ['escada', 2.5], ['besouro', 2], ['hatch', 1.5], ['santana', 2], ['sedan', 1], ['taxi', 1], ['pickup', 1.5], ['van', 1.2], ['sport', 0.5], ['moto', 2.2], ['police', 0.35]]);
   }
@@ -3707,6 +3768,14 @@ class AICar {
     }
     this.ox *= Math.exp(-2.5 * dt); this.oy *= Math.exp(-2.5 * dt);
     this.roll += this.v * dt * 0.35;
+    // poeira levantada na estrada de terra
+    if (this.v > 50 && (this.state === 'edge' ? this.e.T.id === 'dirt' : this.dirtTurn) && chance(dt * 9)) {
+      const v = Cam.view;
+      if (v && this.x > v.x0 - 60 && this.x < v.x1 + 60 && this.y > v.y0 - 60 && this.y < v.y1 + 60) {
+        const c = Math.cos(this.a), s = Math.sin(this.a), L = this.m.L * 0.5;
+        Particles.emit('dust', this.x - c * L + rnd(-6, 6), this.y - s * L + rnd(-6, 6), -c * this.v * 0.12, -s * this.v * 0.12, rnd(0.9, 1.7), 8);
+      }
+    }
     this.pose();
   }
   pose() {
@@ -3769,6 +3838,8 @@ Traffic.spawnNear = function (cx, cy, minD, maxD, view) {
     for (const o of this.cars) if (Math.abs(o.x - x) < 90 && Math.abs(o.y - y) < 90) { ok = false; break; }
     if (player && Math.abs(player.x - x) < 120 && Math.abs(player.y - y) < 120) ok = false;
     if (!ok) continue;
+    // estradas da roça recebem bem menos carros
+    if ((e.T.id === 'dirt' || e.T.id === 'road') && !chance(0.45)) continue;
     const model = trafficModelFor(e);
     const car = new AICar(e, dir, s, lane, model);
     if (!car.allowed(e)) { car.release(); continue; }
@@ -6130,7 +6201,7 @@ const MAP_S = 0.1;
 function buildMapImage() {
   const c = makeCanvas(GW, GH), g = c.getContext('2d');
   const img = g.createImageData(GW, GH), d = img.data;
-  const COLS = [[34, 52, 30], [92, 96, 104], [70, 72, 76], [120, 96, 68], [24, 64, 96], [140, 112, 80], [74, 76, 80], [62, 80, 40], [96, 78, 56], [150, 136, 100]];
+  const COLS = [[34, 52, 30], [92, 96, 104], [70, 72, 76], [150, 98, 64], [24, 64, 96], [140, 112, 80], [74, 76, 80], [62, 80, 40], [96, 78, 56], [150, 136, 100]];
   for (let i = 0; i < GW * GH; i++) { const col = COLS[ground[i]] || COLS[0]; d[i * 4] = col[0]; d[i * 4 + 1] = col[1]; d[i * 4 + 2] = col[2]; d[i * 4 + 3] = 255; }
   g.putImageData(img, 0, 0);
   g.fillStyle = 'rgba(14,30,14,0.9)';
