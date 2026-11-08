@@ -470,11 +470,11 @@ const World = {
 
 /* -------- tipos de via -------- */
 const RT = {
-  street: { id: 'street', w: 90, sw: 22, lanes: [22], speed: 150, asphalt: true, center: 'dash' },
-  avenue: { id: 'avenue', w: 172, sw: 22, lanes: [24, 64], speed: 190, asphalt: true, center: 'double', laneDiv: 44 },
-  highway: { id: 'highway', w: 172, sw: 0, lanes: [23, 63], speed: 280, asphalt: true, center: 'double', laneDiv: 43, edgeLine: true, shoulder: 16 },
-  road: { id: 'road', w: 86, sw: 0, lanes: [22], speed: 200, asphalt: true, center: 'dash', edgeLine: true, shoulder: 12 },
-  dirt: { id: 'dirt', w: 72, sw: 0, lanes: [17], speed: 115, asphalt: false },
+  street: { id: 'street', w: 95, sw: 22, lanes: [23], speed: 150, asphalt: true, center: 'dash' },
+  avenue: { id: 'avenue', w: 180, sw: 22, lanes: [25, 67], speed: 190, asphalt: true, center: 'double', laneDiv: 46 },
+  highway: { id: 'highway', w: 180, sw: 0, lanes: [24, 66], speed: 280, asphalt: true, center: 'double', laneDiv: 45, edgeLine: true, shoulder: 16 },
+  road: { id: 'road', w: 90, sw: 0, lanes: [23], speed: 200, asphalt: true, center: 'dash', edgeLine: true, shoulder: 12 },
+  dirt: { id: 'dirt', w: 76, sw: 0, lanes: [18], speed: 115, asphalt: false },
 };
 const XS = [300, 850, 1450, 2100, 2700, 3350, 3950, 4600];
 const YS = [300, 880, 1500, 2080, 2700, 3300, 3880, 4500, 5300];
@@ -588,12 +588,19 @@ const REGIONS = {
   sitio: { name: 'Sítio Bota Fé', dark: 0.76, city: 0, rural: 1 },
   fazenda: { name: 'Fazenda Muuuito Longe', dark: 0.76, city: 0, rural: 1 },
   rodovia: { name: 'Rodovia BR-101 e Pouco', dark: 0.76, city: 0.2, rural: 0.7 },
+  novarosa: { name: 'Nova Rosa da Penha', dark: 0.74, city: 0.7, rural: 0.15 },
+  flexal: { name: 'Flexal', dark: 0.74, city: 0.7, rural: 0.15 },
+  saopedro: { name: 'Morro de São Pedro', dark: 0.75, city: 0.6, rural: 0.2 },
+  terravermelha: { name: 'Terra Vermelha', dark: 0.75, city: 0.6, rural: 0.2 },
   feurosa: { name: 'Feu Rosa', dark: 0.74, city: 0.7, rural: 0.15 },
   carapina: { name: 'Jardim Carapina', dark: 0.74, city: 0.7, rural: 0.15 },
   mata: { name: 'Mata do Saci', dark: 0.80, city: 0, rural: 1 },
 };
+const SUBREG = [];
 function regionKeyAt(x, y) {
   if (x < 230 || y < 230 || x > 8790 || y > WORLD_H - 240) return 'mata';
+  for (const s of SUBREG) if (x > s[0] && x < s[2] && y > s[1] && y < s[3]) return s[4];
+  if (y > 8030 && x < 4660) return x < 2700 ? 'novarosa' : 'flexal';
   if (y > 6440 && x < 4660) return x < 2100 ? 'feurosa' : 'carapina';
   if (y > 6440) return 'mata';
   if (y > 5720) return 'rodovia';
@@ -664,8 +671,8 @@ function addTree(x, y, type, size, opt) {
   World.tall.push(t);
   const R = (type === 'palm' ? 26 : type === 'bush' ? 12 : 24) * size;
   rendGrid.insert(t, x - R, y - R, x + R, y + R);
-  if (type !== 'bush') addCircCol(x, y, type === 'palm' ? 4 : 5 * size, 'tree');
-  else addCircCol(x, y, 7 * size, 'tree');
+  const tc = type !== 'bush' ? addCircCol(x, y, type === 'palm' ? 4 : 5 * size, 'tree') : addCircCol(x, y, 7 * size, 'tree');
+  if (opt.sidewalk || type === 'bush' || size < 0.9) tc.brk = { kind: 'tree', obj: t };
   const sr = R * 0.9;
   bake(x - sr, y - sr, x + sr * 2, y + sr * 2, 7, (g) => {
     g.fillStyle = 'rgba(0,0,0,0.28)';
@@ -704,15 +711,15 @@ function addProp(type, x, y, opt) {
 function addWall(x0, y0, x1, y1, color, opt) {
   opt = opt || {};
   if (x1 - x0 < 1 || y1 - y0 < 1) return;
-  const w = { x0, y0, x1, y1, color, hgt: opt.h || 4, kind: opt.kind || 'wall' };
+  const w = { x0, y0, x1, y1, color, hgt: opt.h || 4, kind: opt.kind || 'wall', graf: opt.graf || null };
   bake(x0 - 2, y0 - 8, x1 + 6, y1 + 8, 8, (g) => drawWallBaked(g, w));
   if (!opt.noCol) addRectCol(x0, y0, x1, y1, 'wall');
 }
 function addFence(x0, y0, x1, y1, opt) {
   opt = opt || {};
-  const f = { x0, y0, x1, y1, type: opt.type || 'wood' };
+  const f = { x0, y0, x1, y1, type: opt.type || 'wood', gaps: [] };
   bake(x0 - 4, y0 - 6, x1 + 6, y1 + 6, 8, (g) => drawFenceBaked(g, f));
-  addRectCol(x0, y0, x1, y1, 'fence');
+  addRectCol(x0, y0, x1, y1, 'fence').brk = { kind: 'fence', obj: f };
 }
 // cercado com portões (gaps: lista {side, at, w})
 function fenceRect(x0, y0, x1, y1, gaps, type) {
@@ -751,7 +758,13 @@ function addShop(def) {
 }
 
 /* ============================ LOTES E QUARTEIRÕES ============================ */
-const BREAKABLE = { bench: 'wood', bin: 'plastic', hydrant: 'metal', bollard: 'metal', table: 'plastic', tires: 'rubber', cart: 'metal', pot: 'clay' };
+const MURO_FRASES = ['FÉ EM DEUS', 'DEUS É FIEL', 'JESUS TE AMA', 'NÃO JOGUE LIXO', 'ALUGA-SE', 'VENDE-SE', 'RESPEITA AS MINA', 'SAUDADE ETERNA', 'MAIS AMOR', 'PAZ NA QUEBRADA', 'FAVELA VIVE', 'CRIA DO MORRO', 'SÓ OS CRIA', 'VAI DAR CERTO', 'O MORRO É TALENTO', 'CAPIXABA COM ORGULHO', 'ESTUDA, MOLEQUE', 'FAZ O BEM', 'TÁ PAGO', 'SORRIA, VOCÊ ESTÁ NO 027'];
+const PIXOS = ['CREW 027', 'OS GAMBIARRA', 'NOIS', 'ZN 027', 'LOKOS', 'PIXO ES', 'LAJE CREW', '027 SKATE', 'MANOS DA SERRA', 'TINTA FRESCA'];
+function addGraffiti(b, kind) {
+  kind = kind || (chance(0.45) ? 'frase' : chance(0.6) ? 'pixo' : 'mural');
+  b.graf = { kind, text: kind === 'frase' || kind === 'mural' ? pick(MURO_FRASES) : pick(PIXOS), color: kind === 'pixo' ? pick(['#111111', '#111111', '#f2f2ea', '#c8241c']) : pick(['#e63946', '#1d4f9c', '#2a9d8f', '#111111', '#f4c430']), seed: rnd() };
+}
+const BREAKABLE = { cone: 'plastic', barrier: 'wood', bench: 'wood', bin: 'plastic', hydrant: 'metal', bollard: 'metal', table: 'plastic', tires: 'rubber', cart: 'metal', pot: 'clay' };
 function lotFrame(x0, y0, x1, y1, front) {
   const F = { front, x0, y0, x1, y1 };
   const ns = front === 'N' || front === 'S';
@@ -815,6 +828,7 @@ function houseLot(F, o) {
   const hr = F.rect(7, setback, W - 7, setback + depth);
   const roofColor = roofType === 'hip' || roofType === 'gable' ? pick(ROOF_TILE) : roofType === 'laje' || roofType === 'tijolo' ? '#8f8b84' : roofType === 'amianto' ? '#a7a9a4' : '#6f6c69';
   const hb = addBuilding(hr[0], hr[1], hr[2], hr[3], h, { style: 'house', front: F.front, roofType, roofColor, wall, lit: rnd(0.15, 0.6) });
+  if (!rich && chance(0.2)) addGraffiti(hb);
   hb.brick = brick; hb.varal = chance(0.35); hb.dish = chance(0.3);
   if (hasCar) {
     const dr = F.rect(gateU, 0, gateU + gateW, setback);
@@ -959,7 +973,8 @@ function industrialBlock(R, o) {
   const w = R.x1 - R.x0;
   const whCol = pick(['#7f8a8c', '#5f7f8c', '#8c8070', '#6c8070']);
   const wx1 = R.x0 + w * rnd(0.5, 0.62);
-  addBuilding(R.x0 + 20, R.y0 + 30, wx1, R.y1 - 120, rnd(36, 46), { style: 'warehouse', roofType: 'corrugated', roofColor: whCol, wall: '#a9a59b', lit: 0.12, front: 'S' });
+  const wh = addBuilding(R.x0 + 20, R.y0 + 30, wx1, R.y1 - 120, rnd(36, 46), { style: 'warehouse', roofType: 'corrugated', roofColor: whCol, wall: '#a9a59b', lit: 0.12, front: 'S' });
+  if (chance(0.6)) addGraffiti(wh, chance(0.5) ? 'pixo' : 'mural');
   addLight((R.x0 + wx1) / 2, R.y1 - 90, 150, 0.8, 'sodium');
   for (let k = 0; k < 4; k++) {
     const cx = wx1 + 30 + k * 32;
@@ -1145,6 +1160,10 @@ function homeLot(F, ro) {
 function comunidadeBlock(R) {
   // comunidade: casinhas coladas de bloco e laje, vielas estreitas, caixas d'água e varais
   decal(R.x0, R.y0, R.x1, R.y1, 'yard');
+  // muro grafitado virado para a rua (face sul)
+  const gl = [];
+  for (let x = R.x0 + 6; x < R.x1 - 60; x += rndi(70, 110)) gl.push({ x, text: chance(0.5) ? pick(MURO_FRASES) : pick(PIXOS), color: pick(['#111111', '#f2f2ea', '#c8241c', '#1d4f9c', '#2a9d8f', '#f4c430']), mural: chance(0.25) });
+  addWall(R.x0, R.y1 + 1, R.x1, R.y1 + 5, pick(['#d8d0c0', '#c9b79c', '#e2d2b6', '#b8b0a2']), { graf: gl });
   const cols = ['#e9c46a', '#f4a261', '#2a9d8f', '#e76f51', '#8ecae6', '#f1efe8', '#b5603a', '#b5603a', '#c06a40', '#9bc53d', '#ff99c8'];
   let y = R.y0 + 4, row = 0;
   while (y < R.y1 - 30) {
@@ -1158,6 +1177,7 @@ function comunidadeBlock(R) {
       const roofType = pick(['laje', 'laje', 'tijolo', 'amianto', 'laje']);
       const b = addBuilding(x, y, x + w, y + rh, 16 + floors * 11 + rnd(0, 4), { style: 'house', front: row === 0 ? 'N' : 'S', roofType, roofColor: roofType === 'amianto' ? '#a7a9a4' : '#8f8b84', wall, lit: rnd(0.3, 0.75) });
       b.brick = brick; b.varal = chance(0.4); b.dish = chance(0.35);
+      if (chance(0.5)) addGraffiti(b);
       if (chance(0.25)) addLight(x + w / 2, y + rh + 4, 45, 0.6, 'warm');
       x += w + (chance(0.22) ? rndi(10, 14) : 1);
     }
@@ -1208,7 +1228,7 @@ function buildCity() {
     else if (r < 4) {
       if (c >= 5) industrialBlock(R, {});
       else downtownBlock(R, { roads, region, shops: shopsDowntown[k] });
-    } else if (k === '0,6' || k === '1,7') comunidadeBlock(R);
+    } else if (k === '0,6' || k === '1,7') { comunidadeBlock(R); SUBREG.push([R.x0 - 20, R.y0 - 20, R.x1 + 20, R.y1 + 20, k === '0,6' ? 'saopedro' : 'terravermelha']); }
     else residentialBlock(R, { rich: c >= 3, roads, region, special: resSpecial[k] });
   }
 }
@@ -1297,6 +1317,14 @@ function buildRoadProps() {
           addTree(px, py, pick(types), rnd(0.75, 0.95), { sidewalk: true });
         }
       }
+      // obra na rua: buraco com cones e cavalete (tudo derrubável)
+      if (T.id === 'street' && e.len > 400 && chance(0.18)) {
+        const s = e.len * rnd(0.35, 0.65), sd = chance(0.5) ? 1 : -1, o = e.hw - 9;
+        const px = e.a.x + e.dx * s + nx * o * sd, py = e.a.y + e.dy * s + ny * o * sd;
+        addProp('hole', px - nx * 4 * sd, py - ny * 4 * sd, { z: 5.6, R: 20 });
+        for (const d of [-26, -9, 9, 26]) addProp('cone', px + e.dx * d, py + e.dy * d, { col: 'circ', cr: 3, R: 14 });
+        addProp('barrier', px + e.dx * 40, py + e.dy * 40, { a: Math.atan2(ny, nx), col: 'circ', cr: 4, R: 22 });
+      }
       // lixeiras / hidrantes
       for (let s = e.clearA + 40; s < e.len - e.clearB - 40; s += 140) {
         if (!chance(0.35)) continue;
@@ -1331,7 +1359,7 @@ function buildRoadProps() {
       if (!areaBlocked(px - 5, py - 5, px + 5, py + 5)) {
         const lim = T.id === 'avenue' ? 80 : 110;
         const rd = { kind: 'radar', x: px, y: py, h: 40, lim, last: -99 };
-        addTall(rd, px - 30, py - 30, px + 30, py + 30); addCircCol(px, py, 3, 'pole');
+        addTall(rd, px - 50, py - 50, px + 50, py + 50); addCircCol(px, py, 3, 'pole').brk = { kind: 'tall', obj: rd };
         const cx = e.a.x + e.dx * s, cy = e.a.y + e.dy * s;
         World.radars.push({ obj: rd, lim, x0: e.h ? cx - 22 : cx - e.hw, x1: e.h ? cx + 22 : cx + e.hw, y0: e.h ? cy - e.hw : cy - 22, y1: e.h ? cy + e.hw : cy + 22 });
         const tx = cx - nx * e.hw * 0.5, ty = cy - ny * e.hw * 0.5;
@@ -1350,7 +1378,7 @@ function buildRoadProps() {
       if (!areaBlocked(px - 20, py - 8, px + 20, py + 8)) {
         const st = { kind: 'busstop', x: px, y: py, a: Math.atan2(e.dy, e.dx), h: 26 };
         addTall(st, px - 30, py - 30, px + 30, py + 30);
-        addRectCol(px - (e.h ? 22 : 6), py - (e.h ? 6 : 22), px + (e.h ? 22 : 6), py + (e.h ? 6 : 22), 'prop');
+        addRectCol(px - (e.h ? 22 : 6), py - (e.h ? 6 : 22), px + (e.h ? 22 : 6), py + (e.h ? 6 : 22), 'prop').brk = { kind: 'tall', obj: st };
         addLight(px, py, 70, 0.7, 'white');
       }
     }
@@ -1547,18 +1575,18 @@ function buildRural() {
   }
 }
 function buildHighwayStrip() {
-  const y0 = 5368, y1 = 6102;
+  const y0 = 5371, y1 = 6098;
   // chácaras
-  decal(368, y0, 1382, y1, 'lawn');
+  decal(371, y0, 1379, y1, 'lawn');
   for (const [x0, x1] of [[380, 700], [760, 1100]]) {
     const F = lotFrame(x0, y0, x1, y0 + 220, 'N');
     houseLot(F, { rich: true, back: true, lastLot: true, street: 'Rua da Esperança Equilibrista', roadHW: RT.street.w / 2, laneOff: RT.street.lanes[0], region: 'rodovia' });
   }
   scatterTrees(385, 5600, 1370, 6080, 14, ['mango', 'round', 'palm', 'pine']);
   // Posto Estrela Cadente
-  decal(1518, y0, 1992, y1, 'lawn');
-  World.posto2 = gasStation({ x0: 1518, y0: 5760, x1: 1992, y1: y1 }, { name: 'Posto Estrela Cadente', color: '#ffb000', front: 'N', canopy: [1580, 5920, 1880, 6070], store: [1560, 5780, 1760, 5880], totem: [1978, 6086], region: 'rodovia' });
-  decal(1518, y0 + 20, 1992, 5740, 'paved');
+  decal(1521, y0, 1988, y1, 'lawn');
+  World.posto2 = gasStation({ x0: 1521, y0: 5760, x1: 1988, y1: y1 }, { name: 'Posto Estrela Cadente', color: '#ffb000', front: 'N', canopy: [1580, 5920, 1880, 6070], store: [1560, 5780, 1760, 5880], totem: [1974, 6082], region: 'rodovia' });
+  decal(1521, y0 + 20, 1988, 5740, 'paved');
   const sx0 = 1540, SW = 34;
   bake(sx0, 5400, sx0 + 13 * SW, 5470, 6, (g) => { g.strokeStyle = 'rgba(240,240,230,0.7)'; g.lineWidth = 2; g.beginPath(); for (let i = 0; i <= 13; i++) { g.moveTo(sx0 + i * SW, 5400); g.lineTo(sx0 + i * SW, 5470); } g.moveTo(sx0, 5400); g.lineTo(sx0 + 13 * SW, 5400); g.stroke(); });
   for (let i = 0; i < 13; i++) {
@@ -1570,7 +1598,7 @@ function buildHighwayStrip() {
   addLamp(1700, 5520, 1700, 5520, 'white', { style: 'pole', h: 64, r: 200 });
   addLamp(1900, 5520, 1900, 5520, 'white', { style: 'pole', h: 64, r: 200 });
   // churrascaria
-  decal(2208, y0, 3883, y1, 'lawn');
+  decal(2212, y0, 3880, y1, 'lawn');
   decal(2600, 5780, 3100, y1, 'paved');
   const chb = addBuilding(2680, 5790, 3000, 5930, 34, { style: 'shop', front: 'S', roofType: 'hip', roofColor: '#8a3a22', wall: '#e8d2a8', lit: 0.9, sign: 'BOI NA BRASA', signColor: '#ff5f3d' });
   addLight(2840, 5950, 160, 0.9, 'warm', { shop: true });
@@ -1587,7 +1615,7 @@ function buildHighwayStrip() {
   scatterTrees(2230, 5400, 2580, 6080, 8, ['mango', 'round', 'pine']);
   scatterTrees(3150, 5400, 3870, 6080, 12, ['mango', 'round', 'pine', 'palm']);
   // borracharia
-  decal(4017, y0, 4533, y1, 'lawn');
+  decal(4020, y0, 4530, y1, 'lawn');
   decal(4100, 5940, 4400, y1, 'gravel');
   const bb = addBuilding(4150, 5960, 4330, 6060, 26, { style: 'shop', front: 'S', roofType: 'corrugated', roofColor: '#6a6a60', wall: '#d4cdb4', lit: 0.9, sign: 'BORRACHARIA 24H', signColor: '#ffd24a' });
   for (let i = 0; i < 5; i++) addProp('tires', 4120 + i * 22, 6080, { col: 'circ', cr: 8 });
@@ -1628,7 +1656,7 @@ function addFlags(x1, y1, x2, y2, bulbs) {
 function addGrill(x, y) {
   if (areaBlocked(x - 8, y - 6, x + 8, y + 6)) return;
   const g = { kind: 'grill', x, y, h: 10 };
-  addTall(g, x - 20, y - 20, x + 20, y + 20); addCircCol(x, y, 6, 'prop');
+  addTall(g, x - 30, y - 30, x + 30, y + 30); addCircCol(x, y, 6, 'prop').brk = { kind: 'tall', obj: g };
   World.grills.push(g);
   addLight(x, y, 70, 0.7, 'sodium');
   World.animalsDef.push({ type: 'person', n: 3, rect: [x - 30, y - 8, x + 30, y + 8], look: { dance: true } });
@@ -1692,7 +1720,7 @@ function buildCapixaba() {
     const y = 5830;
     if (areaBlocked(x - 14, y - 12, x + 14, y + 12)) continue;
     const st = { kind: 'stall', x, y, h: 20, c: cols[n % cols.length], seed: n };
-    addTall(st, x - 30, y - 30, x + 30, y + 30); addRectCol(x - 12, y - 8, x + 12, y + 8, 'prop'); n++;
+    addTall(st, x - 40, y - 40, x + 40, y + 40); addRectCol(x - 12, y - 8, x + 12, y + 8, 'prop').brk = { kind: 'tall', obj: st }; n++;
   }
   if (n) { decal(450, 5790, 1270, 5870, 'yard', { z: 1.4 }); addLight(860, 5830, 260, 0.6, 'warm'); World.animalsDef.push({ type: 'person', n: 14, rect: [460, 5850, 1260, 5866] }); }
 }
@@ -1734,8 +1762,21 @@ function quadraBloco(R) {
   World.animalsDef.push({ type: 'person', n: 12, rect: [R.x0 + 30, R.y0 + 240, R.x1 - 30, R.y0 + 300], look: { dance: true } });
   comunidadeBlock({ x0: R.x0, y0: R.y0 + 320, x1: R.x1, y1: R.y1 });
 }
+function batalhaoBlock(R) {
+  decal(R.x0, R.y0, R.x1, R.y1, 'concrete');
+  const wc = '#e2e2dc', gy = (R.y0 + R.y1) / 2;
+  addWall(R.x0, R.y0, R.x1, R.y0 + 5, wc); addWall(R.x0, R.y1 - 5, R.x1, R.y1, wc); addWall(R.x1 - 5, R.y0 + 5, R.x1, R.y1 - 5, wc);
+  addWall(R.x0, R.y0 + 5, R.x0 + 5, gy - 40, wc); addWall(R.x0, gy + 40, R.x0 + 5, R.y1 - 5, wc);
+  const b = addBuilding(R.x0 + 120, R.y0 + 40, R.x1 - 40, R.y0 + 220, 40, { style: 'office', roofType: 'flat', roofColor: '#5a6470', wall: '#f2f2ea', lit: 0.7, sign: 'BATALHÃO DA PM', signColor: '#59a8ff', front: 'W' });
+  addBuilding(R.x0 + 16, gy - 70, R.x0 + 46, gy - 44, 18, { style: 'kiosk', roofType: 'flat', roofColor: '#1d4f9c', wall: '#f2f2ea', lit: 1 });
+  for (let i = 0; i < 4; i++) addParkedCar(R.x0 + 150 + i * 40, R.y1 - 70, -Math.PI / 2, 'police', '#f2f2ee');
+  addProp('flagES', R.x0 + 80, R.y0 + 40, { col: 'circ', cr: 3 }); addProp('flagES', R.x0 + 80, R.y0 + 80, { col: 'circ', cr: 3 });
+  for (const [x, y] of [[R.x0 + 90, gy], [R.x1 - 60, R.y1 - 120]]) addLamp(x, y, x, y, 'white', { style: 'pole', h: 64, r: 220 });
+  addShop({ kind: 'batalhao', name: 'Batalhão da PM', x: XS[6] + RT.street.lanes[0], y: gy, bld: b, color: '#59a8ff', region: 'carapina' });
+  World.batalhao = { x: (R.x0 + R.x1) / 2, y: gy };
+}
 function buildSerra() {
-  const special = { '1,1': 'praca', '4,2': 'campo', '5,1': 'bloco' };
+  const special = { '1,1': 'praca', '4,2': 'campo', '5,1': 'bloco', '6,0': 'batalhao' };
   for (let c = 0; c < 7; c++) for (let r = 0; r < 4; r++) {
     const R = serraRect(c, r), k = c + ',' + r, roads = serraRoads(c, r);
     const region = c < 3 ? 'feurosa' : 'carapina';
@@ -1743,6 +1784,7 @@ function buildSerra() {
     if (sp === 'praca') pracaBagunca(R);
     else if (sp === 'campo') soccerBlock(R);
     else if (sp === 'bloco') quadraBloco(R);
+    else if (sp === 'batalhao') batalhaoBlock(R);
     else if (k === '2,2') residentialBlock(R, { rich: false, roads, region, special: { side: 'N', w: 150, build: shopLotBuilder({ kind: 'mercado', name: 'Mercadinho do Morro', sign: 'MERCADINHO DO MORRO', color: '#ff7a3d', h: 30, depth: 100, pickup: true, items: ['Feira da semana', 'Gás de cozinha', 'Fardo de refrigerante'] }) } });
     else if (k === '5,2') residentialBlock(R, { rich: false, roads, region, special: { side: 'N', w: 150, build: shopLotBuilder({ kind: 'lanchonete', name: 'Pastelaria Feira Livre', sign: 'PASTEL & CALDO DE CANA', color: '#ff4f8a', h: 30, depth: 96, pickup: true, items: ['Pastel de palmito', 'Caldo de cana', 'Pastel de queijo'], tables: true }) } });
     else if (r === 0 || (c + r) % 3 === 0) residentialBlock(R, { rich: false, roads, region });
@@ -1771,6 +1813,7 @@ function buildActivitiesData() {
   P('ponte3', 'Terceira Ponte e Meia', riverCX(1500), 1500, 'Concreto, vento forte e vista do Rio Jucu.');
   P('paneleiras', 'Galpão das Paneleiras', 4830, 3275, 'Panelas de barro feitas à mão, do jeitinho capixaba.');
   P('feira', 'Feira da Roça', 860, 5830, 'Pastel, caldo de cana e banana a preço de domingo.');
+  P('batalhao', 'Batalhão da PM', World.batalhao.x, World.batalhao.y, 'Viaturas na garagem e plantão a noite inteira.');
   P('bagunca', 'Praça da Bagunça', World.pracaBagunca.x, World.pracaBagunca.y, 'Pagode de domingo, espetinho e pelada na quadra até tarde.');
   P('campao', 'Campão de Carapina', (serraRect(4, 2).x0 + serraRect(4, 2).x1) / 2, (serraRect(4, 2).y0 + serraRect(4, 2).y1) / 2, 'O terrão onde nasce craque toda semana.');
   P('bloco', 'Quadra da Unidos da Gambiarra', (serraRect(5, 1).x0 + serraRect(5, 1).x1) / 2, serraRect(5, 1).y0 + 200, 'Ensaio da escola de samba às sextas.');
@@ -2280,6 +2323,12 @@ function drawBrokenProp(g, p) {
       for (let i = 0; i < 4; i++) { g.fillStyle = shade(p.c || '#d62828', -0.15); g.fillRect(-4 + R() * 22, (R() - 0.5) * 18, 3, 3); }
       if (p.type === 'cart') for (let i = 0; i < 14; i++) { g.fillStyle = '#f5e6b0'; g.fillRect(4 + R() * 20, (R() - 0.5) * 16, 1.6, 1.6); }
       break;
+    case 'cone':
+      g.save(); g.translate(14 + R() * 10, (R() - 0.5) * 14); g.rotate(R() * TAU); g.fillStyle = '#ff6a1a'; g.beginPath(); g.moveTo(-5, -3); g.lineTo(5, 0); g.lineTo(-5, 3); g.closePath(); g.fill(); g.fillStyle = '#f2f2ea'; g.fillRect(-2, -1.5, 1.5, 3); g.restore();
+      break;
+    case 'barrier':
+      for (let i = 0; i < 2; i++) { g.save(); g.translate(8 + i * 12 + R() * 6, (R() - 0.5) * 16); g.rotate((R() - 0.5) * 2); for (let j = 0; j < 3; j++) { g.fillStyle = j % 2 ? '#f2f2ea' : '#e8402a'; g.fillRect(-7 + j * 4.7, -1.5, 4.7, 3); } g.restore(); }
+      break;
     case 'tires':
       for (let i = 0; i < 3; i++) { const x = 4 + R() * 22, y = (R() - 0.5) * 20; g.fillStyle = '#18181a'; g.beginPath(); g.arc(x, y, 7, 0, TAU); g.fill(); g.fillStyle = '#3a3a3e'; g.beginPath(); g.arc(x, y, 3.2, 0, TAU); g.fill(); }
       break;
@@ -2366,6 +2415,26 @@ function drawProp(g, p) {
       g.fillStyle = '#f5e6b0'; g.fillRect(-7, -5, 14, 8);
       g.fillStyle = '#222'; g.fillRect(-11, 4, 4, 4); g.fillRect(7, 4, 4, 4);
       break;
+    case 'hole':
+      g.fillStyle = '#141416'; g.beginPath(); g.ellipse(0, 0, 11, 7, 0.3, 0, TAU); g.fill();
+      g.strokeStyle = 'rgba(120,110,90,0.6)'; g.lineWidth = 1.2; g.stroke();
+      g.fillStyle = 'rgba(80,140,190,0.35)'; g.beginPath(); g.ellipse(-2, 1, 6, 3, 0.3, 0, TAU); g.fill();
+      break;
+    case 'cone':
+      g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.arc(1.5, 2, 4, 0, TAU); g.fill();
+      g.fillStyle = '#ff6a1a'; g.fillRect(-3.5, -3.5, 7, 7); g.fillStyle = '#ff7f2a'; g.beginPath(); g.arc(0, 0, 3, 0, TAU); g.fill();
+      g.strokeStyle = '#f2f2ea'; g.lineWidth = 1; g.beginPath(); g.arc(0, 0, 1.8, 0, TAU); g.stroke();
+      break;
+    case 'barrier':
+      g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-13, -1, 28, 5);
+      for (let i = 0; i < 6; i++) { g.fillStyle = i % 2 ? '#f2f2ea' : '#e8402a'; g.fillRect(-14 + i * 4.7, -2.5, 4.7, 4); }
+      g.fillStyle = '#3a3a3a'; g.fillRect(-14, 1.5, 2, 2); g.fillRect(12, 1.5, 2, 2);
+      break;
+    case 'flagES':
+      g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.arc(1, 2, 3, 0, TAU); g.fill();
+      g.fillStyle = '#ccc'; g.beginPath(); g.arc(0, 0, 2, 0, TAU); g.fill();
+      for (let i = 0; i < 3; i++) { g.fillStyle = ['#1d4f9c', '#f4f4f0', '#e98bb0'][i]; g.fillRect(2, -8 + i * 4, 18, 4); }
+      break;
     case 'pot': {
       g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.arc(1.5, 2, 6, 0, TAU); g.fill();
       g.fillStyle = '#2a2420'; g.beginPath(); g.arc(0, 0, 5.5, 0, TAU); g.fill();
@@ -2403,6 +2472,27 @@ function drawProp(g, p) {
   g.restore();
 }
 function drawWallBaked(g, w) {
+  if (w.graf) {
+    // muro alto pichado: face sul visível com frases e pixos
+    const x0 = w.x0, y0 = w.y0, ww = w.x1 - w.x0, hh = w.y1 - w.y0, lift = 11, fy = y0 - lift + hh;
+    g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(x0 + 2, y0 + 2, ww + 2, hh + 3);
+    g.fillStyle = shade(w.color, -0.18); g.fillRect(x0, fy, ww, lift);
+    g.fillStyle = 'rgba(0,0,0,0.12)'; for (let x = x0; x < x0 + ww; x += 9) g.fillRect(x, fy, 0.7, lift);
+    g.fillStyle = shade(w.color, 0.1); g.fillRect(x0, y0 - lift, ww, hh);
+    g.textBaseline = 'middle'; g.textAlign = 'left';
+    for (const t of w.graf) {
+      if (t.mural) {
+        const cols = ['#e63946', '#f4c430', '#2a9d8f', '#3a86ff', '#ff7f11'];
+        for (let i = 0; i < 6; i++) { g.fillStyle = cols[(i + t.x) % 5]; g.fillRect(t.x + i * 11, fy + 1, 11, lift - 2); }
+        g.font = 'italic 900 8px Arial, sans-serif'; g.lineWidth = 2; g.strokeStyle = '#111'; g.strokeText(t.text, t.x + 2, fy + lift / 2, 64); g.fillStyle = '#fff'; g.fillText(t.text, t.x + 2, fy + lift / 2, 64);
+      } else {
+        g.font = (PIXOS.includes(t.text) ? '900 9px "Arial Narrow", Impact, Arial' : 'italic 800 8px Arial') + ', sans-serif';
+        g.fillStyle = t.color; g.fillText(t.text, t.x, fy + lift / 2, 80);
+        for (let i = 0; i < 3; i++) g.fillRect(t.x + 6 + i * 17, fy + lift / 2 + 3, 0.8, 2 + (i * 3 + t.x) % 3);
+      }
+    }
+    return;
+  }
   const x0 = w.x0, y0 = w.y0, ww = w.x1 - w.x0, hh = w.y1 - w.y0, lift = 3;
   g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(x0 + 2, y0 + 2, ww + 2, hh + 2);
   if (w.kind === 'hedge') {
@@ -2419,6 +2509,19 @@ function drawWallBaked(g, w) {
 function drawFenceBaked(g, f) {
   const long = (f.x1 - f.x0) > (f.y1 - f.y0);
   const L = long ? f.x1 - f.x0 : f.y1 - f.y0;
+  if (f.gaps && f.gaps.length) {
+    // cerca arrebentada: desenha os pedaços inteiros e madeira/arame caídos nos buracos
+    let cur = 0;
+    const parts = [];
+    for (const gp of [...f.gaps].sort((a, b) => a.t - b.t)) { if (gp.t - 22 > cur) parts.push([cur, gp.t - 22]); cur = Math.max(cur, gp.t + 22); }
+    if (L > cur) parts.push([cur, L]);
+    for (const [a, b] of parts) drawFenceBaked(g, long ? { x0: f.x0 + a, x1: f.x0 + b, y0: f.y0, y1: f.y1, type: f.type } : { x0: f.x0, x1: f.x1, y0: f.y0 + a, y1: f.y0 + b, type: f.type });
+    for (const gp of f.gaps) {
+      const R = mulberry32((gp.t * 97) | 0), cx0 = long ? f.x0 + gp.t : (f.x0 + f.x1) / 2, cy0 = long ? (f.y0 + f.y1) / 2 : f.y0 + gp.t;
+      for (let i = 0; i < 4; i++) { g.save(); g.translate(cx0 + Math.cos(gp.a) * (6 + R() * 22) + (R() - 0.5) * 12, cy0 + Math.sin(gp.a) * (6 + R() * 22) + (R() - 0.5) * 12); g.rotate(R() * TAU); g.fillStyle = f.type === 'chain' ? '#8f949a' : '#6a4a2a'; g.fillRect(-7, -1, 14, 2.4); g.restore(); }
+    }
+    return;
+  }
   const cx = (f.x0 + f.x1) / 2, cy = (f.y0 + f.y1) / 2;
   const P = (t, o) => long ? [f.x0 + t, cy + o] : [cx + o, f.y0 + t];
   if (f.type === 'chain') {
@@ -3082,7 +3185,7 @@ class Player {
           }
           if (o.brk) {
             const vb = this.vx * nx + this.vy * ny;
-            if (-vb > 95) { breakObject(o, this.vx, this.vy, -vb); this.vx *= 0.82; this.vy *= 0.82; Profile.damage = Math.min(100, Profile.damage + 0.8); if (Profile.zones) Profile.zones.f = Math.min(1, Profile.zones.f + 0.05); continue; }
+            if (-vb > 70) { breakObject(o, this.vx, this.vy, -vb, cx - nx * r, cy - ny * r); this.vx *= 0.82; this.vy *= 0.82; Profile.damage = Math.min(100, Profile.damage + 0.8); if (Profile.zones) Profile.zones.f = Math.min(1, Profile.zones.f + 0.05); continue; }
           }
           this.x += nx * pen; this.y += ny * pen; cx += nx * pen; cy += ny * pen; any = true;
           const vn = this.vx * nx + this.vy * ny;
@@ -3645,7 +3748,7 @@ Animals.update = function (dt, cx, cy) {
   for (const a of this.list) if (Math.abs(a.x - cx) < 1700 && Math.abs(a.y - cy) < 1400) a.update(dt);
   for (const s of World.sparkers) if (Game.time < s.until && Math.abs(s.x - cx) < 1200 && Math.abs(s.y - cy) < 900) for (let i = 0; i < 2; i++) Particles.emit('spark', s.x, s.y, rnd(-160, 160), rnd(-160, 160), rnd(0.2, 0.5), 2);
   for (const g of World.geysers) if (Game.time < g.until && Math.abs(g.x - cx) < 1200 && Math.abs(g.y - cy) < 900 && chance(0.7)) Particles.emit('water', g.x + rnd(-2, 2), g.y + rnd(-2, 2), rnd(-70, 70), rnd(-70, 70), rnd(0.5, 1.1), 2);
-  for (const g of World.grills) if (Math.abs(g.x - cx) < 900 && Math.abs(g.y - cy) < 700 && chance(dt * 6)) Particles.emit('smoke', g.x + rnd(-4, 4), g.y + rnd(-3, 3), rnd(-6, 6), rnd(-14, -4), rnd(1.2, 2.2), 4);
+  for (const g of World.grills) if (g.down === undefined && Math.abs(g.x - cx) < 900 && Math.abs(g.y - cy) < 700 && chance(dt * 6)) Particles.emit('smoke', g.x + rnd(-4, 4), g.y + rnd(-3, 3), rnd(-6, 6), rnd(-14, -4), rnd(1.2, 2.2), 4);
   this.soundT -= dt;
   if (this.soundT <= 0 && Game.state === 'playing') {
     this.soundT = rnd(5, 11);
@@ -3749,7 +3852,7 @@ const Particles = {
       p.life -= dt;
       if (p.life <= 0) { this.list.splice(i, 1); continue; }
       p.x += p.vx * dt; p.y += p.vy * dt;
-      const k = p.type === 'spark' ? 2.5 : p.type === 'hubcap' ? 0.9 : p.type === 'water' ? 1.2 : 1.8;
+      const k = p.type === 'spark' ? 2.5 : p.type === 'leaf' ? 1.4 : p.type === 'hubcap' ? 0.9 : p.type === 'water' ? 1.2 : 1.8;
       if (p.type === 'hubcap') p.rot = (p.rot || 0) + dt * 12;
       p.vx *= Math.exp(-k * dt); p.vy *= Math.exp(-k * dt);
       if (p.type !== 'spark') p.size += dt * (p.type === 'dust' ? 14 : 10);
@@ -3760,6 +3863,7 @@ const Particles = {
       const t = p.life / p.max;
       if (p.type === 'spark' || p.type === 'flame') continue;
       if (p.type === 'hubcap') { ctx.globalAlpha = Math.min(1, t * 3); ctx.fillStyle = '#c9ccd2'; ctx.beginPath(); ctx.arc(p.x, p.y, 3.4, 0, TAU); ctx.fill(); ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.x + Math.cos(p.rot) * 3, p.y + Math.sin(p.rot) * 3); ctx.lineTo(p.x - Math.cos(p.rot) * 3, p.y - Math.sin(p.rot) * 3); ctx.stroke(); continue; }
+      if (p.type === 'leaf') { ctx.globalAlpha = t; ctx.fillStyle = '#3f7a2e'; ctx.fillRect(p.x, p.y, 2.4, 1.6); continue; }
       if (p.type === 'steam' || p.type === 'exhaust') { ctx.globalAlpha = t * (p.type === 'steam' ? 0.35 : 0.18); ctx.fillStyle = p.type === 'steam' ? '#f0f4f8' : '#9a9a9a'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); continue; }
       ctx.globalAlpha = t * (p.type === 'dust' ? 0.35 : 0.28);
       ctx.fillStyle = p.type === 'dust' ? '#9a7e5a' : p.type === 'water' ? '#9ec8dc' : '#c8c8c8';
@@ -3817,6 +3921,7 @@ const SHOP_TEXT = {
   mercado: 'Prateleiras cheias e um rádio tocando sertanejo baixinho.',
   lanchonete: 'O Bigode vira hambúrgueres na chapa enquanto conta causos.',
   paneleiras: 'Mulheres moldando argila preta do manguezal e queimando as panelas no chão, do jeito que se faz há séculos no Espírito Santo.',
+  batalhao: 'O sargento de plantão te olha por cima do balcão: "Tá perdido, cidadão? Dirige com calma aí, que a noite é longa."',
   bar: 'Mesas de plástico na calçada, futebol na TV e petiscos no balcão. Motorista não bebe — só um guaraná.',
   floricultura: 'Baldes de rosas e girassóis iluminados por um letreiro rosa.',
   hotel: 'O porteiro da noite cochila atrás do balcão de madeira.',
@@ -3909,9 +4014,30 @@ function refreshGroundArea(x0, y0, x1, y1) {
     if (chunks.has(cy * 1000 + cx)) renderChunk(cx, cy);
   }
 }
-function breakObject(col, vx, vy, sp) {
+function breakObject(col, vx, vy, sp, hx, hy) {
   col.dead = true;
   const b = col.brk, o = b.obj, ang = Math.atan2(vy, vx) + rnd(-0.4, 0.4);
+  if (b.kind === 'fence') {
+    const long = (o.x1 - o.x0) > (o.y1 - o.y0), L = long ? o.x1 - o.x0 : o.y1 - o.y0;
+    const t = clamp(long ? hx - o.x0 : hy - o.y0, 0, L);
+    o.gaps.push({ t, a: ang });
+    // recria a colisão só nos pedaços que sobraram
+    const parts = []; let cur = 0;
+    for (const gp of [...o.gaps].sort((a, c) => a.t - c.t)) { if (gp.t - 22 > cur) parts.push([cur, gp.t - 22]); cur = Math.max(cur, gp.t + 22); }
+    if (L > cur) parts.push([cur, L]);
+    for (const [a, c] of parts) { const nc = long ? addRectCol(o.x0 + a, o.y0, o.x0 + c, o.y1, 'fence') : addRectCol(o.x0, o.y0 + a, o.x1, o.y0 + c, 'fence'); nc.brk = b; }
+    colGrid.query(o.x0, o.y0, o.x1, o.y1, _q); for (const c2 of _q) if (c2.brk === b && c2 !== col && c2.t === 0 && (c2.x1 - c2.x0) * (c2.y1 - c2.y0) >= (o.x1 - o.x0) * (o.y1 - o.y0) - 1) c2.dead = true;
+    refreshGroundArea(o.x0 - 40, o.y0 - 40, o.x1 + 40, o.y1 + 40);
+    AudioSys.breakSnd(o.type === 'chain' ? 'metal' : 'wood', clamp(sp / 400, 0.2, 1));
+    Cam.shake = Math.max(Cam.shake, 3);
+    return;
+  }
+  if (b.kind === 'tree') {
+    o.down = ang; AudioSys.breakSnd('wood', 0.8);
+    for (let i = 0; i < 14; i++) Particles.emit('leaf', o.x + rnd(-14, 14), o.y + rnd(-14, 14), rnd(-60, 60) + Math.cos(ang) * 60, rnd(-60, 60) + Math.sin(ang) * 60, rnd(0.8, 1.6), 2);
+    Cam.shake = Math.max(Cam.shake, 5);
+    return;
+  }
   const k = clamp(sp / 400, 0.2, 1);
   Cam.shake = Math.max(Cam.shake, 2 + k * 5);
   if (b.kind === 'prop') {
@@ -4079,6 +4205,7 @@ function updateActivities(dt) {
   }
   // radares (pardal)
   for (const r of World.radars) {
+    if (r.obj.down !== undefined) continue;
     if (p.x < r.x0 || p.x > r.x1 || p.y < r.y0 || p.y > r.y1) continue;
     const kmh = sp * 0.3;
     if (kmh > r.lim + 3 && Game.time - r.obj.last > 6) {
@@ -4570,6 +4697,7 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
       ctx.stroke();
     }
     wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, false);
+    if (b.graf) wallGraffiti(ctx, b, ax, ay, bx, by, ox, oy);
     if (b.style === 'colonial') {
       // janelas coloniais com venezianas coloridas
       ctx.fillStyle = b.seed % 2 ? '#2f6b4a' : '#2d4f7a';
@@ -4596,6 +4724,31 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
   }
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(bx + ox * 0.08, by + oy * 0.08); ctx.lineTo(ax + ox * 0.08, ay + oy * 0.08); ctx.closePath(); ctx.fill();
+}
+function wallGraffiti(ctx, b, ax, ay, bx, by, ox, oy) {
+  if (Math.hypot(ox, oy) < 4) return;
+  let ex = bx - ax, ey = by - ay;
+  if (ex * oy - ey * ox > 0) { ax = bx; ay = by; ex = -ex; ey = -ey; }
+  const G = b.graf, W = 100, H = 40;
+  ctx.save();
+  ctx.transform(ex / W, ey / W, -ox / H, -oy / H, ax + ox, ay + oy);
+  if (G.kind === 'mural') {
+    const cols = ['#e63946', '#f4c430', '#2a9d8f', '#3a86ff', '#ff7f11'];
+    for (let i = 0; i < 5; i++) { ctx.fillStyle = cols[(i + (G.seed * 10 | 0)) % 5]; ctx.beginPath(); ctx.ellipse(10 + i * 20, 22 + Math.sin(i + G.seed * 9) * 6, 14, 12, 0, 0, TAU); ctx.fill(); }
+  }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  if (G.kind === 'pixo') {
+    ctx.font = '900 18px "Arial Narrow", Impact, Arial, sans-serif';
+    ctx.fillStyle = G.color; ctx.fillText(G.text, 50, 20, 94);
+    ctx.fillRect(10, 30, 80, 1.2);
+  } else {
+    ctx.font = 'italic 900 15px "Segoe UI", Arial, sans-serif';
+    if (G.kind === 'mural') { ctx.lineWidth = 3; ctx.strokeStyle = '#111'; ctx.strokeText(G.text, 50, 22, 94); ctx.fillStyle = '#ffffff'; }
+    else ctx.fillStyle = G.color;
+    ctx.fillText(G.text, 50, 22, 94);
+  }
+  ctx.fillStyle = G.color; for (let i = 0; i < 4; i++) ctx.fillRect(20 + i * 19 + (G.seed * 7) % 5, 28, 1, 4 + ((i * 7 + G.seed * 13) % 6));
+  ctx.restore();
 }
 function drawBuilding(ctx, b) {
   const [ox, oy] = bldOffset(b);
@@ -4629,6 +4782,13 @@ function drawTall(ctx, o) {
   switch (o.kind) {
     case 'bld': drawBuilding(ctx, o); break;
     case 'tree': {
+      if (o.down !== undefined) {
+        const spr2 = treeSprite(o.type, o.v), S2 = 64 * o.size * (o.type === 'bush' ? 0.55 : 1);
+        ctx.strokeStyle = '#3a2a1c'; ctx.lineWidth = 3 * o.size; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + Math.cos(o.down) * S2 * 0.4, o.y + Math.sin(o.down) * S2 * 0.4); ctx.stroke();
+        ctx.save(); ctx.translate(o.x + Math.cos(o.down) * S2 * 0.55, o.y + Math.sin(o.down) * S2 * 0.55); ctx.rotate(o.down); ctx.globalAlpha = 0.95;
+        ctx.drawImage(spr2, -S2 * 0.45, -S2 * 0.32, S2 * 0.9, S2 * 0.64); ctx.restore(); ctx.globalAlpha = 1;
+        break;
+      }
       const [ox0, oy] = offAt(o.x, o.y, o.h);
       const ox = ox0 + Math.sin(Game.time * 1.3 + o.x * 0.05) * 0.9 * o.size;
       const spr = treeSprite(o.type, o.v);
@@ -4766,6 +4926,7 @@ function drawTall(ctx, o) {
       break;
     }
     case 'stall': {
+      if (o.down !== undefined) { const fr = ['#ffcf3a', '#e63946', '#7cc24a', '#ff8a2a']; for (let i = 0; i < 16; i++) { ctx.fillStyle = fr[i % 4]; ctx.beginPath(); ctx.arc(o.x + Math.cos(o.down + i) * (6 + i * 1.8), o.y + Math.sin(o.down + i * 1.7) * (4 + i), 1.6, 0, TAU); ctx.fill(); } ctx.save(); ctx.translate(o.x + Math.cos(o.down) * 16, o.y + Math.sin(o.down) * 16); ctx.rotate(o.down + 0.6); for (let i = 0; i < 6; i++) { ctx.fillStyle = i % 2 ? '#f2f2ea' : o.c; ctx.fillRect(-15 + i * 5, -6, 5, 12); } ctx.restore(); break; }
       const [ox, oy] = offAt(o.x, o.y, o.h);
       ctx.fillStyle = '#6a4a2a'; ctx.fillRect(o.x - 12, o.y - 7, 24, 14);
       const fr = ['#ffcf3a', '#e63946', '#7cc24a', '#ff8a2a', '#a35bd6'];
@@ -4777,6 +4938,7 @@ function drawTall(ctx, o) {
       break;
     }
     case 'grill': {
+      if (o.down !== undefined) { ctx.save(); ctx.translate(o.x + Math.cos(o.down) * 8, o.y + Math.sin(o.down) * 8); ctx.rotate(o.down + 1.2); ctx.fillStyle = '#7a7d82'; ctx.fillRect(-9, -5, 18, 10); ctx.restore(); ctx.fillStyle = '#ff6a2a'; for (let i = 0; i < 8; i++) ctx.fillRect(o.x + Math.cos(o.down + i) * (4 + i * 2), o.y + Math.sin(o.down + i * 1.3) * (3 + i * 1.5), 1.6, 1.6); break; }
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(o.x - 7, o.y - 3, 17, 10);
       ctx.fillStyle = '#7a7d82'; ctx.fillRect(o.x - 9, o.y - 5, 18, 10);
       ctx.fillStyle = '#1a1a1a'; ctx.fillRect(o.x - 8, o.y - 4, 16, 8);
@@ -4789,6 +4951,7 @@ function drawTall(ctx, o) {
       break;
     }
     case 'radar': {
+      if (o.down !== undefined) { drawFallen(ctx, o, '#6a6d72', (x, y) => { ctx.fillStyle = '#2a2d33'; ctx.fillRect(x - 6, y - 5, 12, 10); ctx.fillStyle = '#1d4fa0'; ctx.fillRect(x - 7, y + 5, 14, 6); }); break; }
       const [ox, oy] = offAt(o.x, o.y, o.h);
       ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + ox, o.y + oy); ctx.stroke();
       ctx.fillStyle = '#2a2d33'; ctx.fillRect(o.x + ox - 6, o.y + oy - 5, 12, 10);
@@ -4810,6 +4973,7 @@ function drawTall(ctx, o) {
       break;
     }
     case 'busstop': {
+      if (o.down !== undefined) { ctx.save(); ctx.translate(o.x + Math.cos(o.down) * 10, o.y + Math.sin(o.down) * 10); ctx.rotate(o.a + 0.4); ctx.fillStyle = '#3a3d42'; ctx.fillRect(-23, -7, 46, 14); ctx.fillStyle = '#2a6fd1'; ctx.fillRect(-23, -7, 10, 14); ctx.restore(); ctx.fillStyle = 'rgba(190,220,240,0.7)'; for (let i = 0; i < 18; i++) ctx.fillRect(o.x + (hash2(i, 3) - 0.5) * 50, o.y + (hash2(i, 4) - 0.5) * 30, 1.6, 1.6); break; }
       const [ox, oy] = offAt(o.x, o.y, o.h);
       ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.a);
       ctx.fillStyle = '#5a5d62'; ctx.fillRect(-20, -5, 2, 2); ctx.fillRect(18, -5, 2, 2);
@@ -4953,10 +5117,12 @@ function drawTallEmissive(ctx, o) {
       break;
     }
     case 'grill': {
+      if (o.down !== undefined) break;
       ctx.globalAlpha = 0.5 + 0.2 * Math.sin(Game.time * 9 + o.x); ctx.drawImage(glowSprite('#ff7a2a'), o.x - 18, o.y - 18, 36, 36); ctx.globalAlpha = 1;
       break;
     }
     case 'radar': {
+      if (o.down !== undefined) break;
       const [ox, oy] = offAt(o.x, o.y, o.h);
       ctx.drawImage(glowSprite('#ff2a2a'), o.x + ox + 3, o.y + oy - 6, 5, 5);
       const fl = Game.time - o.last;
@@ -5378,7 +5544,7 @@ function drawBigMap() {
   bg.drawImage(MAPIMG, 0, 0, WORLD_W, WORLD_H);
   const k = dpr / s;
   bg.font = `600 ${13 * k}px "Segoe UI", Arial`; bg.textAlign = 'center'; bg.fillStyle = 'rgba(255,255,255,0.5)';
-  const labels = [['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JUCU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEU ROSA', 1150, 7550], ['JARDIM CARAPINA', 3300, 7550]];
+  const labels = [['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JUCU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEU ROSA', 1150, 7350], ['JARDIM CARAPINA', 3300, 7350], ['NOVA ROSA DA PENHA', 1300, 8400], ['FLEXAL', 3600, 8400]];
   for (const [t, x, y] of labels) bg.fillText(t, x, y);
   if (Act.gps) { bg.strokeStyle = '#5be38f'; bg.lineWidth = 4 * k; bg.beginPath(); Act.gps.pts.forEach((p, i) => (i ? bg.lineTo(p[0], p[1]) : bg.moveTo(p[0], p[1]))); bg.stroke(); }
   const ic = (x, y, kind) => { bg.save(); bg.translate(x, y); bg.scale(k * 1.3, k * 1.3); mapIcon(bg, 0, 0, kind, 1.25); bg.restore(); };
@@ -5744,7 +5910,7 @@ function drawGaragePreview(dt) {
 function openShopDialog(s) {
   if (s.kind === 'garagem') { Garage.sel = Profile.current; Screens.open('screen-garage'); AudioSys.click(); return; }
   visitShop(s);
-  const KIND = { paneleiras: 'ARTESANATO CAPIXABA', posto: 'POSTO DE COMBUSTÍVEL', oficina: 'OFICINA MECÂNICA', moquecaria: 'MOQUECARIA', farmacia: 'FARMÁCIA', padaria: 'PADARIA', mercado: 'MERCADO', lanchonete: 'LANCHONETE', bar: 'BAR', floricultura: 'FLORICULTURA', hotel: 'HOTEL', churrascaria: 'CHURRASCARIA', borracharia: 'BORRACHARIA', sitio: 'SÍTIO', fazenda: 'FAZENDA' };
+  const KIND = { batalhao: 'SEGURANÇA PÚBLICA', paneleiras: 'ARTESANATO CAPIXABA', posto: 'POSTO DE COMBUSTÍVEL', oficina: 'OFICINA MECÂNICA', moquecaria: 'MOQUECARIA', farmacia: 'FARMÁCIA', padaria: 'PADARIA', mercado: 'MERCADO', lanchonete: 'LANCHONETE', bar: 'BAR', floricultura: 'FLORICULTURA', hotel: 'HOTEL', churrascaria: 'CHURRASCARIA', borracharia: 'BORRACHARIA', sitio: 'SÍTIO', fazenda: 'FAZENDA' };
   $('dialog-kind').textContent = KIND[s.kind] || 'ESTABELECIMENTO';
   $('dialog-title').textContent = s.name;
   $('dialog-text').textContent = SHOP_TEXT[s.kind] || '';
