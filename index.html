@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BR NIGHT DRIVE</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- ===================== HUD ===================== -->
+<div id="hud" class="hidden">
+  <div id="hud-region" class="glass">
+    <div class="tag">REGIÃO</div>
+    <div id="region-name">Centro</div>
+    <div id="clock">20:30</div>
+  </div>
+
+  <div id="hud-money" class="glass">
+    <span class="cur">R$</span><span id="money-value">0</span>
+    <div id="money-delta"></div>
+  </div>
+
+  <div id="hud-objective" class="glass">
+    <div class="tag" id="obj-tag">OBJETIVO</div>
+    <div id="obj-title">Exploração livre</div>
+    <div id="obj-desc"></div>
+    <div id="obj-meta"></div>
+  </div>
+
+  <div id="race-timer" class="hidden"></div>
+  <div id="countdown" class="hidden"></div>
+
+  <div id="hud-minimap" class="glass">
+    <canvas id="minimap" width="440" height="440"></canvas>
+    <div class="minimap-hint">M · Mapa</div>
+  </div>
+
+  <div id="hud-dash" class="glass">
+    <canvas id="speedo" width="440" height="300"></canvas>
+    <div id="car-name">Pampeiro 1.0</div>
+    <div class="bar-row"><span>Combustível</span><div class="bar"><div id="fuel-bar"></div></div></div>
+    <div class="bar-row"><span>Condição</span><div class="bar"><div id="cond-bar"></div></div></div>
+  </div>
+
+  <div id="prompt" class="hidden"></div>
+  <div id="toasts"></div>
+  <div id="fps" class="hidden"></div>
+  <div id="region-banner"></div>
+</div>
+
+<!-- ===================== MENU PRINCIPAL ===================== -->
+<div id="screen-main" class="screen">
+  <div class="main-wrap">
+    <div class="logo">
+      <div class="logo-top">BR</div>
+      <div class="logo-main">NIGHT DRIVE</div>
+      <div class="logo-sub">uma noite inteira pela estrada</div>
+    </div>
+    <nav class="menu-list">
+      <button class="mbtn" data-act="play">JOGAR</button>
+      <button class="mbtn" data-act="continue" id="btn-continue">CONTINUAR</button>
+      <button class="mbtn" data-act="garage">GARAGEM</button>
+      <button class="mbtn" data-act="settings">CONFIGURAÇÕES</button>
+      <button class="mbtn" data-act="credits">CRÉDITOS</button>
+    </nav>
+    <div class="main-foot">W A S D / Setas · Espaço freio de mão · E interagir · M mapa · ESC pausa</div>
+  </div>
+</div>
+
+<!-- ===================== PAUSA ===================== -->
+<div id="screen-pause" class="screen hidden">
+  <div class="panel-card narrow">
+    <h2>PAUSADO</h2>
+    <nav class="menu-list">
+      <button class="mbtn" data-act="resume">CONTINUAR</button>
+      <button class="mbtn" data-act="map">MAPA</button>
+      <button class="mbtn" data-act="abandon" id="btn-abandon">ABANDONAR ATIVIDADE</button>
+      <button class="mbtn" data-act="reset">REPOSICIONAR VEÍCULO</button>
+      <button class="mbtn" data-act="settings">CONFIGURAÇÕES</button>
+      <button class="mbtn" data-act="save-quit">SALVAR E SAIR</button>
+    </nav>
+    <div id="pause-stats" class="stats-grid"></div>
+  </div>
+</div>
+
+<!-- ===================== CONFIGURAÇÕES ===================== -->
+<div id="screen-settings" class="screen hidden">
+  <div class="panel-card">
+    <h2>CONFIGURAÇÕES</h2>
+    <div class="settings-grid">
+      <div class="set-section">ÁUDIO</div>
+      <label class="set-row"><span>Volume geral</span><input type="range" min="0" max="100" data-set="master"><b></b></label>
+      <label class="set-row"><span>Motor e efeitos</span><input type="range" min="0" max="100" data-set="engine"><b></b></label>
+      <label class="set-row"><span>Ambiente noturno</span><input type="range" min="0" max="100" data-set="ambient"><b></b></label>
+      <label class="set-row"><span>Interface</span><input type="range" min="0" max="100" data-set="ui"><b></b></label>
+      <div class="set-section">VÍDEO</div>
+      <div class="set-row"><span>Qualidade gráfica</span>
+        <div class="seg" data-seg="quality">
+          <button data-v="baixa">Baixa</button><button data-v="media">Média</button><button data-v="alta">Alta</button>
+        </div>
+      </div>
+      <label class="set-row"><span>Zoom da câmera</span><input type="range" min="70" max="140" data-set="zoom"><b></b></label>
+      <div class="set-row"><span>Mostrar FPS</span>
+        <div class="seg" data-seg="showFps"><button data-v="false">Não</button><button data-v="true">Sim</button></div>
+      </div>
+      <div class="set-row"><span>Minimapa</span>
+        <div class="seg" data-seg="minimapRotate"><button data-v="false">Norte fixo</button><button data-v="true">Gira com o carro</button></div>
+      </div>
+      <div class="set-section">CONTROLES</div>
+      <div class="controls-list">
+        <div><kbd>W</kbd><kbd>↑</kbd> Acelerar</div>
+        <div><kbd>S</kbd><kbd>↓</kbd> Frear / ré</div>
+        <div><kbd>A</kbd><kbd>←</kbd> Esquerda</div>
+        <div><kbd>D</kbd><kbd>→</kbd> Direita</div>
+        <div><kbd>Espaço</kbd> Freio de mão</div>
+        <div><kbd>E</kbd> Interagir</div>
+        <div><kbd>H</kbd> Buzina</div>
+        <div><kbd>L</kbd> Farol alto</div>
+        <div><kbd>M</kbd> Mapa</div>
+        <div><kbd>C</kbd> Zoom rápido</div>
+        <div><kbd>R</kbd> Reposicionar</div>
+        <div><kbd>ESC</kbd> Pausar</div>
+      </div>
+    </div>
+    <div class="row-btns"><button class="mbtn small" data-act="back">VOLTAR</button></div>
+  </div>
+</div>
+
+<!-- ===================== GARAGEM ===================== -->
+<div id="screen-garage" class="screen hidden">
+  <div class="garage">
+    <div class="garage-head">
+      <h2>GARAGEM</h2>
+      <div class="garage-money">R$ <span id="garage-money">0</span></div>
+    </div>
+    <div class="garage-body">
+      <div id="garage-list" class="garage-list"></div>
+      <div class="garage-center">
+        <canvas id="garage-preview" width="760" height="520"></canvas>
+        <div id="garage-car-title"></div>
+        <div id="garage-car-desc"></div>
+        <div class="garage-actions">
+          <button class="mbtn small accent" id="garage-main-btn">SELECIONAR</button>
+        </div>
+      </div>
+      <div class="garage-side">
+        <div class="side-title">DESEMPENHO</div>
+        <div id="garage-stats"></div>
+        <div class="side-title">COR DA CARROCERIA <small>R$ 150</small></div>
+        <div id="garage-colors" class="swatches"></div>
+        <div class="side-title">MELHORIAS</div>
+        <div id="garage-upgrades"></div>
+      </div>
+    </div>
+    <div class="row-btns"><button class="mbtn small" data-act="back">VOLTAR</button></div>
+  </div>
+</div>
+
+<!-- ===================== CRÉDITOS ===================== -->
+<div id="screen-credits" class="screen hidden">
+  <div class="panel-card">
+    <h2>CRÉDITOS</h2>
+    <div class="credits">
+      <p class="big">BR NIGHT DRIVE</p>
+      <p>Um jogo de exploração noturna inspirado nas cidades, bairros e estradas do interior do Brasil.</p>
+      <p><b>Design, programação e arte</b><br>Desenvolvido inteiramente em HTML5 Canvas, CSS3 e JavaScript puro.</p>
+      <p><b>Gráficos</b><br>Todos os veículos, construções, animais e efeitos de luz são desenhados proceduralmente em tempo real — nenhuma imagem externa.</p>
+      <p><b>Áudio</b><br>Motor, pneus, grilos, cidade e interface sintetizados com a Web Audio API.</p>
+      <p><b>Veículos</b><br>Modelos originais inspirados em carros populares brasileiros. Nenhuma marca ou logotipo real.</p>
+      <p class="dim">Dirija com calma. A noite é longa.</p>
+    </div>
+    <div class="row-btns"><button class="mbtn small" data-act="back">VOLTAR</button></div>
+  </div>
+</div>
+
+<!-- ===================== MAPA ===================== -->
+<div id="screen-map" class="screen hidden">
+  <div class="map-wrap">
+    <div class="map-head">
+      <h2>MAPA</h2>
+      <div class="map-legend">
+        <span><i class="lg lg-you"></i>Você</span>
+        <span><i class="lg lg-job"></i>Entregas</span>
+        <span><i class="lg lg-shop"></i>Estabelecimentos</span>
+        <span><i class="lg lg-race"></i>Percursos</span>
+        <span><i class="lg lg-park"></i>Vagas</span>
+        <span><i class="lg lg-poi"></i>Pontos de interesse</span>
+        <span><i class="lg lg-gps"></i>Destino GPS</span>
+      </div>
+    </div>
+    <canvas id="bigmap"></canvas>
+    <div class="map-foot">Clique no mapa para marcar um destino no GPS · clique com o botão direito para remover · M ou ESC para fechar</div>
+  </div>
+</div>
+
+<!-- ===================== DIÁLOGO ===================== -->
+<div id="screen-dialog" class="screen hidden">
+  <div class="panel-card narrow dialog">
+    <div id="dialog-kind" class="tag"></div>
+    <h2 id="dialog-title"></h2>
+    <p id="dialog-text"></p>
+    <div id="dialog-buttons" class="menu-list"></div>
+  </div>
+</div>
+
+<!-- ===================== CONFIRMAÇÃO ===================== -->
+<div id="screen-confirm" class="screen hidden">
+  <div class="panel-card narrow dialog">
+    <h2 id="confirm-title">Novo jogo</h2>
+    <p id="confirm-text"></p>
+    <div class="menu-list">
+      <button class="mbtn" id="confirm-yes">CONFIRMAR</button>
+      <button class="mbtn" id="confirm-no">CANCELAR</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading"><div class="load-title">BR NIGHT DRIVE</div><div class="load-bar"><div id="load-fill"></div></div><div id="load-text">Construindo a cidade…</div></div>
+
+<script src="game.js"></script>
+</body>
+</html>
