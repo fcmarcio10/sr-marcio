@@ -162,40 +162,43 @@ const AudioSys = {
     }
     return buf;
   },
+  makeEngineCycle(cyl) {
+    const c = this.ctx, sr = c.sampleRate, len = Math.round(sr * 0.12);
+    const buf = c.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    const R = mulberry32(cyl * 131 + 7);
+    for (let k = 0; k < cyl; k++) {
+      const t0 = Math.round(k * len / cyl), amp = 0.75 + R() * 0.4, f = 48 + R() * 16, f2 = f * (2.1 + R() * 0.4), dec = 0.016 + R() * 0.008;
+      for (let i = 0; i < len; i++) {
+        let n = i - t0; if (n < 0) n += len;
+        const tt = n / sr, env = Math.exp(-tt / dec);
+        if (env < 0.001) continue;
+        d[i] += amp * env * (Math.sin(TAU * f * tt) + 0.35 * Math.sin(TAU * f2 * tt)) + amp * Math.exp(-tt / (dec * 0.3)) * (R() * 2 - 1) * 0.45;
+      }
+    }
+    let m = 0; for (let i = 0; i < len; i++) m = Math.max(m, Math.abs(d[i]));
+    for (let i = 0; i < len; i++) d[i] = d[i] / m * 0.9;
+    return buf;
+  },
   loop(buf) { const s = this.ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.start(); return s; },
   gain(v, dest) { const g = this.ctx.createGain(); g.gain.value = v; if (dest) g.connect(dest); return g; },
   filt(type, f, q, dest) { const b = this.ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q || 0.7; if (dest) b.connect(dest); return b; },
   setupEngine() {
     const c = this.ctx;
-    // motor: explosões (harmônicos da frequência de ignição) + ruído de combustão pulsado
-    // -> ressonância do escapamento -> saturação suave -> filtro de carga
+    // motor: um ciclo completo de explosões (2 voltas do virabrequim a 1000 rpm) gerado em buffer,
+    // tocado em loop com a velocidade de reprodução acompanhando a rotação (técnica de "loop de ciclo")
     this.eOut = this.gain(0, this.bus.engine);
-    this.eLP = this.filt('lowpass', 900, 0.7, this.eOut);
-    const shaper = c.createWaveShaper();
-    const N = 1024, curve = new Float32Array(N);
-    for (let i = 0; i < N; i++) { const x = i / (N - 1) * 2 - 1; curve[i] = Math.tanh(2.6 * x) / Math.tanh(2.6); }
-    shaper.curve = curve; shaper.oversample = '2x'; shaper.connect(this.eLP);
-    this.ePre = this.gain(1, shaper);
-    this.eRes = this.filt('peaking', 150, 1.3, this.ePre); this.eRes.gain.value = 8;
-    const H = 28, re = new Float32Array(H), im = new Float32Array(H);
-    for (let k = 1; k < H; k++) { im[k] = (k % 2 ? 1 : 0.6) / Math.pow(k, 0.85) * (k === 2 ? 1.5 : 1); re[k] = (k % 3 === 0 ? 0.35 : 0) / k; }
-    const wave = c.createPeriodicWave(re, im);
-    this.eO1 = c.createOscillator(); this.eO1.setPeriodicWave(wave); this.eO1.connect(this.gain(0.3, this.eRes));
-    this.eO2 = c.createOscillator(); this.eO2.type = 'sine'; this.eO2.connect(this.gain(0.55, this.eRes));
-    this.eO4 = c.createOscillator(); this.eO4.setPeriodicWave(wave); this.eO4.detune.value = 9; this.eO4.connect(this.gain(0.12, this.eRes));
-    const comb = this.loop(this.white);
-    this.eNF = this.filt('bandpass', 400, 1.1);
-    this.eAM = this.gain(0, this.eRes);
-    comb.connect(this.eNF); this.eNF.connect(this.eAM);
-    this.eO3 = c.createOscillator(); this.eO3.type = 'square';
-    this.eAMd = this.gain(0); this.eO3.connect(this.eAMd); this.eAMd.connect(this.eAM.gain);
-    [this.eO1, this.eO2, this.eO3, this.eO4].forEach((o) => { o.frequency.value = 30; o.start(); });
+    this.eLP = this.filt('lowpass', 900, 0.6, this.eOut);
+    this.eBody = this.filt('peaking', 95, 1, this.eLP); this.eBody.gain.value = 5;
+    this.eSrc = {}; this.eSel = {};
+    for (const cyl of [4, 6]) {
+      const src = c.createBufferSource(); src.buffer = this.makeEngineCycle(cyl); src.loop = true;
+      const g = this.gain(0, this.eBody); src.connect(g);
+      const mech = this.gain(0, this.eOut); src.connect(this.filt('bandpass', 1400, 1.5, mech));
+      src.start(); this.eSrc[cyl] = src; this.eSel[cyl] = { g, mech };
+    }
     const rumble = this.loop(this.brown);
     this.eRumble = this.gain(0, this.eOut);
-    rumble.connect(this.filt('lowpass', 130, 1, this.eRumble));
-    const hiss = this.loop(this.white);
-    this.eHiss = this.gain(0, this.bus.engine);
-    hiss.connect(this.filt('highpass', 2600, 0.7, this.eHiss));
+    rumble.connect(this.filt('lowpass', 110, 1, this.eRumble));
     // pneus cantando
     const sq = this.loop(this.white);
     this.sGain = this.gain(0, this.bus.engine);
@@ -257,21 +260,18 @@ const AudioSys = {
     if (!this.ok) return;
     const t = this.ctx.currentTime, k = 0.06;
     const on = p.active ? 1 : 0;
-    const f = Math.max(16, p.rpm / 60 * (p.cyl || 4) / 2) * p.pitch;
     const load = p.thr, rr = Math.min(p.rpm / 7000, 1);
-    this.eO1.frequency.setTargetAtTime(f, t, 0.025);
-    this.eO4.frequency.setTargetAtTime(f, t, 0.025);
-    this.eO2.frequency.setTargetAtTime(f / 2, t, 0.025);
-    this.eO3.frequency.setTargetAtTime(f, t, 0.025);
-    this.eNF.frequency.setTargetAtTime(clamp(f * 5.5, 220, 3200), t, 0.04);
-    const nz = 0.1 + load * 0.3;
-    this.eAM.gain.setTargetAtTime(nz, t, 0.05); this.eAMd.gain.setTargetAtTime(nz, t, 0.05);
-    this.eRes.frequency.setTargetAtTime(110 + p.rpm * 0.028, t, 0.06);
-    this.eLP.frequency.setTargetAtTime(420 + load * 2300 + p.rpm * 0.22, t, 0.05);
-    this.ePre.gain.setTargetAtTime(0.7 + load * 1.7, t, 0.05);
-    this.eOut.gain.setTargetAtTime(on * (0.05 + load * 0.06 + rr * 0.04), t, 0.06);
-    this.eRumble.gain.setTargetAtTime(on * (0.1 + load * 0.2), t, k);
-    this.eHiss.gain.setTargetAtTime(on * load * rr * 0.018, t, 0.1);
+    const rate = Math.max(0.5, p.rpm / 1000) * p.pitch;
+    for (const cyl of [4, 6]) {
+      const sel = (p.cyl || 4) === cyl ? 1 : 0;
+      this.eSrc[cyl].playbackRate.setTargetAtTime(rate, t, 0.03);
+      this.eSel[cyl].g.gain.setTargetAtTime(sel * (0.55 + load * 0.6), t, 0.05);
+      this.eSel[cyl].mech.gain.setTargetAtTime(sel * (0.02 + rr * 0.05), t, 0.08);
+    }
+    this.eLP.frequency.setTargetAtTime(380 + load * 1700 + p.rpm * 0.2, t, 0.06);
+    this.eBody.frequency.setTargetAtTime(80 + p.rpm * 0.012, t, 0.1);
+    this.eOut.gain.setTargetAtTime(on * (0.09 + load * 0.1 + rr * 0.05), t, 0.06);
+    this.eRumble.gain.setTargetAtTime(on * (0.08 + load * 0.16), t, k);
     this.sGain.gain.setTargetAtTime(on * clamp(p.slip, 0, 1) * 0.16, t, 0.04);
     this.sFilter.frequency.setTargetAtTime(1700 + clamp(p.speed / 600, 0, 1) * 900, t, 0.1);
     this.wGain.gain.setTargetAtTime(on * clamp(p.speed / 650, 0, 1) * 0.11, t, 0.1);
@@ -783,10 +783,15 @@ function houseLot(F, o) {
   depth = Math.min(depth, D - setback - 14);
   if (depth < 40) return;
   const sob = chance(rich ? 0.38 : 0.14);
-  const h = sob ? rnd(42, 48) : rnd(25, 31);
-  const roofType = rich ? pick(['hip', 'hip', 'flat', 'gable']) : pick(['hip', 'hip', 'laje', 'laje', 'gable']);
+  let h = sob ? rnd(42, 48) : rnd(25, 31);
+  let roofType = rich ? pick(['hip', 'hip', 'flat', 'gable', 'hip']) : pick(['hip', 'hip', 'laje', 'laje', 'gable', 'amianto', 'tijolo', 'amianto']);
+  let wall = pick(HOUSE_COLORS), brick = false;
+  if (roofType === 'tijolo') { wall = pick(['#b5603a', '#a8553a', '#c06a40']); brick = true; h = rnd(30, 44); }
+  if (roofType === 'amianto' && chance(0.3)) { wall = pick(['#b5603a', '#c8c2b4']); brick = wall === '#b5603a'; }
   const hr = F.rect(7, setback, W - 7, setback + depth);
-  addBuilding(hr[0], hr[1], hr[2], hr[3], h, { style: 'house', front: F.front, roofType, roofColor: roofType === 'hip' || roofType === 'gable' ? pick(ROOF_TILE) : (roofType === 'laje' ? '#8f8b84' : '#6f6c69'), lit: rnd(0.15, 0.6) });
+  const roofColor = roofType === 'hip' || roofType === 'gable' ? pick(ROOF_TILE) : roofType === 'laje' || roofType === 'tijolo' ? '#8f8b84' : roofType === 'amianto' ? '#a7a9a4' : '#6f6c69';
+  const hb = addBuilding(hr[0], hr[1], hr[2], hr[3], h, { style: 'house', front: F.front, roofType, roofColor, wall, lit: rnd(0.15, 0.6) });
+  hb.brick = brick; hb.varal = chance(0.35); hb.dish = chance(0.3);
   if (hasCar) {
     const dr = F.rect(gateU, 0, gateU + gateW, setback);
     decalR(dr, 'drive');
@@ -900,14 +905,18 @@ function downtownBlock(R, o) {
         addProp('bench', (px0 + px1) / 2, (py0 + py1) / 2, { col: 'rect', w: 26, h: 8 });
         addLight((px0 + px1) / 2, (py0 + py1) / 2, 110, 0.7, 'white');
       } else {
-        const hh = officeH();
-        const style = hh < 52 ? 'shop' : 'office';
+        const hh0 = officeH();
+        const colonial = hh0 < 100 && chance(0.32);
+        const hh = colonial ? rnd(34, 46) : hh0;
+        const style = colonial ? 'colonial' : hh < 52 ? 'shop' : (chance(0.45) ? 'apart' : 'office');
         const signs = ['AÇOUGUE', 'SORVETERIA', 'LOJA 1,99', 'SALGADOS', 'CHAVEIRO', 'ACADEMIA', 'DROGARIA', 'PASTELARIA', 'LOTÉRICA', 'BOTECO', 'CABELEIREIRO', 'CALÇADOS', 'MODAS', 'MATERIAIS', 'ÓTICA', 'BAZAR'];
         const cols2 = ['#ff5f7a', '#59e0ff', '#ffd24a', '#5be38f', '#c56bff', '#ff8a3d'];
         const b = addBuilding(px0 + il + rnd(0, 4), py0 + it + rnd(0, 4), px1 - ir - rnd(0, 4), py1 - ib - rnd(0, 4), hh, {
-          style, front, roofType: 'flat', roofColor: pick(['#6f6d6a', '#7d7a74', '#5f5e5b', '#85817a']), wall: pick(OFFICE_COLORS), lit: rnd(0.25, 0.6),
-          sign: style === 'shop' && chance(0.75) ? pick(signs) : null, signColor: pick(cols2),
+          style, front, roofType: colonial ? 'hip' : 'flat', roofColor: colonial ? pick(ROOF_TILE) : pick(['#6f6d6a', '#7d7a74', '#5f5e5b', '#85817a']),
+          wall: colonial ? pick(['#f2d16b', '#8fc1d4', '#e8a0a0', '#a8d5a2', '#f4f0e6', '#e9b872']) : style === 'apart' ? pick(['#d9c8a9', '#c9d3d8', '#e2d6c2', '#b8c4b0', '#e8dccb']) : pick(OFFICE_COLORS), lit: rnd(0.25, 0.6),
+          sign: (style === 'shop' || colonial) && chance(0.7) ? pick(signs) : null, signColor: pick(cols2),
         });
+        if (style === 'apart') { b.varal = chance(0.5); b.dish = true; }
         if (b.sign) {
           const F = lotFrame(b.x0, b.y0, b.x1, b.y1, front);
           const lp = F.pt(F.W / 2, -6);
@@ -1107,6 +1116,33 @@ function homeLot(F, ro) {
   World.home = { x: rp[0], y: rp[1], a: 0, bld: b };
   addShop({ kind: 'garagem', name: 'Sua Garagem', x: rp[0], y: rp[1], color: '#5be38f', region: 'vila', radius: 80 });
 }
+function comunidadeBlock(R) {
+  // comunidade: casinhas coladas de bloco e laje, vielas estreitas, caixas d'água e varais
+  decal(R.x0, R.y0, R.x1, R.y1, 'yard');
+  const cols = ['#e9c46a', '#f4a261', '#2a9d8f', '#e76f51', '#8ecae6', '#f1efe8', '#b5603a', '#b5603a', '#c06a40', '#9bc53d', '#ff99c8'];
+  let y = R.y0 + 4, row = 0;
+  while (y < R.y1 - 30) {
+    const rh = Math.min(rndi(34, 50), R.y1 - 4 - y);
+    let x = R.x0 + 4;
+    while (x < R.x1 - 24) {
+      const w = Math.min(rndi(26, 46), R.x1 - 4 - x);
+      if (w < 20) break;
+      const wall = pick(cols), brick = wall === '#b5603a' || wall === '#c06a40';
+      const floors = rndi(1, 3);
+      const roofType = pick(['laje', 'laje', 'tijolo', 'amianto', 'laje']);
+      const b = addBuilding(x, y, x + w, y + rh, 16 + floors * 11 + rnd(0, 4), { style: 'house', front: row === 0 ? 'N' : 'S', roofType, roofColor: roofType === 'amianto' ? '#a7a9a4' : '#8f8b84', wall, lit: rnd(0.3, 0.75) });
+      b.brick = brick; b.varal = chance(0.4); b.dish = chance(0.35);
+      if (chance(0.25)) addLight(x + w / 2, y + rh + 4, 45, 0.6, 'warm');
+      x += w + (chance(0.22) ? rndi(10, 14) : 1);
+    }
+    y += rh + (chance(0.5) ? rndi(10, 14) : 2);
+    row++;
+  }
+  const cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2;
+  addFlags(R.x0 + 30, cy - 40, R.x1 - 30, cy + 20, true);
+  addFlags(R.x0 + 30, cy + 40, R.x1 - 30, cy - 20, true);
+  addLight(cx, cy, 160, 0.5, 'sodium');
+}
 function shopLotBuilder(def) { return (F, ro) => shopBuilding(F, def, ro); }
 
 /* ---------- construção da cidade ---------- */
@@ -1146,7 +1182,8 @@ function buildCity() {
     else if (r < 4) {
       if (c >= 5) industrialBlock(R, {});
       else downtownBlock(R, { roads, region, shops: shopsDowntown[k] });
-    } else residentialBlock(R, { rich: c >= 3, roads, region, special: resSpecial[k] });
+    } else if (k === '0,6' || k === '1,7') comunidadeBlock(R);
+    else residentialBlock(R, { rich: c >= 3, roads, region, special: resSpecial[k] });
   }
 }
 
@@ -2285,7 +2322,7 @@ function drawMoto(ctx, m, color, o) {
   ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8'; ctx.fillRect(9.4, -1, 1, 2);
   ctx.fillStyle = o.brake ? '#ff3a30' : '#a01818'; ctx.fillRect(-10.6, -1, 0.8, 2);
 }
-function vehLift(m) { return m.kind === 'truck' || m.kind === 'bus' ? 8 : m.kind === 'tractor' ? 4 : m.kind === 'moto' ? 3 : 5.5; }
+function vehLift(m) { return 0; }
 function drawLightsFR(ctx, hl, hw, o, chrome) {
   ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8';
   ctx.fillRect(hl - 3.2, -hw + 1.6, 2.8, 4.6); ctx.fillRect(hl - 3.2, hw - 6.2, 2.8, 4.6);
@@ -2539,7 +2576,7 @@ const CARS = [
   { id: 'sertaneja', name: 'Sertaneja Cabine', model: 'pickup', price: 8000, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.9, cyl: 4, fuel: 1.1, offroad: true, desc: 'Picape robusta de cabine simples. Perde pouca velocidade na terra, na grama e na lavoura.' },
   { id: 'cometa', name: 'Cometa 2.0', model: 'sedan', price: 12500, max: 508, acc: 146, brk: 370, steer: 1.0, grip: 1.05, pitch: 0.95, cyl: 4, fuel: 1.05, desc: 'Sedã confortável de quatro portas. Estável na rodovia e firme nas frenagens.' },
   { id: 'bravo', name: 'Bravo Turbo', model: 'sport', price: 19000, max: 575, acc: 186, brk: 420, steer: 1.12, grip: 1.13, pitch: 1.12, cyl: 4, fuel: 1.2, desc: 'Hatch esportivo com faixas no capô e aerofólio. Nervoso, preciso e barulhento.' },
-  { id: 'brasa', name: 'Brasa 6C', model: 'muscle', price: 29000, max: 632, acc: 196, brk: 385, steer: 0.95, grip: 0.98, pitch: 0.62, cyl: 6, fuel: 1.4, desc: 'Sedã clássico de seis cilindros com para-choques cromados. Ronco grave e força de sobra.' },
+  { id: 'brasa', name: 'Brasa 6C', model: 'muscle', price: 29000, max: 632, acc: 196, brk: 385, steer: 0.95, grip: 0.98, pitch: 0.78, cyl: 6, fuel: 1.4, desc: 'Sedã clássico de seis cilindros com para-choques cromados. Ronco grave e força de sobra.' },
 ];
 const PALETTE = ['#c0392b', '#e8e8e8', '#1f2a44', '#2e86de', '#f1c40f', '#27ae60', '#16181d', '#8e9aa6', '#e67e22', '#7d3c98', '#6d4c3a', '#ff6fa5'];
 const UPGRADES = [
@@ -3579,8 +3616,8 @@ const gctx = glowCanvas.getContext('2d');
 let RS = 1, LS = 0.5, SCREEN_W = 1, SCREEN_H = 1;
 const Cam = { x: 1000, y: 2700, zoom: 1, shake: 0, quick: 1, view: { x0: 0, y0: 0, x1: 0, y1: 0 }, dark: 0.84, menuTarget: null, menuT: 0 };
 const PAR = 1 / 1700;
-const SQ = 0.86;      // achatamento vertical: câmera levemente inclinada
-const TILT_H = 0.24;  // objetos altos se inclinam para o norte, mostrando a face sul
+const SQ = 1;      // visão de cima (sem achatamento vertical)
+const TILT_H = 0;  // sem inclinação extra: só a paralaxe 2.5D a partir do centro da tela
 
 function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
@@ -3762,6 +3799,32 @@ function roofSprite(b) {
       if (R() < 0.6) { g.strokeStyle = '#555'; g.lineWidth = 1; g.beginPath(); g.moveTo(w * 0.3, h * 0.6); g.lineTo(w * 0.3 + 10, h * 0.6 - 8); g.moveTo(w * 0.3 + 4, h * 0.6 - 3); g.lineTo(w * 0.3 + 8, h * 0.6 + 1); g.stroke(); }
       break;
     }
+    case 'amianto': {
+      g.fillStyle = rc; g.fillRect(0, 0, w, h);
+      const alongX = w < h;
+      for (let i = 0; i < (alongX ? w : h); i += 3) { g.fillStyle = i % 6 ? shade(rc, 0.1) : shade(rc, -0.18); if (alongX) g.fillRect(i, 0, 1.5, h); else g.fillRect(0, i, w, 1.5); }
+      g.fillStyle = 'rgba(0,0,0,0.12)'; for (let i = 0; i < 3; i++) { if (alongX) g.fillRect(0, h * (i + 1) / 4, w, 1); else g.fillRect(w * (i + 1) / 4, 0, 1, h); }
+      g.fillStyle = 'rgba(60,70,40,0.25)'; for (let i = 0; i < 6; i++) { g.beginPath(); g.ellipse(R() * w, R() * h, 3 + R() * 7, 2 + R() * 4, 0, 0, TAU); g.fill(); }
+      if (R() < 0.4) { g.fillStyle = '#7d5a3a'; g.fillRect(R() * (w - 10), R() * (h - 4), 10, 2); }
+      g.strokeStyle = 'rgba(0,0,0,0.45)'; g.lineWidth = 1.2; g.strokeRect(0.6, 0.6, w - 1.2, h - 1.2);
+      break;
+    }
+    case 'tijolo': {
+      g.fillStyle = '#8f8b84'; g.fillRect(0, 0, w, h);
+      g.fillStyle = 'rgba(0,0,0,0.1)'; for (let i = 0; i < 8; i++) { g.beginPath(); g.ellipse(R() * w, R() * h, 3 + R() * 8, 2 + R() * 5, 0, 0, TAU); g.fill(); }
+      // segundo andar em obra (tijolo baiano aparente)
+      const bw = w * (0.45 + R() * 0.3), bh = h * (0.5 + R() * 0.3), bx = R() < 0.5 ? 0 : w - bw, by = R() < 0.5 ? 0 : h - bh;
+      g.fillStyle = '#b5603a'; g.fillRect(bx, by, bw, bh);
+      g.fillStyle = 'rgba(70,25,10,0.55)';
+      for (let yy = by; yy < by + bh; yy += 4) { g.fillRect(bx, yy, bw, 0.8); for (let xx = bx + ((yy - by) / 4 % 2) * 4; xx < bx + bw; xx += 8) g.fillRect(xx, yy, 0.8, 4); }
+      g.strokeStyle = '#6a2e18'; g.lineWidth = 2; g.strokeRect(bx + 1, by + 1, bw - 2, bh - 2);
+      // ferros de espera nos cantos
+      g.fillStyle = '#3a2a22';
+      for (const [px, py] of [[2, 2], [w - 4, 2], [2, h - 4], [w - 4, h - 4], [bx + bw / 2, 2]]) { g.fillRect(px, py, 1.6, 1.6); g.fillRect(px + 2.5, py, 1.6, 1.6); g.fillRect(px, py + 2.5, 1.6, 1.6); }
+      g.fillStyle = '#c06a40'; for (let i = 0; i < 6; i++) g.fillRect(w * 0.6 + (i % 3) * 3.4, h * 0.7 + Math.floor(i / 3) * 2.4, 3, 2);
+      g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = 2; g.strokeRect(1, 1, w - 2, h - 2);
+      break;
+    }
     case 'bleacher': {
       for (let i = 0; i < w; i += 5) { g.fillStyle = i % 10 ? '#9a9a9a' : '#6a6a6a'; g.fillRect(i, 0, 5, h); }
       break;
@@ -3800,6 +3863,20 @@ function roofSprite(b) {
       if (big && R() < 0.6) { g.strokeStyle = '#888'; g.lineWidth = 1.2; g.beginPath(); const ax = w - 14, ay = 14; g.moveTo(ax, ay); g.lineTo(ax - 10, ay + 12); g.moveTo(ax - 4, ay + 4); g.lineTo(ax + 3, ay + 8); g.stroke(); b.antenna = [ax, ay]; }
     }
   }
+  // detalhes de laje: antena parabólica e varal de roupas
+  if (b.dish && w > 22 && h > 22) {
+    const dx = R() < 0.5 ? 8 : w - 8, dy = R() < 0.5 ? h - 8 : 8;
+    g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.arc(dx + 1.5, dy + 1.5, 5.5, 0, TAU); g.fill();
+    g.fillStyle = '#d8d8d2'; g.beginPath(); g.arc(dx, dy, 5.5, 0, TAU); g.fill();
+    g.fillStyle = '#a8a8a2'; g.beginPath(); g.arc(dx + 1, dy + 1, 3.2, 0, TAU); g.fill();
+    g.fillStyle = '#555'; g.fillRect(dx - 0.6, dy - 0.6, 1.2, 1.2);
+  }
+  if (b.varal && w > 30 && h > 24) {
+    const vy = h * (0.3 + R() * 0.4), vx0 = w * 0.15, vx1 = w * 0.85;
+    g.strokeStyle = 'rgba(40,40,40,0.8)'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(vx0, vy); g.lineTo(vx1, vy); g.stroke();
+    const clothes = ['#e63946', '#f1f1f1', '#3a86ff', '#f4c430', '#2bb24c', '#ff7f11', '#8338ec'];
+    for (let x = vx0 + 2; x < vx1 - 5; x += 6 + R() * 3) { g.fillStyle = clothes[(R() * clothes.length) | 0]; g.fillRect(x, vy, 4 + R() * 2, 4 + R() * 3); }
+  }
   if (b.sign) {
     const fs = clamp(Math.min(w / (b.sign.length * 0.62), h * 0.42), 7, 22);
     g.font = `800 ${fs}px "Segoe UI", Roboto, Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -3829,7 +3906,7 @@ function bldOffset(b) {
   if (l > m) { ox *= m / l; oy *= m / l; }
   return [ox, oy - b.h * TILT_H];
 }
-const WIN_STYLES = { house: 1, farmhouse: 1, office: 2, tower: 2, church: 2, shop: 3, workshop: 3, garage: 3, kiosk: 3 };
+const WIN_STYLES = { house: 1, farmhouse: 1, office: 2, tower: 2, church: 2, apart: 2, colonial: 4, shop: 3, workshop: 3, garage: 3, kiosk: 3 };
 function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
   const ws = WIN_STYLES[b.style];
   if (!ws) return;
@@ -3838,6 +3915,7 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
   const len = Math.hypot(bx - ax, by - ay);
   let floors, cols;
   if (ws === 1) { floors = b.h > 40 ? 2 : 1; cols = Math.max(1, Math.floor(len / 30)); }
+  else if (ws === 4) { floors = 2; cols = Math.max(1, Math.floor(len / 18)); }
   else if (ws === 2) { floors = Math.max(1, Math.floor(b.h / 15)); cols = Math.max(1, Math.floor(len / 15)); }
   else { floors = 1; cols = Math.max(1, Math.floor(len / 24)); }
   const ex = bx - ax, ey = by - ay;
@@ -3886,7 +3964,32 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
       const s0 = 0.35, s1 = 0.65;
       ctx.beginPath(); ctx.moveTo(ax + (bx - ax) * s0, ay + (by - ay) * s0); ctx.lineTo(ax + (bx - ax) * s1, ay + (by - ay) * s1); ctx.lineTo(ax + (bx - ax) * s1 + ox * 0.7, ay + (by - ay) * s1 + oy * 0.7); ctx.lineTo(ax + (bx - ax) * s0 + ox * 0.7, ay + (by - ay) * s0 + oy * 0.7); ctx.closePath(); ctx.fill();
     }
-  } else wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, false);
+  } else {
+    if (b.brick) {
+      ctx.strokeStyle = 'rgba(70,25,10,0.4)'; ctx.lineWidth = 0.7; ctx.beginPath();
+      for (let f = 0.12; f < 1; f += 0.11) { ctx.moveTo(ax + ox * f, ay + oy * f); ctx.lineTo(bx + ox * f, by + oy * f); }
+      ctx.stroke();
+    }
+    wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, false);
+    if (b.style === 'colonial') {
+      // janelas coloniais com venezianas coloridas
+      ctx.fillStyle = b.seed % 2 ? '#2f6b4a' : '#2d4f7a';
+      const n = Math.max(1, Math.floor(Math.hypot(bx - ax, by - ay) / 18)), ex = bx - ax, ey = by - ay;
+      for (let f = 0; f < 2; f++) for (let c = 0; c < n; c++) for (const sd of [0.14, 0.72]) {
+        const s0 = (c + sd) / n, s1 = s0 + 0.12 / n, f0 = (f + 0.2) / 2, f1 = (f + 0.8) / 2;
+        ctx.beginPath(); ctx.moveTo(ax + ex * s0 + ox * f0, ay + ey * s0 + oy * f0); ctx.lineTo(ax + ex * s1 + ox * f0, ay + ey * s1 + oy * f0); ctx.lineTo(ax + ex * s1 + ox * f1, ay + ey * s1 + oy * f1); ctx.lineTo(ax + ex * s0 + ox * f1, ay + ey * s0 + oy * f1); ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.beginPath(); ctx.moveTo(ax + ox * 0.98, ay + oy * 0.98); ctx.lineTo(bx + ox * 0.98, by + oy * 0.98); ctx.lineTo(bx + ox * 0.9, by + oy * 0.9); ctx.lineTo(ax + ox * 0.9, ay + oy * 0.9); ctx.closePath(); ctx.fill();
+    }
+    if (b.style === 'apart') {
+      // sacadas com grade por andar
+      const fl = Math.max(1, Math.floor(b.h / 15));
+      ctx.strokeStyle = 'rgba(235,235,225,0.55)'; ctx.lineWidth = 1; ctx.beginPath();
+      for (let f = 1; f <= fl; f++) { const ff = (f - 0.18) / fl; ctx.moveTo(ax + ox * ff, ay + oy * ff); ctx.lineTo(bx + ox * ff, by + oy * ff); }
+      ctx.stroke();
+    }
+  }
   if (b.style === 'garage' && b.front === side) {
     ctx.fillStyle = '#5c6470';
     const s0 = 0.12, s1 = 0.88;
