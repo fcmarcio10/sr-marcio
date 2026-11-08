@@ -4811,15 +4811,16 @@ function updateJobs(dt) {
 /* ---------- interface do celular ---------- */
 /* ---------- celular Pera: papéis de parede capixabas, ícones e ajustes ---------- */
 const PERA_LOGO = '<svg class="pera-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.4c-1.7 0-2.7 1.4-3 3.1C8.7 11.2 5.8 12.6 5.8 16.2c0 3.4 2.8 5.6 6.2 5.6s6.2-2.2 6.2-5.6c0-3.6-2.9-5-3.2-6.7-.3-1.7-1.3-3.1-3-3.1z" fill="currentColor"/><path d="M12 6.4c0-1.6.4-2.9 1.3-3.8" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M13.1 4.3c1.6-1.5 3.6-1.4 4.6-.8-1 1.7-3 2.3-4.6.8z" fill="currentColor"/></svg>';
-function gearPath() { let d = ''; for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i % 2 ? 7.2 : 9.4; d += (i ? 'L' : 'M') + (12 + Math.cos(a) * r).toFixed(2) + ' ' + (12 + Math.sin(a) * r).toFixed(2); } return d + 'Z'; }
+// ícones minimalistas: um símbolo de traço branco sobre cor sólida
+const _ln = (d) => `<g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</g>`;
 const PH_ICONS = {
-  mapa: ['linear-gradient(160deg,#5ee08a,#1e9e6a 55%,#2b7de9)', '<path d="M3 6.2l6-2.2 6 2.2 6-2.2v13.8l-6 2.2-6-2.2-6 2.2z" fill="#f6f2e6"/><path d="M9 4v13.8M15 6.2V20" stroke="#c9c2ad" stroke-width="1.2"/><path d="M15.5 6.5c-1.9 0-3.3 1.4-3.3 3.2 0 2.4 3.3 5.6 3.3 5.6s3.3-3.2 3.3-5.6c0-1.8-1.4-3.2-3.3-3.2z" fill="#ff3b30"/><circle cx="15.5" cy="9.7" r="1.2" fill="#fff"/>'],
-  msgs: ['linear-gradient(180deg,#6cf08a,#22b546)', '<path d="M12 4.2c-5 0-9 3.3-9 7.3 0 2.3 1.3 4.4 3.4 5.7l-.9 3.1 3.9-1.9c.8.2 1.7.3 2.6.3 5 0 9-3.3 9-7.3S17 4.2 12 4.2z" fill="#fff"/>'],
-  pegaai: ['linear-gradient(180deg,#2a2a2e,#000)', '<path d="M4.5 15.5l1.6-5c.4-1.2 1.3-2 2.6-2h6.6c1.3 0 2.2.8 2.6 2l1.6 5v3h-2.2V17H6.7v1.5H4.5z" fill="#fff"/><circle cx="8" cy="14.2" r="1.3" fill="#000"/><circle cx="16" cy="14.2" r="1.3" fill="#000"/><path d="M8.6 10.6h6.8" stroke="#000" stroke-width="1"/>'],
-  fretes: ['linear-gradient(180deg,#ffb14a,#ff7a1a)', '<path d="M2.5 6.5h11v10h-11zM13.5 9.5h4l3.2 3.3v3.7h-7.2z" fill="#fff"/><circle cx="6.5" cy="17.5" r="2.1" fill="#fff" stroke="#ff7a1a" stroke-width="1.3"/><circle cx="17" cy="17.5" r="2.1" fill="#fff" stroke="#ff7a1a" stroke-width="1.3"/>'],
-  racha: ['linear-gradient(180deg,#ff5a5f,#c81d25)', '<path d="M5.5 3v18" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M6.5 4h13v9h-13z" fill="#fff"/><path d="M6.5 4h3.25v3H6.5zM13 4h3.25v3H13zM9.75 7H13v3H9.75zM16.25 7h3.25v3h-3.25zM6.5 10h3.25v3H6.5zM13 10h3.25v3H13z" fill="#1a1a1a"/>'],
-  carteira: ['linear-gradient(180deg,#1a1a1e,#000)', '<rect x="3.5" y="5" width="17" height="5" rx="2" fill="#ffb800"/><rect x="3.5" y="8" width="17" height="5" rx="2" fill="#30d158"/><rect x="3.5" y="11" width="17" height="8" rx="2.5" fill="#0a84ff"/><rect x="14" y="14.2" width="4.5" height="2" rx="1" fill="#fff"/>'],
-  ajustes: ['linear-gradient(180deg,#a8adb7,#6b707a)', '<path d="' + gearPath() + '" fill="#3a3d44"/><circle cx="12" cy="12" r="5.2" fill="#d6d9de"/><circle cx="12" cy="12" r="2.6" fill="#6b707a"/>'],
+  mapa: ['#16a085', _ln('<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>')],
+  msgs: ['#25b04a', _ln('<path d="M20 11.5a7.5 7 0 0 1-10.6 6.4L4.5 19.5l1.4-4A7 7 0 0 1 4.5 11.5 7.5 7 0 0 1 20 11.5z"/>')],
+  pegaai: ['#2c2c30', _ln('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 14v6M10.2 11.2 4.6 9.6M13.8 11.2l5.6-1.6"/>')],
+  fretes: ['#f08a24', _ln('<path d="M12 3.5 19.5 7.5v9L12 20.5 4.5 16.5v-9z"/><path d="M4.5 7.5 12 11.5l7.5-4M12 11.5v9"/>')],
+  racha: ['#e0353b', _ln('<path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/>')],
+  carteira: ['#2f6fdf', _ln('<rect x="3.5" y="6" width="17" height="13" rx="2.5"/><path d="M3.5 10h17"/><circle cx="16.5" cy="14.5" r="1" fill="#fff"/>')],
+  ajustes: ['#7b808a', _ln('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>')],
 };
 const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', ajustes: 'Ajustes' };
 function phIcon(id, badge) {

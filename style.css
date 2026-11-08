@@ -553,14 +553,14 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 .ph-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 6px; }
 .ph-app { pointer-events: auto; cursor: pointer; background: none; border: 0; padding: 0; color: #fff; display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .ph-ico { position: relative; width: 56px; height: 56px; border-radius: 14px; display: grid; place-items: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 0 0 0.5px rgba(255, 255, 255, 0.18); transition: transform 0.12s; }
-.ph-ico svg { width: 34px; height: 34px; }
+.ph-ico svg { width: 30px; height: 30px; }
 .ph-lbl { font: 500 11px -apple-system, "Segoe UI", sans-serif; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
 .ph-app:hover .ph-ico { transform: scale(1.07); }
 .ph-app:active .ph-ico { transform: scale(0.92); filter: brightness(0.8); }
 .ph-badge { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; border-radius: 10px; background: #ff3b30; font: 600 12px -apple-system, "Segoe UI", sans-serif; font-style: normal; display: grid; place-items: center; padding: 0 5px; box-sizing: border-box; }
 .ph-wname { margin-top: auto; text-align: center; font: 500 10px -apple-system, "Segoe UI", sans-serif; color: rgba(255, 255, 255, 0.75); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); padding: 14px 0 10px; }
 .ph-dock { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 12px 10px; border-radius: 30px; background: rgba(255, 255, 255, 0.22); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); }
-.ph-dock .ph-lbl { display: none; }
+.ph-dock .ph-lbl { text-shadow: none; }
 /* telas dos apps */
 .ph-head { position: relative; display: flex; align-items: center; justify-content: center; min-height: 34px; font: 700 17px -apple-system, "Segoe UI", sans-serif; margin-bottom: 12px; }
 .ph-back { pointer-events: auto; cursor: pointer; position: absolute; left: -4px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: #0a84ff; font: 400 32px -apple-system, "Segoe UI", sans-serif; line-height: 1; padding: 0 8px 4px; }
