@@ -327,56 +327,6 @@ const AudioSys = {
     const g = c.createGain(); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     s.connect(b); b.connect(g); g.connect(dst); s.start(t, Math.random()); s.stop(t + dur + 0.05);
   },
-  // rádio do carro: estações sintetizadas (forró, pagode e lo-fi)
-  radio(st, vol) {
-    if (!this.ok) return;
-    const c = this.ctx, t = c.currentTime;
-    if (!this.rGain) {
-      this.rGain = this.gain(0, this.master);
-      this.rLP = this.filt('lowpass', 3200, 0.7, this.rGain);
-      this.rHP = this.filt('highpass', 140, 0.7, this.rLP); // som de rádio de carro
-      this.rI = 0; this.rNext = 0; this.rSt = 0;
-    }
-    if (st !== this.rSt) { this.rSt = st; this.rI = 0; this.rNext = 0; if (st) this.noise(0.25, 2600, 0.6, 0.05, 'ui', 'bandpass'); }
-    this.rGain.gain.setTargetAtTime(st ? vol : 0, t, 0.15);
-    if (!st || vol < 0.002) { this.rNext = 0; return; }
-    this.rLP.frequency.setTargetAtTime(st === 3 ? 1500 : 3400, t, 0.2);
-    const bpm = st === 1 ? 118 : st === 2 ? 98 : 78, sp = 60 / bpm / 4;
-    if (!this.rNext || this.rNext < t) this.rNext = t + 0.08;
-    while (this.rNext < t + 0.3) {
-      const i = this.rI++, tt = this.rNext;
-      if (st === 1) this.mStep(tt, i, this.rHP); else if (st === 2) this.pagodeStep(tt, i, this.rHP); else this.lofiStep(tt, i, this.rHP);
-      this.rNext += sp;
-    }
-  },
-  pagodeStep(t, i, d) {
-    const s = i % 16, bar = Math.floor(i / 16) % 4;
-    // surdo
-    if (s === 4) this.mNote(t, 72, 0.3, 'sine', 0.45, 50, 0, d);
-    if (s === 12) this.mNote(t, 62, 0.45, 'sine', 0.9, 42, 0, d);
-    // pandeiro
-    this.mNoise(t, s % 4 === 0 ? 0.09 : 0.05, 5200, s % 4 === 2 ? 0.14 : 0.06, d);
-    if (s % 8 === 0) this.mNote(t, 190, 0.08, 'triangle', 0.25, 120, 0, d);
-    // tamborim
-    if ([0, 3, 6, 8, 10, 13].includes(s)) this.mNote(t, 920, 0.05, 'square', 0.05, 700, 0, d);
-    // cavaquinho e baixo: Dó · Lá7 · Rém · Sol7
-    const ch = [[523.3, 659.3, 784], [554.4, 659.3, 784], [587.3, 698.5, 880], [493.9, 587.3, 698.5]][bar];
-    const bass = [130.8, 110, 146.8, 98][bar];
-    if ([0, 2, 3, 6, 8, 10, 11, 14].includes(s)) ch.forEach((f, k) => this.mNote(t + k * 0.008, f, 0.11, 'sawtooth', s % 8 === 0 ? 0.035 : 0.022, null, 0, d));
-    if (s === 0 || s === 6 || s === 8 || s === 14) this.mNote(t, s === 6 || s === 14 ? bass * 1.5 : bass, 0.3, 'triangle', 0.3, null, 0, d);
-    if (bar === 3 && s >= 12 && s % 2 === 0) this.mNote(t, [784, 698.5][(s / 2) % 2], 0.12, 'square', 0.035, null, 0, d);
-  },
-  lofiStep(t, i, d) {
-    const s = i % 16, bar = Math.floor(i / 16) % 4;
-    if (s === 0 || s === 10) this.mNote(t, 110, 0.22, 'sine', 0.9, 45, 0, d);
-    if (s === 4 || s === 12) this.mNoise(t, 0.16, 1800, 0.18, d, 'bandpass');
-    if (s % 2 === 0) this.mNoise(t, 0.03, 7000, s % 4 === 2 ? 0.06 : 0.035, d);
-    if (Math.random() < 0.12) this.mNoise(t, 0.02, 3000, 0.02, d);
-    const ch = [[349.2, 440, 523.3, 659.3], [329.6, 392, 493.9, 587.3], [293.7, 349.2, 440, 523.3], [261.6, 329.6, 392, 493.9]][bar];
-    if (s === 0) ch.forEach((f, k) => this.mNote(t + k * 0.02, f, 2.2, 'sine', 0.06, null, (k % 2 ? 4 : -4), d));
-    if (s === 0) this.mNote(t, ch[0] / 4, 1.6, 'triangle', 0.3, null, 0, d);
-    if (s === 7 || s === 11 || s === 14) this.mNote(t, ch[(s + bar) % 4] * 2, 0.4, 'triangle', 0.05, null, 0, d);
-  },
   mStep(t, i, d) {
     const s = i % 16, bar = Math.floor(i / 16) % 4;
     if (s === 0 || s === 3 || s === 8 || s === 11) this.mNote(t, s % 8 === 0 ? 105 : 92, 0.28, 'sine', s % 8 === 0 ? 0.9 : 0.55, 48, 0, d);
@@ -4631,7 +4581,7 @@ const JOB_TYPES = {
 function addMsg(from, title, body, silent) {
   Profile.msgs = Profile.msgs || [];
   Profile.msgs.unshift({ from, title, body, read: false, t: Math.floor(Profile.time) });
-  if (!silent) { toast('Nova mensagem: ' + from, title + ' — aperte Q para abrir o celular.', 'info'); AudioSys.tone(1568, 0.08, 'sine', 0.08, 'ui'); AudioSys.tone(2093, 0.12, 'sine', 0.08, 'ui', null, 0.1); }
+  if (!silent) { const cfg = phoneCfg(); if (cfg.notif) toast('Nova mensagem: ' + from, title + ' — aperte Q para abrir o celular.', 'info'); if (cfg.sounds) { AudioSys.tone(1568, 0.08, 'sine', 0.08, 'ui'); AudioSys.tone(2093, 0.12, 'sine', 0.08, 'ui', null, 0.1); } }
 }
 function ensurePhoneData() {
   if (!Profile.msgs) {
@@ -4639,7 +4589,7 @@ function ensurePhoneData() {
     addMsg('Seu Zé (Oficina)', 'Bem-vindo a São Gambiarra!',
       'Aqui é o Seu Zé, da oficina. Você chegou em São Gambiarra, no Espírito Santo, uma cidade que nunca dorme. Seu Quadradão tá na garagem da Vila Sem Pressa.\n\n' +
       'Pra ganhar a vida por aqui:\n• Entregas: pare em frente aos comércios com marcador amarelo e aperte E.\n• App PegaAí: fique online e leve passageiros pela cidade.\n• App Fretes: com uma picape ou caminhão de trabalho (a picape é a mais barata), faça fretes de carga, gás, combustível, entulho e reboque.\n• Percursos: bandeiras azuis no mapa, com medalhas.\n• Racha: depois das 22h, os rachas da madrugada pagam a aposta em dobro. Só cuidado: se a viatura vir, é multa.\n\n' +
-      'Abasteça no posto, conserte aqui comigo quando bater e cuidado com o pardal nas avenidas. M abre o mapa, P abre o celular.\n\nBoa noite e vai com Deus!', true);
+      'Abasteça no posto, conserte aqui comigo quando bater e cuidado com o pardal nas avenidas. Q abre o celular, e o mapa fica no app Mapa.\n\nBoa noite e vai com Deus!', true);
   }
   if (Profile.rides === undefined) { Profile.rides = 0; Profile.ratingSum = 0; Profile.jobs = 0; }
 }
@@ -4781,36 +4731,153 @@ function updateJobs(dt) {
   if (!rachaOpen()) Profile.rachaMsg = false;
 }
 
-/* ---------- rádio ---------- */
-const RADIO = [
-  { name: 'Desligado', freq: '', host: '', songs: [''] },
-  { name: 'Forró da Madrugada', freq: '98,7 FM', host: 'com DJ Arrasta-Pé', songs: ['Xote do Pneu Furado', 'Sanfona na BR', 'Forró do Posto 24h', 'Zabumba de Carapina'] },
-  { name: 'Pagode do Bagunça', freq: '102,3 FM', host: 'ao vivo da Praça da Bagunça', songs: ['Churrasco na Laje', 'Cavaco de Domingo', 'Samba da Moqueca', 'Pagode do Engarrafamento'] },
-  { name: 'Noite Lo-fi 027', freq: '89,1 FM', host: 'pra dirigir de boa', songs: ['Neblina na Serra', 'Orla às 3h', 'Poste Piscando', 'Chuva no Para-brisa'] },
-];
-function radioSet(i) {
-  Profile.radio = ((i % RADIO.length) + RADIO.length) % RADIO.length;
-  Phone.songT = 0;
-  if (Profile.radio) toast(RADIO[Profile.radio].freq + ' · ' + RADIO[Profile.radio].name, 'Tocando: ' + radioSong(), 'info');
-  else toast('Rádio desligado', '', 'info');
-}
-function radioSong() { const r = RADIO[Profile.radio || 0]; return r.songs[Math.floor((Game.time || 0) / 95) % r.songs.length]; }
-
 /* ---------- interface do celular ---------- */
+/* ---------- celular Pera: papéis de parede capixabas, ícones e ajustes ---------- */
+const PERA_LOGO = '<svg class="pera-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.4c-1.7 0-2.7 1.4-3 3.1C8.7 11.2 5.8 12.6 5.8 16.2c0 3.4 2.8 5.6 6.2 5.6s6.2-2.2 6.2-5.6c0-3.6-2.9-5-3.2-6.7-.3-1.7-1.3-3.1-3-3.1z" fill="currentColor"/><path d="M12 6.4c0-1.6.4-2.9 1.3-3.8" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M13.1 4.3c1.6-1.5 3.6-1.4 4.6-.8-1 1.7-3 2.3-4.6.8z" fill="currentColor"/></svg>';
+function gearPath() { let d = ''; for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i % 2 ? 7.2 : 9.4; d += (i ? 'L' : 'M') + (12 + Math.cos(a) * r).toFixed(2) + ' ' + (12 + Math.sin(a) * r).toFixed(2); } return d + 'Z'; }
+const PH_ICONS = {
+  mapa: ['linear-gradient(160deg,#5ee08a,#1e9e6a 55%,#2b7de9)', '<path d="M3 6.2l6-2.2 6 2.2 6-2.2v13.8l-6 2.2-6-2.2-6 2.2z" fill="#f6f2e6"/><path d="M9 4v13.8M15 6.2V20" stroke="#c9c2ad" stroke-width="1.2"/><path d="M15.5 6.5c-1.9 0-3.3 1.4-3.3 3.2 0 2.4 3.3 5.6 3.3 5.6s3.3-3.2 3.3-5.6c0-1.8-1.4-3.2-3.3-3.2z" fill="#ff3b30"/><circle cx="15.5" cy="9.7" r="1.2" fill="#fff"/>'],
+  msgs: ['linear-gradient(180deg,#6cf08a,#22b546)', '<path d="M12 4.2c-5 0-9 3.3-9 7.3 0 2.3 1.3 4.4 3.4 5.7l-.9 3.1 3.9-1.9c.8.2 1.7.3 2.6.3 5 0 9-3.3 9-7.3S17 4.2 12 4.2z" fill="#fff"/>'],
+  pegaai: ['linear-gradient(180deg,#2a2a2e,#000)', '<path d="M4.5 15.5l1.6-5c.4-1.2 1.3-2 2.6-2h6.6c1.3 0 2.2.8 2.6 2l1.6 5v3h-2.2V17H6.7v1.5H4.5z" fill="#fff"/><circle cx="8" cy="14.2" r="1.3" fill="#000"/><circle cx="16" cy="14.2" r="1.3" fill="#000"/><path d="M8.6 10.6h6.8" stroke="#000" stroke-width="1"/>'],
+  fretes: ['linear-gradient(180deg,#ffb14a,#ff7a1a)', '<path d="M2.5 6.5h11v10h-11zM13.5 9.5h4l3.2 3.3v3.7h-7.2z" fill="#fff"/><circle cx="6.5" cy="17.5" r="2.1" fill="#fff" stroke="#ff7a1a" stroke-width="1.3"/><circle cx="17" cy="17.5" r="2.1" fill="#fff" stroke="#ff7a1a" stroke-width="1.3"/>'],
+  racha: ['linear-gradient(180deg,#ff5a5f,#c81d25)', '<path d="M5.5 3v18" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M6.5 4h13v9h-13z" fill="#fff"/><path d="M6.5 4h3.25v3H6.5zM13 4h3.25v3H13zM9.75 7H13v3H9.75zM16.25 7h3.25v3h-3.25zM6.5 10h3.25v3H6.5zM13 10h3.25v3H13z" fill="#1a1a1a"/>'],
+  carteira: ['linear-gradient(180deg,#1a1a1e,#000)', '<rect x="3.5" y="5" width="17" height="5" rx="2" fill="#ffb800"/><rect x="3.5" y="8" width="17" height="5" rx="2" fill="#30d158"/><rect x="3.5" y="11" width="17" height="8" rx="2.5" fill="#0a84ff"/><rect x="14" y="14.2" width="4.5" height="2" rx="1" fill="#fff"/>'],
+  ajustes: ['linear-gradient(180deg,#a8adb7,#6b707a)', '<path d="' + gearPath() + '" fill="#3a3d44"/><circle cx="12" cy="12" r="5.2" fill="#d6d9de"/><circle cx="12" cy="12" r="2.6" fill="#6b707a"/>'],
+};
+const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', ajustes: 'Ajustes' };
+function phIcon(id, badge) {
+  const [bg, svg] = PH_ICONS[id];
+  return `<button class="ph-app" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge ? `<i class="ph-badge">${badge}</i>` : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
+}
+// papéis de parede: paisagens do Espírito Santo desenhadas em SVG
+const WALLS = [
+  { id: 'penha', name: 'Convento da Penha', place: 'Vila Velha' },
+  { id: 'ponte', name: 'Terceira Ponte', place: 'Vitória' },
+  { id: 'pedra', name: 'Pedra Azul', place: 'Domingos Martins' },
+  { id: 'camburi', name: 'Praia de Camburi', place: 'Vitória' },
+  { id: 'dunas', name: 'Dunas de Itaúnas', place: 'Conceição da Barra' },
+  { id: 'bandeira', name: 'Trabalha e Confia', place: 'Bandeira capixaba' },
+];
+const _wallCache = {};
+function wallSVG(id) {
+  const R = mulberry32(id.length * 977 + id.charCodeAt(0) * 31);
+  const stars = (n, y1, op) => { let s = ''; for (let i = 0; i < n; i++) s += `<circle cx="${(R() * 300).toFixed(1)}" cy="${(R() * y1).toFixed(1)}" r="${(0.4 + R() * 1.1).toFixed(2)}" fill="#fff" opacity="${(op * (0.4 + R() * 0.6)).toFixed(2)}"/>`; return s; };
+  const lights = (n, y0, y1, cols) => { let s = ''; for (let i = 0; i < n; i++) s += `<rect x="${(R() * 300).toFixed(1)}" y="${(y0 + R() * (y1 - y0)).toFixed(1)}" width="1.6" height="1.6" fill="${cols[(R() * cols.length) | 0]}" opacity="${(0.5 + R() * 0.5).toFixed(2)}"/>`; return s; };
+  const grad = (gid, stops, vert) => `<linearGradient id="${gid}" x1="0" y1="0" x2="${vert ? 0 : 1}" y2="${vert ? 1 : 0}">${stops.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('')}</linearGradient>`;
+  let g = '';
+  switch (id) {
+    case 'penha':
+      g = `<defs>${grad('s', [[0, '#0a1433'], [0.55, '#3a2a6a'], [0.8, '#d0607a'], [1, '#f2a25a']], 1)}${grad('w', [[0, '#1c2550'], [1, '#05081a']], 1)}</defs>
+      <rect width="300" height="600" fill="url(#s)"/>${stars(70, 260, 1)}
+      <path d="M0 470 C40 455 70 440 100 400 C120 370 140 330 160 318 C175 309 205 306 222 318 C240 334 255 380 275 420 C285 440 295 455 300 462 V600 H0Z" fill="#1a1a2e"/>
+      <path d="M118 380 C135 350 150 330 165 322 L170 340 C150 352 135 370 125 392Z" fill="#26263f"/>
+      <rect x="170" y="290" width="44" height="22" fill="#e9e2cf"/><rect x="200" y="276" width="14" height="36" fill="#f2ecdc"/>
+      <path d="M168 292 L192 280 L216 292Z" fill="#b5523a"/><path d="M198 278 L207 268 L216 278Z" fill="#b5523a"/>
+      <rect x="176" y="297" width="4" height="7" fill="#f6c24a"/><rect x="186" y="297" width="4" height="7" fill="#f6c24a"/><rect x="205" y="284" width="4" height="6" fill="#f6c24a"/>
+      <rect y="470" width="300" height="130" fill="url(#w)"/>${lights(160, 470, 600, ['#ffcf6a', '#ffe9b0', '#ff9a4a'])}
+      <path d="M0 470 H300" stroke="#f2a25a" stroke-opacity="0.5"/>`;
+      break;
+    case 'ponte':
+      g = `<defs>${grad('s', [[0, '#03061a'], [0.7, '#162452'], [1, '#2c3f7a']], 1)}${grad('w', [[0, '#0d1838'], [1, '#02040e']], 1)}</defs>
+      <rect width="300" height="600" fill="url(#s)"/>${stars(80, 330, 1)}<circle cx="232" cy="96" r="22" fill="#f4efd6"/><circle cx="224" cy="90" r="22" fill="#162452" opacity="0.15"/>
+      <path d="M0 360 h24 v-50 h18 v30 h14 v-62 h20 v82 h16 v-36 h22 v40 H0Z" fill="#0b1230"/><path d="M200 380 v-40 h18 v-30 h22 v50 h16 v-74 h22 v58 h22 v36Z" fill="#0b1230"/>
+      ${lights(70, 300, 380, ['#ffd37a', '#bfe3ff'])}
+      <rect y="380" width="300" height="220" fill="url(#w)"/>
+      <path d="M-10 420 Q150 300 310 420" stroke="#d8dce8" stroke-width="5" fill="none"/>
+      ${[30, 70, 110, 150, 190, 230, 270].map((x) => { const t = (x + 10) / 320, y = (1 - t) * (1 - t) * 420 + 2 * (1 - t) * t * 300 + t * t * 420; return `<rect x="${x - 3}" y="${y.toFixed(0)}" width="6" height="${(600 - y).toFixed(0)}" fill="#8a90a6" opacity="0.55"/>`; }).join('')}
+      ${Array.from({ length: 26 }, (_, i) => { const t = i / 25, x = -10 + t * 320, y = (1 - t) * (1 - t) * 420 + 2 * (1 - t) * t * 300 + t * t * 420; return `<circle cx="${x.toFixed(1)}" cy="${(y - 5).toFixed(1)}" r="1.8" fill="#ffd37a"/><rect x="${(x - 1).toFixed(1)}" y="${(y + 40 + R() * 80).toFixed(0)}" width="2" height="${(12 + R() * 30).toFixed(0)}" fill="#ffd37a" opacity="0.25"/>`; }).join('')}`;
+      break;
+    case 'pedra':
+      g = `<defs>${grad('s', [[0, '#0b0f2a'], [0.5, '#2a3a7a'], [1, '#7a8ac8']], 1)}${grad('r', [[0, '#7d93b8'], [1, '#3c4f78']], 0)}</defs>
+      <rect width="300" height="600" fill="url(#s)"/>${stars(60, 220, 0.9)}
+      <path d="M0 420 C40 400 60 390 90 380 L300 360 V600 H0Z" fill="#26305a"/>
+      <path d="M60 420 C70 330 105 230 165 215 C220 205 250 290 262 420Z" fill="url(#r)"/>
+      <path d="M150 230 C160 280 158 340 170 410" stroke="#5f7298" stroke-width="5" fill="none" opacity="0.7"/><path d="M196 222 C210 260 222 320 232 410" stroke="#a8b8d6" stroke-width="2" fill="none" opacity="0.5"/>
+      <path d="M232 300 C240 270 258 266 268 290 C274 320 276 370 280 420 H232Z" fill="#4c6190"/>
+      <rect y="410" width="300" height="190" fill="#121a36"/>
+      ${Array.from({ length: 30 }, (_, i) => { const x = i * 10.5 + R() * 6, h = 30 + R() * 40, y = 415 + R() * 30; return `<path d="M${x.toFixed(0)} ${(y - h).toFixed(0)} L${(x + 9).toFixed(0)} ${y.toFixed(0)} L${(x - 9).toFixed(0)} ${y.toFixed(0)}Z" fill="#0a1226"/>`; }).join('')}
+      <rect y="440" width="300" height="160" fill="#070c1c"/><rect y="400" width="300" height="30" fill="#c8d4f0" opacity="0.08"/>`;
+      break;
+    case 'camburi':
+      g = `<defs>${grad('s', [[0, '#3a2a6a'], [0.45, '#d65a6a'], [0.75, '#ffa64a'], [1, '#ffd27a']], 1)}${grad('w', [[0, '#c8706a'], [1, '#203a6a']], 1)}</defs>
+      <rect width="300" height="600" fill="url(#s)"/><circle cx="150" cy="345" r="40" fill="#ffe7a0"/>
+      <rect y="350" width="300" height="140" fill="url(#w)"/>
+      ${Array.from({ length: 16 }, (_, i) => `<rect x="${(150 - 30 + R() * 60 - i * 1.5).toFixed(0)}" y="${358 + i * 8}" width="${(20 + R() * 40 - i).toFixed(0)}" height="2" fill="#ffe7a0" opacity="${(0.8 - i * 0.04).toFixed(2)}"/>`).join('')}
+      <path d="M20 345 h30 v-6 h16 v6 h8 v5 h-54z" fill="#2a2440"/><path d="M228 346 h40 v-5 h10 v5 h6 v4 h-56z" fill="#2a2440"/>
+      <path d="M0 490 Q150 470 300 490 V600 H0Z" fill="#e8c890"/><path d="M0 500 Q150 482 300 500" stroke="#fff" stroke-opacity="0.5" fill="none"/>
+      <path d="M58 600 C62 540 60 500 70 440" stroke="#2a1a24" stroke-width="7" fill="none"/>
+      <path d="M70 440 C50 430 30 438 18 452 M70 440 C90 425 112 430 126 446 M70 440 C60 420 46 408 30 404 M70 440 C84 418 102 410 118 412 M70 440 C72 425 70 410 64 398" stroke="#2a1a24" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+      break;
+    case 'dunas':
+      g = `<defs>${grad('s', [[0, '#050a22'], [0.6, '#14285a'], [1, '#2a4c84']], 1)}</defs>
+      <rect width="300" height="600" fill="url(#s)"/>${stars(110, 360, 1)}<circle cx="90" cy="150" r="30" fill="#fbf6e0"/><circle cx="90" cy="150" r="50" fill="#fbf6e0" opacity="0.08"/>
+      <path d="M0 380 C60 340 120 350 180 380 C230 404 270 370 300 360 V600 H0Z" fill="#6a6a8a"/>
+      <path d="M0 430 C80 390 150 400 210 440 C250 466 280 440 300 430 V600 H0Z" fill="#8a7e8e"/>
+      <path d="M0 500 C70 470 140 480 200 510 C240 528 270 515 300 505 V600 H0Z" fill="#a8968e"/>
+      <path d="M0 430 C80 390 150 400 210 440" stroke="#d8cfd0" stroke-opacity="0.5" fill="none"/><path d="M0 500 C70 470 140 480 200 510" stroke="#efe2d6" stroke-opacity="0.5" fill="none"/>
+      <path d="M232 500 C236 470 238 456 246 440" stroke="#2a2440" stroke-width="3" fill="none"/><path d="M246 440 l-12 4 M246 440 l12 2 M246 440 l-6 -10 M246 440 l8 -9" stroke="#2a2440" stroke-width="2.5" stroke-linecap="round"/>`;
+      break;
+    default:
+      g = `<defs>${grad('b', [[0, '#16408a'], [1, '#2a62c4']], 0)}${grad('p', [[0, '#e07aa6'], [1, '#f2a8c6']], 0)}</defs>
+      <rect width="300" height="600" fill="#f4f4f0"/>
+      <path d="M0 0 H300 V170 L0 290Z" fill="url(#b)"/><path d="M0 390 L300 270 V600 H0Z" fill="url(#p)"/>
+      <path d="M0 290 L300 170" stroke="#fff" stroke-width="2"/>
+      <text x="150" y="312" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#16408a" transform="rotate(-21.8 150 312)" letter-spacing="2">TRABALHA E CONFIA</text>
+      ${stars(40, 160, 0.5)}`;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 600" preserveAspectRatio="xMidYMid slice">${g}</svg>`;
+}
+function wallURL(id) { if (!_wallCache[id]) _wallCache[id] = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(wallSVG(id)) + '")'; return _wallCache[id]; }
+function phoneCfg() { if (!Profile.phone) Profile.phone = { wall: 'auto', notif: true, sounds: true, lastSave: null }; return Profile.phone; }
+function phoneTone(f, d, v, delay) { if (phoneCfg().sounds) AudioSys.tone(f, d, 'sine', v, 'ui', null, delay); }
+const PERA_OS = '18.4';
+
 const Phone = {
   app: 'home', fretes: [], fretesT: -1e9, msgOpen: -1,
-  open(app) { ensurePhoneData(); this.app = app || 'home'; if (Screens.current !== 'screen-phone') Screens.open('screen-phone'); this.render(); AudioSys.tone(1200, 0.05, 'sine', 0.05, 'ui'); },
-  go(app) { this.app = app; this.msgOpen = -1; this.render(); AudioSys.click(); },
+  open(app) {
+    ensurePhoneData(); const cfg = phoneCfg();
+    if (cfg.wall === 'auto' || !WALLS.some((w) => w.id === cfg.wall)) { let w; do { w = pick(WALLS).id; } while (w === this.wall); this.wall = w; } else this.wall = cfg.wall;
+    this.app = app || 'home'; if (Screens.current !== 'screen-phone') Screens.open('screen-phone'); this.render(); phoneTone(1200, 0.05, 0.05);
+  },
+  go(app) { this.app = app; this.msgOpen = -1; if (app === 'aj-update') this.updT = performance.now(); this.render(); if (phoneCfg().sounds) AudioSys.click(); },
   render() {
     const body = $('phone-body'); if (!body) return;
     $('phone-clock').textContent = clockStr();
     const unread = (Profile.msgs || []).filter((m) => !m.read).length;
     const H = (s) => escapeHtml(s);
     let html = '';
+    const scr = $('phone-screen'), cfg = phoneCfg();
+    if (scr) { scr.style.backgroundImage = wallURL(this.wall || 'penha'); scr.classList.toggle('inapp', this.app !== 'home'); }
+    body.classList.toggle('home', this.app === 'home');
+    const row = (go, label, val, cls) => `<button class="aj-row${cls ? ' ' + cls : ''}" ${go ? `data-go="${go}"` : ''}><span>${label}</span><em>${val || ''}${go ? '<i class="chev"></i>' : ''}</em></button>`;
+    const tog = (k, label) => `<button class="aj-row" data-tog="${k}"><span>${label}</span><i class="ios-tog${(k === 'autoWall' ? cfg.wall === 'auto' : cfg[k]) ? ' on' : ''}"></i></button>`;
     if (this.app === 'home') {
-      const apps = [['mapa', 'Mapa', '#2a9d8f', 'M'], ['msgs', 'Mensagens', '#39d353', 'Z'], ['pegaai', 'PegaAí', '#111111', 'P'], ['fretes', 'Fretes', '#ff8a2a', 'F'], ['racha', 'Racha', '#e63946', 'R'], ['carteira', 'Carteira', '#3a86ff', '$'], ['radio', 'Rádio', '#9b5de5', 'FM']];
-      html = '<div class="ph-wall"><div class="ph-time">' + clockStr() + '</div><div class="ph-date">São Gambiarra · ES</div></div><div class="ph-grid">' +
-        apps.map(([id, n, c, l]) => `<button class="ph-app" data-app="${id}"><span class="ph-ico" style="background:${c}">${l}${id === 'msgs' && unread ? `<i class="ph-badge">${unread}</i>` : ''}</span>${n}</button>`).join('') + '</div>';
+      const W = WALLS.find((w) => w.id === this.wall) || WALLS[0];
+      html = `<div class="ph-lock"><div class="ph-date">São Gambiarra · ES</div><div class="ph-time">${clockStr()}</div></div><div class="ph-grid">` +
+        ['fretes', 'racha', 'carteira'].map((id) => phIcon(id)).join('') + '</div>' +
+        `<div class="ph-wname">${H(W.name)} · ${H(W.place)}</div><div class="ph-dots"><i class="on"></i><i></i></div>` +
+        '<div class="ph-dock">' + ['mapa', 'msgs', 'pegaai', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
+    } else if (this.app === 'ajustes') {
+      html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
+        `<div class="aj-group"><div class="aj-prof"><span class="aj-ava">${PERA_LOGO}</span><div><b>Motorista de São Gambiarra</b><small>Pera ID · Nuvem Capixaba</small></div></div></div>` +
+        '<div class="aj-group">' + row('aj-wall', 'Papel de parede', cfg.wall === 'auto' ? 'Variado' : (WALLS.find((w) => w.id === cfg.wall) || WALLS[0]).name) + tog('notif', 'Notificações') + tog('sounds', 'Sons do celular') + '</div>' +
+        '<div class="aj-group">' + row('aj-sobre', 'Sobre') + row('aj-update', 'Atualização de Software') + '</div>' +
+        `<div class="aj-group"><button class="aj-row aj-save" data-act2="save"><span>Salvar jogo</span></button></div><p class="aj-foot">${cfg.lastSave ? 'Último salvamento às ' + H(cfg.lastSave) + ' (horário do jogo).' : 'O jogo também salva sozinho a cada 30 segundos.'}</p>`;
+    } else if (this.app === 'aj-wall') {
+      html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Papel de parede</div>' +
+        '<div class="aj-group">' + tog('autoWall', 'Variar a cada vez que abrir') + '</div>' +
+        '<div class="aj-walls">' + WALLS.map((w) => `<button class="aj-wall${cfg.wall === w.id ? ' sel' : ''}" data-wall="${w.id}"><span style="background-image:${wallURL(w.id).replace(/"/g, "'")}"></span><b>${H(w.name)}</b><small>${H(w.place)}</small></button>`).join('') + '</div>';
+    } else if (this.app === 'aj-sobre') {
+      const free = 256 - 41 - Math.min(60, Math.floor((Profile.distance || 0) / 90000));
+      html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Sobre</div><div class="aj-hero">' + PERA_LOGO + '<b>Pera 15 Pro</b></div>' +
+        '<div class="aj-group">' + row(null, 'Nome', 'Pera do Motorista') + row(null, 'Versão do PeraOS', PERA_OS) + row(null, 'Modelo', 'Pera 15 Pro') + row(null, 'Operadora', 'Moqueca Tel 5G') + '</div>' +
+        '<div class="aj-group">' + row(null, 'Capacidade', '256 GB') + row(null, 'Disponível', free + ' GB') + row(null, 'Apps', '7') + row(null, 'Número de série', 'PR027ES' + (1000 + ((Profile.earned || 0) % 9000))) + '</div>';
+    } else if (this.app === 'aj-update') {
+      const chk = performance.now() - (this.updT || 0) < 1600;
+      html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Atualização</div><div class="aj-hero big">' + PERA_LOGO +
+        (chk ? '<div class="aj-spin"></div><p>Procurando atualização…</p>' : `<b>PeraOS ${PERA_OS}</b><p>Seu Pera está atualizado.</p><small>Instalada automaticamente. Inclui melhorias no app Mapa, no PegaAí e na bateria durante corridas noturnas.</small>`) + '</div>' +
+        '<div class="aj-group">' + row(null, 'Atualizações automáticas', 'Ativadas') + '</div>';
+      if (chk) setTimeout(() => { if (this.app === 'aj-update' && Screens.current === 'screen-phone') { this.render(); phoneTone(1320, 0.12, 0.05); } }, 1700);
     } else if (this.app === 'msgs') {
       const M = Profile.msgs || [];
       if (this.msgOpen >= 0 && M[this.msgOpen]) {
@@ -4837,13 +4904,6 @@ const Phone = {
       const open = rachaOpen();
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Racha</div>' + (open ? '<p class="ph-note">Madrugada liberada. Vá até o ponto e aperte E. Quem ganhar leva o dobro da aposta. Se uma viatura chegar perto, é multa e aposta perdida.</p>' : '<p class="ph-empty">Os rachas só rolam de madrugada, das 22h às 4h30. Agora são ' + clockStr() + '.</p>') +
         World.rachas.map((r, i) => `<button class="ph-row" data-racha="${i}"><b>${H(r.name)} · aposta R$ ${fmtMoney(r.bet)}</b><span>contra ${H(r.rival)} (${fmtTime(r.rivalTime)}) · toque para marcar no GPS</span></button>`).join('');
-    } else if (this.app === 'radio') {
-      const cur = Profile.radio || 0, vol = Profile.radioVol == null ? 0.5 : Profile.radioVol;
-      html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Rádio</div>' +
-        `<div class="ph-card ph-radio"><div class="ph-eq${cur ? ' on' : ''}"><i></i><i></i><i></i><i></i><i></i></div><div class="ph-big">${cur ? H(RADIO[cur].freq) : 'Rádio desligado'}</div><p>${cur ? H(RADIO[cur].name) + '<br><small>' + H(RADIO[cur].host) + '</small><br>Tocando: <b>' + H(radioSong()) + '</b>' : 'Escolha uma estação. No carro, a tecla N troca de estação.'}</p></div>` +
-        RADIO.map((r, i) => i ? `<button class="ph-row${i === cur ? ' unread' : ''}" data-radio="${i}"><b>${H(r.freq)} · ${H(r.name)}</b><span>${H(r.host)}</span></button>` : '').join('') +
-        `<div class="ph-vol"><button class="ph-btn" data-vol="-1">−</button><span>Volume ${Math.round(vol * 100)}%</span><button class="ph-btn" data-vol="1">+</button></div>` +
-        (cur ? '<button class="ph-btn off" data-radio="0">Desligar rádio</button>' : '');
     } else if (this.app === 'carteira') {
       html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div><div class="ph-card"><div class="ph-big">R$ ${fmtMoney(Profile.money)}</div><p>Total ganho: R$ ${fmtMoney(Profile.earned)}</p></div>` +
         `<div class="ph-row static"><b>Entregas e fretes</b><span>${Profile.deliveries} concluídos</span></div><div class="ph-row static"><b>Corridas no PegaAí</b><span>${Profile.rides || 0}</span></div><div class="ph-row static"><b>Veículo atual</b><span>${H(player.car.name)}</span></div>`;
@@ -4854,12 +4914,17 @@ const Phone = {
     const t = e.target.closest('button'); if (!t) return;
     if (t.dataset.app) { if (t.dataset.app === 'mapa') { Screens.open('screen-map'); AudioSys.click(); return; } this.go(t.dataset.app); return; }
     if (t.dataset.go) { this.go(t.dataset.go); return; }
-    if (t.dataset.radio) { radioSet(+t.dataset.radio); this.render(); return; }
-    if (t.dataset.vol) { const v = Profile.radioVol == null ? 0.5 : Profile.radioVol; Profile.radioVol = clamp(Math.round((v + 0.1 * +t.dataset.vol) * 10) / 10, 0, 1); AudioSys.click(); this.render(); return; }
     if (t.dataset.msg) { this.msgOpen = +t.dataset.msg; this.render(); AudioSys.click(); return; }
     if (t.dataset.job) { const j = this.fretes[+t.dataset.job]; if (j && !Act.delivery && !Act.race) { startJob(j); this.fretes = []; Screens.closeAll(); } return; }
     if (t.dataset.racha) { const r = World.rachas[+t.dataset.racha]; Act.waypoint = { x: r.start[0], y: r.start[1], label: 'Racha: ' + r.name }; Act.gpsT = 0; AudioSys.click(); toast('Ponto do racha no GPS', r.name, 'info'); Screens.closeAll(); return; }
+    if (t.dataset.tog) {
+      const cfg = phoneCfg(), k = t.dataset.tog;
+      if (k === 'autoWall') cfg.wall = cfg.wall === 'auto' ? this.wall : 'auto'; else cfg[k] = !cfg[k];
+      phoneTone(900, 0.04, 0.05); this.render(); return;
+    }
+    if (t.dataset.wall) { phoneCfg().wall = this.wall = t.dataset.wall; phoneTone(1100, 0.05, 0.05); this.render(); return; }
     const a = t.dataset.act2;
+    if (a === 'save') { saveGame(); phoneCfg().lastSave = clockStr(); writeProfile(); AudioSys.chime(); toast('Jogo salvo', 'Progresso, dinheiro e carros guardados neste navegador.', 'good'); this.render(); return; }
     if (a === 'ride-toggle') { Act.rideOnline = !Act.rideOnline; Act.rideT = rnd(3, 6); if (!Act.rideOnline) Act.ride = null; AudioSys.click(); this.render(); }
     if (a === 'job-cancel') { Act.delivery = null; toast('Frete cancelado', '', 'bad'); AudioSys.back(); this.render(); }
   },
@@ -6778,7 +6843,6 @@ function handleKeys() {
     switch (k) {
       case 'KeyE': if (Act.prompt) Act.prompt.act(); break;
       case 'KeyQ': Phone.open('home'); break;
-      case 'KeyN': radioSet((Profile.radio || 0) + 1); break;
       case 'KeyL': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
       case 'KeyC': Cam.quick = Cam.quick === 1 ? 0.72 : 1; break;
       case 'KeyR': if (player.speed < 120) resetVehicle(); break;
@@ -6837,9 +6901,7 @@ function frame(now) {
     let md = Infinity;
     for (const s of World.shops) if (s.kind === 'bar' || s.kind === 'lanchonete' || s.kind === 'churrascaria' || s.kind === 'fazenda') md = Math.min(md, Math.hypot(s.x - Cam.x, s.y - Cam.y));
     for (const q of World.parties) md = Math.min(md, Math.hypot(q.x - Cam.x, q.y - Cam.y) + (q.bar ? 60 : 0));
-    const radioOn = Game.mode !== 'menu' && Game.state === 'playing' || Game.mode !== 'menu' && (Screens.current === 'screen-phone' || Screens.current === 'screen-map');
-    AudioSys.radio(radioOn ? (Profile.radio || 0) : 0, (Profile.radioVol == null ? 0.5 : Profile.radioVol) * 0.42 * (Settings.ambient / 100 * 0.6 + 0.4));
-    AudioSys.music(Game.state === 'screen' ? 0 : Math.pow(clamp(1 - (md - 90) / 650, 0, 1), 1.6) * 0.32 * (radioOn && Profile.radio ? 0.35 : 1));
+    AudioSys.music(Game.state === 'screen' ? 0 : Math.pow(clamp(1 - (md - 90) / 650, 0, 1), 1.6) * 0.32);
   }
   if (Game.state === 'playing') {
     Game.autosaveT -= dt;
