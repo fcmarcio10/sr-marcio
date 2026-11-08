@@ -5928,11 +5928,18 @@ function headlightK() {
   return clamp(k, 0.1, 1);
 }
 // farol de cada lado (s = -1 esquerdo, 1 direito): lado muito amassado apaga aquele farol
+// nunca apagam os dois: no máximo um farol para, o outro fica fraquinho
 function playerLamp(s) {
   const Z = Profile.zones || {};
-  const side = Math.max(s < 0 ? Z.l || 0 : Z.rt || 0, s < 0 ? Z.fL || 0 : Z.fR || 0);
-  if (side > 0.72 || (Z.f || 0) > 0.95) return 0;
-  return headlightK() * (side > 0.45 ? 0.6 : 1);
+  const dmg = (q) => Math.max(q < 0 ? Z.l || 0 : Z.rt || 0, q < 0 ? Z.fL || 0 : Z.fR || 0);
+  const me = dmg(s), other = dmg(-s), f = Z.f || 0;
+  // qual lado apagaria: o mais amassado (empate: o esquerdo)
+  const worst = me > other || (me === other && s < 0);
+  const off = (me > 0.72 || f > 0.95) && worst;
+  if (off) return 0;
+  let k = headlightK() * (me > 0.45 ? 0.6 : 1);
+  if (me > 0.72 || f > 0.95) k = Math.min(k, 0.3); // o farol que sobrou, também amassado, fica fraquinho
+  return Math.max(k, 0.12);
 }
 function carLightsInfo(c, isPlayer) {
   const m = c.m, as = Math.atan2(Math.sin(c.a) * SQ, Math.cos(c.a)), ca = Math.cos(as), sa = Math.sin(as);
@@ -5981,7 +5988,7 @@ function lightPass(view, cx, cy) {
       lctx.drawImage(CONE, -2, -len * 0.21, len, len * 0.42);
       lctx.restore();
     }
-    lctx.globalAlpha = 0.55; lctx.drawImage(LSPR, player.x - 105, player.y - 105, 210, 210);
+    lctx.globalAlpha = 0.22; lctx.drawImage(LSPR, player.x - 105, player.y - 105, 210, 210); // brilho em volta do carro (60% mais fraco)
   }
   lctx.globalAlpha = 1;
   lctx.globalCompositeOperation = 'source-over';
