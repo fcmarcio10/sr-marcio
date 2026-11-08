@@ -586,7 +586,7 @@ function regionKeyAt(x, y) {
 const DECAL_SURF = {
   lawn: SF.GRASS, lawn2: SF.GRASS, yard: SF.PAVED, drive: SF.PAVED, urban: SF.PAVED, paved: SF.PAVED, gravel: SF.EARTH,
   concrete: SF.PAVED, plaza: SF.PAVED, walk: SF.PAVED, corn: SF.FIELD, cane: SF.FIELD, coffee: SF.FIELD, soy: SF.FIELD,
-  pasture: SF.GRASS, earth: SF.EARTH, soccer: SF.EARTH, forest: SF.GRASS, garden: SF.FIELD, sand: SF.SAND, pool: SF.WATER, court: SF.PAVED,
+  hill: SF.GRASS, pasture: SF.GRASS, earth: SF.EARTH, soccer: SF.EARTH, forest: SF.GRASS, garden: SF.FIELD, sand: SF.SAND, pool: SF.WATER, court: SF.PAVED,
 };
 function decal(x0, y0, x1, y1, type, opt) {
   const d = { x0, y0, x1, y1, type, seed: (hash2(x0 | 0, y0 | 0) * 1e6) | 0, opt: opt || {} };
@@ -717,8 +717,8 @@ function addParkedCar(x, y, ang, model, color) {
   addRectCol(x - hx, y - hy, x + hx, y + hy, 'car');
   return p;
 }
-const CAR_COLORS = ['#d9d9d9', '#bfc3c7', '#8d949b', '#1d1f24', '#f2f2f2', '#a8231f', '#24446e', '#5a6b4e', '#c9b28a', '#7a1f2b', '#2d5d8a', '#d8c25a', '#3f3f46'];
-function randomCarModel() { return pick(['hatch', 'hatch', 'hatch', 'sedan', 'sedan', 'pickup', 'van', 'sport']); }
+const CAR_COLORS = ['#d6c7a1', '#9fc5e8', '#8a2b2b', '#d9d9d9', '#bfc3c7', '#8d949b', '#1d1f24', '#f2f2f2', '#a8231f', '#24446e', '#5a6b4e', '#c9b28a', '#7a1f2b', '#2d5d8a', '#d8c25a', '#3f3f46'];
+function randomCarModel() { return pick(['quadrado', 'quadrado', 'escada', 'besouro', 'hatch', 'santana', 'sedan', 'pickup', 'van', 'sport']); }
 
 /* -------- estabelecimentos -------- */
 function addShop(def) {
@@ -1582,10 +1582,10 @@ function buildHighwayStrip() {
     addLight(bx, by - 20, 110, 0.6, 'white');
   }
   // cachorros pelas ruas residenciais
-  World.animalsDef.push({ type: 'dog', n: 1, rect: [640, 2740, 1380, 2760] });
-  World.animalsDef.push({ type: 'dog', n: 1, rect: [1500, 3920, 2000, 3942] });
-  World.animalsDef.push({ type: 'dog', n: 1, rect: [2740, 4520, 3300, 4540] });
-  World.animalsDef.push({ type: 'dog', n: 1, rect: [338, 3400, 360, 4400] });
+  World.animalsDef.push({ type: 'dog', n: 1, rect: [640, 2700 + RT.street.w / 2 + 5, 1380, 2700 + RT.street.w / 2 + 17] });
+  World.animalsDef.push({ type: 'dog', n: 1, rect: [1530, 3880 + RT.avenue.w / 2 + 5, 1980, 3880 + RT.avenue.w / 2 + 17] });
+  World.animalsDef.push({ type: 'dog', n: 1, rect: [2770, 4500 + RT.street.w / 2 + 5, 3280, 4500 + RT.street.w / 2 + 17] });
+  World.animalsDef.push({ type: 'dog', n: 1, rect: [300 + RT.street.w / 2 + 5, 3420, 300 + RT.street.w / 2 + 17, 3800] });
   World.animalsDef.push({ type: 'dog', n: 1, rect: [3360, 4900, 3920, 5240] });
   World.animalsDef.push({ type: 'dog', n: 2, rect: [420, 3420, 760, 3760] });
 }
@@ -1634,8 +1634,46 @@ function buildFesta() {
   const lines = [[1530, 1180, 1980, 1380], [1530, 1380, 1980, 1180], [380, 3380, 770, 3760], [380, 3760, 770, 3380], [7860, 1150, 8140, 1270], [7860, 1270, 8140, 1150], [7960, 4500, 8220, 4620], [7960, 4620, 8220, 4500]];
   for (const [a, b, c, d] of lines) addFlags(a, b, c, d, true);
 }
+function buildCapixaba() {
+  // Morro do Convento da Pinha (no alto, com vista para a cidade)
+  const hx = 8100, hy = 560;
+  decal(hx - 300, hy - 240, hx + 300, hy + 240, 'hill', { z: 1.2 });
+  decal(hx - 8, hy + 120, hx + 8, 846, 'earth', { z: 1.3 });
+  const cv = addBuilding(hx - 70, hy - 50, hx + 70, hy + 40, 34, { style: 'church', roofType: 'hip', roofColor: '#a8492b', wall: '#f4f0e6', lit: 0.6, front: 'S' });
+  const tw = addBuilding(hx - 18, hy + 40, hx + 18, hy + 76, 70, { style: 'tower', roofType: 'tower', roofColor: '#8a3f26', wall: '#f2ece0', lit: 0.3, front: 'S' });
+  tw.cross = true;
+  addLight(hx, hy + 90, 200, 0.9, 'warm'); addLight(hx, hy - 10, 160, 0.6, 'warm');
+  for (const [dx, dy] of [[-150, -60], [150, -60], [-170, 80], [170, 80], [-110, 150], [110, 150]]) addTree(hx + dx, hy + dy, 'palm', 1.1, { force: true });
+  for (const dy of [150, 210, 262]) { addLamp(hx - 18, hy + dy, hx - 6, hy + dy, 'warm', { style: 'globe', h: 30, r: 110, i: 0.8 }); }
+  // Galpão das Paneleiras, na orla
+  const pb = addBuilding(4780, 3240, 4880, 3310, 22, { style: 'shop', roofType: 'corrugated', roofColor: '#6a5a4a', wall: '#3a2a22', lit: 0.8, sign: 'PANELAS DE BARRO', signColor: '#ff9a4a', front: 'W' });
+  addLight(4760, 3275, 110, 0.9, 'warm', { shop: true });
+  for (let i = 0; i < 5; i++) addProp('pot', 4745, 3250 + i * 14, { col: 'circ', cr: 5, R: 10 });
+  addShop({ kind: 'paneleiras', name: 'Galpão das Paneleiras', x: 4600 + RT.street.lanes[0], y: 3275, bld: pb, color: '#ff9a4a', region: 'rio', pickup: true, items: ['Panela de barro grande', 'Jogo de panelas de barro', 'Moquequeira de barro'] });
+  // placas verdes de rodovia com cidades do ES
+  const signs = [[1180, 'VITÓRIA 25', 'VILA VELHA 31'], [3300, 'GUARAPARI 58', 'ANCHIETA 80'], [6900, 'PEDRA AZUL 92', 'DOMINGOS MARTINS 70'], [8200, 'CACHOEIRO 136', 'LINHARES 135']];
+  for (const [x, a, b] of signs) {
+    const y = HWY_Y - RT.highway.w / 2 - 14;
+    if (areaBlocked(x - 30, y - 8, x + 30, y + 8)) continue;
+    const g = { kind: 'gsign', x, y, h: 54, lines: [a, b], panel: null };
+    addTall(g, x - 60, y - 60, x + 60, y + 60);
+    addCircCol(x - 26, y, 3, 'pole'); addCircCol(x + 26, y, 3, 'pole');
+  }
+  { const x = 5000, y = 1500 - RT.road.w / 2 - 14; const g = { kind: 'gsign', x, y, h: 50, lines: ['TERCEIRA PONTE E MEIA', 'SERRA 40 · ARACRUZ 70'], panel: null }; addTall(g, x - 60, y - 60, x + 60, y + 60); addCircCol(x - 26, y, 3, 'pole'); addCircCol(x + 26, y, 3, 'pole'); }
+  // feira livre perto das chácaras
+  const cols = ['#e63946', '#2a9d8f', '#f4c430', '#3a86ff', '#ff7f11'];
+  let n = 0;
+  for (let x = 470; x < 1260 && n < 10; x += 74) {
+    const y = 5830;
+    if (areaBlocked(x - 14, y - 12, x + 14, y + 12)) continue;
+    const st = { kind: 'stall', x, y, h: 20, c: cols[n % cols.length], seed: n };
+    addTall(st, x - 30, y - 30, x + 30, y + 30); addRectCol(x - 12, y - 8, x + 12, y + 8, 'prop'); n++;
+  }
+  if (n) { decal(450, 5790, 1270, 5870, 'yard', { z: 1.4 }); addLight(860, 5830, 260, 0.6, 'warm'); World.animalsDef.push({ type: 'person', n: 14, rect: [460, 5850, 1260, 5866] }); }
+}
 function buildActivitiesData() {
   markReflections();
+  buildCapixaba();
   buildFesta();
   const P = (id, name, x, y, desc) => World.pois.push({ id, name, x, y, r: 170, desc });
   P('praca', 'Praça da Matriz', 1756, 1260, 'O coração do Centrão, com a fonte, a igreja e o pipoqueiro.');
@@ -1651,6 +1689,10 @@ function buildActivitiesData() {
   P('orla', 'Orla do Rio', 4720, 4300, 'Calçadão de pedras portuguesas à beira-rio.');
   P('milharal', 'Milharal do Espantalho', 6900, 900, 'Um espantalho vigia o milho no escuro.');
   P('escola', 'Escola Estadual', 2420, 4900, 'A quadra iluminada da escola do bairro.');
+  P('convento', 'Convento da Pinha', 8100, 600, 'Lá do alto dá pra ver São Gambiarra inteira. Romaria em abril.');
+  P('ponte3', 'Terceira Ponte e Meia', riverCX(1500), 1500, 'Concreto, vento forte e vista do Rio Jucu.');
+  P('paneleiras', 'Galpão das Paneleiras', 4830, 3275, 'Panelas de barro feitas à mão, do jeitinho capixaba.');
+  P('feira', 'Feira da Roça', 860, 5830, 'Pastel, caldo de cana e banana a preço de domingo.');
   P('rodeio', 'Churrascaria Boi na Brasa', 2840, 5900, 'Picanha na brasa até de madrugada.');
   const R = (id, name, desc, pts) => {
     let len = 0;
@@ -1823,6 +1865,20 @@ function drawDecal(g, d) {
       g.fillStyle = gr; g.fillRect(x0, y0, w, h);
       g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 1;
       for (let i = 0; i < 4; i++) { const yy = y0 + 4 + R() * (h - 8); g.beginPath(); g.moveTo(x0 + 3, yy); g.quadraticCurveTo(x0 + w / 2, yy + 3, x1 - 3, yy); g.stroke(); }
+      break;
+    }
+    case 'hill': {
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, rx = w / 2, ry = h / 2;
+      const cols = ['#2f4a26', '#34532b', '#3b5c30', '#426634', '#4a7038'];
+      for (let i = 0; i < 5; i++) {
+        const k = 1 - i * 0.18;
+        g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.ellipse(cx + 6, cy + 8, rx * k, ry * k, 0, 0, TAU); g.fill();
+        g.fillStyle = cols[i]; g.beginPath(); g.ellipse(cx, cy, rx * k, ry * k, 0, 0, TAU); g.fill();
+        g.strokeStyle = 'rgba(20,35,15,0.35)'; g.lineWidth = 1.2; g.stroke();
+      }
+      g.strokeStyle = 'rgba(140,110,70,0.85)'; g.lineWidth = 7; g.beginPath();
+      for (let t = 0; t <= 1.001; t += 0.02) { const a = t * TAU * 1.15 + Math.PI * 0.5, k = 0.95 - t * 0.7; const px = cx + Math.cos(a) * rx * k, py = cy + Math.sin(a) * ry * k; if (t === 0) g.moveTo(px, py); else g.lineTo(px, py); }
+      g.stroke();
       break;
     }
     case 'court':
@@ -2195,6 +2251,13 @@ function drawProp(g, p) {
       g.fillStyle = '#f5e6b0'; g.fillRect(-7, -5, 14, 8);
       g.fillStyle = '#222'; g.fillRect(-11, 4, 4, 4); g.fillRect(7, 4, 4, 4);
       break;
+    case 'pot': {
+      g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.arc(1.5, 2, 6, 0, TAU); g.fill();
+      g.fillStyle = '#2a2420'; g.beginPath(); g.arc(0, 0, 5.5, 0, TAU); g.fill();
+      g.fillStyle = '#4a3a30'; g.beginPath(); g.arc(-1, -1, 3.4, 0, TAU); g.fill();
+      g.fillStyle = '#1a1410'; g.fillRect(-7.5, -1, 2.5, 2); g.fillRect(5, -1, 2.5, 2);
+      break;
+    }
     case 'table': {
       const c = p.c || '#d62828';
       g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-4, -3, 11, 11);
@@ -2275,6 +2338,10 @@ function drawAwning(g, r, color, front) {
 
 /* ============================ VEÍCULOS ============================ */
 const VMODELS = {
+  quadrado: { id: 'quadrado', L: 43, W: 22, ws: 0.24, rf: 0.10, rr: -0.30, rw: -0.44, nose: 1.8, tail: 1.6, kind: 'car', boxy: true },
+  besouro: { id: 'besouro', L: 41, W: 22, ws: 0.13, rf: 0.0, rr: -0.22, rw: -0.36, nose: 10, tail: 11, kind: 'car', beetle: true },
+  escada: { id: 'escada', L: 39, W: 21, ws: 0.25, rf: 0.14, rr: -0.40, rw: -0.47, nose: 2, tail: 1.5, kind: 'car', boxy: true, ladder: true },
+  santana: { id: 'santana', L: 50, W: 23, ws: 0.18, rf: 0.04, rr: -0.22, rw: -0.33, nose: 2, tail: 2, kind: 'car', boxy: true },
   hatch: { id: 'hatch', L: 44, W: 22, ws: 0.20, rf: 0.06, rr: -0.30, rw: -0.43, nose: 6, tail: 5, kind: 'car' },
   sedan: { id: 'sedan', L: 50, W: 23, ws: 0.17, rf: 0.02, rr: -0.20, rw: -0.32, nose: 6, tail: 5, kind: 'car' },
   police: { id: 'police', L: 50, W: 23, ws: 0.17, rf: 0.02, rr: -0.20, rw: -0.32, nose: 6, tail: 5, kind: 'car', police: true },
@@ -2376,7 +2443,27 @@ function drawMoto(ctx, m, color, o) {
   ctx.fillStyle = o.brake ? '#ff3a30' : '#a01818'; ctx.fillRect(-10.6, -1, 0.8, 2);
 }
 function vehLift(m) { return 0; }
-function drawLightsFR(ctx, hl, hw, o, chrome) {
+function drawLightsFR(ctx, hl, hw, o, m) {
+  if (m && m.boxy) {
+    // grade de frisos e faróis retangulares, lanternas em bloco
+    ctx.fillStyle = '#141416'; ctx.fillRect(hl - 2.4, -hw + 5.4, 2.2, hw * 2 - 10.8);
+    ctx.fillStyle = '#5a5c62'; for (let y = -hw + 6.4; y < hw - 5.4; y += 2) ctx.fillRect(hl - 2.2, y, 1.8, 0.7);
+    ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8';
+    ctx.fillRect(hl - 2.8, -hw + 1.2, 2.6, 4.2); ctx.fillRect(hl - 2.8, hw - 5.4, 2.6, 4.2);
+    ctx.fillStyle = '#e8a33a'; ctx.fillRect(hl - 2.6, -hw + 0.6, 1.6, 0.9); ctx.fillRect(hl - 2.6, hw - 1.5, 1.6, 0.9);
+    ctx.fillStyle = o.brake ? '#ff3a30' : (o.parked ? '#5a1414' : '#a01818');
+    ctx.fillRect(-hl + 0.3, -hw + 1, 2.6, 7.4); ctx.fillRect(-hl + 0.3, hw - 8.4, 2.6, 7.4);
+    ctx.fillStyle = '#e8a33a'; ctx.fillRect(-hl + 0.3, -hw + 1, 2.6, 1.6); ctx.fillRect(-hl + 0.3, hw - 2.6, 2.6, 1.6);
+    if (o.rev) { ctx.fillStyle = '#f4f4f4'; ctx.fillRect(-hl + 0.3, -hw + 5.6, 2.6, 1.6); ctx.fillRect(-hl + 0.3, hw - 7.2, 2.6, 1.6); }
+    return;
+  }
+  if (m && m.beetle) {
+    ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8';
+    ctx.beginPath(); ctx.arc(hl - 5.5, -hw + 2.6, 2.3, 0, TAU); ctx.arc(hl - 5.5, hw - 2.6, 2.3, 0, TAU); ctx.fill();
+    ctx.fillStyle = o.brake ? '#ff3a30' : (o.parked ? '#5a1414' : '#a01818');
+    ctx.beginPath(); ctx.ellipse(-hl + 4.5, -hw + 2.4, 1.6, 2.2, 0, 0, TAU); ctx.ellipse(-hl + 4.5, hw - 2.4, 1.6, 2.2, 0, 0, TAU); ctx.fill();
+    return;
+  }
   ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8';
   ctx.fillRect(hl - 3.2, -hw + 1.6, 2.8, 4.6); ctx.fillRect(hl - 3.2, hw - 6.2, 2.8, 4.6);
   ctx.fillStyle = o.brake ? '#ff3a30' : (o.parked ? '#5a1414' : '#a01818');
@@ -2389,6 +2476,11 @@ function drawCar(ctx, m, color, o) {
   drawWheel(ctx, xf, -hw + 1.6, wl, 5, o.steer, o.roll); drawWheel(ctx, xf, hw - 1.6, wl, 5, o.steer, o.roll);
   drawWheel(ctx, xr, -hw + 1.6, wl, 5, 0, o.roll); drawWheel(ctx, xr, hw - 1.6, wl, 5, 0, o.roll);
   const bp = bodyPath(m);
+  if (m.beetle) {
+    // para-lamas redondos do besouro
+    ctx.fillStyle = shade(color, -0.12);
+    for (const x of [xf, xr]) for (const sy of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x, sy * (hw - 1.2), 6.4, 3.4, 0, 0, TAU); ctx.fill(); }
+  }
   ctx.fillStyle = bodyGrad(ctx, color, hw); ctx.fill(bp);
   ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.stroke(bp);
   const lean = clamp(o.lean || 0, -1, 1) * 1.3;
@@ -2399,7 +2491,14 @@ function drawCar(ctx, m, color, o) {
   // para-choques
   ctx.fillStyle = m.chrome ? '#d9d9d4' : '#26262a';
   ctx.fillRect(hl - 1.8, -hw + 2.5, 1.8, W - 5); ctx.fillRect(-hl, -hw + 2.5, 1.6, W - 5);
-  drawLightsFR(ctx, hl, hw, o);
+  drawLightsFR(ctx, hl, hw, o, m);
+  if (m.beetle) {
+    ctx.fillStyle = shade(color, -0.12);
+    for (const x of [xf, xr]) for (const sy of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x, sy * (hw - 1.4), 5.6, 2.6, 0, 0, TAU); ctx.fill(); }
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(hl * 0.25, -0.6, hl * 0.6, 1.2);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; for (let i = 0; i < 4; i++) ctx.fillRect(-hl + 7 + i * 1.8, -4, 0.9, 8);
+    drawLightsFR(ctx, hl, hw, o, m);
+  }
   if (m.bed !== undefined) {
     const bx = L * m.bed;
     ctx.fillStyle = '#1e1e21'; ctx.fillRect(-hl + 2.2, -hw + 2.4, bx + hl - 2.2, W - 4.8);
@@ -2425,7 +2524,8 @@ function drawCar(ctx, m, color, o) {
   ctx.fillRect(rw + 1, -hw + 1.6 + lean * 0.5, ws - rw - 2, 1.8); ctx.fillRect(rw + 1, hw - 3.4 + lean * 0.5, ws - rw - 2, 1.8);
   // teto
   ctx.fillStyle = m.van ? bodyGrad(ctx, '#efe9da', hw - 4) : (m.chrome ? '#1a1a1c' : bodyGrad(ctx, color, hw - 4, 0.06));
-  ctx.beginPath(); rrect(ctx, rr, -hw + 4 + lean, rf - rr, W - 8, 3); ctx.fill();
+  if (m.beetle) { ctx.beginPath(); ctx.ellipse((rr + rf) / 2, lean, (rf - rr) / 2, hw - 4, 0, 0, TAU); ctx.fill(); }
+  else { ctx.beginPath(); rrect(ctx, rr, -hw + 4 + lean, rf - rr, W - 8, m.boxy ? 1 : 3); ctx.fill(); }
   ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 0.8; ctx.stroke();
   if (m.van) {
     ctx.fillStyle = '#121a26';
@@ -2437,6 +2537,13 @@ function drawCar(ctx, m, color, o) {
   if (m.stripes) {
     ctx.fillStyle = 'rgba(245,245,245,0.85)';
     ctx.fillRect(-hl + 1, -3.2 + lean * 0.5, L - 2, 2); ctx.fillRect(-hl + 1, 1.2 + lean * 0.5, L - 2, 2);
+  }
+  if (m.ladder) {
+    ctx.strokeStyle = '#b9bcc2'; ctx.lineWidth = 1.1; ctx.beginPath();
+    for (const y of [-3.4, 3.4]) { ctx.moveTo(rr - 3, y + lean); ctx.lineTo(rf + 4, y + lean); }
+    for (let x = rr - 1; x <= rf + 3; x += 3.2) { ctx.moveTo(x, -3.4 + lean); ctx.lineTo(x, 3.4 + lean); }
+    ctx.stroke();
+    ctx.fillStyle = '#333'; ctx.fillRect(rr - 4, -hw + 4.5, 1.5, W - 9); ctx.fillRect(rf + 1, -hw + 4.5, 1.5, W - 9);
   }
   if (m.spoiler) { ctx.fillStyle = '#151517'; ctx.fillRect(-hl + 1.2, -hw + 1, 3, W - 2); }
   if (m.chrome) { ctx.fillStyle = shade(color, -0.3); ctx.fillRect(ws + 3, -3.5, hl - ws - 7, 7); ctx.fillStyle = '#222'; ctx.fillRect(ws + 5, -2, 4, 4); }
@@ -2681,12 +2788,14 @@ function glowSprite(hex) {
 }
 /* ============================ VEÍCULOS DO JOGADOR ============================ */
 const CARS = [
-  { id: 'pampeiro', name: 'Pampeiro 1.0', model: 'hatch', price: 0, max: 418, acc: 118, brk: 330, steer: 1.0, grip: 1.0, pitch: 1.0, cyl: 4, fuel: 1.0, desc: 'O popular de sempre: econômico, valente e fácil de estacionar em qualquer vaga.' },
-  { id: 'tropeiro', name: 'Tropeiro Furgão', model: 'van', price: 4500, max: 352, acc: 92, brk: 285, steer: 0.9, grip: 0.93, pitch: 0.82, cyl: 4, fuel: 1.15, cargo: 1.25, desc: 'Furgão de motor traseiro e teto claro. Lento, mas entregas rendem 25% a mais.' },
-  { id: 'sertaneja', name: 'Sertaneja Cabine', model: 'pickup', price: 8000, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.9, cyl: 4, fuel: 1.1, offroad: true, desc: 'Picape robusta de cabine simples. Perde pouca velocidade na terra, na grama e na lavoura.' },
-  { id: 'cometa', name: 'Cometa 2.0', model: 'sedan', price: 12500, max: 508, acc: 146, brk: 370, steer: 1.0, grip: 1.05, pitch: 0.95, cyl: 4, fuel: 1.05, desc: 'Sedã confortável de quatro portas. Estável na rodovia e firme nas frenagens.' },
-  { id: 'bravo', name: 'Bravo Turbo', model: 'sport', price: 19000, max: 575, acc: 186, brk: 420, steer: 1.12, grip: 1.13, pitch: 1.12, cyl: 4, fuel: 1.2, desc: 'Hatch esportivo com faixas no capô e aerofólio. Nervoso, preciso e barulhento.' },
-  { id: 'brasa', name: 'Brasa 6C', model: 'muscle', price: 29000, max: 632, acc: 196, brk: 385, steer: 0.95, grip: 0.98, pitch: 0.78, cyl: 6, fuel: 1.4, desc: 'Sedã clássico de seis cilindros com para-choques cromados. Ronco grave e força de sobra.' },
+  { id: 'pampeiro', name: 'Quadradão 1.6', model: 'quadrado', price: 0, max: 418, acc: 118, brk: 330, steer: 1.0, grip: 1.0, pitch: 1.0, cyl: 4, fuel: 1.0, desc: 'O hatch quadradinho dos anos 80 que todo brasileiro já teve, ou já empurrou. Faróis retangulares, grade de frisos e valentia de sobra.' },
+  { id: 'besouro', name: 'Besouro 1300', model: 'besouro', price: 2800, max: 392, acc: 104, brk: 300, steer: 1.05, grip: 0.96, pitch: 1.22, cyl: 4, fuel: 0.9, desc: 'Motor a ar lá atrás, para-lamas redondos e faróis de sapo. Não corre, mas sobe qualquer ladeira de Vila Velha.' },
+  { id: 'tropeiro', name: 'Pão de Forma', model: 'van', price: 4500, max: 352, acc: 92, brk: 285, steer: 0.9, grip: 0.93, pitch: 0.82, cyl: 4, fuel: 1.15, cargo: 1.25, desc: 'Furgão de motor traseiro, frente em V e duas cores. O xodó das feiras e das mudanças: entregas rendem 25% a mais.' },
+  { id: 'escada', name: 'Mil e Um com Escada', model: 'escada', price: 5500, max: 425, acc: 121, brk: 330, steer: 1.08, grip: 1.0, pitch: 1.06, cyl: 4, fuel: 0.85, cargo: 1.1, desc: 'Hatch caixote de teto alto com a famosa escada no teto. Pau pra toda obra: entregas rendem 10% a mais.' },
+  { id: 'sertaneja', name: 'Picape do Peão', model: 'pickup', price: 8000, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.9, cyl: 4, fuel: 1.1, offroad: true, desc: 'Picape de cabine simples com a caçamba sempre cheia de areia. Quase não perde velocidade na terra e na grama.' },
+  { id: 'cometa', name: 'Santo Antão 2.0', model: 'santana', price: 12500, max: 508, acc: 146, brk: 370, steer: 1.0, grip: 1.05, pitch: 0.95, cyl: 4, fuel: 1.05, desc: 'Sedã quadradão de quatro portas, o carro do tio no domingo. Firme e confortável na BR-101.' },
+  { id: 'bravo', name: 'Xerão Turbo', model: 'sport', price: 19000, max: 575, acc: 186, brk: 420, steer: 1.12, grip: 1.13, pitch: 1.12, cyl: 4, fuel: 1.2, desc: 'Hatch esportivo dos anos 90 com faixas, aerofólio e escapamento que acorda a rua inteira.' },
+  { id: 'brasa', name: 'Canecão 6C', model: 'muscle', price: 29000, max: 632, acc: 196, brk: 385, steer: 0.95, grip: 0.98, pitch: 0.78, cyl: 6, fuel: 1.4, desc: 'O sedã clássico de seis canecos, para-choques cromados e teto de vinil. Ronco grave e força de sobra.' },
 ];
 const PALETTE = ['#c0392b', '#e8e8e8', '#1f2a44', '#2e86de', '#f1c40f', '#27ae60', '#16181d', '#8e9aa6', '#e67e22', '#7d3c98', '#6d4c3a', '#ff6fa5'];
 const UPGRADES = [
@@ -2935,11 +3044,11 @@ function wpick(list) {
 }
 function trafficModelFor(e) {
   switch (e.T.id) {
-    case 'dirt': return wpick([['pickup', 4], ['hatch', 3], ['tractor', 1.6], ['sedan', 1], ['van', 1]]);
-    case 'highway': return wpick([['truck', 4], ['bus', 1.2], ['sedan', 3], ['hatch', 2.5], ['pickup', 2], ['van', 0.8], ['sport', 0.4], ['police', 0.5]]);
-    case 'road': return wpick([['pickup', 3], ['hatch', 3], ['sedan', 2], ['truck', 1.5], ['van', 1]]);
-    case 'avenue': return wpick([['hatch', 4], ['sedan', 3.5], ['taxi', 1.5], ['bus', 1.1], ['pickup', 1.2], ['van', 1], ['sport', 0.5], ['truck', 0.4], ['moto', 1.8], ['police', 0.6]]);
-    default: return wpick([['hatch', 5], ['sedan', 3], ['taxi', 1], ['pickup', 1.5], ['van', 1.2], ['sport', 0.5], ['moto', 2.2], ['police', 0.35]]);
+    case 'dirt': return wpick([['pickup', 4], ['quadrado', 2], ['besouro', 2], ['tractor', 1.6], ['santana', 1], ['van', 1.4]]);
+    case 'highway': return wpick([['truck', 4], ['bus', 1.2], ['santana', 2], ['sedan', 1.5], ['quadrado', 1.5], ['escada', 1.2], ['hatch', 1], ['pickup', 2], ['van', 0.8], ['sport', 0.4], ['police', 0.5]]);
+    case 'road': return wpick([['pickup', 3], ['quadrado', 2], ['escada', 1.5], ['besouro', 1], ['santana', 2], ['truck', 1.5], ['van', 1]]);
+    case 'avenue': return wpick([['quadrado', 2.5], ['escada', 2], ['besouro', 1.2], ['hatch', 1.5], ['santana', 2], ['sedan', 1.5], ['taxi', 1.5], ['bus', 1.1], ['pickup', 1.2], ['van', 1], ['sport', 0.5], ['truck', 0.4], ['moto', 1.8], ['police', 0.6]]);
+    default: return wpick([['quadrado', 3], ['escada', 2.5], ['besouro', 2], ['hatch', 1.5], ['santana', 2], ['sedan', 1], ['taxi', 1], ['pickup', 1.5], ['van', 1.2], ['sport', 0.5], ['moto', 2.2], ['police', 0.35]]);
   }
 }
 class AICar {
@@ -3106,7 +3215,7 @@ class AICar {
     };
     if (this.ghost <= 0) for (const o of Traffic.cars) if (o !== this) check(o, o.x, o.y, o.m.L, o.m.W);
     if (player && Game.state !== 'menu') check(player, player.x, player.y, player.m.L, player.m.W);
-    for (const an of Animals.list) if (an.onRoad) check(an, an.x, an.y, an.r * 2, an.r * 2);
+    if (this.ghost <= 0 && this.animalGhost <= 0) for (const an of Animals.list) if (an.onRoad) check(an, an.x, an.y, an.r * 2, an.r * 2);
     return best;
   }
   update(dt, now) {
@@ -3116,7 +3225,7 @@ class AICar {
       if (this.turnType !== 'straight') target = Math.min(target, this.turnV + remain * 0.9);
       if (!this.committed && remain < 40 + this.v * 0.9) {
         if (this.canEnter(remain, now)) this.committed = true;
-        else target = Math.min(target, Math.max(0, (remain - 2) * 2.2));
+        else { target = Math.min(target, Math.max(0, (remain - 2) * 2.2)); this.atLight = !!this.to.light; }
       }
     } else target = this.turnType === 'straight' ? this.cruise : this.turnV;
     const gap = this.scanAhead();
@@ -3142,6 +3251,14 @@ class AICar {
     this.ghost -= dt;
     if (this.v < 5 && target < 5) this.wait += dt; else this.wait = Math.max(0, this.wait - dt * 2);
     if (this.wait > 4 && gap < 1e9 && this.ghost <= 0 && this.blockCycle()) { this.ghost = 2; this.wait = 0; }
+    // bicho na pista: buzina, espanta e, se não sair, contorna
+    this.animalGhost = (this.animalGhost || 0) - dt;
+    if (this.blocker instanceof Animal && this.v < 5) {
+      this.animalWait = (this.animalWait || 0) + dt;
+      if (this.animalWait > 1.2 && this.blocker.state !== 'flee') this.blocker.scare(this.x, this.y, true);
+      if (this.animalWait > 3) { this.animalGhost = 2; this.animalWait = 0; }
+    } else this.animalWait = 0;
+    if (this.v > 8) this.atLight = false;
     this.honkT -= dt;
     if (this.honkT <= 0) {
       this.honkT = rnd(2.5, 4.5);
@@ -3242,6 +3359,15 @@ Traffic.fill = function (cx, cy) {
 };
 Traffic.update = function (dt, now, cx, cy, view) {
   for (const c of this.cars) c.update(dt, now);
+  // vigia anti-travamento: carro parado tempo demais sem ser por sinal vermelho nem pelo jogador
+  for (const c of this.cars) {
+    if (c.wait < 13) continue;
+    let o = c, light = false, k = 0;
+    while (o && k < 10) { if (o === player) { light = true; break; } if (o.atLight) { light = true; break; } o = o.blocker instanceof AICar ? o.blocker : null; k++; }
+    if (light) continue;
+    for (const n of World.nodes) if (n.res === c) n.res = null;
+    c.ghost = 2.5; c.animalGhost = 2.5; c.committed = true; c.wait = 0;
+  }
   this.timer -= dt;
   if (this.timer <= 0) {
     this.timer = 0.4;
@@ -3496,6 +3622,7 @@ const SHOP_TEXT = {
   padaria: 'O último pão de queijo da noite ainda está quente no balcão.',
   mercado: 'Prateleiras cheias e um rádio tocando sertanejo baixinho.',
   lanchonete: 'O Bigode vira hambúrgueres na chapa enquanto conta causos.',
+  paneleiras: 'Mulheres moldando argila preta do manguezal e queimando as panelas no chão, do jeito que se faz há séculos no Espírito Santo.',
   bar: 'Mesas de plástico na calçada, futebol na TV e petiscos no balcão. Motorista não bebe — só um guaraná.',
   floricultura: 'Baldes de rosas e girassóis iluminados por um letreiro rosa.',
   hotel: 'O porteiro da noite cochila atrás do balcão de madeira.',
@@ -3506,7 +3633,7 @@ const SHOP_TEXT = {
   oficina: 'Macacos hidráulicos, ferramentas na parede e um rádio AM chiando.',
   posto: 'Frentistas de uniforme e o zumbido das lâmpadas da cobertura.',
 };
-const FRAGILE = /Panela|Bolo|Ovos|bebidas|Arranjo|Buquê|Remédios|Doce/i;
+const FRAGILE = /Moquequeira|Panela|panelas|Bolo|Ovos|bebidas|Arranjo|Buquê|Remédios|Doce/i;
 const HOT = /Moqueca|Torta|Pizza|X-tudo|Pastéis|Lanches|Esfihas|Marmitas|salgados/i;
 
 const Act = {
@@ -3530,6 +3657,7 @@ function onPlayerImpact(imp) {
   Cam.shake = Math.max(Cam.shake, 3 + k * 12);
   const hx = player.hitX || player.x, hy = player.hitY || player.y;
   for (let i = 0; i < 4 + k * 12; i++) Particles.emit('spark', hx, hy, rnd(-220, 220), rnd(-220, 220), rnd(0.2, 0.5), 2);
+  if (k > 0.45 && chance(0.6)) { const f = pick([['Pocou!', 'Isso vai doer no bolso…'], ['Ô, rapá!', 'Olha a lataria, sô!'], ['Que isso, maluco?', 'Seu Zé vai ter trabalho.'], ['Vixe!', 'Bateu feio.']]); toast(f[0], f[1], 'bad'); }
   const zone = addZoneDamage(Profile.zones || (Profile.zones = { f: 0, r: 0, l: 0, rt: 0 }), player, hx, hy, k);
   Debris.spill(hx, hy, k, player.color, zone);
   if (Act.delivery && Act.delivery.fragile && imp > 130) {
@@ -4385,6 +4513,31 @@ function drawTall(ctx, o) {
       }
       break;
     }
+    case 'gsign': {
+      const [ox, oy] = offAt(o.x, o.y, o.h);
+      ctx.strokeStyle = '#8a8d92'; ctx.lineWidth = 3; ctx.beginPath();
+      ctx.moveTo(o.x - 26, o.y); ctx.lineTo(o.x - 26 + ox, o.y + oy); ctx.moveTo(o.x + 26, o.y); ctx.lineTo(o.x + 26 + ox, o.y + oy); ctx.stroke();
+      if (!o.panel) {
+        const c = makeCanvas(240, 96), g = c.getContext('2d');
+        g.fillStyle = '#0f6b3a'; g.fillRect(0, 0, 240, 96); g.strokeStyle = '#f2f2ea'; g.lineWidth = 4; g.strokeRect(5, 5, 230, 86);
+        g.fillStyle = '#f2f2ea'; g.font = '800 22px "Segoe UI", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(o.lines[0], 120, 32, 220); g.fillText(o.lines[1], 120, 66, 220);
+        o.panel = c;
+      }
+      ctx.drawImage(o.panel, o.x + ox - 55, o.y + oy - 22, 110, 44);
+      break;
+    }
+    case 'stall': {
+      const [ox, oy] = offAt(o.x, o.y, o.h);
+      ctx.fillStyle = '#6a4a2a'; ctx.fillRect(o.x - 12, o.y - 7, 24, 14);
+      const fr = ['#ffcf3a', '#e63946', '#7cc24a', '#ff8a2a', '#a35bd6'];
+      for (let i = 0; i < 12; i++) { ctx.fillStyle = fr[(i + o.seed) % fr.length]; ctx.beginPath(); ctx.arc(o.x - 9 + (i % 6) * 3.6, o.y - 3 + Math.floor(i / 6) * 5, 1.6, 0, TAU); ctx.fill(); }
+      ctx.save(); ctx.translate(o.x + ox, o.y + oy);
+      for (let i = 0; i < 6; i++) { ctx.fillStyle = i % 2 ? '#f2f2ea' : o.c; ctx.fillRect(-15 + i * 5, -10, 5, 20); }
+      ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(-15, 8, 30, 2);
+      ctx.restore();
+      break;
+    }
     case 'grill': {
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(o.x - 7, o.y - 3, 17, 10);
       ctx.fillStyle = '#7a7d82'; ctx.fillRect(o.x - 9, o.y - 5, 18, 10);
@@ -5207,7 +5360,7 @@ const Garage = {
       const d = document.createElement('div');
       d.className = 'gcard' + (c.id === this.sel ? ' sel' : '');
       const st = Profile.current === c.id ? '<span class="cur">Em uso</span>' : Profile.owned[c.id] ? '<span class="own">Na garagem</span>' : 'R$ ' + fmtMoney(c.price);
-      d.innerHTML = `<div class="gname">${c.name}</div><div class="gsub"><span>${{ hatch: 'Hatch', van: 'Furgão', pickup: 'Picape', sedan: 'Sedã', sport: 'Esportivo', muscle: 'Clássico' }[c.model]}</span>${st}</div>`;
+      d.innerHTML = `<div class="gname">${c.name}</div><div class="gsub"><span>${{ quadrado: 'Hatch quadrado', besouro: 'Clássico a ar', escada: 'Hatch caixote', hatch: 'Hatch', van: 'Furgão', pickup: 'Picape', sedan: 'Sedã', santana: 'Sedã quadrado', sport: 'Esportivo', muscle: 'Clássico' }[c.model]}</span>${st}</div>`;
       d.addEventListener('click', () => { this.sel = c.id; this.previewColor = null; AudioSys.click(); this.render(); });
       d.addEventListener('mouseenter', () => AudioSys.hover());
       list.appendChild(d);
@@ -5336,7 +5489,7 @@ function drawGaragePreview(dt) {
 function openShopDialog(s) {
   if (s.kind === 'garagem') { Garage.sel = Profile.current; Screens.open('screen-garage'); AudioSys.click(); return; }
   visitShop(s);
-  const KIND = { posto: 'POSTO DE COMBUSTÍVEL', oficina: 'OFICINA MECÂNICA', moquecaria: 'MOQUECARIA', farmacia: 'FARMÁCIA', padaria: 'PADARIA', mercado: 'MERCADO', lanchonete: 'LANCHONETE', bar: 'BAR', floricultura: 'FLORICULTURA', hotel: 'HOTEL', churrascaria: 'CHURRASCARIA', borracharia: 'BORRACHARIA', sitio: 'SÍTIO', fazenda: 'FAZENDA' };
+  const KIND = { paneleiras: 'ARTESANATO CAPIXABA', posto: 'POSTO DE COMBUSTÍVEL', oficina: 'OFICINA MECÂNICA', moquecaria: 'MOQUECARIA', farmacia: 'FARMÁCIA', padaria: 'PADARIA', mercado: 'MERCADO', lanchonete: 'LANCHONETE', bar: 'BAR', floricultura: 'FLORICULTURA', hotel: 'HOTEL', churrascaria: 'CHURRASCARIA', borracharia: 'BORRACHARIA', sitio: 'SÍTIO', fazenda: 'FAZENDA' };
   $('dialog-kind').textContent = KIND[s.kind] || 'ESTABELECIMENTO';
   $('dialog-title').textContent = s.name;
   $('dialog-text').textContent = SHOP_TEXT[s.kind] || '';
