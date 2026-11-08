@@ -2127,8 +2127,14 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   ctx.fillStyle = 'rgba(0,0,0,0.42)';
   ctx.beginPath(); rrect(ctx, -m.L / 2 - 1, -m.W / 2 - 0.5, m.L + 2, m.W + 1, 6); ctx.fill();
   ctx.restore();
+  const lift = o.noLift ? 0 : vehLift(m);
+  if (lift) {
+    const bp = bodyPath(m);
+    ctx.fillStyle = shade(m.kind === 'car' ? color : '#555555', -0.62);
+    for (const k of [0, 0.5]) { ctx.save(); ctx.translate(x, y - lift * k); ctx.rotate(a); ctx.fill(bp); ctx.restore(); }
+  }
   ctx.save();
-  ctx.translate(x, y); ctx.rotate(a);
+  ctx.translate(x, y - lift); ctx.rotate(a);
   if (o.bump) ctx.translate(o.bump, 0);
   if (m.kind === 'truck') drawTruck(ctx, m, color, o);
   else if (m.kind === 'bus') drawBus(ctx, m, color, o);
@@ -2136,6 +2142,7 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   else drawCar(ctx, m, color, o);
   ctx.restore();
 }
+function vehLift(m) { return m.kind === 'truck' || m.kind === 'bus' ? 7 : m.kind === 'tractor' ? 4 : 5; }
 function drawLightsFR(ctx, hl, hw, o, chrome) {
   ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8';
   ctx.fillRect(hl - 3.2, -hw + 1.6, 2.8, 4.6); ctx.fillRect(hl - 3.2, hw - 6.2, 2.8, 4.6);
@@ -2384,12 +2391,12 @@ function glowSprite(hex) {
 }
 /* ============================ VEÍCULOS DO JOGADOR ============================ */
 const CARS = [
-  { id: 'pampeiro', name: 'Pampeiro 1.0', model: 'hatch', price: 0, max: 440, acc: 118, brk: 330, steer: 1.0, grip: 1.0, pitch: 1.12, fuel: 1.0, desc: 'O popular de sempre: econômico, valente e fácil de estacionar em qualquer vaga.' },
-  { id: 'tropeiro', name: 'Tropeiro Furgão', model: 'van', price: 4500, max: 370, acc: 92, brk: 285, steer: 0.9, grip: 0.93, pitch: 0.82, fuel: 1.15, cargo: 1.25, desc: 'Furgão de motor traseiro e teto claro. Lento, mas entregas rendem 25% a mais.' },
-  { id: 'sertaneja', name: 'Sertaneja Cabine', model: 'pickup', price: 8000, max: 470, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.92, fuel: 1.1, offroad: true, desc: 'Picape robusta de cabine simples. Perde pouca velocidade na terra, na grama e na lavoura.' },
-  { id: 'cometa', name: 'Cometa 2.0', model: 'sedan', price: 12500, max: 535, acc: 146, brk: 370, steer: 1.0, grip: 1.05, pitch: 1.0, fuel: 1.05, desc: 'Sedã confortável de quatro portas. Estável na rodovia e firme nas frenagens.' },
-  { id: 'bravo', name: 'Bravo Turbo', model: 'sport', price: 19000, max: 605, acc: 186, brk: 420, steer: 1.12, grip: 1.13, pitch: 1.28, fuel: 1.2, desc: 'Hatch esportivo com faixas no capô e aerofólio. Nervoso, preciso e barulhento.' },
-  { id: 'brasa', name: 'Brasa 6C', model: 'muscle', price: 29000, max: 665, acc: 196, brk: 385, steer: 0.95, grip: 0.98, pitch: 0.7, fuel: 1.4, desc: 'Sedã clássico de seis cilindros com para-choques cromados. Ronco grave e força de sobra.' },
+  { id: 'pampeiro', name: 'Pampeiro 1.0', model: 'hatch', price: 0, max: 418, acc: 118, brk: 330, steer: 1.0, grip: 1.0, pitch: 1.12, fuel: 1.0, desc: 'O popular de sempre: econômico, valente e fácil de estacionar em qualquer vaga.' },
+  { id: 'tropeiro', name: 'Tropeiro Furgão', model: 'van', price: 4500, max: 352, acc: 92, brk: 285, steer: 0.9, grip: 0.93, pitch: 0.82, fuel: 1.15, cargo: 1.25, desc: 'Furgão de motor traseiro e teto claro. Lento, mas entregas rendem 25% a mais.' },
+  { id: 'sertaneja', name: 'Sertaneja Cabine', model: 'pickup', price: 8000, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.92, fuel: 1.1, offroad: true, desc: 'Picape robusta de cabine simples. Perde pouca velocidade na terra, na grama e na lavoura.' },
+  { id: 'cometa', name: 'Cometa 2.0', model: 'sedan', price: 12500, max: 508, acc: 146, brk: 370, steer: 1.0, grip: 1.05, pitch: 1.0, fuel: 1.05, desc: 'Sedã confortável de quatro portas. Estável na rodovia e firme nas frenagens.' },
+  { id: 'bravo', name: 'Bravo Turbo', model: 'sport', price: 19000, max: 575, acc: 186, brk: 420, steer: 1.12, grip: 1.13, pitch: 1.28, fuel: 1.2, desc: 'Hatch esportivo com faixas no capô e aerofólio. Nervoso, preciso e barulhento.' },
+  { id: 'brasa', name: 'Brasa 6C', model: 'muscle', price: 29000, max: 632, acc: 196, brk: 385, steer: 0.95, grip: 0.98, pitch: 0.7, fuel: 1.4, desc: 'Sedã clássico de seis cilindros com para-choques cromados. Ronco grave e força de sobra.' },
 ];
 const PALETTE = ['#c0392b', '#e8e8e8', '#1f2a44', '#2e86de', '#f1c40f', '#27ae60', '#16181d', '#8e9aa6', '#e67e22', '#7d3c98', '#6d4c3a', '#ff6fa5'];
 const UPGRADES = [
@@ -2451,12 +2458,12 @@ class Player {
     if (vf > maxS) vf -= (vf - maxS) * Math.min(1, 3 * dt);
     this.vf = vf;
     // direção progressiva e sensível à velocidade
-    const target = inp.steer * 0.5 * st.steer / (1 + Math.abs(vf) / 380);
-    const rate = Math.abs(target) > Math.abs(this.steer) && Math.sign(target) === Math.sign(this.steer || target) ? 3.4 : 6.5;
+    const target = inp.steer * 0.42 * st.steer / (1 + Math.abs(vf) / 330);
+    const rate = Math.abs(target) > Math.abs(this.steer) && Math.sign(target) === Math.sign(this.steer || target) ? 1.9 : 4.2;
     this.steer += clamp(target - this.steer, -rate * dt, rate * dt);
     const wb = this.m.L * 0.62;
     let yaw = vf / wb * Math.tan(this.steer);
-    const latMax = 1150 * st.grip * gripS;
+    const latMax = 980 * st.grip * gripS;
     const ylim = latMax / Math.max(60, Math.abs(vf));
     yaw = clamp(yaw, -ylim, ylim);
     if (inp.hb && Math.abs(vf) > 40) yaw *= 1.28;
@@ -3424,6 +3431,8 @@ const gctx = glowCanvas.getContext('2d');
 let RS = 1, LS = 0.5, SCREEN_W = 1, SCREEN_H = 1;
 const Cam = { x: 1000, y: 2700, zoom: 1, shake: 0, quick: 1, view: { x0: 0, y0: 0, x1: 0, y1: 0 }, dark: 0.84, menuTarget: null, menuT: 0 };
 const PAR = 1 / 1700;
+const SQ = 0.86;      // achatamento vertical: câmera levemente inclinada
+const TILT_H = 0.24;  // objetos altos se inclinam para o norte, mostrando a face sul
 
 function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
@@ -3670,7 +3679,7 @@ function bldOffset(b) {
   let ox = (b.cx - Cam.x) * b.h * PAR, oy = (b.cy - Cam.y) * b.h * PAR;
   const m = b.h * 0.85, l = Math.hypot(ox, oy);
   if (l > m) { ox *= m / l; oy *= m / l; }
-  return [ox, oy];
+  return [ox, oy - b.h * TILT_H];
 }
 const WIN_STYLES = { house: 1, farmhouse: 1, office: 2, tower: 2, church: 2, shop: 3, workshop: 3, garage: 3, kiosk: 3 };
 function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
@@ -3763,7 +3772,7 @@ function drawBuildingEmissive(ctx, b) {
 
 /* ---------- objetos altos ---------- */
 function offAt(x, y, h) {
-  let ox = (x - Cam.x) * h * PAR, oy = (y - Cam.y) * h * PAR;
+  const ox = (x - Cam.x) * h * PAR, oy = (y - Cam.y) * h * PAR - h * TILT_H;
   return [ox, oy];
 }
 function drawTall(ctx, o) {
@@ -3999,7 +4008,8 @@ function updateFireflies(dt) {
 function carLightsInfo(c, isPlayer) {
   const m = c.m, ca = Math.cos(c.a), sa = Math.sin(c.a);
   const hl = m.L / 2, hw = m.W / 2 - 4;
-  return { ca, sa, fx: c.x + ca * hl, fy: c.y + sa * hl, rx: c.x - ca * hl, ry: c.y - sa * hl, nx: -sa * hw, ny: ca * hw };
+  const cy = c.y - vehLift(m);
+  return { ca, sa, fx: c.x + ca * hl, fy: cy + sa * hl, rx: c.x - ca * hl, ry: cy - sa * hl, nx: -sa * hw, ny: ca * hw };
 }
 function lightPass(view, cx, cy) {
   const lw = lightCanvas.width, lh = lightCanvas.height;
@@ -4010,7 +4020,7 @@ function lightPass(view, cx, cy) {
   lctx.fillStyle = `rgba(6,11,30,${Cam.dark.toFixed(3)})`;
   lctx.fillRect(0, 0, lw, lh);
   lctx.globalCompositeOperation = 'destination-out';
-  lctx.setTransform(zl, 0, 0, zl, lw / 2 - cx * zl, lh / 2 - cy * zl);
+  lctx.setTransform(zl, 0, 0, zl * SQ, lw / 2 - cx * zl, lh / 2 - cy * zl * SQ);
   lightGrid.query(view.x0 - 260, view.y0 - 260, view.x1 + 260, view.y1 + 260, _lq);
   const T = Game.time;
   for (const L of _lq) {
@@ -4046,7 +4056,7 @@ function glowPass(view, cx, cy) {
   gctx.globalCompositeOperation = 'source-over'; gctx.globalAlpha = 1;
   gctx.clearRect(0, 0, gw, gh);
   gctx.globalCompositeOperation = 'lighter';
-  gctx.setTransform(zl, 0, 0, zl, gw / 2 - cx * zl, gh / 2 - cy * zl);
+  gctx.setTransform(zl, 0, 0, zl * SQ, gw / 2 - cx * zl, gh / 2 - cy * zl * SQ);
   const T = Game.time;
   for (const L of _lq) {
     if (L.x < view.x0 - L.r || L.x > view.x1 + L.r || L.y < view.y0 - L.r || L.y > view.y1 + L.r) continue;
@@ -4230,12 +4240,12 @@ function render() {
   const z = Cam.zoom * RS;
   const sx = (Math.random() - 0.5) * Cam.shake, sy = (Math.random() - 0.5) * Cam.shake;
   const cx = Cam.x + sx, cy = Cam.y + sy;
-  const vw = W / z, vh = Hh / z;
+  const vw = W / z, vh = Hh / (z * SQ);
   const view = Cam.view; view.x0 = cx - vw / 2; view.y0 = cy - vh / 2; view.x1 = cx + vw / 2; view.y1 = cy + vh / 2;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   ctx.fillStyle = '#0a1008'; ctx.fillRect(0, 0, W, Hh);
-  ctx.setTransform(z, 0, 0, z, W / 2 - cx * z, Hh / 2 - cy * z);
+  ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
   ctx.imageSmoothingEnabled = true;
   drawGround(view, forceGround); forceGround = false;
   Skids.draw(ctx, view);
@@ -4264,7 +4274,7 @@ function render() {
   ctx.globalCompositeOperation = 'lighter';
   ctx.drawImage(glowCanvas, 0, 0, W, Hh);
   ctx.globalCompositeOperation = 'source-over';
-  ctx.setTransform(z, 0, 0, z, W / 2 - cx * z, Hh / 2 - cy * z);
+  ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
   emissivePass(view, _talls);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
