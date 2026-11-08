@@ -375,7 +375,8 @@ const AudioSys = {
   },
 };
 /* ============================ MUNDO ============================ */
-const WORLD_W = 9000, WORLD_H = 6600;
+const WORLD_W = 9000, WORLD_H = 9200;
+const SERRA_YS = [6200, 6900, 7500, 8100, 8700];
 const GC = 10, GW = WORLD_W / GC, GH = WORLD_H / GC;
 const SF = { GRASS: 0, ROAD: 1, SIDEWALK: 2, DIRT: 3, WATER: 4, BRIDGE: 5, PAVED: 6, FIELD: 7, EARTH: 8, SAND: 9 };
 const SURF = [
@@ -492,14 +493,22 @@ function defineRoads() {
   H(880, 7500, 8700, 'dirt', 'Estrada da Vaca Atolada');
   H(5300, 6300, 7500, 'dirt', 'Ramal do Fim do Mundo');
   H(HWY_Y, 300, 8700, 'highway', 'Rodovia BR-101 e Pouco');
-  V(300, 300, 6200, 'street', 'Rua Santos Dumontanha');
+  V(300, 300, 8700, 'street', 'Rua Santos Dumontanha');
   V(850, 300, 5300, 'street', 'Rua da Matriz Perdoa');
-  V(1450, 300, 6200, 'street', 'Rua do Cafezinho');
-  V(2100, 300, 6200, 'avenue', 'Avenida Paulistinha');
+  V(1450, 300, 8700, 'street', 'Rua do Cafezinho');
+  V(2100, 300, 8700, 'avenue', 'Avenida Paulistinha');
   V(2700, 300, 5300, 'street', 'Rua Bela Vista Cansada');
   V(3350, 300, 5300, 'street', 'Rua da Gambiarra');
-  V(3950, 300, 6200, 'street', 'Rua do Comércio Fiado');
-  V(4600, 300, 6200, 'street', 'Rua Beira-Rio Sem Peixe');
+  V(3950, 300, 8700, 'street', 'Rua do Comércio Fiado');
+  V(4600, 300, 8700, 'street', 'Rua Beira-Rio Sem Peixe');
+  // Serra: Feu Rosa e Jardim Carapina
+  V(850, 6200, 8700, 'street', 'Rua da Laje Batida');
+  V(2700, 6200, 8700, 'street', 'Rua do Campinho');
+  V(3350, 6200, 8700, 'street', 'Rua da Padaria do Morro');
+  H(6900, 300, 4600, 'street', 'Rua das Flores de Feu Rosa');
+  H(7500, 300, 4600, 'avenue', 'Avenida Carapina');
+  H(8100, 300, 4600, 'street', 'Rua do Baile');
+  H(8700, 300, 4600, 'street', 'Rua da Esperança Que Sobe');
   V(6300, 1500, 6200, 'road', 'Estrada Velha de Guerra');
   V(7500, 880, 6200, 'dirt', 'Estrada do Sítio Bota Fé');
   V(8700, 880, 6200, 'road', 'Estrada Alta Pressão');
@@ -571,10 +580,14 @@ const REGIONS = {
   sitio: { name: 'Sítio Bota Fé', dark: 0.76, city: 0, rural: 1 },
   fazenda: { name: 'Fazenda Muuuito Longe', dark: 0.76, city: 0, rural: 1 },
   rodovia: { name: 'Rodovia BR-101 e Pouco', dark: 0.76, city: 0.2, rural: 0.7 },
+  feurosa: { name: 'Feu Rosa', dark: 0.74, city: 0.7, rural: 0.15 },
+  carapina: { name: 'Jardim Carapina', dark: 0.74, city: 0.7, rural: 0.15 },
   mata: { name: 'Mata do Saci', dark: 0.80, city: 0, rural: 1 },
 };
 function regionKeyAt(x, y) {
-  if (x < 230 || y < 230 || x > 8790 || y > 6440) return 'mata';
+  if (x < 230 || y < 230 || x > 8790 || y > WORLD_H - 240) return 'mata';
+  if (y > 6440 && x < 4660) return x < 2100 ? 'feurosa' : 'carapina';
+  if (y > 6440) return 'mata';
   if (y > 5720) return 'rodovia';
   if (x >= 6200) return y < 3300 ? 'sitio' : 'fazenda';
   if (x >= 4660) return 'rio';
@@ -1417,7 +1430,7 @@ function forest(x0, y0, x1, y1, noCol) {
 }
 function buildRural() {
   // bordas do mundo
-  forest(0, 0, WORLD_W, 230); forest(0, 230, 230, WORLD_H); forest(8790, 230, WORLD_W, WORLD_H); forest(230, 6440, 8790, WORLD_H);
+  forest(0, 0, WORLD_W, 230); forest(0, 230, 230, WORLD_H); forest(8790, 230, WORLD_W, WORLD_H); forest(4700, 6440, 8790, WORLD_H); forest(230, WORLD_H - 240, 4700, WORLD_H);
   addRectCol(-200, -200, WORLD_W + 200, 20, 'world'); addRectCol(-200, WORLD_H - 20, WORLD_W + 200, WORLD_H + 200, 'world');
   addRectCol(-200, 0, 20, WORLD_H, 'world'); addRectCol(WORLD_W - 20, 0, WORLD_W + 200, WORLD_H, 'world');
   // faixa norte da cidade (entre a mata e a primeira rua)
@@ -1498,9 +1511,9 @@ function buildRural() {
   decal(7560, 5360, 8640, 6100, 'cane');
   for (let x = 6360; x < 8660; x += 70) { addTree(x, 5340, 'pine', rnd(0.9, 1.1)); }
   // margem sul da rodovia
-  decal(260, 6300, 8760, 6420, 'pasture');
-  for (let x = 300; x < 8700; x += 600) fenceRect(x, 6310, x + 560, 6410, [], 'wood');
-  scatterTrees(260, 6290, 8760, 6430, 40, ['round', 'pine', 'mango', 'bush']);
+  decal(4700, 6300, 8760, 6420, 'pasture');
+  for (let x = 4800; x < 8700; x += 600) fenceRect(x, 6310, x + 560, 6410, [], 'wood');
+  scatterTrees(4700, 6290, 8760, 6430, 24, ['round', 'pine', 'mango', 'bush']);
   // capivaras do rio
   for (const y of [1000, 2300, 3300, 4300, 5200]) {
     const cx = riverCX(y) + riverHW(y) + 8;
@@ -1671,6 +1684,59 @@ function buildCapixaba() {
   }
   if (n) { decal(450, 5790, 1270, 5870, 'yard', { z: 1.4 }); addLight(860, 5830, 260, 0.6, 'warm'); World.animalsDef.push({ type: 'person', n: 14, rect: [460, 5850, 1260, 5866] }); }
 }
+/* ---------- Serra: Feu Rosa e Jardim Carapina ---------- */
+function serraRect(c, r) {
+  const hv = (x) => (x === 2100 ? RT.avenue.w / 2 : RT.street.w / 2) + 22;
+  const hh = (y) => y === 6200 ? RT.highway.w / 2 + 14 : (y === 7500 ? RT.avenue.w / 2 : RT.street.w / 2) + 22;
+  return { x0: XS[c] + hv(XS[c]), x1: XS[c + 1] - hv(XS[c + 1]), y0: SERRA_YS[r] + hh(SERRA_YS[r]), y1: SERRA_YS[r + 1] - hh(SERRA_YS[r + 1]) };
+}
+function serraRoads(c, r) {
+  const nm = (y) => y === 6200 ? 'Rodovia BR-101 e Pouco' : (ROADS.find((q) => q.h && q.y === y && q.x1 < 4700) || {}).name;
+  const nv = (x) => (ROADS.find((q) => !q.h && q.x === x && q.y2 >= 8700) || ROADS.find((q) => !q.h && q.x === x) || {}).name;
+  const mk = (name, hw) => ({ name, hw, lane: hw > 60 ? RT.avenue.lanes[1] : RT.street.lanes[0] });
+  const y0 = SERRA_YS[r], y1 = SERRA_YS[r + 1], x0 = XS[c], x1 = XS[c + 1];
+  return { N: mk(nm(y0), y0 === 6200 ? RT.highway.w / 2 : y0 === 7500 ? RT.avenue.w / 2 : RT.street.w / 2), S: mk(nm(y1), y1 === 7500 ? RT.avenue.w / 2 : RT.street.w / 2), W: mk(nv(x0), x0 === 2100 ? RT.avenue.w / 2 : RT.street.w / 2), E: mk(nv(x1), x1 === 2100 ? RT.avenue.w / 2 : RT.street.w / 2) };
+}
+function pracaBagunca(R) {
+  decal(R.x0, R.y0, R.x1, R.y1, 'plaza');
+  const cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2;
+  decal(cx - 90, cy - 60, cx + 90, cy + 60, 'court');
+  addProp('goal', cx - 84, cy, { a: -Math.PI / 2, col: 'rect', w: 8, h: 44, R: 30 });
+  addProp('goal', cx + 84, cy, { a: Math.PI / 2, col: 'rect', w: 8, h: 44, R: 30 });
+  addBuilding(R.x0 + 20, R.y0 + 20, R.x0 + 120, R.y0 + 70, 18, { style: 'kiosk', roofType: 'flat', roofColor: '#2a3a5a', wall: '#e8c547', lit: 0.95, sign: 'PAGODE DE DOMINGO', signColor: '#ffd24a', front: 'S' });
+  addBuilding(R.x1 - 70, R.y1 - 60, R.x1 - 20, R.y1 - 20, 18, { style: 'kiosk', roofType: 'hip', roofColor: '#6e4a2a', wall: '#c9a06a', lit: 0.9, sign: 'ESPETINHO', signColor: '#ff7a2a' });
+  for (const [dx, dy] of [[-170, -150], [170, -150], [-170, 150], [170, 150], [0, -170], [0, 170]]) addTree(cx + dx, cy + dy, pick(['mango', 'ipeY', 'palm']), 1.1);
+  for (const [dx, dy] of [[-130, -90], [130, -90], [-130, 90], [130, 90]]) addProp('bench', cx + dx, cy + dy, { col: 'rect', w: 26, h: 8 });
+  for (const [dx, dy] of [[-200, 0], [200, 0], [0, -110], [0, 110]]) addLamp(cx + dx, cy + dy, cx + dx, cy + dy, 'white', { style: 'globe', h: 34, r: 140, i: 0.85 });
+  addFlags(R.x0 + 20, R.y0 + 90, R.x1 - 20, R.y1 - 90, true); addFlags(R.x0 + 20, R.y1 - 90, R.x1 - 20, R.y0 + 90, true);
+  addFlags(R.x0 + 20, cy, R.x1 - 20, cy, true);
+  World.animalsDef.push({ type: 'person', n: 26, rect: [R.x0 + 16, R.y0 + 16, R.x1 - 16, R.y1 - 16] });
+  addShop({ kind: 'bar', name: 'Bar da Bagunça', x: cx, y: R.y0 - 22 - (RT.street.w / 2 - RT.street.lanes[0]), color: '#ffd24a', region: 'feurosa' });
+  World.pracaBagunca = { x: cx, y: cy };
+}
+function quadraBloco(R) {
+  decal(R.x0, R.y0, R.x1, R.y1, 'yard');
+  addBuilding(R.x0 + 30, R.y0 + 30, R.x1 - 30, R.y0 + 230, 34, { style: 'warehouse', roofType: 'corrugated', roofColor: '#2a6a3a', wall: '#f2f2ea', lit: 0.6, sign: 'G.R.E.S. UNIDOS DA GAMBIARRA', signColor: '#5be38f', front: 'S' });
+  addLight((R.x0 + R.x1) / 2, R.y0 + 250, 200, 0.9, 'green', { shop: true });
+  addFlags(R.x0 + 30, R.y0 + 270, R.x1 - 30, R.y0 + 270, true);
+  World.animalsDef.push({ type: 'person', n: 12, rect: [R.x0 + 30, R.y0 + 240, R.x1 - 30, R.y0 + 300] });
+  comunidadeBlock({ x0: R.x0, y0: R.y0 + 320, x1: R.x1, y1: R.y1 });
+}
+function buildSerra() {
+  const special = { '1,1': 'praca', '4,2': 'campo', '5,1': 'bloco' };
+  for (let c = 0; c < 7; c++) for (let r = 0; r < 4; r++) {
+    const R = serraRect(c, r), k = c + ',' + r, roads = serraRoads(c, r);
+    const region = c < 3 ? 'feurosa' : 'carapina';
+    const sp = special[k];
+    if (sp === 'praca') pracaBagunca(R);
+    else if (sp === 'campo') soccerBlock(R);
+    else if (sp === 'bloco') quadraBloco(R);
+    else if (k === '2,2') residentialBlock(R, { rich: false, roads, region, special: { side: 'N', w: 150, build: shopLotBuilder({ kind: 'mercado', name: 'Mercadinho do Morro', sign: 'MERCADINHO DO MORRO', color: '#ff7a3d', h: 30, depth: 100, pickup: true, items: ['Feira da semana', 'Gás de cozinha', 'Fardo de refrigerante'] }) } });
+    else if (k === '5,2') residentialBlock(R, { rich: false, roads, region, special: { side: 'N', w: 150, build: shopLotBuilder({ kind: 'lanchonete', name: 'Pastelaria Feira Livre', sign: 'PASTEL & CALDO DE CANA', color: '#ff4f8a', h: 30, depth: 96, pickup: true, items: ['Pastel de palmito', 'Caldo de cana', 'Pastel de queijo'], tables: true }) } });
+    else if (r === 0 || (c + r) % 3 === 0) residentialBlock(R, { rich: false, roads, region });
+    else comunidadeBlock(R);
+  }
+}
 function buildActivitiesData() {
   markReflections();
   buildCapixaba();
@@ -1693,6 +1759,9 @@ function buildActivitiesData() {
   P('ponte3', 'Terceira Ponte e Meia', riverCX(1500), 1500, 'Concreto, vento forte e vista do Rio Jucu.');
   P('paneleiras', 'Galpão das Paneleiras', 4830, 3275, 'Panelas de barro feitas à mão, do jeitinho capixaba.');
   P('feira', 'Feira da Roça', 860, 5830, 'Pastel, caldo de cana e banana a preço de domingo.');
+  P('bagunca', 'Praça da Bagunça', World.pracaBagunca.x, World.pracaBagunca.y, 'Pagode de domingo, espetinho e pelada na quadra até tarde.');
+  P('campao', 'Campão de Carapina', (serraRect(4, 2).x0 + serraRect(4, 2).x1) / 2, (serraRect(4, 2).y0 + serraRect(4, 2).y1) / 2, 'O terrão onde nasce craque toda semana.');
+  P('bloco', 'Quadra da Unidos da Gambiarra', (serraRect(5, 1).x0 + serraRect(5, 1).x1) / 2, serraRect(5, 1).y0 + 200, 'Ensaio da escola de samba às sextas.');
   P('rodeio', 'Churrascaria Boi na Brasa', 2840, 5900, 'Picanha na brasa até de madrugada.');
   const R = (id, name, desc, pts) => {
     let len = 0;
@@ -3030,7 +3099,16 @@ class Player {
 
 /* ============================ TRÁFEGO (IA) ============================ */
 const Traffic = { cars: [], idc: 1, timer: 0, cum: null, total: 0 };
-function trafficMax() { return Settings.quality === 'alta' ? 28 : Settings.quality === 'baixa' ? 14 : 21; }
+function trafficRush() {
+  // 19:30–21:00 saída do trabalho; 04:30–05:00 gente indo trabalhar; madrugada vazia
+  const t = Profile.time;
+  if (t < 21 * 60) return { k: 1.45, label: 'horário de pico' };
+  if (t < 23 * 60) return { k: 1.0, label: '' };
+  if (t < 25 * 60) return { k: 0.72, label: '' };
+  if (t < 28 * 60 + 30) return { k: 0.42, label: 'madrugada' };
+  return { k: 1.2, label: 'horário de pico' };
+}
+function trafficMax() { const base = Settings.quality === 'alta' ? 22 : Settings.quality === 'baixa' ? 11 : 17; return Math.max(5, Math.round(base * trafficRush().k)); }
 function lightState(n, axis, now) {
   const t = (now + n.light.off) % 15;
   if (axis === 'H') return t < 6 ? 'G' : t < 7.5 ? 'Y' : 'R';
@@ -3116,7 +3194,45 @@ class AICar {
     const N = this.next;
     for (const o of Traffic.cars) {
       if (o === this || o.state !== 'edge' || o.e !== N.e || o.dir !== N.dir) continue;
-      if (o.s - o.sStart < this.m.L + 16 && o.v < 25) return true;
+      if (o.s - o.sStart < this.m.L + 26 && o.v < 60) return true;
+    }
+    if (player && Game.state !== 'menu') {
+      const T = this.planTurn();
+      for (let i = 2; i < T.pts.length - 1; i++) { const q = T.pts[i]; if (Math.hypot(q[0] - player.x, q[1] - player.y) < player.m.W * 0.5 + 14) return true; }
+    }
+    return false;
+  }
+  planTurn() {
+    if (this.plan && this.plan.e === this.e && this.plan.dir === this.dir && this.plan.ne === this.next.e && this.plan.nd === this.next.dir && this.plan.off === this.off) return this.plan;
+    const p0 = this.edgePos(this.sEnd);
+    const N = this.next, ne = N.e, nd = N.dir;
+    const ox = ne.dx * nd, oy = ne.dy * nd;
+    const off = ne.T.lanes[Math.min(N.lane, ne.T.lanes.length - 1)];
+    const s0 = nd > 0 ? ne.clearA : ne.clearB;
+    const n = this.to;
+    const p3 = [n.x + ox * s0 - oy * off, n.y + oy * s0 + ox * off];
+    let k1, k2;
+    if (this.turnType === 'uturn') { k1 = 45; k2 = 45; }
+    else if (this.turnType === 'straight') { k1 = k2 = Math.hypot(p3[0] - p0[0], p3[1] - p0[1]) / 3; }
+    else { k1 = Math.max(4, ((p3[0] - p0[0]) * this.dx + (p3[1] - p0[1]) * this.dy) * 0.55); k2 = Math.max(4, ((p3[0] - p0[0]) * ox + (p3[1] - p0[1]) * oy) * 0.55); }
+    const c1 = [p0[0] + this.dx * k1, p0[1] + this.dy * k1], c2 = [p3[0] - ox * k2, p3[1] - oy * k2];
+    let len = 0, lx = p0[0], ly = p0[1];
+    const pts = [p0];
+    for (let i = 1; i <= 12; i++) { const q = bez(p0, c1, c2, p3, i / 12); len += Math.hypot(q[0] - lx, q[1] - ly); lx = q[0]; ly = q[1]; pts.push(q); }
+    this.plan = { e: this.e, dir: this.dir, ne, nd, off: this.off, p0, c1, c2, p3, len: Math.max(len, 1), pts, node: n };
+    return this.plan;
+  }
+  conflicts(n) {
+    // dois trajetos dentro do cruzamento que passam a menos de ~22px um do outro não entram juntos
+    if (!n.active) n.active = new Set();
+    const A = this.planTurn().pts;
+    for (const o of n.active) {
+      if (o === this || !o.alive) { if (!o.alive) n.active.delete(o); continue; }
+      if (o.e === this.e && o.dir === this.dir && o.lane === this.lane) continue; // mesma fila: segue atrás
+      const B = (o.state === 'turn' ? o.turn : o.plan);
+      if (!B) continue;
+      const tStart = o.state === 'turn' ? Math.floor(o.turn.t * 12) : 0;
+      for (const p of A) for (let j = tStart; j < B.pts.length; j++) { const q = B.pts[j]; const dx = p[0] - q[0], dy = p[1] - q[1]; if (dx * dx + dy * dy < 22 * 22) return true; }
     }
     return false;
   }
@@ -3140,7 +3256,7 @@ class AICar {
       const L2 = 1 - this.lane, off2 = T.lanes[L2];
       if (this.laneClear(off2, -70, 120)) { this.lane = L2; this.offT = off2; this.lcT = 3.5; }
       else this.lcT = 0.6;
-    } else if (T.lanes.length === 1 && bl === player && this.wait > 2 && this.overtake <= 0) {
+    } else if (T.lanes.length === 1 && bl === player && this.wait > 3.5 && this.overtake <= 0) {
       const off2 = -T.lanes[0];
       if (this.laneClear(off2, -40, 280)) { this.offT = off2; this.overtake = 4; this.lcT = 6; }
       else this.lcT = 1;
@@ -3152,6 +3268,7 @@ class AICar {
     if (n.light) {
       const st = lightState(n, this.e.h ? 'H' : 'V', now);
       const go = st === 'G' || (st === 'Y' && remain < 25);
+      if (go && this.conflicts(n)) return false;
       if (go && (this.turnType === 'left' || this.turnType === 'uturn')) {
         for (const o of Traffic.cars) {
           if (o === this || o.e.h !== this.e.h || o.dir === this.dir || o.turnType === 'left') continue;
@@ -3161,33 +3278,20 @@ class AICar {
       }
       return go;
     }
-    if (n.edges.length >= 3) {
-      if (!n.res || n.res === this || !n.res.alive || now - n.resT > 6) { n.res = this; n.resT = now; return true; }
-      return false;
-    }
+    if (n.edges.length >= 3) return !this.conflicts(n);
     return true;
   }
   startTurn() {
-    const p0 = this.edgePos(this.sEnd);
-    const N = this.next, ne = N.e, nd = N.dir;
-    const ox = ne.dx * nd, oy = ne.dy * nd;
-    const off = ne.T.lanes[Math.min(N.lane, ne.T.lanes.length - 1)];
-    const s0 = nd > 0 ? ne.clearA : ne.clearB;
-    const n = this.to;
-    const p3 = [n.x + ox * s0 - oy * off, n.y + oy * s0 + ox * off];
-    let k1, k2;
-    if (this.turnType === 'uturn') { k1 = 45; k2 = 45; }
-    else if (this.turnType === 'straight') { k1 = k2 = Math.hypot(p3[0] - p0[0], p3[1] - p0[1]) / 3; }
-    else { k1 = Math.max(4, ((p3[0] - p0[0]) * this.dx + (p3[1] - p0[1]) * this.dy) * 0.55); k2 = Math.max(4, ((p3[0] - p0[0]) * ox + (p3[1] - p0[1]) * oy) * 0.55); }
-    const c1 = [p0[0] + this.dx * k1, p0[1] + this.dy * k1], c2 = [p3[0] - ox * k2, p3[1] - oy * k2];
-    let len = 0, lx = p0[0], ly = p0[1];
-    for (let i = 1; i <= 12; i++) { const q = bez(p0, c1, c2, p3, i / 12); len += Math.hypot(q[0] - lx, q[1] - ly); lx = q[0]; ly = q[1]; }
-    this.turn = { p0, c1, c2, p3, len: Math.max(len, 1), t: 0, node: n };
+    const P = this.planTurn();
+    this.turn = { p0: P.p0, c1: P.c1, c2: P.c2, p3: P.p3, len: P.len, pts: P.pts, t: 0, node: P.node };
+    if (!P.node.active) P.node.active = new Set();
+    P.node.active.add(this);
     this.state = 'turn';
   }
   finishTurn() {
     const n = this.turn.node;
-    if (n.res === this) n.res = null;
+    if (n.active) n.active.delete(this);
+    this.plan = null;
     this.setEdge(this.next.e, this.next.dir, this.next.lane);
     this.s = this.sStart; this.state = 'edge';
     this.chooseNext();
@@ -3202,7 +3306,7 @@ class AICar {
   scanAhead() {
     const look = 34 + this.v * 1.15 + this.m.L / 2;
     const c = Math.cos(this.a), s = Math.sin(this.a);
-    const lat = this.state === 'turn' ? 20 : 13;
+    const lat = this.state === 'turn' ? 14 : 13;
     let best = 1e9; this.blocker = null;
     const check = (o, ox, oy, oL, oW) => {
       const rx = ox - this.x, ry = oy - this.y;
@@ -3213,22 +3317,32 @@ class AICar {
       const g = f - this.m.L / 2 - oL / 2;
       if (g < best) { best = g; this.blocker = o; }
     };
-    if (this.ghost <= 0) for (const o of Traffic.cars) if (o !== this) check(o, o.x, o.y, o.m.L, o.m.W);
+    if (this.ghost <= 0) for (const o of Traffic.cars) {
+      if (o === this) continue;
+      if (this.state === 'turn' && o.state === 'edge' && o.e !== this.next.e && Math.abs(angDiff(o.a, this.a)) > 0.9) continue; // parado na faixa de retenção da outra rua
+      check(o, o.x, o.y, o.m.L, o.m.W);
+    }
     if (player && Game.state !== 'menu') check(player, player.x, player.y, player.m.L, player.m.W);
     if (this.ghost <= 0 && this.animalGhost <= 0) for (const an of Animals.list) if (an.onRoad) check(an, an.x, an.y, an.r * 2, an.r * 2);
     return best;
   }
   update(dt, now) {
     let target = this.cruise;
+    const gap = this.scanAhead();
     if (this.state === 'edge') {
       const remain = this.sEnd - this.s;
       if (this.turnType !== 'straight') target = Math.min(target, this.turnV + remain * 0.9);
-      if (!this.committed && remain < 40 + this.v * 0.9) {
-        if (this.canEnter(remain, now)) this.committed = true;
+      const firstInLine = !(gap < remain + 4 && this.blocker instanceof AICar && this.blocker.state === 'edge' && this.blocker.e === this.e);
+      // cansou de esperar na faixa de retenção sem ser sinal vermelho: escolhe outro caminho
+      if (!this.committed && firstInLine && this.wait > 8 && remain < 30 && !(this.to.light && lightState(this.to, this.e.h ? 'H' : 'V', now) !== 'G')) {
+        const old = this.next.e; this.chooseNext(); if (this.next.e === old && this.to.edges.length > 2) this.chooseNext();
+        this.plan = null; this.wait = 3;
+      }
+      if (!this.committed && firstInLine && remain < 40 + this.v * 0.9) {
+        if (this.canEnter(remain, now)) { this.committed = true; if (!this.to.active) this.to.active = new Set(); this.planTurn(); this.to.active.add(this); }
         else { target = Math.min(target, Math.max(0, (remain - 2) * 2.2)); this.atLight = !!this.to.light; }
       }
     } else target = this.turnType === 'straight' ? this.cruise : this.turnV;
-    const gap = this.scanAhead();
     if (gap < 1e9) {
       const bl = this.blocker;
       let bv = 0;
@@ -3300,8 +3414,8 @@ class AICar {
   }
   release() {
     this.alive = false;
-    for (const n of [this.to, this.from]) if (n.res === this) n.res = null;
-    if (this.turn && this.turn.node.res === this) this.turn.node.res = null;
+    for (const n of [this.to, this.from]) if (n.active) n.active.delete(this);
+    if (this.turn && this.turn.node.active) this.turn.node.active.delete(this);
   }
 }
 function bez(p0, c1, c2, p3, t) {
@@ -3365,9 +3479,11 @@ Traffic.update = function (dt, now, cx, cy, view) {
     let o = c, light = false, k = 0;
     while (o && k < 10) { if (o === player) { light = true; break; } if (o.atLight) { light = true; break; } o = o.blocker instanceof AICar ? o.blocker : null; k++; }
     if (light) continue;
-    for (const n of World.nodes) if (n.res === c) n.res = null;
-    c.ghost = 2.5; c.animalGhost = 2.5; c.committed = true; c.wait = 0;
+    const v = Cam.view, vis = c.x > v.x0 - 60 && c.x < v.x1 + 60 && c.y > v.y0 - 60 && c.y < v.y1 + 60;
+    if (!vis) { c.release(); c.dead = true; continue; }
+    c.ghost = 2; c.animalGhost = 2; c.wait = 0;
   }
+  if (this.cars.some((c) => c.dead)) this.cars = this.cars.filter((c) => !c.dead);
   this.timer -= dt;
   if (this.timer <= 0) {
     this.timer = 0.4;
@@ -3378,7 +3494,12 @@ Traffic.update = function (dt, now, cx, cy, view) {
     const mx = trafficMax();
     let n = 0;
     while (this.cars.length < mx && n++ < 3) this.spawnNear(cx, cy, 700, 2200, view);
-    while (this.cars.length > mx) this.cars.pop().release();
+    // menos carros fora do pico: tira um por vez, longe da tela
+    if (this.cars.length > mx) {
+      let far = -1, fd = 0;
+      this.cars.forEach((c, i) => { const v = Cam.view; if (c.x > v.x0 - 80 && c.x < v.x1 + 80 && c.y > v.y0 - 80 && c.y < v.y1 + 80) return; const d = Math.hypot(c.x - cx, c.y - cy); if (d > fd) { fd = d; far = i; } });
+      if (far >= 0) { this.cars[far].release(); this.cars.splice(far, 1); }
+    }
   }
 };
 
@@ -5123,7 +5244,7 @@ function drawBigMap() {
   bg.drawImage(MAPIMG, 0, 0, WORLD_W, WORLD_H);
   const k = dpr / s;
   bg.font = `600 ${13 * k}px "Segoe UI", Arial`; bg.textAlign = 'center'; bg.fillStyle = 'rgba(255,255,255,0.5)';
-  const labels = [['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JUCU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370]];
+  const labels = [['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JUCU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEU ROSA', 1150, 7550], ['JARDIM CARAPINA', 3300, 7550]];
   for (const [t, x, y] of labels) bg.fillText(t, x, y);
   if (Act.gps) { bg.strokeStyle = '#5be38f'; bg.lineWidth = 4 * k; bg.beginPath(); Act.gps.pts.forEach((p, i) => (i ? bg.lineTo(p[0], p[1]) : bg.moveTo(p[0], p[1]))); bg.stroke(); }
   const ic = (x, y, kind) => { bg.save(); bg.translate(x, y); bg.scale(k * 1.3, k * 1.3); mapIcon(bg, 0, 0, kind, 1.25); bg.restore(); };
@@ -5642,7 +5763,7 @@ function updateHUD(dt) {
     const bn = $('region-banner'); bn.textContent = REGIONS[rk].name; bn.classList.add('show');
     clearTimeout(UI._bn); UI._bn = setTimeout(() => bn.classList.remove('show'), 2600);
   }
-  UI.set('clock', clockStr());
+  { const rush = trafficRush().label; UI.set('clock', clockStr() + (rush ? ' · ' + rush : '')); if (rush !== UI.rush) { if (UI.rush !== undefined && rush === 'horário de pico') toast('Horário de pico', 'As ruas de São Gambiarra estão cheias. Paciência no trânsito!', 'info'); UI.rush = rush; } }
   UI.set('money-value', fmtMoney(Profile.money));
   // objetivo
   let title, desc = '', meta = '', cls = '';
@@ -5845,7 +5966,7 @@ async function boot() {
   RNG = mulberry32(20261108);
   const steps = [
     [buildRoadGraph, 'Traçando ruas…'], [buildRiver, 'Enchendo o Rio Jucu…'], [buildRoadSurface, 'Asfaltando as avenidas…'],
-    [buildCity, 'Erguendo bairros e comércios…'], [buildHighwayStrip, 'Abrindo a rodovia…'], [buildRural, 'Plantando o interior…'],
+    [buildCity, 'Erguendo bairros e comércios…'], [buildHighwayStrip, 'Abrindo a rodovia…'], [buildSerra, 'Subindo para Feu Rosa e Jardim Carapina…'], [buildRural, 'Plantando o interior…'],
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
