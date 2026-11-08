@@ -349,6 +349,14 @@ const AudioSys = {
     this.tone(70, 0.3, 'sine', 0.5 * i, 'engine', 40);
     if (i > 0.5) this.noise(0.5, 3200, 2, 0.12 * i, 'engine', 'bandpass', 0.03);
   },
+  breakSnd(mat, k) {
+    k = clamp(k || 0.5, 0.2, 1);
+    if (mat === 'wood') { this.noise(0.18, 900, 1.5, 0.35 * k, 'engine', 'bandpass'); this.tone(160, 0.12, 'triangle', 0.2 * k, 'engine', 90); }
+    else if (mat === 'plastic' || mat === 'rubber') { this.noise(0.12, 2200, 1, 0.25 * k, 'engine', 'highpass'); this.tone(240, 0.08, 'square', 0.06 * k, 'engine', 150); }
+    else if (mat === 'clay') { this.noise(0.22, 3000, 2, 0.3 * k, 'engine', 'bandpass'); }
+    else if (mat === 'lamp') { this.tone(880, 0.5, 'triangle', 0.18 * k, 'engine', 600); this.tone(120, 0.6, 'sawtooth', 0.08, 'engine', 60); this.noise(0.4, 4000, 0.8, 0.15, 'engine', 'highpass', 0.05); }
+    else { this.tone(980, 0.35, 'triangle', 0.2 * k, 'engine', 760); this.tone(1430, 0.25, 'sine', 0.1 * k, 'engine'); this.noise(0.15, 1800, 1, 0.2 * k, 'engine', 'bandpass'); }
+  },
   thud() { this.tone(90, 0.12, 'sine', 0.15, 'engine', 60); },
   pump() { this.noise(0.9, 1200, 1, 0.08, 'ui', 'bandpass'); this.tone(240, 0.8, 'sawtooth', 0.02, 'ui'); },
   wash() { this.noise(1.4, 3000, 0.6, 0.1, 'ui', 'highpass'); },
@@ -457,7 +465,7 @@ function areaBlocked(x0, y0, x1, y1) {
 const World = {
   nodes: [], edges: [], nodeMap: new Map(),
   buildings: [], tall: [], lights: [], shops: [], pois: [], races: [], parkSpots: [],
-  homes: [], animalsDef: [], pickups: [], trafficPoles: [], bumps: [], grills: [], radars: [],
+  homes: [], animalsDef: [], pickups: [], trafficPoles: [], bumps: [], grills: [], radars: [], sparkers: [], geysers: [], fountains: [],
 };
 
 /* -------- tipos de via -------- */
@@ -675,9 +683,9 @@ function addLamp(bx, by, hx, hy, col, opt) {
   opt = opt || {};
   const lamp = { kind: 'lamp', x: bx, y: by, hx, hy, h: opt.h || 56, col, style: opt.style || 'arm', broken: opt.broken || false };
   World.tall.push(lamp);
-  rendGrid.insert(lamp, Math.min(bx, hx) - 10, Math.min(by, hy) - 10, Math.max(bx, hx) + 10, Math.max(by, hy) + 10);
-  addCircCol(bx, by, 4, 'pole');
-  if (!lamp.broken) addLight(hx, hy, opt.r || 175, opt.i || 0.92, col, { lamp, flick: opt.flick ? 1 : 0 });
+  rendGrid.insert(lamp, Math.min(bx, hx) - 60, Math.min(by, hy) - 60, Math.max(bx, hx) + 60, Math.max(by, hy) + 60);
+  const lc = addCircCol(bx, by, 4, 'pole'); lc.brk = { kind: 'lamp', obj: lamp };
+  if (!lamp.broken) lamp.light = addLight(hx, hy, opt.r || 175, opt.i || 0.92, col, { lamp, flick: opt.flick ? 1 : 0 });
   bake(bx - 4, by - 4, bx + 30, by + 34, 7, (g) => { g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 3; g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + 22, by + 28); g.stroke(); });
   return lamp;
 }
@@ -687,8 +695,10 @@ function addProp(type, x, y, opt) {
   const p = { type, x, y, a: opt.a || 0, c: opt.c || null, w: opt.w || 0, h: opt.h || 0, seed: rnd() };
   const R = opt.R || 30;
   bake(x - R, y - R, x + R, y + R, opt.z || 8, (g) => drawProp(g, p));
-  if (opt.col === 'circ') addCircCol(x, y, opt.cr || 6, 'prop');
-  else if (opt.col === 'rect') addRectCol(x - opt.w / 2, y - opt.h / 2, x + opt.w / 2, y + opt.h / 2, 'prop');
+  let col = null;
+  if (opt.col === 'circ') col = addCircCol(x, y, opt.cr || 6, 'prop');
+  else if (opt.col === 'rect') col = addRectCol(x - opt.w / 2, y - opt.h / 2, x + opt.w / 2, y + opt.h / 2, 'prop');
+  if (col && BREAKABLE[type]) col.brk = { kind: 'prop', obj: p, R: R + 20 };
   return p;
 }
 function addWall(x0, y0, x1, y1, color, opt) {
@@ -741,6 +751,7 @@ function addShop(def) {
 }
 
 /* ============================ LOTES E QUARTEIRÕES ============================ */
+const BREAKABLE = { bench: 'wood', bin: 'plastic', hydrant: 'metal', bollard: 'metal', table: 'plastic', tires: 'rubber', cart: 'metal', pot: 'clay' };
 function lotFrame(x0, y0, x1, y1, front) {
   const F = { front, x0, y0, x1, y1 };
   const ns = front === 'N' || front === 'S';
@@ -986,6 +997,7 @@ function plazaChurch(R) {
   bake(cx - 50, fy - 50, cx + 50, fy + 50, 8, (g) => drawFountain(g, cx, fy));
   addCircCol(cx, fy, 40, 'prop');
   addLight(cx, fy, 90, 0.5, 'cyan', { fountain: true });
+  World.fountains.push({ x: cx, y: fy });
   for (const [dx, dy] of [[-150, 280], [150, 280], [-150, 400], [150, 400]]) addTree(cx + dx, R.y0 + dy, chance(0.5) ? 'palm' : 'ipeY', rnd(1, 1.2));
   for (const [dx, dy, a] of [[-80, 300, 0], [80, 300, 0], [-80, 380, 0], [80, 380, 0], [0, 420, 0]]) addProp('bench', cx + dx, R.y0 + dy, { col: 'rect', w: 26, h: 8 });
   for (const [dx, dy] of [[-200, 260], [200, 260], [-200, 430], [200, 430], [-60, 250], [60, 250]]) addLamp(cx + dx, R.y0 + dy, cx + dx, R.y0 + dy, 'white', { style: 'globe', h: 34, r: 120, i: 0.85 });
@@ -1294,7 +1306,7 @@ function buildRoadProps() {
         const rkp = regionKeyAt(px, py);
         if ((rkp === 'centro' || rkp === 'vila' || rkp === 'jardim') && chance(0.16)) {
           const ph = { kind: 'phone', x: px, y: py, h: 24, col: chance(0.7) ? '#ff8c1a' : '#2f7fd6' };
-          addTall(ph, px - 14, py - 30, px + 14, py + 14); addCircCol(px, py, 4, 'pole');
+          addTall(ph, px - 30, py - 30, px + 30, py + 30); addCircCol(px, py, 4, 'pole').brk = { kind: 'tall', obj: ph };
         } else addProp(chance(0.7) ? 'bin' : 'hydrant', px, py, { col: 'circ', cr: 4, R: 8 });
       }
     }
@@ -1356,8 +1368,8 @@ function buildRoadProps() {
       const off = e.hw + (e.T.sw ? 10 : 8);
       const px = n.x + dx * (clear - 18) + rx * off, py = n.y + dy * (clear - 18) + ry * off;
       const pole = { kind: 'tlight', x: px, y: py, node: n, axis: e.h ? 'H' : 'V', a: Math.atan2(ay, ax), h: 50, hx: px - rx * 14, hy: py - ry * 14 };
-      addTall(pole, px - 20, py - 20, px + 20, py + 20);
-      addCircCol(px, py, 3, 'pole');
+      addTall(pole, px - 50, py - 50, px + 50, py + 50);
+      addCircCol(px, py, 3, 'pole').brk = { kind: 'tall', obj: pole };
       World.trafficPoles.push(pole);
     }
   }
@@ -1372,8 +1384,8 @@ function buildRoadProps() {
       const px = n.x + dx * (clear - 14) + rx * (e.hw + 12), py = n.y + dy * (clear - 14) + ry * (e.hw + 12);
       if (areaBlocked(px - 5, py - 5, px + 5, py + 5)) continue;
       const sgn = { kind: 'sign', x: px, y: py, h: 28, t: 'stop' };
-      addTall(sgn, px - 14, py - 14, px + 14, py + 14);
-      addCircCol(px, py, 2.5, 'pole');
+      addTall(sgn, px - 30, py - 30, px + 30, py + 30);
+      addCircCol(px, py, 2.5, 'pole').brk = { kind: 'tall', obj: sgn };
       // faixa "PARE" pintada
       const tx = n.x + dx * (clear + 14) + rx * (e.hw * 0.5), ty = n.y + dy * (clear + 14) + ry * (e.hw * 0.5);
       bake(tx - 30, ty - 30, tx + 30, ty + 30, 5.5, (g) => { g.save(); g.translate(tx, ty); g.rotate(Math.atan2(-dy, -dx) + Math.PI / 2); g.fillStyle = 'rgba(235,235,225,0.75)'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('PARE', 0, 0); g.restore(); });
@@ -1619,7 +1631,7 @@ function addGrill(x, y) {
   addTall(g, x - 20, y - 20, x + 20, y + 20); addCircCol(x, y, 6, 'prop');
   World.grills.push(g);
   addLight(x, y, 70, 0.7, 'sodium');
-  World.animalsDef.push({ type: 'person', n: 3, rect: [x - 30, y - 8, x + 30, y + 8] });
+  World.animalsDef.push({ type: 'person', n: 3, rect: [x - 30, y - 8, x + 30, y + 8], look: { dance: true } });
 }
 function buildFesta() {
   for (const s of World.shops) {
@@ -1710,7 +1722,7 @@ function pracaBagunca(R) {
   for (const [dx, dy] of [[-200, 0], [200, 0], [0, -110], [0, 110]]) addLamp(cx + dx, cy + dy, cx + dx, cy + dy, 'white', { style: 'globe', h: 34, r: 140, i: 0.85 });
   addFlags(R.x0 + 20, R.y0 + 90, R.x1 - 20, R.y1 - 90, true); addFlags(R.x0 + 20, R.y1 - 90, R.x1 - 20, R.y0 + 90, true);
   addFlags(R.x0 + 20, cy, R.x1 - 20, cy, true);
-  World.animalsDef.push({ type: 'person', n: 26, rect: [R.x0 + 16, R.y0 + 16, R.x1 - 16, R.y1 - 16] });
+  World.animalsDef.push({ type: 'person', n: 26, rect: [R.x0 + 16, R.y0 + 16, R.x1 - 16, R.y1 - 16], look: { dance: true } });
   addShop({ kind: 'bar', name: 'Bar da Bagunça', x: cx, y: R.y0 - 22 - (RT.street.w / 2 - RT.street.lanes[0]), color: '#ffd24a', region: 'feurosa' });
   World.pracaBagunca = { x: cx, y: cy };
 }
@@ -1719,7 +1731,7 @@ function quadraBloco(R) {
   addBuilding(R.x0 + 30, R.y0 + 30, R.x1 - 30, R.y0 + 230, 34, { style: 'warehouse', roofType: 'corrugated', roofColor: '#2a6a3a', wall: '#f2f2ea', lit: 0.6, sign: 'G.R.E.S. UNIDOS DA GAMBIARRA', signColor: '#5be38f', front: 'S' });
   addLight((R.x0 + R.x1) / 2, R.y0 + 250, 200, 0.9, 'green', { shop: true });
   addFlags(R.x0 + 30, R.y0 + 270, R.x1 - 30, R.y0 + 270, true);
-  World.animalsDef.push({ type: 'person', n: 12, rect: [R.x0 + 30, R.y0 + 240, R.x1 - 30, R.y0 + 300] });
+  World.animalsDef.push({ type: 'person', n: 12, rect: [R.x0 + 30, R.y0 + 240, R.x1 - 30, R.y0 + 300], look: { dance: true } });
   comunidadeBlock({ x0: R.x0, y0: R.y0 + 320, x1: R.x1, y1: R.y1 });
 }
 function buildSerra() {
@@ -2245,8 +2257,42 @@ function drawFountain(g, cx, cy) {
 }
 
 /* ============================ PROPS BAIXOS ============================ */
+function drawBrokenProp(g, p) {
+  const R = mulberry32((p.seed * 1e6) | 0);
+  g.rotate(p.fallA - p.a);
+  switch (p.type) {
+    case 'bench':
+      for (let i = 0; i < 3; i++) { g.save(); g.translate(4 + i * 7 + R() * 4, (R() - 0.5) * 14); g.rotate((R() - 0.5) * 1.6); g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-9, -1, 20, 4); g.fillStyle = i % 2 ? '#6a4224' : '#8a5a34'; g.fillRect(-10, -2, 20, 3); g.restore(); }
+      g.fillStyle = '#3a3a3a'; g.fillRect(-3, -6, 2, 5); g.fillRect(-2, 4, 5, 2);
+      break;
+    case 'bin':
+      g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(4, -3, 12, 8);
+      g.fillStyle = '#2f6a3a'; g.fillRect(3, -4, 11, 7); g.fillStyle = '#1c3f22'; g.fillRect(13, -4, 2, 7);
+      for (let i = 0; i < 9; i++) { g.fillStyle = ['#e8e2d0', '#c9a46a', '#3a86ff', '#e63946', '#7a7a7a'][i % 5]; g.fillRect(14 + R() * 18, (R() - 0.5) * 18, 2.4, 2); }
+      break;
+    case 'hydrant':
+      g.fillStyle = 'rgba(80,140,190,0.35)'; g.beginPath(); g.ellipse(6, 0, 16, 10, 0, 0, TAU); g.fill();
+      g.fillStyle = '#7a1a16'; g.beginPath(); g.arc(0, 0, 2.6, 0, TAU); g.fill();
+      g.fillStyle = '#c8302a'; g.fillRect(10, -2, 7, 4);
+      break;
+    case 'table': case 'cart':
+      g.save(); g.translate(6, 2); g.rotate(0.7); g.fillStyle = p.c || '#d23a2a'; g.fillRect(-5, -5, 10, 10); g.restore();
+      for (let i = 0; i < 4; i++) { g.fillStyle = shade(p.c || '#d62828', -0.15); g.fillRect(-4 + R() * 22, (R() - 0.5) * 18, 3, 3); }
+      if (p.type === 'cart') for (let i = 0; i < 14; i++) { g.fillStyle = '#f5e6b0'; g.fillRect(4 + R() * 20, (R() - 0.5) * 16, 1.6, 1.6); }
+      break;
+    case 'tires':
+      for (let i = 0; i < 3; i++) { const x = 4 + R() * 22, y = (R() - 0.5) * 20; g.fillStyle = '#18181a'; g.beginPath(); g.arc(x, y, 7, 0, TAU); g.fill(); g.fillStyle = '#3a3a3e'; g.beginPath(); g.arc(x, y, 3.2, 0, TAU); g.fill(); }
+      break;
+    case 'pot':
+      for (let i = 0; i < 6; i++) { g.fillStyle = '#2a2420'; g.beginPath(); const x = R() * 16, y = (R() - 0.5) * 14; g.moveTo(x, y); g.lineTo(x + 3, y + 1); g.lineTo(x + 1, y + 3); g.fill(); }
+      break;
+    default:
+      g.fillStyle = '#4a4a4e'; g.beginPath(); g.arc(0, 0, 2, 0, TAU); g.fill(); g.fillRect(2, -1, 7, 2);
+  }
+}
 function drawProp(g, p) {
   g.save(); g.translate(p.x, p.y); g.rotate(p.a);
+  if (p.broken) { drawBrokenProp(g, p); g.restore(); return; }
   switch (p.type) {
     case 'bench':
       g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-12, -2, 28, 9);
@@ -2690,6 +2736,9 @@ function drawDents(ctx, m, color, Z, lean) {
     scratches(cx - 10 - d * 8, cx + 8 + d * 8, sy * (hw - 1.5), Math.round(3 + d * 9));
   }
   ctx.restore();
+  // para-choque solto pendurado
+  if (Z.f > 0.8) { ctx.save(); ctx.translate(hl - 1, -hw + 2); ctx.rotate(0.45); ctx.fillStyle = '#26262a'; ctx.fillRect(0, -1, 2, W * 0.55); ctx.restore(); }
+  if (Z.r > 0.8) { ctx.save(); ctx.translate(-hl + 1, hw - 2); ctx.rotate(Math.PI + 0.45); ctx.fillStyle = '#26262a'; ctx.fillRect(0, -1, 2, W * 0.55); ctx.restore(); }
   // para-brisa trincado
   if (Z.f > 0.5 && m.ws !== undefined) {
     const ws = L * m.ws, rf = L * m.rf, cx = (ws + rf) / 2, cy = (R() - 0.5) * hw * 0.8 + lean;
@@ -2989,6 +3038,13 @@ class Player {
     for (const b of World.bumps) if (this.x > b.x0 && this.x < b.x1 && this.y > b.y0 && this.y < b.y1) { onB = true; break; }
     if (onB && !this.onBump && sp > 80) { Cam.shake = Math.max(Cam.shake, Math.min(9, sp / 45)); AudioSys.thud(); if (sp > 260) { Profile.damage = Math.min(100, Profile.damage + 0.6); } }
     this.onBump = onB;
+    // efeitos: fumaça do capô amassado, escapamento e estouro no escape
+    const Zf = Profile.zones ? Profile.zones.f : 0;
+    if (Zf > 0.45 && chance(0.08 + Zf * 0.25)) Particles.emit(Zf > 0.75 ? 'smoke' : 'steam', this.x + c * this.m.L * 0.38, this.y + s * this.m.L * 0.38, rnd(-10, 10), rnd(-10, 10), rnd(0.8, 1.6), 4);
+    if (this.thr > 0.6 && chance(0.12)) Particles.emit('exhaust', this.x - c * this.m.L * 0.52, this.y - s * this.m.L * 0.52, -c * 30 + rnd(-8, 8), -s * 30 + rnd(-8, 8), rnd(0.4, 0.8), 2.5);
+    if (this.prevThr > 0.8 && !inp.thr && this.rpm > 4300 && chance(0.6)) { Particles.emit('flame', this.x - c * this.m.L * 0.55, this.y - s * this.m.L * 0.55, -c * 60, -s * 60, 0.18, 5); AudioSys.noise(0.06, 900, 1, 0.25, 'engine', 'lowpass'); AudioSys.tone(70, 0.08, 'square', 0.12, 'engine'); }
+    this.prevThr = inp.thr ? 1 : 0;
+    if (this.scrapeT > 0) { this.scrapeT -= dt; if (chance(0.25)) AudioSys.noise(0.08, 3400, 3, 0.05, 'engine', 'bandpass'); }
     if (Profile.damage > 70 && chance(0.2)) Particles.emit('smoke', this.x + c * this.m.L * 0.35, this.y + s * this.m.L * 0.35, rnd(-8, 8), rnd(-8, 8), rnd(0.8, 1.5), 5);
   }
   circleOffsets() {
@@ -3008,6 +3064,7 @@ class Player {
         let cx = this.x + c * k, cy = this.y + s * k;
         for (let i = 0; i < _cq.length; i++) {
           const o = _cq[i];
+          if (o.dead) continue;
           let nx, ny, pen;
           if (o.t === 0) {
             const qx = clamp(cx, o.x0, o.x1), qy = clamp(cy, o.y0, o.y1);
@@ -3023,8 +3080,15 @@ class Player {
             if (d2 >= R * R) continue;
             const d = Math.sqrt(d2) || 0.001; nx = dx / d; ny = dy / d; pen = R - d;
           }
+          if (o.brk) {
+            const vb = this.vx * nx + this.vy * ny;
+            if (-vb > 95) { breakObject(o, this.vx, this.vy, -vb); this.vx *= 0.82; this.vy *= 0.82; Profile.damage = Math.min(100, Profile.damage + 0.8); if (Profile.zones) Profile.zones.f = Math.min(1, Profile.zones.f + 0.05); continue; }
+          }
           this.x += nx * pen; this.y += ny * pen; cx += nx * pen; cy += ny * pen; any = true;
           const vn = this.vx * nx + this.vy * ny;
+          // raspando na parede: faíscas e chiado
+          const vtan = Math.abs(-this.vx * ny + this.vy * nx);
+          if (vtan > 140 && vn > -60) { if (chance(0.5)) Particles.emit('spark', cx - nx * r, cy - ny * r, -this.vx * 0.3 + rnd(-60, 60), -this.vy * 0.3 + rnd(-60, 60), rnd(0.15, 0.35), 2); this.scrapeT = 0.12; }
           if (vn < 0) {
             const jx = -1.25 * vn * nx, jy = -1.25 * vn * ny;
             this.vx += jx; this.vy += jy;
@@ -3579,6 +3643,8 @@ Animals.build = function () {
 };
 Animals.update = function (dt, cx, cy) {
   for (const a of this.list) if (Math.abs(a.x - cx) < 1700 && Math.abs(a.y - cy) < 1400) a.update(dt);
+  for (const s of World.sparkers) if (Game.time < s.until && Math.abs(s.x - cx) < 1200 && Math.abs(s.y - cy) < 900) for (let i = 0; i < 2; i++) Particles.emit('spark', s.x, s.y, rnd(-160, 160), rnd(-160, 160), rnd(0.2, 0.5), 2);
+  for (const g of World.geysers) if (Game.time < g.until && Math.abs(g.x - cx) < 1200 && Math.abs(g.y - cy) < 900 && chance(0.7)) Particles.emit('water', g.x + rnd(-2, 2), g.y + rnd(-2, 2), rnd(-70, 70), rnd(-70, 70), rnd(0.5, 1.1), 2);
   for (const g of World.grills) if (Math.abs(g.x - cx) < 900 && Math.abs(g.y - cy) < 700 && chance(dt * 6)) Particles.emit('smoke', g.x + rnd(-4, 4), g.y + rnd(-3, 3), rnd(-6, 6), rnd(-14, -4), rnd(1.2, 2.2), 4);
   this.soundT -= dt;
   if (this.soundT <= 0 && Game.state === 'playing') {
@@ -3597,7 +3663,9 @@ function drawAnimal(ctx, an) {
   const graze = an.state === 'graze';
   switch (an.type) {
     case 'person': {
-      const sw = an.v > 0 ? Math.sin(an.phase) * 2.4 : 0;
+      const dancing = an.dance && an.v === 0;
+      const sw = an.v > 0 ? Math.sin(an.phase) * 2.4 : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
+      if (dancing) ctx.rotate(Math.sin(Game.time * 4.5 + an.seed * 9) * 0.35);
       ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(1.5, 2, 4, 5, 0, 0, TAU); ctx.fill();
       ctx.fillStyle = an.pants; ctx.fillRect(-1 + sw * 0.5, -2.6, 2.6, 1.8); ctx.fillRect(-1 - sw * 0.5, 0.8, 2.6, 1.8);
       ctx.fillStyle = an.skin; ctx.beginPath(); ctx.arc(sw, -4.6, 1.2, 0, TAU); ctx.arc(-sw, 4.6, 1.2, 0, TAU); ctx.fill();
@@ -3681,7 +3749,8 @@ const Particles = {
       p.life -= dt;
       if (p.life <= 0) { this.list.splice(i, 1); continue; }
       p.x += p.vx * dt; p.y += p.vy * dt;
-      const k = p.type === 'spark' ? 2.5 : 1.8;
+      const k = p.type === 'spark' ? 2.5 : p.type === 'hubcap' ? 0.9 : p.type === 'water' ? 1.2 : 1.8;
+      if (p.type === 'hubcap') p.rot = (p.rot || 0) + dt * 12;
       p.vx *= Math.exp(-k * dt); p.vy *= Math.exp(-k * dt);
       if (p.type !== 'spark') p.size += dt * (p.type === 'dust' ? 14 : 10);
     }
@@ -3689,7 +3758,9 @@ const Particles = {
   draw(ctx) {
     for (const p of this.list) {
       const t = p.life / p.max;
-      if (p.type === 'spark') continue;
+      if (p.type === 'spark' || p.type === 'flame') continue;
+      if (p.type === 'hubcap') { ctx.globalAlpha = Math.min(1, t * 3); ctx.fillStyle = '#c9ccd2'; ctx.beginPath(); ctx.arc(p.x, p.y, 3.4, 0, TAU); ctx.fill(); ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.x + Math.cos(p.rot) * 3, p.y + Math.sin(p.rot) * 3); ctx.lineTo(p.x - Math.cos(p.rot) * 3, p.y - Math.sin(p.rot) * 3); ctx.stroke(); continue; }
+      if (p.type === 'steam' || p.type === 'exhaust') { ctx.globalAlpha = t * (p.type === 'steam' ? 0.35 : 0.18); ctx.fillStyle = p.type === 'steam' ? '#f0f4f8' : '#9a9a9a'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); continue; }
       ctx.globalAlpha = t * (p.type === 'dust' ? 0.35 : 0.28);
       ctx.fillStyle = p.type === 'dust' ? '#9a7e5a' : p.type === 'water' ? '#9ec8dc' : '#c8c8c8';
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill();
@@ -3704,6 +3775,8 @@ const Particles = {
       ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03);
     }
     ctx.stroke();
+    for (const p of this.list) if (p.type === 'flame') { ctx.globalAlpha = p.life / p.max; ctx.drawImage(glowSprite('#ff8a2a'), p.x - 9, p.y - 9, 18, 18); }
+    ctx.globalAlpha = 1;
   },
 };
 const Skids = {
@@ -3781,6 +3854,7 @@ function onPlayerImpact(imp) {
   if (k > 0.45 && chance(0.6)) { const f = pick([['Pocou!', 'Isso vai doer no bolso…'], ['Ô, rapá!', 'Olha a lataria, sô!'], ['Que isso, maluco?', 'Seu Zé vai ter trabalho.'], ['Vixe!', 'Bateu feio.']]); toast(f[0], f[1], 'bad'); }
   const zone = addZoneDamage(Profile.zones || (Profile.zones = { f: 0, r: 0, l: 0, rt: 0 }), player, hx, hy, k);
   Debris.spill(hx, hy, k, player.color, zone);
+  if ((zone === 'l' || zone === 'rt') && k > 0.45 && chance(0.6)) Particles.emit('hubcap', hx, hy, rnd(-140, 140), rnd(-140, 140), 2.6, 3);
   if (Act.delivery && Act.delivery.fragile && imp > 130) {
     Act.delivery.hits++;
     toast('Carga frágil!', 'A encomenda sofreu um impacto (−15%).', 'bad');
@@ -3828,6 +3902,38 @@ function zoneList(Z) {
   const N = { f: 'dianteira', r: 'traseira', l: 'lateral esquerda', rt: 'lateral direita' }, out = [];
   for (const k of ['f', 'r', 'l', 'rt']) if (Z[k] > 0.05) out.push(N[k] + (Z[k] > 0.66 ? ' destruída' : Z[k] > 0.33 ? ' amassada' : ' arranhada'));
   return out;
+}
+// cenário que quebra
+function refreshGroundArea(x0, y0, x1, y1) {
+  for (let cy = Math.floor(y0 / CHUNK); cy <= Math.floor(y1 / CHUNK); cy++) for (let cx = Math.floor(x0 / CHUNK); cx <= Math.floor(x1 / CHUNK); cx++) {
+    if (chunks.has(cy * 1000 + cx)) renderChunk(cx, cy);
+  }
+}
+function breakObject(col, vx, vy, sp) {
+  col.dead = true;
+  const b = col.brk, o = b.obj, ang = Math.atan2(vy, vx) + rnd(-0.4, 0.4);
+  const k = clamp(sp / 400, 0.2, 1);
+  Cam.shake = Math.max(Cam.shake, 2 + k * 5);
+  if (b.kind === 'prop') {
+    o.broken = true; o.fallA = ang;
+    refreshGroundArea(o.x - b.R, o.y - b.R, o.x + b.R, o.y + b.R);
+    const mat = BREAKABLE[o.type];
+    AudioSys.breakSnd(mat, k);
+    const cols = { wood: ['#8a5a34', '#6a4224'], plastic: [o.c || '#2f6a3a', '#e8e2d0'], metal: ['#8a8d92', '#c8302a'], rubber: ['#18181a'], clay: ['#2a2420'] }[mat] || ['#888'];
+    for (let i = 0; i < 6 + k * 8; i++) Debris.list.push({ x: o.x + rnd(-6, 6) + Math.cos(ang) * rnd(4, 26), y: o.y + rnd(-6, 6) + Math.sin(ang) * rnd(4, 26), a: rnd(TAU), s: rnd(1.4, 3), type: 'paint', c: pick(cols), t: Game.time });
+    if (o.type === 'hydrant') { World.geysers.push({ x: o.x, y: o.y, until: Game.time + 45 }); toast('Hidrante estourado!', 'Molhou a rua inteira.', 'bad'); }
+  } else if (b.kind === 'lamp') {
+    o.broken = true; o.down = ang;
+    if (o.light) o.light.dieAt = Game.time + 1.1;
+    World.sparkers.push({ x: o.hx, y: o.hy, until: Game.time + 1.5 });
+    AudioSys.breakSnd('lamp', k);
+    if (chance(0.5)) toast('Derrubou o poste!', 'A rua ficou no escuro. A prefeitura agradece…', 'bad');
+    Debris.spill(o.hx, o.hy, 0.4, '#d8d8d2', 'f');
+  } else {
+    o.down = ang;
+    AudioSys.breakSnd('metal', k);
+    if (o.kind === 'tlight') toast('Semáforo no chão!', 'Agora é cada um por si nesse cruzamento.', 'bad');
+  }
 }
 function deliveryOffer(shop) {
   let off = Act.offers.get(shop.id);
@@ -4523,7 +4629,8 @@ function drawTall(ctx, o) {
   switch (o.kind) {
     case 'bld': drawBuilding(ctx, o); break;
     case 'tree': {
-      const [ox, oy] = offAt(o.x, o.y, o.h);
+      const [ox0, oy] = offAt(o.x, o.y, o.h);
+      const ox = ox0 + Math.sin(Game.time * 1.3 + o.x * 0.05) * 0.9 * o.size;
       const spr = treeSprite(o.type, o.v);
       const S = 64 * o.size * (o.type === 'bush' ? 0.55 : 1);
       let a = 1;
@@ -4535,6 +4642,14 @@ function drawTall(ctx, o) {
       break;
     }
     case 'lamp': {
+      if (o.down !== undefined) {
+        const L = o.h * 0.85, ex = o.x + Math.cos(o.down) * L, ey = o.y + Math.sin(o.down) * L;
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(o.x + 2, o.y + 3); ctx.lineTo(ex + 2, ey + 3); ctx.stroke();
+        ctx.strokeStyle = '#4a4d52'; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(ex, ey); ctx.stroke();
+        ctx.fillStyle = '#3a3d42'; ctx.beginPath(); ctx.ellipse(ex, ey, 6, 3.5, o.down, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#5a5d62'; ctx.beginPath(); ctx.arc(o.x, o.y, 2.6, 0, TAU); ctx.fill();
+        break;
+      }
       const [ox, oy] = offAt(o.hx, o.hy, o.h);
       const [bx2, by2] = offAt(o.x, o.y, o.h);
       ctx.strokeStyle = '#4a4d52'; ctx.lineWidth = 2.6;
@@ -4546,6 +4661,7 @@ function drawTall(ctx, o) {
       break;
     }
     case 'tlight': {
+      if (o.down !== undefined) { drawFallen(ctx, o, '#3a3d42', (x, y) => { ctx.fillStyle = '#16181b'; ctx.fillRect(x - 4, y - 4, 8, 8); }); break; }
       const [ox, oy] = offAt(o.hx, o.hy, o.h);
       const [px, py] = offAt(o.x, o.y, o.h);
       ctx.strokeStyle = '#3a3d42'; ctx.lineWidth = 2.4;
@@ -4559,6 +4675,7 @@ function drawTall(ctx, o) {
       break;
     }
     case 'sign': {
+      if (o.down !== undefined) { drawFallen(ctx, o, '#8a8d92', (x, y) => { ctx.fillStyle = '#c8241c'; ctx.beginPath(); ctx.arc(x, y, 5, 0, TAU); ctx.fill(); }); break; }
       const [ox, oy] = offAt(o.x, o.y, o.h);
       ctx.strokeStyle = '#8a8d92'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + ox, o.y + oy); ctx.stroke();
       ctx.save(); ctx.translate(o.x + ox, o.y + oy);
@@ -4681,6 +4798,7 @@ function drawTall(ctx, o) {
       break;
     }
     case 'phone': {
+      if (o.down !== undefined) { drawFallen(ctx, o, '#5a5d62', (x, y) => { ctx.fillStyle = o.col; ctx.beginPath(); ctx.ellipse(x, y, 7, 6, o.down, 0, TAU); ctx.fill(); }); break; }
       const [ox, oy] = offAt(o.x, o.y, o.h);
       ctx.strokeStyle = '#5a5d62'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + ox, o.y + oy + 4); ctx.stroke();
       const hx = o.x + ox, hy = o.y + oy;
@@ -4764,6 +4882,12 @@ function drawTall(ctx, o) {
     }
   }
 }
+function drawFallen(ctx, o, poleCol, head) {
+  const L = o.h * 0.85, bx = o.x, by = o.y, ex = bx + Math.cos(o.down) * L, ey = by + Math.sin(o.down) * L;
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.moveTo(bx + 2, by + 3); ctx.lineTo(ex + 2, ey + 3); ctx.stroke();
+  ctx.strokeStyle = poleCol; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex, ey); ctx.stroke();
+  head(ex, ey);
+}
 function billboardPanel(o) {
   if (o.panel) return o.panel;
   const c = makeCanvas(200, 80), g = c.getContext('2d');
@@ -4781,14 +4905,17 @@ function drawTallEmissive(ctx, o) {
   switch (o.kind) {
     case 'bld': drawBuildingEmissive(ctx, o); break;
     case 'lamp': {
-      if (o.broken) return;
+      if (o.broken) { if (o.light && o.light.dieAt && Game.time < o.light.dieAt && Math.random() < 0.5) { const [ox, oy] = offAt(o.hx, o.hy, o.h); ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 8, o.hy + oy - 8, 16, 16); } return; }
       const [ox, oy] = offAt(o.hx, o.hy, o.h);
       const hex = lightHex(o.col);
       ctx.drawImage(glowSprite(hex), o.hx + ox - 16, o.hy + oy - 16, 32, 32);
       ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 5, o.hy + oy - 5, 10, 10);
+      // mariposas rodando a lâmpada
+      if (Settings.quality !== 'baixa') { ctx.fillStyle = 'rgba(255,240,200,0.75)'; for (let i = 0; i < 3; i++) { const a = Game.time * (3 + i) + i * 2.1 + o.x * 0.01; ctx.fillRect(o.hx + ox + Math.cos(a) * (7 + i * 3), o.hy + oy + Math.sin(a * 1.3) * (6 + i * 2), 1.2, 1.2); } }
       break;
     }
     case 'tlight': {
+      if (o.down !== undefined) break;
       const [ox, oy] = offAt(o.hx, o.hy, o.h);
       const st = lightState(o.node, o.axis, Game.time);
       const c = st === 'R' ? '#ff3b30' : st === 'Y' ? '#ffb000' : '#2bff7a';
@@ -4891,6 +5018,7 @@ function lightPass(view, cx, cy) {
   const T = Game.time;
   for (const L of _lq) {
     let i = L.i;
+    if (L.dieAt) { if (T > L.dieAt) continue; i *= Math.random() < 0.5 ? 0.1 : 1; }
     if (L.flick) { const f = Math.sin(T * 23 + L.seed * 50) + Math.sin(T * 7.3 + L.seed * 9); i *= f > 1.2 ? 0.25 : 1; }
     lctx.globalAlpha = i;
     lctx.drawImage(LSPR, L.x - L.r, L.y - L.r, L.r * 2, L.r * 2);
@@ -4928,6 +5056,7 @@ function glowPass(view, cx, cy) {
   for (const L of _lq) {
     if (L.x < view.x0 - L.r || L.x > view.x1 + L.r || L.y < view.y0 - L.r || L.y > view.y1 + L.r) continue;
     let i = L.i;
+    if (L.dieAt) { if (T > L.dieAt) continue; i *= Math.random() < 0.5 ? 0.1 : 1; }
     if (L.flick) { const f = Math.sin(T * 23 + L.seed * 50) + Math.sin(T * 7.3 + L.seed * 9); i *= f > 1.2 ? 0.2 : 1; }
     const a = (L.shop ? 0.32 : L.canopy ? 0.12 : L.flood ? 0.1 : 0.17) * i;
     gctx.globalAlpha = a;
@@ -4935,7 +5064,7 @@ function glowPass(view, cx, cy) {
   }
   // reflexos das luzes na água
   for (const L of _lq) {
-    if (!L.refl || L.y + L.refl < view.y0 - 100 || L.y > view.y1) continue;
+    if (!L.refl || (L.dieAt && T > L.dieAt) || L.y + L.refl < view.y0 - 100 || L.y > view.y1) continue;
     const spr = glowSprite(lightHex(L.col));
     for (let k = 0; k < 3; k++) {
       const yy = L.y + L.refl + k * 26, sh = Math.sin(T * 2.2 + k * 1.7 + L.seed * 20);
@@ -5012,6 +5141,11 @@ function emissivePass(view, talls) {
   }
   ctx.globalAlpha = 1;
   Particles.drawEmissive(ctx);
+  for (const f of World.fountains) {
+    if (!inView(view, f.x, f.y, 60)) continue;
+    for (let i = 0; i < 3; i++) { const ph = ((T * 0.6 + i / 3) % 1); ctx.globalAlpha = (1 - ph) * 0.35; ctx.strokeStyle = '#bff0ff'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(f.x, f.y, 6 + ph * 26, 0, TAU); ctx.stroke(); }
+  }
+  ctx.globalAlpha = 1;
   drawMarkersEmissive(view);
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
