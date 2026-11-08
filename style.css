@@ -507,3 +507,47 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 .map-dests button.off { border-color: rgba(255, 90, 90, 0.6); background: rgba(50, 16, 16, 0.85); color: #ffd6d6; }
 .map-dests .dest-now { width: 100%; text-align: center; font-size: 13px; color: #5be38f; font-weight: 700; }
 #dialog-portrait { display: block; margin: 0 auto 12px; border-radius: 12px; background: #20242c; border: 2px solid rgba(255, 210, 63, 0.5); }
+
+/* ================= CELULAR ================= */
+#screen-phone { background: rgba(3, 5, 12, 0.45); justify-content: flex-end; padding-right: max(5vw, 16px); }
+.phone {
+  width: 300px; height: min(600px, 88vh); border-radius: 36px; padding: 12px 12px 18px;
+  background: #0d0f14; border: 3px solid #2a2d36; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), inset 0 0 0 2px #000;
+  display: flex; flex-direction: column; position: relative;
+}
+.phone-status { display: flex; justify-content: space-between; font: 600 11px var(--mono); color: #cfd6e4; padding: 4px 14px 8px; }
+#phone-body { flex: 1; overflow-y: auto; border-radius: 22px; background: linear-gradient(180deg, #1b2440, #12162a 60%, #0d1020); padding: 12px; color: #eef1f8; }
+.phone-home { pointer-events: auto; cursor: pointer; width: 110px; height: 5px; border: 0; border-radius: 4px; background: #c9ccd4; margin: 10px auto 0; display: block; }
+.phone-home:hover { background: #fff; }
+.ph-wall { text-align: center; padding: 18px 0 14px; }
+.ph-time { font: 200 48px var(--font); letter-spacing: 0.02em; }
+.ph-date { font-size: 12px; color: #aab3c8; letter-spacing: 0.1em; text-transform: uppercase; }
+.ph-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 8px; margin-top: 12px; }
+.ph-app { pointer-events: auto; cursor: pointer; background: none; border: 0; color: #eef1f8; font: 600 11px var(--font); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.ph-ico { position: relative; width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; font: 900 24px var(--font); color: #fff; box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35); }
+.ph-app:hover .ph-ico { transform: scale(1.06); }
+.ph-badge { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; border-radius: 9px; background: #ff3b30; font: 800 11px var(--font); font-style: normal; display: grid; place-items: center; padding: 0 4px; }
+.ph-head { display: flex; align-items: center; gap: 8px; font: 800 16px var(--font); margin-bottom: 12px; }
+.ph-back { pointer-events: auto; cursor: pointer; border: 0; background: rgba(255, 255, 255, 0.1); color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 20px; line-height: 1; }
+.ph-row { pointer-events: auto; cursor: pointer; display: block; width: 100%; text-align: left; border: 0; background: rgba(255, 255, 255, 0.06); color: #eef1f8; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; font: 13px var(--font); }
+.ph-row b { display: block; font-weight: 700; margin-bottom: 2px; }
+.ph-row span { color: #aab3c8; font-size: 12px; }
+.ph-row:hover { background: rgba(255, 255, 255, 0.12); }
+.ph-row.unread b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #39d353; margin-right: 6px; }
+.ph-row.static { cursor: default; }
+.ph-card { background: rgba(255, 255, 255, 0.07); border-radius: 14px; padding: 12px; margin-bottom: 10px; font-size: 13px; line-height: 1.5; }
+.ph-big { font: 900 italic 20px var(--font); margin-bottom: 4px; }
+.ph-btn { pointer-events: auto; cursor: pointer; width: 100%; border: 0; border-radius: 12px; padding: 12px; font: 800 14px var(--font); background: #39d353; color: #0b0d12; margin-bottom: 10px; }
+.ph-btn.off { background: #ff5a5a; color: #fff; }
+.ph-note, .ph-empty { font-size: 12px; color: #aab3c8; line-height: 1.5; }
+.ph-chat { display: flex; flex-direction: column; gap: 8px; }
+.ph-bubble { background: #1f5c3a; border-radius: 4px 14px 14px 14px; padding: 10px 12px; font-size: 13px; line-height: 1.5; }
+#hud-phone {
+  position: absolute; left: 18px; bottom: 262px; pointer-events: auto; cursor: pointer;
+  padding: 7px 12px; color: #eef1f8; font: italic 800 12px var(--font); display: flex; align-items: center; gap: 8px; border: 1px solid var(--line);
+}
+#hud-phone kbd { margin: 0; font-size: 10px; padding: 0 5px; }
+.hp-ico { width: 10px; height: 16px; border: 2px solid #eef1f8; border-radius: 3px; display: inline-block; }
+#hud-phone-badge { position: absolute; top: -6px; right: -6px; width: 14px; height: 14px; border-radius: 50%; background: #ff3b30; }
+.hud-dummy { display: none; }
+@media (max-height: 640px) { #hud-phone { bottom: 200px; } }

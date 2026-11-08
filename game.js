@@ -465,7 +465,7 @@ function areaBlocked(x0, y0, x1, y1) {
 const World = {
   nodes: [], edges: [], nodeMap: new Map(),
   buildings: [], tall: [], lights: [], shops: [], pois: [], races: [], parkSpots: [],
-  homes: [], animalsDef: [], pickups: [], trafficPoles: [], bumps: [], grills: [], radars: [], sparkers: [], geysers: [], fountains: [],
+  homes: [], animalsDef: [], pickups: [], trafficPoles: [], bumps: [], grills: [], radars: [], sparkers: [], geysers: [], fountains: [], obras: [], depots: {}, rachas: [],
 };
 
 /* -------- tipos de via -------- */
@@ -1323,6 +1323,7 @@ function buildRoadProps() {
         const s = e.len * rnd(0.35, 0.65), sd = chance(0.5) ? 1 : -1, o = e.hw - 9;
         const px = e.a.x + e.dx * s + nx * o * sd, py = e.a.y + e.dy * s + ny * o * sd;
         addProp('hole', px - nx * 4 * sd, py - ny * 4 * sd, { z: 5.6, R: 20 });
+        World.obras.push({ x: e.a.x + e.dx * s + nx * T.lanes[0] * sd, y: e.a.y + e.dy * s + ny * T.lanes[0] * sd, name: 'Obra na ' + e.name });
         for (const d of [-26, -9, 9, 26]) addProp('cone', px + e.dx * d, py + e.dy * d, { col: 'circ', cr: 3, R: 14 });
         addProp('barrier', px + e.dx * 40, py + e.dy * 40, { a: Math.atan2(ny, nx), col: 'circ', cr: 4, R: 22 });
       }
@@ -1792,8 +1793,38 @@ function buildSerra() {
     else comunidadeBlock(R);
   }
 }
+function buildDepots() {
+  const dep = (key, c, r, name, sign, color, extra) => {
+    const R = cellRect(c, r);
+    const bx0 = R.x0 + 26, by0 = R.y1 - 104, bx1 = R.x0 + 170, by1 = R.y1 - 44;
+    if (!areaBlocked(bx0, by0, bx1, by1)) addBuilding(bx0, by0, bx1, by1, 24, { style: 'shop', roofType: 'flat', roofColor: '#5a5c60', wall: '#e8e2d0', lit: 0.9, sign, signColor: color, front: 'W' });
+    if (extra) extra(R);
+    const y = R.y1 - 74;
+    World.depots[key] = { x: XS[c] + RT.street.lanes[0], y, name };
+    addLight(R.x0 + 10, y, 120, 0.9, color, { shop: true });
+  };
+  dep('bau', 6, 0, 'Transportadora Leva-e-Traz', 'TRANSPORTADORA', '#ffb547');
+  dep('gas', 6, 2, 'Depósito de Gás Chama Azul', 'GÁS CHAMA AZUL', '#59a8ff', (R) => { for (let i = 0; i < 6; i++) addProp('pot', R.x0 + 190 + i * 13, R.y1 - 60, { col: 'circ', cr: 5, R: 10 }); });
+  dep('fuel', 6, 3, 'Base de Combustível', 'BASE DE COMBUSTÍVEL', '#ff8a2a', (R) => { for (let i = 0; i < 2; i++) { const t = { kind: 'silo', x: R.x0 + 220 + i * 70, y: R.y1 - 70, r: 26, h: 50 }; if (!areaBlocked(t.x - 26, t.y - 26, t.x + 26, t.y + 26)) { addTall(t, t.x - 30, t.y - 30, t.x + 30, t.y + 30); addCircCol(t.x, t.y, 26, 'bld'); } } });
+  // aterro no interior
+  decal(6700, 5000, 7300, 5250, 'earth', { z: 1.3 });
+  for (let i = 0; i < 9; i++) addProp('mound', 6760 + (i % 5) * 110, 5060 + Math.floor(i / 5) * 90, { R: 50 });
+  World.depots.aterro = { x: 7000, y: 5300 - RT.dirt.lanes[0], name: 'Aterro do Fim do Mundo' };
+}
+function buildRachas() {
+  const R = (id, name, rival, rt, bet, pts) => {
+    let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    World.rachas.push({ id, name, rival, bet, start: pts[0], pts: pts.slice(1), all: pts, len, rivalTime: len / rt, a0: Math.atan2(pts[1][1] - pts[0][1], pts[1][0] - pts[0][0]), racha: true });
+  };
+  const hy = HWY_Y + RT.highway.lanes[0], cy = 7500 + RT.avenue.lanes[0], ay = 1500 + RT.avenue.lanes[0];
+  R('arrancada', 'Arrancada na BR-101', 'Zé do Canecão', 330, 300, [[1500, hy], [3900, hy]]);
+  R('carapina', 'Pega na Avenida Carapina', 'Juninho Rebaixado', 340, 600, [[400, cy], [4500, cy]]);
+  R('centrao', 'Racha do Centrão', 'Bia Turbo', 260, 1000, [[400, ay], [2100 - 25, ay], [2100 - 25, 3880 - 25], [400 + 25, 3880 - 25]]);
+}
 function buildActivitiesData() {
   markReflections();
+  buildDepots();
+  buildRachas();
   buildCapixaba();
   buildFesta();
   const P = (id, name, x, y, desc) => World.pois.push({ id, name, x, y, r: 170, desc });
@@ -2416,6 +2447,11 @@ function drawProp(g, p) {
       g.fillStyle = '#f5e6b0'; g.fillRect(-7, -5, 14, 8);
       g.fillStyle = '#222'; g.fillRect(-11, 4, 4, 4); g.fillRect(7, 4, 4, 4);
       break;
+    case 'mound':
+      g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(6, 8, 44, 30, 0, 0, TAU); g.fill();
+      for (let i = 0; i < 4; i++) { g.fillStyle = ['#7a6248', '#8a7258', '#6a5240', '#9a8268'][i]; g.beginPath(); g.ellipse(-i * 3, -i * 3, 42 - i * 9, 28 - i * 6, 0, 0, TAU); g.fill(); }
+      g.fillStyle = '#b0a080'; for (let i = 0; i < 12; i++) g.fillRect((hash2(i, 3) - 0.5) * 60, (hash2(i, 4) - 0.5) * 36, 3, 2);
+      break;
     case 'hole':
       g.fillStyle = '#141416'; g.beginPath(); g.ellipse(0, 0, 11, 7, 0.3, 0, TAU); g.fill();
       g.strokeStyle = 'rgba(120,110,90,0.6)'; g.lineWidth = 1.2; g.stroke();
@@ -2573,6 +2609,11 @@ const VMODELS = {
   bus: { id: 'bus', L: 112, W: 30, kind: 'bus' },
   tractor: { id: 'tractor', L: 34, W: 24, kind: 'tractor' },
   moto: { id: 'moto', L: 21, W: 8, kind: 'moto' },
+  bau: { id: 'bau', L: 72, W: 26, kind: 'truck', variant: 'bau' },
+  gas: { id: 'gas', L: 58, W: 25, kind: 'truck', variant: 'gas' },
+  tanker: { id: 'tanker', L: 80, W: 27, kind: 'truck', variant: 'tanker' },
+  cacamba: { id: 'cacamba', L: 62, W: 26, kind: 'truck', variant: 'cacamba' },
+  guincho: { id: 'guincho', L: 68, W: 26, kind: 'truck', variant: 'guincho' },
 };
 const _bodyPaths = {};
 function bodyPath(m) {
@@ -2854,11 +2895,38 @@ function drawDents(ctx, m, color, Z, lean) {
 function drawTruck(ctx, m, color, o) {
   const L = m.L, W = m.W, hl = L / 2, hw = W / 2;
   for (const x of [hl - 12, -hl + 22, -hl + 10]) { drawWheel(ctx, x, -hw + 1, 11, 5.5, x > 0 ? o.steer : 0, o.roll); drawWheel(ctx, x, hw - 1, 11, 5.5, x > 0 ? o.steer : 0, o.roll); }
-  const box = o.box || '#d9d6cc';
-  ctx.fillStyle = bodyGrad(ctx, box, hw); ctx.fillRect(-hl, -hw, L - 26, W);
-  ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(-hl, -hw, L - 26, W);
-  ctx.strokeStyle = 'rgba(0,0,0,0.16)';
-  for (let x = -hl + 6; x < hl - 28; x += 6) { ctx.beginPath(); ctx.moveTo(x, -hw + 1); ctx.lineTo(x, hw - 1); ctx.stroke(); }
+  const box = o.box || '#d9d6cc', v = m.variant || 'bau', bl = L - 26;
+  if (v === 'tanker') {
+    ctx.fillStyle = '#26262a'; ctx.fillRect(-hl, -hw + 2, bl, W - 4);
+    const g = ctx.createLinearGradient(0, -hw, 0, hw); g.addColorStop(0, '#7d8289'); g.addColorStop(0.45, '#eef0f2'); g.addColorStop(1, '#6a6f76');
+    ctx.fillStyle = g; ctx.beginPath(); rrect(ctx, -hl + 1, -hw + 1, bl - 2, W - 2, hw - 1); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)'; for (let x = -hl + 10; x < hl - 30; x += 12) { ctx.beginPath(); ctx.moveTo(x, -hw + 1); ctx.lineTo(x, hw - 1); ctx.stroke(); }
+    ctx.fillStyle = '#4a4d52'; for (let x = -hl + 12; x < hl - 32; x += 18) { ctx.beginPath(); ctx.arc(x, 0, 2.6, 0, TAU); ctx.fill(); }
+    ctx.fillStyle = '#ff8a1a'; ctx.fillRect(-hl + 2, -2, 3, 4);
+  } else if (v === 'gas') {
+    ctx.fillStyle = '#3a3d42'; ctx.fillRect(-hl, -hw, bl, W);
+    ctx.strokeStyle = '#8a8d92'; ctx.lineWidth = 1; ctx.strokeRect(-hl + 0.5, -hw + 0.5, bl - 1, W - 1);
+    for (let x = -hl + 4; x < hl - 30; x += 5.4) for (let y = -hw + 4; y < hw - 2; y += 5.4) {
+      ctx.fillStyle = '#2a5fae'; ctx.beginPath(); ctx.arc(x, y, 2.4, 0, TAU); ctx.fill(); ctx.fillStyle = '#9fb3c8'; ctx.beginPath(); ctx.arc(x, y, 1, 0, TAU); ctx.fill();
+    }
+  } else if (v === 'cacamba') {
+    ctx.fillStyle = bodyGrad(ctx, box, hw); ctx.fillRect(-hl, -hw, bl, W);
+    ctx.fillStyle = '#6b5a44'; ctx.fillRect(-hl + 3, -hw + 3, bl - 6, W - 6);
+    ctx.fillStyle = '#8a7a64'; for (let i = 0; i < 26; i++) ctx.fillRect(-hl + 4 + hash2(i, 5) * (bl - 9), -hw + 4 + hash2(i, 9) * (W - 9), 2.4, 2.4);
+    ctx.fillStyle = '#b0a080'; for (let i = 0; i < 10; i++) ctx.fillRect(-hl + 6 + hash2(i, 15) * (bl - 12), -hw + 5 + hash2(i, 19) * (W - 11), 3.4, 2);
+  } else if (v === 'guincho') {
+    ctx.fillStyle = '#2a2c30'; ctx.fillRect(-hl, -hw + 1, bl, W - 2);
+    ctx.fillStyle = '#3e4146'; for (let x = -hl + 2; x < hl - 28; x += 4) ctx.fillRect(x, -hw + 2, 2.4, W - 4);
+    ctx.fillStyle = '#f2c230'; ctx.fillRect(-hl, -hw + 1, 2, W - 2); ctx.fillRect(-hl, -hw + 1, bl, 1.4); ctx.fillRect(-hl, hw - 2.4, bl, 1.4);
+    if (o.tow) { ctx.save(); ctx.translate(-hl + bl / 2, 0); drawCar(ctx, VMODELS.quadrado, o.towColor || '#8a8d92', { parked: true }); ctx.restore(); }
+    else { ctx.strokeStyle = '#f2c230'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-hl + 2, 0); ctx.lineTo(-hl + 14, 0); ctx.stroke(); }
+  } else {
+    ctx.fillStyle = bodyGrad(ctx, box, hw); ctx.fillRect(-hl, -hw, bl, W);
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(-hl, -hw, bl, W);
+    ctx.strokeStyle = 'rgba(0,0,0,0.16)';
+    for (let x = -hl + 6; x < hl - 28; x += 6) { ctx.beginPath(); ctx.moveTo(x, -hw + 1); ctx.lineTo(x, hw - 1); ctx.stroke(); }
+    if (o.boxText) { ctx.save(); ctx.fillStyle = 'rgba(30,30,30,0.7)'; ctx.font = 'bold 7px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(o.boxText, -hl + bl / 2, 0); ctx.restore(); }
+  }
   ctx.fillStyle = '#26262a'; ctx.fillRect(hl - 27, -hw + 3, 2, W - 6);
   ctx.fillStyle = bodyGrad(ctx, color, hw - 1);
   ctx.beginPath(); rrect(ctx, hl - 25, -hw + 1, 25, W - 2, 4); ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.stroke();
@@ -3014,9 +3082,14 @@ const CARS = [
   { id: 'besouro', name: 'Besouro 1300', model: 'besouro', price: 2800, max: 392, acc: 104, brk: 300, steer: 1.05, grip: 0.96, pitch: 1.22, cyl: 4, fuel: 0.9, desc: 'Motor a ar lá atrás, para-lamas redondos e faróis de sapo. Não corre, mas sobe qualquer ladeira de Vila Velha.' },
   { id: 'tropeiro', name: 'Pão de Forma', model: 'van', price: 4500, max: 352, acc: 92, brk: 285, steer: 0.9, grip: 0.93, pitch: 0.82, cyl: 4, fuel: 1.15, cargo: 1.25, desc: 'Furgão de motor traseiro, frente em V e duas cores. O xodó das feiras e das mudanças: entregas rendem 25% a mais.' },
   { id: 'escada', name: 'Mil e Um com Escada', model: 'escada', price: 5500, max: 425, acc: 121, brk: 330, steer: 1.08, grip: 1.0, pitch: 1.06, cyl: 4, fuel: 0.85, cargo: 1.1, desc: 'Hatch caixote de teto alto com a famosa escada no teto. Pau pra toda obra: entregas rendem 10% a mais.' },
-  { id: 'sertaneja', name: 'Picape do Peão', model: 'pickup', price: 8000, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.9, cyl: 4, fuel: 1.1, offroad: true, desc: 'Picape de cabine simples com a caçamba sempre cheia de areia. Quase não perde velocidade na terra e na grama.' },
+  { id: 'sertaneja', name: 'Picape do Peão', model: 'pickup', price: 3500, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.9, cyl: 4, fuel: 1.1, offroad: true, job: 'pickup', desc: 'Picape de cabine simples: o veículo de trabalho mais barato. Faz fretes pelo app Fretes e quase não perde velocidade na terra.' },
   { id: 'cometa', name: 'Santo Antão 2.0', model: 'santana', price: 12500, max: 508, acc: 146, brk: 370, steer: 1.0, grip: 1.05, pitch: 0.95, cyl: 4, fuel: 1.05, desc: 'Sedã quadradão de quatro portas, o carro do tio no domingo. Firme e confortável na BR-101.' },
   { id: 'bravo', name: 'Xerão Turbo', model: 'sport', price: 19000, max: 575, acc: 186, brk: 420, steer: 1.12, grip: 1.13, pitch: 1.12, cyl: 4, fuel: 1.2, desc: 'Hatch esportivo dos anos 90 com faixas, aerofólio e escapamento que acorda a rua inteira.' },
+  { id: 'gas', name: 'Gás na Porta', model: 'gas', price: 7000, max: 330, acc: 86, brk: 270, steer: 0.84, grip: 0.92, pitch: 0.62, cyl: 6, fuel: 1.5, job: 'gas', desc: 'Caminhãozinho de gás com a musiquinha clássica. Entrega botijão de casa em casa pelo app Fretes.' },
+  { id: 'guincho', name: 'Guincho do Seu Zé', model: 'guincho', price: 10000, max: 360, acc: 92, brk: 285, steer: 0.82, grip: 0.95, pitch: 0.6, cyl: 6, fuel: 1.6, job: 'guincho', desc: 'Plataforma para rebocar carros quebrados até a oficina do Seu Zé.' },
+  { id: 'cacamba', name: 'Caçamba Entulho', model: 'cacamba', price: 12000, max: 320, acc: 80, brk: 260, steer: 0.78, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.8, offroad: true, job: 'cacamba', desc: 'Recolhe entulho das obras da cidade e leva para o aterro.' },
+  { id: 'bau', name: 'Baú Leva-e-Traz', model: 'bau', price: 16000, max: 350, acc: 84, brk: 270, steer: 0.76, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.9, job: 'bau', desc: 'Caminhão baú que abastece mercados, bares e restaurantes. Fretes longos e bem pagos.' },
+  { id: 'tanker', name: 'Tanque Cheio', model: 'tanker', price: 24000, max: 340, acc: 76, brk: 250, steer: 0.72, grip: 0.95, pitch: 0.5, cyl: 6, fuel: 2.1, job: 'tanker', desc: 'Caminhão-tanque que abastece os postos. O frete que mais paga, e o mais pesado de manobrar.' },
   { id: 'brasa', name: 'Canecão 6C', model: 'muscle', price: 29000, max: 632, acc: 196, brk: 385, steer: 0.95, grip: 0.98, pitch: 0.78, cyl: 6, fuel: 1.4, desc: 'O sedã clássico de seis canecos, para-choques cromados e teto de vinil. Ronco grave e força de sobra.' },
 ];
 const PALETTE = ['#c0392b', '#e8e8e8', '#1f2a44', '#2e86de', '#f1c40f', '#27ae60', '#16181d', '#8e9aa6', '#e67e22', '#7d3c98', '#6d4c3a', '#ff6fa5'];
@@ -3291,21 +3364,21 @@ function wpick(list) {
 function trafficModelFor(e) {
   switch (e.T.id) {
     case 'dirt': return wpick([['pickup', 4], ['quadrado', 2], ['besouro', 2], ['tractor', 1.6], ['santana', 1], ['van', 1.4]]);
-    case 'highway': return wpick([['truck', 4], ['bus', 1.2], ['santana', 2], ['sedan', 1.5], ['quadrado', 1.5], ['escada', 1.2], ['hatch', 1], ['pickup', 2], ['van', 0.8], ['sport', 0.4], ['police', 0.5]]);
-    case 'road': return wpick([['pickup', 3], ['quadrado', 2], ['escada', 1.5], ['besouro', 1], ['santana', 2], ['truck', 1.5], ['van', 1]]);
+    case 'highway': return wpick([['truck', 1.5], ['bau', 1.4], ['tanker', 0.8], ['gas', 0.5], ['cacamba', 0.6], ['bus', 1.2], ['santana', 2], ['sedan', 1.5], ['quadrado', 1.5], ['escada', 1.2], ['hatch', 1], ['pickup', 2], ['van', 0.8], ['sport', 0.4], ['police', 0.5]]);
+    case 'road': return wpick([['pickup', 3], ['quadrado', 2], ['escada', 1.5], ['besouro', 1], ['santana', 2], ['truck', 0.6], ['bau', 0.5], ['cacamba', 0.4], ['van', 1]]);
     case 'avenue': return wpick([['quadrado', 2.5], ['escada', 2], ['besouro', 1.2], ['hatch', 1.5], ['santana', 2], ['sedan', 1.5], ['taxi', 1.5], ['bus', 1.1], ['pickup', 1.2], ['van', 1], ['sport', 0.5], ['truck', 0.4], ['moto', 1.8], ['police', 0.6]]);
-    default: return wpick([['quadrado', 3], ['escada', 2.5], ['besouro', 2], ['hatch', 1.5], ['santana', 2], ['sedan', 1], ['taxi', 1], ['pickup', 1.5], ['van', 1.2], ['sport', 0.5], ['moto', 2.2], ['police', 0.35]]);
+    default: return wpick([['gas', 0.35], ['quadrado', 3], ['escada', 2.5], ['besouro', 2], ['hatch', 1.5], ['santana', 2], ['sedan', 1], ['taxi', 1], ['pickup', 1.5], ['van', 1.2], ['sport', 0.5], ['moto', 2.2], ['police', 0.35]]);
   }
 }
 class AICar {
   constructor(e, dir, s, lane, model) {
     this.id = Traffic.idc++;
     this.m = VMODELS[model]; this.model = model;
-    this.big = model === 'truck' || model === 'bus';
+    this.big = this.m.kind === 'truck' || model === 'bus';
     this.color = model === 'taxi' || model === 'police' ? '#f2f2ee' : model === 'bus' ? pick(['#2a6fd1', '#d13a2a', '#1f9a5a', '#e0a020']) : model === 'tractor' ? pick(['#2e8b3a', '#c0392b', '#2e5fae']) : pick(CAR_COLORS);
     this.box = pick(['#d9d6cc', '#e8e8e8', '#c9c3b5', '#d07a2a', '#5a7aa0']);
     this.mass = this.big ? 6 : model === 'tractor' ? 3 : model === 'moto' ? 0.7 : 1.6;
-    this.vmax = model === 'truck' ? 235 : model === 'bus' ? 190 : model === 'tractor' ? 70 : model === 'van' ? 205 : 1e9;
+    this.vmax = this.m.kind === 'truck' ? 235 : model === 'bus' ? 190 : model === 'tractor' ? 70 : model === 'van' ? 205 : 1e9;
     this.acc = this.big ? 70 : model === 'tractor' ? 45 : model === 'moto' ? 190 : rnd(120, 160);
     this.turnV = this.big ? 55 : model === 'tractor' ? 40 : model === 'moto' ? 92 : 82;
     this.mul = rnd(0.85, 1.1);
@@ -3337,7 +3410,7 @@ class AICar {
   allowed(e) {
     if (this.model === 'bus' && e.T.id === 'dirt') return false;
     if (this.model === 'tractor' && (e.T.id === 'highway' || e.T.id === 'avenue' || e.T.id === 'street')) return false;
-    if (this.model === 'truck' && e.T.id === 'street' && chance(0.7)) return false;
+    if (this.m.kind === 'truck' && e.T.id === 'street' && chance(0.7)) return false;
     return true;
   }
   chooseNext() {
@@ -3939,7 +4012,8 @@ const HOT = /Moqueca|Torta|Pizza|X-tudo|Pastéis|Lanches|Esfihas|Marmitas|salgad
 const Act = {
   delivery: null, race: null, parkSpot: null, parkHold: 0, parkCd: {}, waypoint: null,
   gps: null, gpsT: 0, gpsTarget: null, prompt: null, hintT: 0, hintI: 0, offers: new Map(), parkLock: null,
-  reset() { this.parkLock = null; this.delivery = null; this.race = null; this.parkSpot = null; this.parkHold = 0; this.waypoint = null; this.gps = null; this.gpsTarget = null; this.prompt = null; this.offers.clear(); },
+  ride: null, rideOnline: false, rideT: 5,
+  reset() { this.ride = null; this.rideOnline = false; this.rideT = 5; this.parkLock = null; this.delivery = null; this.race = null; this.parkSpot = null; this.parkHold = 0; this.waypoint = null; this.gps = null; this.gpsTarget = null; this.prompt = null; this.offers.clear(); },
 };
 function pay(v, why) {
   v = Math.round(v);
@@ -3961,6 +4035,7 @@ function onPlayerImpact(imp) {
   const zone = addZoneDamage(Profile.zones || (Profile.zones = { f: 0, r: 0, l: 0, rt: 0 }), player, hx, hy, k);
   Debris.spill(hx, hy, k, player.color, zone);
   if ((zone === 'l' || zone === 'rt') && k > 0.45 && chance(0.6)) Particles.emit('hubcap', hx, hy, rnd(-140, 140), rnd(-140, 140), 2.6, 3);
+  if (Act.ride && Act.ride.stage === 'drive' && imp > 110) { Act.ride.hits++; toast(Act.ride.name, pick(FALAS_BATIDA), 'bad'); }
   if (Act.delivery && Act.delivery.fragile && imp > 130) {
     Act.delivery.hits++;
     toast('Carga frágil!', 'A encomenda sofreu um impacto (−15%).', 'bad');
@@ -4112,6 +4187,7 @@ function startRace(r) {
   toast('Percurso: ' + r.name, 'Ouro ' + fmtTime(r.gold) + ' · Prata ' + fmtTime(r.silver) + ' · Bronze ' + fmtTime(r.bronze), 'info');
 }
 function finishRace() {
+  if (Act.race.racha) { finishRacha(Act.race); return; }
   const R = Act.race, r = R.r, t = R.t;
   const medal = t <= r.gold ? 3 : t <= r.silver ? 2 : t <= r.bronze ? 1 : 0;
   const names = ['Sem medalha', 'Bronze', 'Prata', 'Ouro'];
@@ -4132,6 +4208,7 @@ function finishRace() {
 function abandonActivity() {
   if (Act.race) { Act.race = null; toast('Percurso abandonado', '', 'bad'); return true; }
   if (Act.delivery) { Act.delivery = null; toast('Entrega cancelada', 'O cliente vai ter que esperar…', 'bad'); return true; }
+  if (Act.ride) { Act.ride = null; Act.rideT = 8; toast('Corrida cancelada', 'O passageiro chamou outro motorista.', 'bad'); return true; }
   if (Act.waypoint) { Act.waypoint = null; toast('Destino do GPS removido', '', 'info'); return true; }
   return false;
 }
@@ -4180,7 +4257,8 @@ function gpsRoute(sx, sy, tx, ty) {
 }
 function currentTarget() {
   if (Act.race) { const R = Act.race; const p = R.idx < R.r.pts.length ? R.r.pts[R.idx] : null; return p ? { x: p[0], y: p[1], kind: 'race' } : null; }
-  if (Act.delivery) return { x: Act.delivery.dest.x, y: Act.delivery.dest.y, kind: 'delivery' };
+  if (Act.delivery) { const D = Act.delivery, q = D.stage === 'pickup' ? D.pick : D.dest; return { x: q.x, y: q.y, kind: 'delivery' }; }
+  if (Act.ride) { const q = Act.ride.stage === 'pickup' ? Act.ride.pick : Act.ride.dest; return { x: q.x, y: q.y, kind: 'ride' }; }
   if (Act.waypoint) return { x: Act.waypoint.x, y: Act.waypoint.y, kind: 'waypoint' };
   return null;
 }
@@ -4193,6 +4271,7 @@ function nearestShop(kind) {
 /* ---------- atualização por quadro ---------- */
 function updateActivities(dt) {
   const p = player, sp = p.speed;
+  updateJobs(dt);
   // pontos de interesse
   for (const poi of World.pois) {
     if (Profile.discovered.includes(poi.id)) continue;
@@ -4221,7 +4300,7 @@ function updateActivities(dt) {
   if (Act.delivery) {
     const d = Act.delivery;
     d.t += dt;
-    if (Math.hypot(d.dest.x - p.x, d.dest.y - p.y) < 70 && sp < 40) finishDelivery();
+    if (d.stage !== 'pickup' && Math.hypot(d.dest.x - p.x, d.dest.y - p.y) < 70 && sp < 40) finishDelivery();
   }
   // corrida
   if (Act.race) {
@@ -4286,7 +4365,10 @@ function updateActivities(dt) {
       const verb = { garagem: 'Entrar na garagem', posto: 'Abastecer / lavar — ' + best.name, oficina: 'Oficina — consertar e melhorar' }[best.kind];
       Act.prompt = { text: verb || (best.pickup && !Act.delivery ? 'Pegar entrega — ' + best.name : 'Entrar — ' + best.name), act: () => openShopDialog(best) };
     } else if (!Act.race) {
-      for (const r of World.races) {
+      if (rachaOpen()) for (const r of World.rachas) {
+        if (Math.hypot(r.start[0] - p.x, r.start[1] - p.y) < 85) { Act.prompt = { text: 'Racha (ilegal): ' + r.name + ' — aposta R$ ' + fmtMoney(r.bet) + ' contra ' + r.rival, act: () => startRacha(r) }; break; }
+      }
+      if (!Act.prompt) for (const r of World.races) {
         if (Math.hypot(r.start[0] - p.x, r.start[1] - p.y) < 85) {
           const rec = Profile.races[r.id];
           Act.prompt = { text: 'Iniciar percurso: ' + r.name + (rec ? ' (recorde ' + fmtTime(rec.best) + ')' : ''), act: () => startRace(r) };
@@ -4332,6 +4414,230 @@ function freeRoamHint() {
   if (cheapest && Profile.money >= cheapest.price) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
   return list[Act.hintI % list.length];
 }
+/* ============================ CELULAR, PROFISSÕES, APP DE MOTORISTA E RACHA ============================ */
+const PASSAGEIROS = ['Dona Cida', 'Seu Jorge', 'Thaís', 'Juninho', 'Pastor Elias', 'Dona Penha', 'Marcão', 'Bia da Farmácia', 'Tio Zezinho', 'Kelly', 'Rafa do Bloco', 'Vó Lurdes', 'Diego Entregador', 'Professora Solange'];
+const FALAS_EMBARQUE = ['"Boa noite, moço! Pode ir pela avenida que é mais rápido."', '"Liga o ar aí, por favor?"', '"Tô atrasada pro plantão, vai com fé!"', '"Nossa, esse carro é raiz, hein?"', '"Me deixa na porta, que tá escuro."', '"Pode botar um pagodinho no rádio?"'];
+const FALAS_BATIDA = ['"Ô motorista, devagar!"', '"Jesus amado, quase morri!"', '"Vou dar uma estrela pra você, viu?"', '"Eita! Cuidado aí!"'];
+const JOB_TYPES = {
+  pickup: { name: 'Frete de picape', items: ['Sacos de cimento', 'Mudança pequena', 'Tijolos baianos', 'Geladeira usada', 'Móveis da vó'], mult: 1.35 },
+  bau: { name: 'Carga de baú', items: ['Carga de bebidas', 'Caixas de mercadoria', 'Eletrodomésticos', 'Engradados de refrigerante'], mult: 2.2 },
+  gas: { name: 'Entrega de gás', items: ['Botijões de gás'], mult: 1.6 },
+  tanker: { name: 'Abastecer posto', items: ['Gasolina comum', 'Etanol', 'Diesel S10'], mult: 2.8, fragile: true },
+  cacamba: { name: 'Retirar entulho', items: ['Entulho de obra'], mult: 2.0 },
+  guincho: { name: 'Reboque', items: ['Carro quebrado de cliente'], mult: 1.9 },
+};
+function addMsg(from, title, body, silent) {
+  Profile.msgs = Profile.msgs || [];
+  Profile.msgs.unshift({ from, title, body, read: false, t: Math.floor(Profile.time) });
+  if (!silent) { toast('Nova mensagem: ' + from, title + ' — aperte P para abrir o celular.', 'info'); AudioSys.tone(1568, 0.08, 'sine', 0.08, 'ui'); AudioSys.tone(2093, 0.12, 'sine', 0.08, 'ui', null, 0.1); }
+}
+function ensurePhoneData() {
+  if (!Profile.msgs) {
+    Profile.msgs = [];
+    addMsg('Seu Zé (Oficina)', 'Bem-vindo a São Gambiarra!',
+      'Aqui é o Seu Zé, da oficina. Você chegou em São Gambiarra, no Espírito Santo, uma cidade que nunca dorme. Seu Quadradão tá na garagem da Vila Sem Pressa.\n\n' +
+      'Pra ganhar a vida por aqui:\n• Entregas: pare em frente aos comércios com marcador amarelo e aperte E.\n• App PegaAí: fique online e leve passageiros pela cidade.\n• App Fretes: com uma picape ou caminhão de trabalho (a picape é a mais barata), faça fretes de carga, gás, combustível, entulho e reboque.\n• Percursos: bandeiras azuis no mapa, com medalhas.\n• Racha: depois das 22h, os rachas da madrugada pagam a aposta em dobro. Só cuidado: se a viatura vir, é multa.\n\n' +
+      'Abasteça no posto, conserte aqui comigo quando bater e cuidado com o pardal nas avenidas. M abre o mapa, P abre o celular.\n\nBoa noite e vai com Deus!', true);
+  }
+  if (Profile.rides === undefined) { Profile.rides = 0; Profile.ratingSum = 0; Profile.jobs = 0; }
+}
+function randomHome(nx, ny, dmin, dmax) {
+  const pool = World.homes.filter((h) => { const d = Math.hypot(h.x - nx, h.y - ny); return d > dmin && d < dmax; });
+  return pick(pool.length ? pool : World.homes);
+}
+function routeLen(a, b) { const r = gpsRoute(a.x, a.y, b.x, b.y); return r ? r.len : Math.hypot(a.x - b.x, a.y - b.y) * 1.3; }
+function genJob(type) {
+  const J = JOB_TYPES[type];
+  let pickPt, dest;
+  const P = { x: player.x, y: player.y };
+  if (type === 'pickup') {
+    const s = pick(World.shops.filter((x) => ['mercado', 'paneleiras', 'oficina', 'sitio', 'fazenda'].includes(x.kind)));
+    pickPt = { x: s.x, y: s.y, name: s.name }; const h = randomHome(s.x, s.y, 900, 3600); dest = { x: h.x, y: h.y, name: h.name };
+  } else if (type === 'bau') {
+    const d = World.depots.bau; pickPt = { x: d.x, y: d.y, name: d.name };
+    const s = pick(World.shops.filter((x) => ['mercado', 'padaria', 'farmacia', 'lanchonete', 'churrascaria', 'bar', 'moquecaria', 'fazenda', 'sitio'].includes(x.kind)));
+    dest = { x: s.x, y: s.y, name: s.name };
+  } else if (type === 'gas') {
+    const d = World.depots.gas; pickPt = { x: d.x, y: d.y, name: d.name }; const h = randomHome(d.x, d.y, 700, 4000); dest = { x: h.x, y: h.y, name: h.name };
+  } else if (type === 'tanker') {
+    const d = World.depots.fuel; pickPt = { x: d.x, y: d.y, name: d.name }; const s = pick(World.shops.filter((x) => x.kind === 'posto')); dest = { x: s.x, y: s.y, name: s.name };
+  } else if (type === 'cacamba') {
+    const o = pick(World.obras); pickPt = { x: o.x, y: o.y, name: o.name }; const d = World.depots.aterro; dest = { x: d.x, y: d.y, name: d.name };
+  } else {
+    const h = randomHome(P.x, P.y, 500, 2600); pickPt = { x: h.x, y: h.y, name: h.name };
+    const s = World.shops.find((x) => x.kind === 'oficina'); dest = { x: s.x, y: s.y, name: s.name };
+  }
+  const len = routeLen(pickPt, dest) + routeLen(P, pickPt) * 0.3;
+  const reward = Math.round((90 + len * 0.08) * J.mult / 5) * 5;
+  return { type, item: pick(J.items), pick: pickPt, dest, len, reward, par: len / 190 + 35, fragile: !!J.fragile, hot: false, jobName: J.name, color: pick(CAR_COLORS) };
+}
+function startJob(job) {
+  Act.delivery = Object.assign({}, job, { t: 0, hits: 0, stage: 'pickup', shop: { name: job.pick.name } });
+  Act.gpsT = 0;
+  AudioSys.chime();
+  toast(job.jobName + ' aceito', 'Buscar ' + job.item.toLowerCase() + ' em ' + job.pick.name + '.', 'info');
+}
+// ---------- app de motorista ----------
+function newRideRequest() {
+  const near = World.homes.concat(World.shops.map((s) => ({ x: s.x, y: s.y, name: s.name })));
+  const pool = near.filter((h) => { const d = Math.hypot(h.x - player.x, h.y - player.y); return d > 250 && d < 1300; });
+  const pk = pick(pool.length ? pool : near);
+  const dd = near.filter((h) => { const d = Math.hypot(h.x - pk.x, h.y - pk.y); return d > 900 && d < 3600; });
+  const ds = pick(dd.length ? dd : near);
+  const len = routeLen(pk, ds);
+  Act.ride = { name: pick(PASSAGEIROS), pick: { x: pk.x, y: pk.y, name: pk.name }, dest: { x: ds.x, y: ds.y, name: ds.name }, len, fare: Math.round((8 + len * 0.048) / 1) , stage: 'pickup', hits: 0, t: 0, seed: rnd() };
+  Act.gpsT = 0;
+  AudioSys.tone(988, 0.1, 'square', 0.06, 'ui'); AudioSys.tone(1319, 0.14, 'square', 0.06, 'ui', null, 0.12);
+  toast('PegaAí: nova corrida', Act.ride.name + ' em ' + pk.name + ' · R$ ' + Act.ride.fare, 'info');
+}
+function canDriveRides() { return player && VMODELS[player.car.model].kind !== 'truck'; }
+// ---------- racha ----------
+function rachaOpen() { const t = Profile.time; return t >= 22 * 60 && t < 28 * 60 + 30; }
+function startRacha(r) {
+  if (Profile.money < r.bet) { toast('Sem grana pra aposta', 'O racha custa R$ ' + fmtMoney(r.bet) + '.', 'bad'); AudioSys.error(); return; }
+  Profile.money -= r.bet; UI.moneyDelta(-r.bet);
+  Act.race = { r, idx: 0, t: 0, count: 3.4, lastBeep: 4, racha: true };
+  toast('Racha contra ' + r.rival, 'Aposta R$ ' + fmtMoney(r.bet) + ' · tempo dele: ' + fmtTime(r.rivalTime) + '. Fuja das viaturas!', 'bad');
+}
+function finishRacha(R) {
+  const r = R.r;
+  Act.race = null;
+  if (R.t < r.rivalTime) { AudioSys.chime(); pay(r.bet * 2, 'Ganhou o racha de ' + r.rival + '! (' + fmtTime(R.t) + ')'); }
+  else toast('Perdeu o racha', r.rival + ' chegou antes (' + fmtTime(r.rivalTime) + ' contra ' + fmtTime(R.t) + '). Já era a aposta.', 'bad');
+  saveGame();
+}
+function rachaGhostPos(R) {
+  const r = R.r, d = clamp(R.t / r.rivalTime, 0, 1) * r.len;
+  let acc = 0;
+  for (let i = 1; i < r.all.length; i++) {
+    const a = r.all[i - 1], b = r.all[i], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (acc + L >= d) { const k = (d - acc) / L; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, Math.atan2(b[1] - a[1], b[0] - a[0])]; }
+    acc += L;
+  }
+  const z = r.all[r.all.length - 1]; return [z[0], z[1], 0];
+}
+// ---------- música do gás ----------
+const GasJingle = { t: 0 };
+function gasJingle(dt) {
+  if (!AudioSys.ok || !player || player.car.job !== 'gas' || !Act.delivery || Act.delivery.stage !== 'deliver') { GasJingle.t = 0; return; }
+  GasJingle.t -= dt;
+  if (GasJingle.t > 0) return;
+  GasJingle.t = 7;
+  // "Pour Elise" (domínio público), a musiquinha do caminhão de gás
+  const N = [659, 622, 659, 622, 659, 494, 587, 523, 440];
+  N.forEach((f, i) => { AudioSys.tone(f, 0.22, 'triangle', 0.05, 'engine', null, i * 0.18); AudioSys.tone(f * 2, 0.12, 'sine', 0.015, 'engine', null, i * 0.18); });
+}
+// ---------- atualização ----------
+function updateJobs(dt) {
+  const p = player, sp = p.speed;
+  ensurePhoneData();
+  // estágio de coleta de fretes
+  if (Act.delivery && Act.delivery.stage === 'pickup') {
+    const d = Act.delivery;
+    if (Math.hypot(d.pick.x - p.x, d.pick.y - p.y) < 75 && sp < 40) {
+      d.stage = 'deliver'; d.t = 0; Act.gpsT = 0;
+      AudioSys.thud(); AudioSys.tone(660, 0.1, 'triangle', 0.08, 'ui');
+      toast('Carregado!', d.item + ' a bordo. Leve até ' + d.dest.name + '.', 'good');
+    }
+  }
+  gasJingle(dt);
+  // app de motorista
+  if (Act.rideOnline && !Act.ride && !Act.delivery && !Act.race) {
+    Act.rideT -= dt;
+    if (Act.rideT <= 0) newRideRequest();
+  }
+  if (Act.ride) {
+    const R = Act.ride;
+    R.t += dt;
+    if (R.stage === 'pickup' && Math.hypot(R.pick.x - p.x, R.pick.y - p.y) < 70 && sp < 35) {
+      R.stage = 'drive'; R.t = 0; Act.gpsT = 0; AudioSys.thud();
+      toast(R.name + ' entrou', pick(FALAS_EMBARQUE), 'info');
+    } else if (R.stage === 'drive' && Math.hypot(R.dest.x - p.x, R.dest.y - p.y) < 70 && sp < 35) {
+      const stars = clamp(5 - R.hits - (R.t > R.len / 120 + 40 ? 1 : 0), 1, 5);
+      const v = Math.round(R.fare * (0.6 + stars * 0.1));
+      Profile.rides++; Profile.ratingSum += stars;
+      Act.ride = null; Act.rideT = rnd(4, 9);
+      pay(v, 'Corrida finalizada ' + '★'.repeat(stars) + '☆'.repeat(5 - stars) + ' · ' + R.name);
+      saveGame();
+    }
+  }
+  // racha: polícia de olho
+  if (Act.race && Act.race.racha && Act.race.count <= 0) {
+    for (const c of Traffic.cars) {
+      if (c.model !== 'police') continue;
+      if (Math.hypot(c.x - p.x, c.y - p.y) < 380) {
+        Act.race = null;
+        const fine = Math.min(300, Math.max(0, Math.floor(Profile.money)));
+        Cam.flash = 0.6; AudioSys.siren();
+        if (fine) pay(-fine, 'Sujou! A viatura viu o racha. Multa e aposta perdida.'); else toast('Sujou!', 'A viatura viu o racha. Aposta perdida.', 'bad');
+        break;
+      }
+    }
+  }
+  // convite do racha quando chega a madrugada
+  if (rachaOpen() && !Profile.rachaMsg) { Profile.rachaMsg = true; addMsg('Zé do Canecão', 'Racha hoje?', 'E aí, parceiro. Hoje tem racha: arrancada na BR-101, pega na Avenida Carapina e o racha do Centrão. Aposta na hora, quem ganhar leva o dobro. Abre o app Racha que eu te passo o ponto. Só fica esperto com a viatura, que se ela vir, é multa na certa.'); }
+  if (!rachaOpen()) Profile.rachaMsg = false;
+}
+
+/* ---------- interface do celular ---------- */
+const Phone = {
+  app: 'home', fretes: [], fretesT: -1e9, msgOpen: -1,
+  open(app) { ensurePhoneData(); this.app = app || 'home'; if (Screens.current !== 'screen-phone') Screens.open('screen-phone'); this.render(); AudioSys.tone(1200, 0.05, 'sine', 0.05, 'ui'); },
+  go(app) { this.app = app; this.msgOpen = -1; this.render(); AudioSys.click(); },
+  render() {
+    const body = $('phone-body'); if (!body) return;
+    $('phone-clock').textContent = clockStr();
+    const unread = (Profile.msgs || []).filter((m) => !m.read).length;
+    const H = (s) => escapeHtml(s);
+    let html = '';
+    if (this.app === 'home') {
+      const apps = [['mapa', 'Mapa', '#2a9d8f', 'M'], ['msgs', 'Mensagens', '#39d353', 'Z'], ['pegaai', 'PegaAí', '#111111', 'P'], ['fretes', 'Fretes', '#ff8a2a', 'F'], ['racha', 'Racha', '#e63946', 'R'], ['carteira', 'Carteira', '#3a86ff', '$']];
+      html = '<div class="ph-wall"><div class="ph-time">' + clockStr() + '</div><div class="ph-date">São Gambiarra · ES</div></div><div class="ph-grid">' +
+        apps.map(([id, n, c, l]) => `<button class="ph-app" data-app="${id}"><span class="ph-ico" style="background:${c}">${l}${id === 'msgs' && unread ? `<i class="ph-badge">${unread}</i>` : ''}</span>${n}</button>`).join('') + '</div>';
+    } else if (this.app === 'msgs') {
+      const M = Profile.msgs || [];
+      if (this.msgOpen >= 0 && M[this.msgOpen]) {
+        const m = M[this.msgOpen]; m.read = true;
+        html = `<div class="ph-head"><button class="ph-back" data-go="msgs">‹</button>${H(m.from)}</div><div class="ph-chat"><div class="ph-bubble">${H(m.body).replace(/\n/g, '<br>')}</div></div>`;
+      } else html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Mensagens</div>' + (M.length ? M.map((m, i) => `<button class="ph-row${m.read ? '' : ' unread'}" data-msg="${i}"><b>${H(m.from)}</b><span>${H(m.title)}</span></button>`).join('') : '<p class="ph-empty">Nenhuma mensagem.</p>');
+    } else if (this.app === 'pegaai') {
+      const ok = canDriveRides();
+      const avg = Profile.rides ? (Profile.ratingSum / Profile.rides).toFixed(1).replace('.', ',') : '–';
+      html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>PegaAí Motorista</div><div class="ph-card"><div class="ph-big">${Act.rideOnline ? 'Você está ONLINE' : 'Você está offline'}</div><p>${Profile.rides} corridas · nota ${avg} ★</p>` +
+        (Act.ride ? `<p><b>${H(Act.ride.name)}</b><br>${Act.ride.stage === 'pickup' ? 'Buscar em ' + H(Act.ride.pick.name) : 'Levar até ' + H(Act.ride.dest.name)}<br>R$ ${Act.ride.fare}</p>` : '') + '</div>' +
+        (ok ? `<button class="ph-btn ${Act.rideOnline ? 'off' : ''}" data-act2="ride-toggle">${Act.rideOnline ? 'Ficar offline' : 'Ficar online'}</button>` : '<p class="ph-empty">Caminhão não roda no PegaAí. Use um carro de passeio ou a picape.</p>') +
+        '<p class="ph-note">Corridas aparecem perto de você. Busque o passageiro, leve ao destino e pare. Batida e demora derrubam a nota e a gorjeta.</p>';
+    } else if (this.app === 'fretes') {
+      const job = player.car.job;
+      html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Fretes</div>';
+      if (!job) html += '<p class="ph-empty">Seu veículo não faz fretes. Compre um veículo de trabalho na garagem: o mais barato é a Picape do Peão (R$ 3.500). Também tem caminhão de gás, guincho, caçamba, baú e tanque.</p>';
+      else if (Act.delivery) html += `<div class="ph-card"><div class="ph-big">${H(Act.delivery.item)}</div><p>${Act.delivery.stage === 'pickup' ? 'Buscar em ' + H(Act.delivery.pick ? Act.delivery.pick.name : '') : 'Entregar em ' + H(Act.delivery.dest.name)}<br>R$ ${fmtMoney(Act.delivery.reward)}</p></div><button class="ph-btn off" data-act2="job-cancel">Cancelar frete</button>`;
+      else {
+        if (Game.time - this.fretesT > 60 || !this.fretes.length || this.fretes[0].type !== job) { this.fretes = [genJob(job), genJob(job), genJob(job)]; this.fretesT = Game.time; }
+        html += `<p class="ph-note">${H(JOB_TYPES[job].name)} · ${H(player.car.name)}</p>` + this.fretes.map((f, i) => `<button class="ph-row" data-job="${i}"><b>${H(f.item)} · R$ ${fmtMoney(f.reward)}</b><span>${H(f.pick.name)} → ${H(f.dest.name)} · ${(f.len * 0.09 / 1000).toFixed(1).replace('.', ',')} km</span></button>`).join('');
+      }
+    } else if (this.app === 'racha') {
+      const open = rachaOpen();
+      html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Racha</div>' + (open ? '<p class="ph-note">Madrugada liberada. Vá até o ponto e aperte E. Quem ganhar leva o dobro da aposta. Se uma viatura chegar perto, é multa e aposta perdida.</p>' : '<p class="ph-empty">Os rachas só rolam de madrugada, das 22h às 4h30. Agora são ' + clockStr() + '.</p>') +
+        World.rachas.map((r, i) => `<button class="ph-row" data-racha="${i}"><b>${H(r.name)} · aposta R$ ${fmtMoney(r.bet)}</b><span>contra ${H(r.rival)} (${fmtTime(r.rivalTime)}) · toque para marcar no GPS</span></button>`).join('');
+    } else if (this.app === 'carteira') {
+      html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div><div class="ph-card"><div class="ph-big">R$ ${fmtMoney(Profile.money)}</div><p>Total ganho: R$ ${fmtMoney(Profile.earned)}</p></div>` +
+        `<div class="ph-row static"><b>Entregas e fretes</b><span>${Profile.deliveries} concluídos</span></div><div class="ph-row static"><b>Corridas no PegaAí</b><span>${Profile.rides || 0}</span></div><div class="ph-row static"><b>Veículo atual</b><span>${H(player.car.name)}</span></div>`;
+    }
+    body.innerHTML = html;
+  },
+  click(e) {
+    const t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.app) { if (t.dataset.app === 'mapa') { Screens.replace('screen-map'); AudioSys.click(); return; } this.go(t.dataset.app); return; }
+    if (t.dataset.go) { this.go(t.dataset.go); return; }
+    if (t.dataset.msg) { this.msgOpen = +t.dataset.msg; this.render(); AudioSys.click(); return; }
+    if (t.dataset.job) { const j = this.fretes[+t.dataset.job]; if (j && !Act.delivery && !Act.race) { startJob(j); this.fretes = []; Screens.closeAll(); } return; }
+    if (t.dataset.racha) { const r = World.rachas[+t.dataset.racha]; Act.waypoint = { x: r.start[0], y: r.start[1], label: 'Racha: ' + r.name }; Act.gpsT = 0; AudioSys.click(); toast('Ponto do racha no GPS', r.name, 'info'); Screens.closeAll(); return; }
+    const a = t.dataset.act2;
+    if (a === 'ride-toggle') { Act.rideOnline = !Act.rideOnline; Act.rideT = rnd(3, 6); if (!Act.rideOnline) Act.ride = null; AudioSys.click(); this.render(); }
+    if (a === 'job-cancel') { Act.delivery = null; toast('Frete cancelado', '', 'bad'); AudioSys.back(); this.render(); }
+  },
+};
 /* ============================ RENDERIZAÇÃO ============================ */
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -5363,9 +5669,10 @@ function drawMarkersEmissive(view) {
       ctx.fillRect(s.x - 7, s.y - 7 + bob, 14, 12); ctx.fillStyle = '#7a5a1a'; ctx.fillRect(s.x - 7, s.y - 2 + bob, 14, 1.5); ctx.fillRect(s.x - 0.75, s.y - 7 + bob, 1.5, 12);
     }
   }
-  // destino da entrega
-  if (Act.delivery) {
-    const d = Act.delivery.dest;
+  // destino da entrega / frete / corrida
+  const tg = currentTarget();
+  if (tg && (tg.kind === 'delivery' || tg.kind === 'ride')) {
+    const d = tg;
     if (inView(view, d.x, d.y, 120)) {
       ctx.globalAlpha = 0.5; ctx.drawImage(glowSprite('#ffd24a'), d.x - 70, d.y - 70, 140, 140);
       ring(d.x, d.y, 44 + pulse * 8, '#ffd24a', 0.8, 4);
@@ -5432,7 +5739,17 @@ function render() {
     drawVehicle(ctx, c.m, c.color, c.x, c.y, c.a, { steer: c.steerVis, roll: c.roll, brake: c.braking || c.v < 3, box: c.box, zones: c.zones });
   }
   if (player && Game.state !== 'menu') {
-    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery, zones: Profile.zones });
+    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery, zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null });
+  }
+  if (player && Game.state !== 'menu') {
+    const D = Act.delivery;
+    if (D && D.type === 'guincho' && D.stage === 'pickup' && inView(view, D.pick.x, D.pick.y, 60)) drawVehicle(ctx, VMODELS.quadrado, D.color, D.pick.x, D.pick.y, 0.4, { parked: true, zones: { f: 0.9, r: 0, l: 0.3, rt: 0 } });
+    if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 40)) drawAnimal(ctx, { type: 'person', x: Act.ride.pick.x, y: Act.ride.pick.y - 14, a: Math.PI / 2, v: 0, phase: 0, seed: Act.ride.seed, col: '#ffd24a', skin: '#c68642', hair: '#1a1410', pants: '#2b3a55', dance: true, state: 'idle' });
+    if (Act.race && Act.race.racha && Act.race.count <= 0) {
+      const g = rachaGhostPos(Act.race);
+      ctx.globalAlpha = 0.85; drawVehicle(ctx, VMODELS.muscle, '#e63946', g[0] - Math.sin(g[2]) * 30, g[1] + Math.cos(g[2]) * 30, g[2], { roll: Game.time * 40 }); ctx.globalAlpha = 1;
+      ctx.font = 'italic 800 11px Arial'; ctx.textAlign = 'center'; ctx.fillStyle = '#ff9a9a'; ctx.fillText(Act.race.r.rival, g[0], g[1] - 6);
+    }
   }
   Particles.draw(ctx);
   // objetos altos ordenados por distância à câmera (longe primeiro)
@@ -5781,7 +6098,7 @@ const Garage = {
       const d = document.createElement('div');
       d.className = 'gcard' + (c.id === this.sel ? ' sel' : '');
       const st = Profile.current === c.id ? '<span class="cur">Em uso</span>' : Profile.owned[c.id] ? '<span class="own">Na garagem</span>' : 'R$ ' + fmtMoney(c.price);
-      d.innerHTML = `<div class="gname">${c.name}</div><div class="gsub"><span>${{ quadrado: 'Hatch quadrado', besouro: 'Clássico a ar', escada: 'Hatch caixote', hatch: 'Hatch', van: 'Furgão', pickup: 'Picape', sedan: 'Sedã', santana: 'Sedã quadrado', sport: 'Esportivo', muscle: 'Clássico' }[c.model]}</span>${st}</div>`;
+      d.innerHTML = `<div class="gname">${c.name}</div><div class="gsub"><span>${{ gas: 'Trabalho · gás', guincho: 'Trabalho · guincho', cacamba: 'Trabalho · caçamba', bau: 'Trabalho · baú', tanker: 'Trabalho · tanque', quadrado: 'Hatch quadrado', besouro: 'Clássico a ar', escada: 'Hatch caixote', hatch: 'Hatch', van: 'Furgão', pickup: 'Picape · trabalho', sedan: 'Sedã', santana: 'Sedã quadrado', sport: 'Esportivo', muscle: 'Clássico' }[c.model]}</span>${st}</div>`;
       d.addEventListener('click', () => { this.sel = c.id; this.previewColor = null; AudioSys.click(); this.render(); });
       d.addEventListener('mouseenter', () => AudioSys.hover());
       list.appendChild(d);
@@ -5839,6 +6156,7 @@ const Garage = {
       this.previewColor = null;
       AudioSys.money();
       toast('Novo veículo!', sel.name + ' agora é seu.', 'good');
+      if (sel.job) addMsg('Central de Fretes', 'Bem-vindo à frota', 'Recebemos o cadastro do seu ' + sel.name + '. Abra o app Fretes no celular (P) para ver as cargas disponíveis perto de você. Quanto mais longe, mais paga. Cuidado com carga frágil e perigosa.');
       UI.moneyDelta(-sel.price);
     }
     Profile.current = sel.id;
@@ -6067,11 +6385,23 @@ function updateHUD(dt) {
   UI.set('money-value', fmtMoney(Profile.money));
   // objetivo
   let title, desc = '', meta = '', cls = '';
-  if (Act.race) {
+  if (Act.race && Act.race.racha) {
+    const R = Act.race; cls = 'race';
+    title = 'Racha: ' + R.r.name; desc = R.count > 0 ? 'Prepare-se… contra ' + R.r.rival : 'Corre! ' + R.r.rival + ' tá do seu lado. Cuidado com viatura.';
+    meta = 'Aposta R$ ' + fmtMoney(R.r.bet) + ' · tempo dele ' + fmtTime(R.r.rivalTime);
+  } else if (Act.race) {
     const R = Act.race;
     title = 'Percurso: ' + R.r.name; cls = 'race';
     desc = R.count > 0 ? 'Prepare-se…' : 'Checkpoint ' + (R.idx + 1) + ' de ' + R.r.pts.length;
     meta = 'Ouro ' + fmtTime(R.r.gold) + ' · Prata ' + fmtTime(R.r.silver) + ' · Bronze ' + fmtTime(R.r.bronze);
+  } else if (Act.delivery && Act.delivery.stage === 'pickup') {
+    const d = Act.delivery; cls = 'active';
+    title = d.jobName + ': ' + d.item; desc = 'Buscar em ' + d.pick.name;
+    meta = Math.round((Act.gps ? Act.gps.len : 0) * 0.09) + ' m · R$ ' + fmtMoney(d.reward);
+  } else if (Act.ride) {
+    const R = Act.ride; cls = 'active';
+    title = 'PegaAí: ' + R.name; desc = R.stage === 'pickup' ? 'Buscar em ' + R.pick.name : 'Levar até ' + R.dest.name;
+    meta = Math.round((Act.gps ? Act.gps.len : 0) * 0.09) + ' m · R$ ' + R.fare;
   } else if (Act.delivery) {
     const d = Act.delivery; cls = 'active';
     title = 'Entrega: ' + d.item;
@@ -6099,6 +6429,7 @@ function updateHUD(dt) {
   UI.set('race-timer', rt); $('race-timer').classList.toggle('hidden', !rt);
   const cd = Act.race && Act.race.count > 0 ? String(Math.ceil(Act.race.count)) : Act.race && Act.race.t < 0.8 ? 'VAI!' : '';
   if (UI.last.cd !== cd) { UI.last.cd = cd; const el = $('countdown'); el.textContent = cd; el.classList.toggle('hidden', !cd); }
+  { const un = (Profile.msgs || []).some((m) => !m.read); if (UI.last.badge !== un) { UI.last.badge = un; $('hud-phone-badge').classList.toggle('hidden', !un); } }
   drawMinimap();
   drawSpeedo();
 }
@@ -6178,10 +6509,12 @@ function handleKeys() {
       continue;
     }
     if (k === 'KeyM' && Screens.current === 'screen-map') { Screens.back(); continue; }
+    if (k === 'KeyP' && Screens.current === 'screen-phone') { Screens.back(); continue; }
     if (Game.state !== 'playing') continue;
     switch (k) {
       case 'KeyE': if (Act.prompt) Act.prompt.act(); break;
       case 'KeyM': Screens.open('screen-map'); AudioSys.click(); break;
+      case 'KeyP': Phone.open('home'); break;
       case 'KeyL': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
       case 'KeyC': Cam.quick = Cam.quick === 1 ? 0.72 : 1; break;
       case 'KeyR': if (player.speed < 120) resetVehicle(); break;
@@ -6260,6 +6593,9 @@ async function boot() {
   bindMenus();
   bindSettings();
   $('garage-main-btn').addEventListener('click', () => Garage.main());
+  $('phone-body').addEventListener('click', (e) => Phone.click(e));
+  $('phone-close').addEventListener('click', () => { AudioSys.back(); Screens.back(); });
+  $('hud-phone').addEventListener('click', () => { if (Game.state === 'playing') Phone.open('home'); });
   $('fps').classList.toggle('hidden', !Settings.showFps);
   prog(0.04, 'Preparando texturas…'); await tick();
   buildPatterns(); buildLightSprites();

@@ -36,6 +36,7 @@
     <canvas id="minimap" width="440" height="440"></canvas>
     <div class="minimap-hint">M · Mapa</div>
   </div>
+  <button id="hud-phone" class="glass" title="Celular (P)"><span class="hp-ico"></span>Celular <kbd>P</kbd><i id="hud-phone-badge" class="hidden"></i></button>
 
   <div id="hud-dash" class="glass">
     <canvas id="speedo" width="440" height="300"></canvas>
@@ -193,6 +194,15 @@
     <canvas id="bigmap"></canvas>
     <div id="map-dests" class="map-dests"></div>
     <div class="map-foot">Clique no mapa para marcar um destino no GPS · clique com o botão direito para remover · M ou ESC para fechar</div>
+  </div>
+</div>
+
+<!-- ===================== CELULAR ===================== -->
+<div id="screen-phone" class="screen hidden">
+  <div class="phone">
+    <div class="phone-status"><span id="phone-clock">20:30</span><span>4G ▮▮▮ 87%</span></div>
+    <div id="phone-body"></div>
+    <button id="phone-close" class="phone-home" title="Fechar (P ou ESC)"></button>
   </div>
 </div>
 
