@@ -4833,13 +4833,13 @@ function phoneTone(f, d, v, delay) { if (phoneCfg().sounds) AudioSys.tone(f, d, 
 const PERA_OS = '18.4';
 
 const Phone = {
-  app: 'home', fretes: [], fretesT: -1e9, msgOpen: -1,
+  app: 'home', fretes: [], fretesT: -1e9, chat: null,
   open(app) {
     ensurePhoneData(); const cfg = phoneCfg();
     if (cfg.wall === 'auto' || !WALLS.some((w) => w.id === cfg.wall)) { let w; do { w = pick(WALLS).id; } while (w === this.wall); this.wall = w; } else this.wall = cfg.wall;
     this.app = app || 'home'; if (Screens.current !== 'screen-phone') Screens.open('screen-phone'); this.render(); phoneTone(1200, 0.05, 0.05);
   },
-  go(app) { this.app = app; this.msgOpen = -1; if (app === 'aj-update') this.updT = performance.now(); this.render(); if (phoneCfg().sounds) AudioSys.click(); },
+  go(app) { this.app = app; this.chat = null; if (app === 'aj-update') this.updT = performance.now(); this.render(); if (phoneCfg().sounds) AudioSys.click(); },
   render() {
     const body = $('phone-body'); if (!body) return;
     $('phone-clock').textContent = clockStr();
@@ -4853,9 +4853,13 @@ const Phone = {
     const tog = (k, label) => `<button class="aj-row" data-tog="${k}"><span>${label}</span><i class="ios-tog${(k === 'autoWall' ? cfg.wall === 'auto' : cfg[k]) ? ' on' : ''}"></i></button>`;
     if (this.app === 'home') {
       const W = WALLS.find((w) => w.id === this.wall) || WALLS[0];
-      html = `<div class="ph-lock"><div class="ph-date">São Gambiarra · ES</div><div class="ph-time">${clockStr()}</div></div><div class="ph-grid">` +
-        ['fretes', 'racha', 'carteira'].map((id) => phIcon(id)).join('') + '</div>' +
-        `<div class="ph-wname">${H(W.name)} · ${H(W.place)}</div><div class="ph-dots"><i class="on"></i><i></i></div>` +
+      const hr = Math.floor(Profile.time / 60) % 24, temp = Math.round(27 - ((hr + 24 - 19) % 24) * 0.55);
+      const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
+      html = `<div class="ph-lock"><div class="ph-date">São Gambiarra · ES</div><div class="ph-time">${clockStr()}</div></div>` +
+        `<div class="ph-widgets"><div class="ph-wid wid-sky"><small>São Gambiarra</small><b>${temp}°</b><span>${hr >= 19 || hr < 5 ? 'Noite abafada' : 'Céu limpo'}</span><span class="wid-sub">Máx. 31° Mín. 21°</span></div>` +
+        `<button class="ph-wid wid-money" data-app="carteira"><small>Carteira</small><b>R$ ${fmtMoney(Profile.money)}</b><span>${Profile.deliveries || 0} entregas · ${Profile.rides || 0} corridas</span><span class="wid-sub">${job ? H(job) : dest ? 'Destino: ' + H(dest) : 'Nenhum serviço ativo'}</span></button></div>` +
+        '<div class="ph-grid">' + ['fretes', 'racha', 'carteira'].map((id) => phIcon(id)).join('') + '</div>' +
+        `<div class="ph-wname">${H(W.name)} · ${H(W.place)}</div>` +
         '<div class="ph-dock">' + ['mapa', 'msgs', 'pegaai', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
@@ -4878,12 +4882,25 @@ const Phone = {
         (chk ? '<div class="aj-spin"></div><p>Procurando atualização…</p>' : `<b>PeraOS ${PERA_OS}</b><p>Seu Pera está atualizado.</p><small>Instalada automaticamente. Inclui melhorias no app Mapa, no PegaAí e na bateria durante corridas noturnas.</small>`) + '</div>' +
         '<div class="aj-group">' + row(null, 'Atualizações automáticas', 'Ativadas') + '</div>';
       if (chk) setTimeout(() => { if (this.app === 'aj-update' && Screens.current === 'screen-phone') { this.render(); phoneTone(1320, 0.12, 0.05); } }, 1700);
+    } else if (this.app === 'mapa') {
+      html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Mapa<button class="ph-expand" data-act2="map-full" title="Expandir o mapa em tela cheia"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>` +
+        '<div class="ph-mapbox"><canvas id="phonemap"></canvas>' + MAP_CTRLS + '</div><div id="ph-map-dests" class="ph-dests"></div>';
     } else if (this.app === 'msgs') {
       const M = Profile.msgs || [];
-      if (this.msgOpen >= 0 && M[this.msgOpen]) {
-        const m = M[this.msgOpen]; m.read = true;
-        html = `<div class="ph-head"><button class="ph-back" data-go="msgs">‹</button>${H(m.from)}</div><div class="ph-chat"><div class="ph-bubble">${H(m.body).replace(/\n/g, '<br>')}</div></div>`;
-      } else html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Mensagens</div>' + (M.length ? M.map((m, i) => `<button class="ph-row${m.read ? '' : ' unread'}" data-msg="${i}"><b>${H(m.from)}</b><span>${H(m.title)}</span></button>`).join('') : '<p class="ph-empty">Nenhuma mensagem.</p>');
+      const fmtT = (t) => { const v = Math.floor(t || 0) % 1440; return String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0'); };
+      const ava = (n) => { const ini = n.replace(/\(.*\)/, '').trim().split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase(); const hue = Math.floor(hash2(n.length * 13, n.charCodeAt(0) + n.charCodeAt(n.length - 1)) * 360); return `<span class="wa-ava" style="background:hsl(${hue} 45% 42%)">${H(ini)}</span>`; };
+      if (this.chat) {
+        const conv = M.filter((m) => m.from === this.chat).slice().reverse();
+        conv.forEach((m) => { m.read = true; });
+        html = `<div class="wa-top"><button class="ph-back" data-go="msgs">‹</button>${ava(this.chat)}<div><b>${H(this.chat)}</b><small>online</small></div></div><div class="wa-chat"><div class="wa-day">HOJE</div>` +
+          conv.map((m) => `<div class="wa-msg ${m.me ? 'me' : ''}">${m.title && !m.me ? `<b>${H(m.title)}</b>` : ''}${H(m.body).replace(/\n/g, '<br>')}<i>${fmtT(m.t)}${m.me ? ' <span class="wa-ok">✓✓</span>' : ''}</i></div>`).join('') +
+          '</div><div class="wa-quick">' + ['Valeu!', 'Tô indo', 'Fechou', 'Depois eu vejo'].map((q) => `<button data-reply="${q}">${q}</button>`).join('') + '</div>';
+      } else {
+        const order = [], last = {}, unread = {};
+        for (const m of M) { if (!(m.from in last)) { last[m.from] = m; order.push(m.from); } if (!m.read && !m.me) unread[m.from] = (unread[m.from] || 0) + 1; }
+        html = '<div class="wa-head"><button class="ph-back" data-go="home">‹</button><b>Conversas</b></div>' +
+          (order.length ? order.map((n) => { const m = last[n], u = unread[n]; return `<button class="wa-row" data-chat="${H(n)}">${ava(n)}<div class="wa-mid"><b>${H(n)}</b><span>${m.me ? '<em>Você:</em> ' : ''}${H((m.me ? m.body : m.title || m.body).slice(0, 60))}</span></div><div class="wa-side"><small class="${u ? 'new' : ''}">${fmtT(m.t)}</small>${u ? `<i>${u}</i>` : ''}</div></button>`; }).join('') : '<p class="ph-empty">Nenhuma conversa.</p>');
+      }
     } else if (this.app === 'pegaai') {
       const ok = canDriveRides();
       const avg = Profile.rides ? (Profile.ratingSum / Profile.rides).toFixed(1).replace('.', ',') : '–';
@@ -4909,12 +4926,16 @@ const Phone = {
         `<div class="ph-row static"><b>Entregas e fretes</b><span>${Profile.deliveries} concluídos</span></div><div class="ph-row static"><b>Corridas no PegaAí</b><span>${Profile.rides || 0}</span></div><div class="ph-row static"><b>Veículo atual</b><span>${H(player.car.name)}</span></div>`;
     }
     body.innerHTML = html;
+    if (this.app === 'mapa') { phoneMap = new MapView($('phonemap'), MapState.phone); renderMapDests(); requestAnimationFrame(() => phoneMap && phoneMap.draw()); } else phoneMap = null;
+    if (this.chat) { const ch = body.querySelector('.wa-chat'); if (ch) body.scrollTop = body.scrollHeight; }
   },
   click(e) {
     const t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.app) { if (t.dataset.app === 'mapa') { Screens.open('screen-map'); AudioSys.click(); return; } this.go(t.dataset.app); return; }
+    if (t.dataset.app) { this.go(t.dataset.app); return; }
+    if (t.dataset.mz) { if (phoneMap) mapCtrl(phoneMap, t.dataset.mz); return; }
+    if (t.dataset.chat) { this.chat = t.dataset.chat; this.render(); if (phoneCfg().sounds) AudioSys.click(); return; }
+    if (t.dataset.reply && this.chat) { Profile.msgs.unshift({ from: this.chat, title: '', body: t.dataset.reply, read: true, me: true, t: Math.floor(Profile.time) }); phoneTone(1760, 0.05, 0.04); this.render(); return; }
     if (t.dataset.go) { this.go(t.dataset.go); return; }
-    if (t.dataset.msg) { this.msgOpen = +t.dataset.msg; this.render(); AudioSys.click(); return; }
     if (t.dataset.job) { const j = this.fretes[+t.dataset.job]; if (j && !Act.delivery && !Act.race) { startJob(j); this.fretes = []; Screens.closeAll(); } return; }
     if (t.dataset.racha) { const r = World.rachas[+t.dataset.racha]; Act.waypoint = { x: r.start[0], y: r.start[1], label: 'Racha: ' + r.name }; Act.gpsT = 0; AudioSys.click(); toast('Ponto do racha no GPS', r.name, 'info'); Screens.closeAll(); return; }
     if (t.dataset.tog) {
@@ -4924,6 +4945,7 @@ const Phone = {
     }
     if (t.dataset.wall) { phoneCfg().wall = this.wall = t.dataset.wall; phoneTone(1100, 0.05, 0.05); this.render(); return; }
     const a = t.dataset.act2;
+    if (a === 'map-full') { Object.assign(MapState.full, MapState.phone); Screens.open('screen-map'); AudioSys.click(); return; }
     if (a === 'save') { saveGame(); phoneCfg().lastSave = clockStr(); writeProfile(); AudioSys.chime(); toast('Jogo salvo', 'Progresso, dinheiro e carros guardados neste navegador.', 'good'); this.render(); return; }
     if (a === 'ride-toggle') { Act.rideOnline = !Act.rideOnline; Act.rideT = rnd(3, 6); if (!Act.rideOnline) Act.ride = null; AudioSys.click(); this.render(); }
     if (a === 'job-cancel') { Act.delivery = null; toast('Frete cancelado', '', 'bad'); AudioSys.back(); this.render(); }
@@ -6152,7 +6174,7 @@ function drawMinimap() {
   mm.imageSmoothingEnabled = true;
   mm.drawImage(MAPIMG, 0, 0, WORLD_W, WORLD_H);
   if (Act.gps) {
-    mm.strokeStyle = '#5be38f'; mm.lineWidth = 5 / scale * k * 0.5; mm.lineJoin = 'round';
+    mm.strokeStyle = '#2f8bff'; mm.lineWidth = 5 / scale * k * 0.5; mm.lineJoin = 'round';
     mm.beginPath(); Act.gps.pts.forEach((p, i) => (i ? mm.lineTo(p[0], p[1]) : mm.moveTo(p[0], p[1]))); mm.stroke();
   }
   const ic = (x, y, kind) => { mm.save(); mm.translate(x, y); mm.rotate(-rot); mm.scale(1 / scale * k * 1.05, 1 / scale * k * 1.05); mapIcon(mm, 0, 0, kind, 1.1); mm.restore(); };
@@ -6173,51 +6195,158 @@ function drawMinimap() {
     mm.fillStyle = 'rgba(255,255,255,0.8)'; mm.font = `700 ${11 * k}px Arial`; mm.textAlign = 'center'; mm.fillText('N', S / 2, 16 * k);
   }
 }
-const bigCanvas = document.getElementById('bigmap'), bg = bigCanvas.getContext('2d');
-let bigMapXf = { s: 1, ox: 0, oy: 0 };
+/* ---------- mapa estilo app de celular: arrastar, zoom e destinos ---------- */
+const MAP_LABELS = [['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JUCU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEU ROSA', 1150, 7350], ['JARDIM CARAPINA', 3300, 7350], ['NOVA ROSA DA PENHA', 1300, 8400], ['FLEXAL', 3600, 8400]];
+class MapView {
+  constructor(canvas, st) {
+    this.c = canvas; this.g = canvas.getContext('2d'); this.st = st; // st: {cx, cy, z} compartilhado
+    const P = new Map(); let down = null, moved = false, pinch0 = null;
+    canvas.addEventListener('pointerdown', (e) => {
+      canvas.setPointerCapture(e.pointerId); P.set(e.pointerId, [e.clientX, e.clientY]);
+      if (P.size === 1) { down = [e.clientX, e.clientY, this.st.cx, this.st.cy]; moved = false; }
+      if (P.size === 2) { const [a, b] = [...P.values()]; pinch0 = [Math.hypot(a[0] - b[0], a[1] - b[1]), this.st.z]; moved = true; }
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!P.has(e.pointerId)) return; P.set(e.pointerId, [e.clientX, e.clientY]);
+      if (P.size === 2 && pinch0) { const [a, b] = [...P.values()]; this.setZoom(pinch0[1] * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch0[0]); this.draw(); return; }
+      if (!down) return;
+      const dx = e.clientX - down[0], dy = e.clientY - down[1];
+      if (Math.abs(dx) + Math.abs(dy) > 5) moved = true;
+      if (moved) { this.st.cx = clamp(down[2] - dx / this.st.z, 0, WORLD_W); this.st.cy = clamp(down[3] - dy / this.st.z, 0, WORLD_H); this.st.follow = false; this.draw(); }
+    });
+    const up = (e) => {
+      P.delete(e.pointerId); if (P.size < 2) pinch0 = null;
+      if (down && !moved && P.size === 0 && e.type === 'pointerup' && e.button === 0) { const w = this.toWorld(e.clientX, e.clientY); mapSetWaypoint(w[0], w[1], 'ponto marcado no mapa'); }
+      if (P.size === 0) down = null;
+    };
+    canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const w0 = this.toWorld(e.clientX, e.clientY);
+      this.setZoom(this.st.z * Math.exp(-e.deltaY * 0.0015));
+      const w1 = this.toWorld(e.clientX, e.clientY);
+      this.st.cx = clamp(this.st.cx + w0[0] - w1[0], 0, WORLD_W); this.st.cy = clamp(this.st.cy + w0[1] - w1[1], 0, WORLD_H); this.st.follow = false;
+      this.draw();
+    }, { passive: false });
+    canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); if (Act.waypoint) { Act.waypoint = null; Act.gps = null; AudioSys.back(); renderMapDests(); drawBigMap(); } });
+  }
+  minZ() { const r = this.c.getBoundingClientRect(); return Math.min(r.width / WORLD_W, r.height / WORLD_H) * 0.9; }
+  setZoom(z) { this.st.z = clamp(z, this.minZ(), 0.24); }
+  toWorld(clx, cly) { const r = this.c.getBoundingClientRect(); return [this.st.cx + (clx - r.left - r.width / 2) / this.st.z, this.st.cy + (cly - r.top - r.height / 2) / this.st.z]; }
+  zoomBy(f) { this.setZoom(this.st.z * f); this.draw(); }
+  center() { if (player) { this.st.cx = player.x; this.st.cy = player.y; this.st.follow = true; } this.draw(); }
+  draw() {
+    if (!MAPIMG || !this.c.isConnected) return;
+    const c = this.c, g = this.g, r = c.getBoundingClientRect();
+    if (r.width < 4) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const Wp = Math.round(r.width * dpr), Hp = Math.round(r.height * dpr);
+    if (c.width !== Wp || c.height !== Hp) { c.width = Wp; c.height = Hp; }
+    if (!this.st.z) { this.st.z = this.minZ(); this.st.cx = WORLD_W / 2; this.st.cy = WORLD_H / 2; }
+    if (this.st.z < this.minZ()) this.st.z = this.minZ();
+    if (this.st.follow && player) { this.st.cx = player.x; this.st.cy = player.y; }
+    const z = this.st.z, s = z * dpr, k = 1 / z; // k: unidades do mundo por px de tela
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.fillStyle = '#16231a'; g.fillRect(0, 0, Wp, Hp);
+    g.setTransform(s, 0, 0, s, Wp / 2 - this.st.cx * s, Hp / 2 - this.st.cy * s);
+    g.imageSmoothingEnabled = true;
+    g.drawImage(MAPIMG, 0, 0, WORLD_W, WORLD_H);
+    // vista visível em coordenadas do mundo
+    const x0 = this.st.cx - r.width / 2 * k - 200, x1 = this.st.cx + r.width / 2 * k + 200, y0 = this.st.cy - r.height / 2 * k - 200, y1 = this.st.cy + r.height / 2 * k + 200;
+    const vis = (e) => Math.max(e.a.x, e.b.x) > x0 && Math.min(e.a.x, e.b.x) < x1 && Math.max(e.a.y, e.b.y) > y0 && Math.min(e.a.y, e.b.y) < y1;
+    const RW = { highway: 1, avenue: 0.9, street: 0.75, road: 0.75, dirt: 0.55 };
+    const RC = { highway: '#ffc65a', avenue: '#fff2b8', street: '#e9ecf2', road: '#e9ecf2', dirt: '#c9a46a' };
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (const pass of [0, 1]) for (const e of World.edges) {
+      if (!vis(e)) continue;
+      const id = e.T.id, w = Math.max((RW[id] || 0.7) * 3.2 * k, e.T.w * 0.62);
+      g.lineWidth = pass ? w : w + 2.4 * k;
+      g.strokeStyle = pass ? (RC[id] || '#e9ecf2') : 'rgba(10,14,20,0.75)';
+      g.beginPath(); g.moveTo(e.a.x, e.a.y); g.lineTo(e.b.x, e.b.y); g.stroke();
+    }
+    // nomes de rua de perto
+    if (z > 0.11) {
+      g.font = `600 ${10.5 * k}px -apple-system, "Segoe UI", Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      const seen = new Set();
+      for (const e of World.edges) {
+        if (!e.name || !vis(e) || e.len < 260 || seen.has(e.name + (e.h ? 'h' : 'v') + Math.round((e.h ? e.a.y : e.a.x) / 50))) continue;
+        const mx = (e.a.x + e.b.x) / 2, my = (e.a.y + e.b.y) / 2;
+        if (mx < x0 + 200 || mx > x1 - 200 || my < y0 + 200 || my > y1 - 200) continue;
+        seen.add(e.name + (e.h ? 'h' : 'v') + Math.round((e.h ? e.a.y : e.a.x) / 50));
+        g.save(); g.translate(mx, my); if (!e.h) g.rotate(Math.PI / 2);
+        g.lineWidth = 3 * k; g.strokeStyle = 'rgba(255,255,255,0.85)'; g.strokeText(e.name, 0, 0); g.fillStyle = '#3a4250'; g.fillText(e.name, 0, 0);
+        g.restore();
+      }
+    }
+    // bairros
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    const ls = clamp(14 * k, 60, 260);
+    g.font = `800 ${ls}px -apple-system, "Segoe UI", Arial`;
+    for (const [t, x, y] of MAP_LABELS) { g.lineWidth = ls * 0.22; g.strokeStyle = 'rgba(8,12,18,0.8)'; g.strokeText(t, x, y); g.fillStyle = 'rgba(255,255,255,0.88)'; g.fillText(t, x, y); }
+    // rota do GPS (azul, como app de mapa)
+    if (Act.gps) {
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      g.beginPath(); Act.gps.pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
+      g.strokeStyle = '#0b4fae'; g.lineWidth = 8 * k; g.stroke(); g.strokeStyle = '#2f8bff'; g.lineWidth = 5 * k; g.stroke();
+    }
+    const ic = (x, y, kind) => { if (x < x0 || x > x1 || y < y0 || y > y1) return; g.save(); g.translate(x, y); g.scale(k * 1.35, k * 1.35); mapIcon(g, 0, 0, kind, 1.2); g.restore(); };
+    for (const p of World.pois) ic(p.x, p.y, Profile.discovered.includes(p.id) ? 'poi' : 'unknown');
+    for (const sp of World.parkSpots) if (!Profile.parks[sp.id]) ic(sp.x, sp.y, 'park');
+    for (const r2 of World.races) ic(r2.start[0], r2.start[1], 'race');
+    for (const s2 of World.shops) ic(s2.x, s2.y, shopIconKind(s2));
+    if (z > 0.09) {
+      g.font = `600 ${10 * k}px -apple-system, "Segoe UI", Arial`; g.textBaseline = 'alphabetic';
+      for (const s2 of World.shops) if (s2.x > x0 && s2.x < x1 && s2.y > y0 && s2.y < y1) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(s2.name, s2.x, s2.y - 12 * k); g.fillStyle = '#ffe2c4'; g.fillText(s2.name, s2.x, s2.y - 12 * k); }
+      for (const p of World.pois) if (Profile.discovered.includes(p.id)) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(p.name, p.x, p.y - 12 * k); g.fillStyle = '#ecd6ff'; g.fillText(p.name, p.x, p.y - 12 * k); }
+    }
+    // destino: alfinete vermelho
+    if (Act.waypoint) {
+      const w = Act.waypoint;
+      g.save(); g.translate(w.x, w.y); g.scale(k, k);
+      g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(0, 1, 6, 2.5, 0, 0, TAU); g.fill();
+      g.fillStyle = '#ff3b30'; g.strokeStyle = '#fff'; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(0, 0); g.bezierCurveTo(-11, -13, -11, -28, 0, -28); g.bezierCurveTo(11, -28, 11, -13, 0, 0); g.fill(); g.stroke();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(0, -19, 4, 0, TAU); g.fill();
+      g.restore();
+    }
+    // você: ponto azul com cone de direção
+    if (player) {
+      const t = performance.now() / 1000;
+      g.save(); g.translate(player.x, player.y); g.scale(k, k);
+      g.fillStyle = 'rgba(47,139,255,0.18)'; g.beginPath(); g.arc(0, 0, 16 + Math.sin(t * 3) * 3, 0, TAU); g.fill();
+      g.rotate(player.a);
+      const cg = g.createRadialGradient(0, 0, 4, 0, 0, 34); cg.addColorStop(0, 'rgba(47,139,255,0.55)'); cg.addColorStop(1, 'rgba(47,139,255,0)');
+      g.fillStyle = cg; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 34, -0.55, 0.55); g.closePath(); g.fill();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(0, 0, 8.5, 0, TAU); g.fill();
+      g.fillStyle = '#2f8bff'; g.beginPath(); g.arc(0, 0, 6, 0, TAU); g.fill();
+      g.restore();
+    }
+    // escala
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const m = 100 * k * 0.09; // metros em 100 px
+    const nice = [10, 20, 50, 100, 200, 500, 1000, 2000].find((v) => v >= m * 0.6) || 2000, px = nice / (k * 0.09);
+    g.fillStyle = 'rgba(0,0,0,0.5)'; g.fillRect(10, r.height - 24, px + 12, 16);
+    g.fillStyle = '#fff'; g.fillRect(16, r.height - 13, px, 2);
+    g.font = '600 10px -apple-system, "Segoe UI", Arial'; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillText(nice >= 1000 ? nice / 1000 + ' km' : nice + ' m', 16, r.height - 15);
+  }
+}
+function mapSetWaypoint(x, y, label) {
+  if (Game.mode !== 'play') return;
+  x = clamp(x, 0, WORLD_W); y = clamp(y, 0, WORLD_H);
+  const ne = nearestEdge(x, y);
+  const px = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x, py = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s;
+  Act.waypoint = { x: px, y: py, label }; Act.gpsT = 0; Act.gps = player ? gpsRoute(player.x, player.y, px, py) : null;
+  AudioSys.click(); renderMapDests(); drawBigMap();
+}
+const MAP_CTRLS = '<div class="map-ctrls"><button data-mz="in" title="Aproximar">+</button><button data-mz="out" title="Afastar">−</button><button data-mz="me" title="Centralizar em você"><svg viewBox="0 0 24 24"><path d="M20 4L4 11l7 2 2 7z" fill="currentColor"/></svg></button></div>';
+function mapCtrl(v, k) { if (k === 'in') v.zoomBy(1.5); else if (k === 'out') v.zoomBy(1 / 1.5); else v.center(); AudioSys.tone(1100, 0.03, 'sine', 0.04, 'ui'); }
+const MapState = { full: { cx: 0, cy: 0, z: 0, follow: true }, phone: { cx: 0, cy: 0, z: 0.055, follow: true } };
+const bigCanvas = document.getElementById('bigmap');
+let bigMap = null, phoneMap = null;
 function drawBigMap() {
-  if (!MAPIMG) return;
-  const r = bigCanvas.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  if (bigCanvas.width !== Math.round(r.width * dpr) || bigCanvas.height !== Math.round(r.height * dpr)) { bigCanvas.width = Math.round(r.width * dpr); bigCanvas.height = Math.round(r.height * dpr); }
-  const W = bigCanvas.width, H = bigCanvas.height;
-  const s = Math.min(W / WORLD_W, H / WORLD_H) * 0.98;
-  const ox = (W - WORLD_W * s) / 2, oy = (H - WORLD_H * s) / 2;
-  bigMapXf = { s: s / dpr, ox: ox / dpr, oy: oy / dpr };
-  bg.setTransform(1, 0, 0, 1, 0, 0);
-  bg.fillStyle = '#05080a'; bg.fillRect(0, 0, W, H);
-  bg.setTransform(s, 0, 0, s, ox, oy);
-  bg.drawImage(MAPIMG, 0, 0, WORLD_W, WORLD_H);
-  const k = dpr / s;
-  bg.font = `600 ${13 * k}px "Segoe UI", Arial`; bg.textAlign = 'center'; bg.fillStyle = 'rgba(255,255,255,0.5)';
-  const labels = [['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JUCU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEU ROSA', 1150, 7350], ['JARDIM CARAPINA', 3300, 7350], ['NOVA ROSA DA PENHA', 1300, 8400], ['FLEXAL', 3600, 8400]];
-  for (const [t, x, y] of labels) bg.fillText(t, x, y);
-  if (Act.gps) { bg.strokeStyle = '#5be38f'; bg.lineWidth = 4 * k; bg.beginPath(); Act.gps.pts.forEach((p, i) => (i ? bg.lineTo(p[0], p[1]) : bg.moveTo(p[0], p[1]))); bg.stroke(); }
-  const ic = (x, y, kind) => { bg.save(); bg.translate(x, y); bg.scale(k * 1.3, k * 1.3); mapIcon(bg, 0, 0, kind, 1.25); bg.restore(); };
-  for (const p of World.pois) ic(p.x, p.y, Profile.discovered.includes(p.id) ? 'poi' : 'unknown');
-  for (const s2 of World.shops) ic(s2.x, s2.y, shopIconKind(s2));
-  for (const r2 of World.races) ic(r2.start[0], r2.start[1], 'race');
-  for (const sp of World.parkSpots) ic(sp.x, sp.y, 'park');
-  const t = currentTarget();
-  if (t) { ic(t.x, t.y, 'gps'); }
-  if (player) {
-    bg.save(); bg.translate(player.x, player.y); bg.rotate(player.a); bg.scale(k * 1.6, k * 1.6);
-    bg.fillStyle = '#fff'; bg.strokeStyle = '#000'; bg.lineWidth = 2;
-    bg.beginPath(); bg.moveTo(10, 0); bg.lineTo(-7, -7); bg.lineTo(-3, 0); bg.lineTo(-7, 7); bg.closePath(); bg.stroke(); bg.fill();
-    bg.restore();
-  }
-  if (Act.waypoint) {
-    const w = Act.waypoint;
-    bg.save(); bg.translate(w.x, w.y); bg.scale(k, k);
-    bg.fillStyle = '#5be38f'; bg.strokeStyle = '#0b0d12'; bg.lineWidth = 2;
-    bg.beginPath(); bg.moveTo(0, 0); bg.bezierCurveTo(-10, -12, -10, -26, 0, -26); bg.bezierCurveTo(10, -26, 10, -12, 0, 0); bg.fill(); bg.stroke();
-    bg.fillStyle = '#0b0d12'; bg.beginPath(); bg.arc(0, -18, 3.5, 0, TAU); bg.fill();
-    bg.font = 'italic 800 12px "Segoe UI", Arial'; bg.textAlign = 'center'; bg.lineWidth = 3; bg.strokeStyle = '#0b0d12';
-    const t = (w.label || 'Destino') + (Act.gps ? ' · ' + (Act.gps.len * 0.09 / 1000).toFixed(2).replace('.', ',') + ' km' : '');
-    bg.strokeText(t, 0, -32); bg.fillStyle = '#dfffe9'; bg.fillText(t, 0, -32);
-    bg.restore();
-  }
-  for (const p of World.pois) if (Profile.discovered.includes(p.id)) { bg.fillStyle = 'rgba(230,200,255,0.85)'; bg.font = `600 ${10 * k}px "Segoe UI", Arial`; bg.fillText(p.name, p.x, p.y - 12 * k); }
+  if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full);
+  if (Screens.current === 'screen-map') bigMap.draw();
+  if (phoneMap && Screens.current === 'screen-phone') phoneMap.draw();
 }
 
 /* ---------- velocímetro ---------- */
@@ -6316,7 +6445,7 @@ const Screens = {
     if (id === 'screen-settings') syncSettingsUI();
     if (id === 'screen-garage') Garage.render();
     if (id === 'screen-phone' && typeof Phone !== 'undefined') Phone.render();
-    if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(drawBigMap); }
+    if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
     if (id === 'screen-pause') renderPauseStats();
     if (id === 'screen-main') $('btn-continue').disabled = !hasSave;
     if (id === 'screen-pause') $('btn-abandon').disabled = !(Act.race || Act.delivery || Act.waypoint);
@@ -6353,22 +6482,9 @@ function bindMenus() {
   });
   $('confirm-no').addEventListener('click', () => { AudioSys.back(); Screens.back(); });
   $('confirm-yes').addEventListener('click', () => { AudioSys.click(); const fn = confirmBox.fn; Screens.back(); if (fn) fn(); });
-  // mapa: clique para marcar destino
-  bigCanvas.addEventListener('click', (e) => {
-    if (Game.mode !== 'play') return;
-    const r = bigCanvas.getBoundingClientRect();
-    const x = (e.clientX - r.left - bigMapXf.ox) / bigMapXf.s, y = (e.clientY - r.top - bigMapXf.oy) / bigMapXf.s;
-    if (x < 0 || y < 0 || x > WORLD_W || y > WORLD_H) return;
-    const ne = nearestEdge(x, y);
-    const px = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x, py = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s;
-    Act.waypoint = { x: px, y: py, label: 'ponto marcado no mapa' };
-    Act.gpsT = 0; Act.gps = null;
-    if (player) { Act.gps = gpsRoute(player.x, player.y, px, py); }
-    AudioSys.click();
-    renderMapDests(); drawBigMap();
-  });
-  bigCanvas.addEventListener('contextmenu', (e) => { e.preventDefault(); Act.waypoint = null; Act.gps = null; AudioSys.back(); renderMapDests(); drawBigMap(); });
-  window.addEventListener('resize', () => { resize(); if (Screens.current === 'screen-map') drawBigMap(); });
+  $('map-back').addEventListener('click', () => Screens.back());
+  $('map-ctrls-full').addEventListener('click', (e) => { const b = e.target.closest('[data-mz]'); if (b && bigMap) mapCtrl(bigMap, b.dataset.mz); });
+  window.addEventListener('resize', () => { resize(); drawBigMap(); });
 }
 function confirmBox(title, text, fn) {
   $('confirm-title').textContent = title; $('confirm-text').textContent = text;
@@ -6658,14 +6774,8 @@ function drawSeuZe(cv) {
   g.fillStyle = '#1a1a1a'; g.globalAlpha = 0.35; g.beginPath(); g.ellipse(24, 30, 10, 4, 0.3, 0, TAU); g.fill(); g.globalAlpha = 1;
 }
 function renderMapDests() {
-  const box = $('map-dests'); box.innerHTML = '';
+  for (const id of ['map-dests', 'ph-map-dests']) { const box = $(id); if (box) box.innerHTML = ''; }
   if (Game.mode !== 'play' || !player) return;
-  const set = (x, y, label) => {
-    const ne = nearestEdge(x, y);
-    const px = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x, py = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s;
-    Act.waypoint = { x: px, y: py, label }; Act.gpsT = 0; Act.gps = gpsRoute(player.x, player.y, px, py);
-    AudioSys.click(); renderMapDests(); drawBigMap();
-  };
   const near = (kind) => { let b = null, bd = Infinity; for (const s of World.shops) if (s.kind === kind) { const d = Math.hypot(s.x - player.x, s.y - player.y); if (d < bd) { bd = d; b = s; } } return b; };
   const opts = [];
   if (World.home) opts.push(['Minha garagem', World.home.x, World.home.y]);
@@ -6673,17 +6783,17 @@ function renderMapDests() {
   const of = near('oficina'); if (of) opts.push(['Oficina do Seu Zé', of.x, of.y]);
   const mq = near('moquecaria'); if (mq) opts.push(['Moquecaria', mq.x, mq.y]);
   let poi = null, pd = Infinity; for (const p of World.pois) if (!Profile.discovered.includes(p.id)) { const d = Math.hypot(p.x - player.x, p.y - player.y); if (d < pd) { pd = d; poi = p; } }
-  if (poi) opts.push(['Ponto de interesse "?" mais perto', poi.x, poi.y]);
+  if (poi) opts.push(['Ponto "?" mais perto', poi.x, poi.y]);
   let rc = null, rd = Infinity; for (const r of World.races) { const d = Math.hypot(r.start[0] - player.x, r.start[1] - player.y); if (d < rd) { rd = d; rc = r; } }
   if (rc) opts.push(['Percurso: ' + rc.name, rc.start[0], rc.start[1]]);
-  const now = document.createElement('div'); now.className = 'dest-now';
-  now.textContent = Act.waypoint ? 'Destino: ' + (Act.waypoint.label || 'ponto marcado no mapa') + (Act.gps ? ' · ' + (Act.gps.len * 0.09 / 1000).toFixed(2).replace('.', ',') + ' km' : '') : 'Clique no mapa ou escolha um destino rápido:';
-  box.appendChild(now);
-  for (const [label, x, y] of opts) {
-    const b = document.createElement('button'); b.textContent = label;
-    b.addEventListener('click', () => set(x, y, label)); box.appendChild(b);
+  for (const id of ['map-dests', 'ph-map-dests']) {
+    const box = $(id); if (!box) continue;
+    const now = document.createElement('div'); now.className = 'dest-now';
+    now.textContent = Act.waypoint ? 'Destino: ' + (Act.waypoint.label || 'ponto marcado no mapa') + (Act.gps ? ' · ' + (Act.gps.len * 0.09 / 1000).toFixed(2).replace('.', ',') + ' km' : '') : 'Toque no mapa ou escolha um destino:';
+    box.appendChild(now);
+    for (const [label, x, y] of opts) { const b = document.createElement('button'); b.textContent = label; b.addEventListener('click', () => mapSetWaypoint(x, y, label)); box.appendChild(b); }
+    if (Act.waypoint) { const b = document.createElement('button'); b.className = 'off'; b.textContent = 'Remover destino'; b.addEventListener('click', () => { Act.waypoint = null; Act.gps = null; AudioSys.back(); renderMapDests(); drawBigMap(); }); box.appendChild(b); }
   }
-  if (Act.waypoint) { const b = document.createElement('button'); b.className = 'off'; b.textContent = 'Remover destino'; b.addEventListener('click', () => { Act.waypoint = null; Act.gps = null; AudioSys.back(); renderMapDests(); drawBigMap(); }); box.appendChild(b); }
 }
 function closeDialog() { if (Screens.current === 'screen-dialog') Screens.closeAll(); }
 
@@ -6890,6 +7000,8 @@ function frame(now) {
   render();
   updateHUD(dt);
   if (Screens.current === 'screen-garage') drawGaragePreview(dt);
+  if (Screens.current === 'screen-map' && bigMap) bigMap.draw();
+  else if (Screens.current === 'screen-phone' && phoneMap && Phone.app === 'mapa') phoneMap.draw();
   if (AudioSys.ok) {
     const R = REGIONS[regionKeyAt(Cam.x, Cam.y)];
     const river = clamp(1 - (Math.abs(Cam.x - riverCX(Cam.y)) - 160) / 650, 0, 1);

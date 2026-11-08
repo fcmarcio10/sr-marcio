@@ -402,8 +402,18 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 .lg-race { background: #59e0ff; }
 .lg-park { background: #5b8cff; }
 .lg-poi { background: #c56bff; }
-.lg-gps { background: #5be38f; }
-#bigmap { flex: 1; width: 100%; min-height: 0; border-radius: 14px; border: 1px solid var(--line); cursor: crosshair; pointer-events: auto; }
+.lg-gps { background: #2f8bff; }
+.lg-dest { background: #ff3b30; }
+.map-stage { position: relative; flex: 1; min-height: 0; }
+#bigmap { width: 100%; height: 100%; display: block; border-radius: 18px; border: 1px solid var(--line); cursor: grab; pointer-events: auto; touch-action: none; }
+#bigmap:active { cursor: grabbing; }
+.map-back { pointer-events: auto; cursor: pointer; border: 0; border-radius: 12px; padding: 8px 16px 8px 12px; background: rgba(255, 255, 255, 0.1); color: #4da3ff; font: 700 15px -apple-system, "Segoe UI", sans-serif; }
+.map-back:hover { background: rgba(255, 255, 255, 0.18); }
+.map-ctrls { position: absolute; right: 12px; top: 12px; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; background: rgba(28, 28, 30, 0.88); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); }
+.map-ctrls button { pointer-events: auto; cursor: pointer; width: 40px; height: 40px; border: 0; background: none; color: #fff; font: 500 22px -apple-system, "Segoe UI", sans-serif; display: grid; place-items: center; }
+.map-ctrls button + button { box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.18); }
+.map-ctrls button:hover { background: rgba(255, 255, 255, 0.1); }
+.map-ctrls svg { width: 18px; height: 18px; color: #2f8bff; }
 .map-foot { text-align: center; font-size: 12px; color: var(--dim); margin-top: 8px; }
 
 /* ================= LOADING ================= */
@@ -548,10 +558,7 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 .ph-app:hover .ph-ico { transform: scale(1.07); }
 .ph-app:active .ph-ico { transform: scale(0.92); filter: brightness(0.8); }
 .ph-badge { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; border-radius: 10px; background: #ff3b30; font: 600 12px -apple-system, "Segoe UI", sans-serif; font-style: normal; display: grid; place-items: center; padding: 0 5px; box-sizing: border-box; }
-.ph-wname { margin-top: auto; text-align: center; font: 500 10px -apple-system, "Segoe UI", sans-serif; color: rgba(255, 255, 255, 0.75); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); padding-top: 14px; }
-.ph-dots { display: flex; justify-content: center; gap: 7px; margin: 8px 0 10px; }
-.ph-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.4); }
-.ph-dots i.on { background: #fff; }
+.ph-wname { margin-top: auto; text-align: center; font: 500 10px -apple-system, "Segoe UI", sans-serif; color: rgba(255, 255, 255, 0.75); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); padding: 14px 0 10px; }
 .ph-dock { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 12px 10px; border-radius: 30px; background: rgba(255, 255, 255, 0.22); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); }
 .ph-dock .ph-lbl { display: none; }
 /* telas dos apps */
@@ -614,3 +621,59 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 .hud-dummy { display: none; }
 @media (max-height: 640px) { #hud-phone { bottom: 200px; } }
 
+
+/* mapa no celular */
+.ph-expand { pointer-events: auto; cursor: pointer; position: absolute; right: -2px; top: 50%; transform: translateY(-50%); border: 0; background: rgba(255, 255, 255, 0.12); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; }
+.ph-expand svg { width: 17px; height: 17px; }
+.ph-expand:hover { background: #0a84ff; }
+.ph-mapbox { position: relative; height: 300px; border-radius: 16px; overflow: hidden; margin-bottom: 10px; }
+.ph-mapbox canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+.ph-mapbox .map-ctrls { right: 8px; top: 8px; border-radius: 10px; }
+.ph-mapbox .map-ctrls button { width: 34px; height: 34px; font-size: 19px; }
+.ph-dests { display: flex; flex-wrap: wrap; gap: 6px; }
+.ph-dests .dest-now { width: 100%; font-size: 12px; color: #98989f; margin-bottom: 2px; }
+.ph-dests button { pointer-events: auto; cursor: pointer; border: 0; border-radius: 16px; padding: 7px 11px; background: #2c2c2e; color: #fff; font: 600 12px -apple-system, "Segoe UI", sans-serif; }
+.ph-dests button:hover { background: #0a84ff; }
+.ph-dests button.off { background: #3a1a1a; color: #ff8a80; }
+/* widgets da tela inicial */
+.ph-widgets { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+.ph-wid { pointer-events: auto; cursor: pointer; border: 0; border-radius: 20px; padding: 12px; min-height: 118px; display: flex; flex-direction: column; align-items: flex-start; text-align: left; color: #fff; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); font-family: -apple-system, "Segoe UI", sans-serif; transition: transform 0.12s; }
+button.ph-wid:hover { transform: scale(1.03); }
+div.ph-wid { cursor: default; }
+.ph-wid small { font-size: 11px; font-weight: 600; opacity: 0.9; }
+.ph-wid b { font-size: 34px; font-weight: 300; line-height: 1.1; margin: 2px 0; }
+.ph-wid span { font-size: 11px; font-weight: 600; }
+.ph-wid .wid-sub { margin-top: auto; font-weight: 500; opacity: 0.85; font-size: 10.5px; line-height: 1.25; }
+.wid-sky { background: linear-gradient(170deg, #1a2a6c, #2d4a9a 60%, #4a6fc4); }
+.wid-money { background: rgba(28, 28, 30, 0.82); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.wid-money b { font-size: 21px; font-weight: 700; color: #30d158; margin: 6px 0 4px; }
+/* conversas estilo app de mensagens */
+.wa-head { position: relative; display: flex; align-items: center; justify-content: center; min-height: 34px; margin-bottom: 8px; font: 700 17px -apple-system, "Segoe UI", sans-serif; }
+.wa-row { pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: 11px; width: 100%; border: 0; background: none; color: #fff; padding: 9px 2px; text-align: left; font-family: -apple-system, "Segoe UI", sans-serif; }
+.wa-row + .wa-row { box-shadow: inset 0 0.5px 0 rgba(84, 84, 88, 0.55); }
+.wa-row:hover { background: rgba(255, 255, 255, 0.05); }
+.wa-ava { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font: 700 16px -apple-system, "Segoe UI", sans-serif; color: #fff; flex-shrink: 0; }
+.wa-mid { flex: 1; min-width: 0; }
+.wa-mid b { display: block; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wa-mid span { display: block; font-size: 13px; color: #8696a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wa-mid em { font-style: normal; color: #aebac1; }
+.wa-side { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.wa-side small { font-size: 11px; color: #8696a0; }
+.wa-side small.new { color: #25d366; }
+.wa-side i { font-style: normal; min-width: 20px; height: 20px; border-radius: 10px; background: #25d366; color: #0b141a; font: 700 11px -apple-system, "Segoe UI", sans-serif; display: grid; place-items: center; padding: 0 5px; box-sizing: border-box; }
+.wa-top { position: sticky; top: -4px; z-index: 2; display: flex; align-items: center; gap: 9px; padding: 6px 4px 8px 26px; margin: -4px -14px 0; padding-left: 40px; background: #1f2c34; }
+.wa-top .ph-back { left: 2px; }
+.wa-top .wa-ava { width: 36px; height: 36px; font-size: 13px; }
+.wa-top b { display: block; font: 600 15px -apple-system, "Segoe UI", sans-serif; }
+.wa-top small { font-size: 11px; color: #8696a0; }
+.wa-chat { display: flex; flex-direction: column; gap: 6px; padding: 10px 2px; margin: 0 -14px; padding-left: 12px; padding-right: 12px; flex: 1 0 auto;
+  background-color: #0b141a; background-image: radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1.2px); background-size: 14px 14px; min-height: 200px; }
+.wa-day { align-self: center; font: 600 10.5px -apple-system, "Segoe UI", sans-serif; color: #8696a0; background: #182229; padding: 4px 10px; border-radius: 8px; margin-bottom: 4px; }
+.wa-msg { align-self: flex-start; max-width: 86%; background: #202c33; border-radius: 0 10px 10px 10px; padding: 6px 9px 18px; font: 13.5px/1.4 -apple-system, "Segoe UI", sans-serif; position: relative; color: #e9edef; min-width: 70px; }
+.wa-msg b { display: block; font-size: 12.5px; color: #53bdeb; margin-bottom: 2px; }
+.wa-msg.me { align-self: flex-end; background: #005c4b; border-radius: 10px 0 10px 10px; }
+.wa-msg i { position: absolute; right: 8px; bottom: 3px; font-style: normal; font-size: 10px; color: rgba(233, 237, 239, 0.6); }
+.wa-ok { color: #53bdeb; letter-spacing: -2px; }
+.wa-quick { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 0 4px; }
+.wa-quick button { pointer-events: auto; cursor: pointer; border: 0; border-radius: 16px; padding: 7px 12px; background: #1f2c34; color: #e9edef; font: 600 12px -apple-system, "Segoe UI", sans-serif; }
+.wa-quick button:hover { background: #005c4b; }
