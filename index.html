@@ -34,9 +34,9 @@
 
   <div id="hud-minimap" class="glass">
     <canvas id="minimap" width="440" height="440"></canvas>
-    <div class="minimap-hint">M · Mapa</div>
+    <div class="minimap-hint">Q · Celular</div>
   </div>
-  <button id="hud-phone" class="glass" title="Celular (P)"><span class="hp-ico"></span>Celular <kbd>P</kbd><i id="hud-phone-badge" class="hidden"></i></button>
+  <button id="hud-phone" class="glass" title="Celular (Q)"><span class="hp-ico"></span>Celular <kbd>Q</kbd><i id="hud-phone-badge" class="hidden"></i></button>
 
   <div id="hud-dash" class="glass">
     <canvas id="speedo" width="440" height="300"></canvas>
@@ -66,7 +66,7 @@
       <button class="mbtn" data-act="settings">CONFIGURAÇÕES</button>
       <button class="mbtn" data-act="credits">CRÉDITOS</button>
     </nav>
-    <div class="main-foot">W A S D / Setas · Espaço freio de mão · E interagir · M mapa · ESC pausa</div>
+    <div class="main-foot">W A S D / Setas · Espaço freio de mão · E interagir · Q celular · ESC pausa</div>
   </div>
 </div>
 
@@ -76,7 +76,6 @@
     <h2>PAUSADO</h2>
     <nav class="menu-list">
       <button class="mbtn" data-act="resume">CONTINUAR</button>
-      <button class="mbtn" data-act="map">MAPA</button>
       <button class="mbtn" data-act="abandon" id="btn-abandon">ABANDONAR ATIVIDADE</button>
       <button class="mbtn" data-act="reset">REPOSICIONAR VEÍCULO</button>
       <button class="mbtn" data-act="settings">CONFIGURAÇÕES</button>
@@ -119,7 +118,8 @@
         <div><kbd>E</kbd> Interagir</div>
         <div><kbd>H</kbd> Buzina</div>
         <div><kbd>L</kbd> Farol alto</div>
-        <div><kbd>M</kbd> Mapa</div>
+        <div><kbd>N</kbd> Trocar rádio</div>
+        <div><kbd>Q</kbd> Celular e mapa</div>
         <div><kbd>C</kbd> Zoom rápido</div>
         <div><kbd>R</kbd> Reposicionar</div>
         <div><kbd>ESC</kbd> Pausar</div>
@@ -193,7 +193,7 @@
     </div>
     <canvas id="bigmap"></canvas>
     <div id="map-dests" class="map-dests"></div>
-    <div class="map-foot">Clique no mapa para marcar um destino no GPS · clique com o botão direito para remover · M ou ESC para fechar</div>
+    <div class="map-foot">Clique no mapa para marcar um destino no GPS · clique com o botão direito para remover · Q fecha tudo · ESC volta</div>
   </div>
 </div>
 
@@ -202,7 +202,7 @@
   <div class="phone">
     <div class="phone-status"><span id="phone-clock">20:30</span><span>4G ▮▮▮ 87%</span></div>
     <div id="phone-body"></div>
-    <button id="phone-close" class="phone-home" title="Fechar (P ou ESC)"></button>
+    <button id="phone-close" class="phone-home" title="Guardar celular (Q)"></button>
   </div>
 </div>
 
