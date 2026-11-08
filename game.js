@@ -491,7 +491,7 @@ function defineRoads() {
   H(5300, 300, 4600, 'street', 'Rua da Esperança Equilibrista');
   H(880, 7500, 8700, 'dirt', 'Estrada da Vaca Atolada');
   H(5300, 6300, 7500, 'dirt', 'Ramal do Fim do Mundo');
-  H(HWY_Y, 300, 8700, 'highway', 'Rodovia BR-171');
+  H(HWY_Y, 300, 8700, 'highway', 'Rodovia BR-101 e Pouco');
   V(300, 300, 6200, 'street', 'Rua Santos Dumontanha');
   V(850, 300, 5300, 'street', 'Rua da Matriz Perdoa');
   V(1450, 300, 6200, 'street', 'Rua do Cafezinho');
@@ -567,10 +567,10 @@ const REGIONS = {
   industrial: { name: 'Distrito da Gambiarra', dark: 0.76, city: 0.6, rural: 0.1 },
   vila: { name: 'Vila Sem Pressa', dark: 0.75, city: 0.55, rural: 0.25 },
   jardim: { name: 'Alfavila', dark: 0.75, city: 0.45, rural: 0.3 },
-  rio: { name: 'Rio Tietinho', dark: 0.76, city: 0.15, rural: 0.8 },
+  rio: { name: 'Rio Jucu', dark: 0.76, city: 0.15, rural: 0.8 },
   sitio: { name: 'Sítio Bota Fé', dark: 0.76, city: 0, rural: 1 },
   fazenda: { name: 'Fazenda Muuuito Longe', dark: 0.76, city: 0, rural: 1 },
-  rodovia: { name: 'Rodovia BR-171', dark: 0.76, city: 0.2, rural: 0.7 },
+  rodovia: { name: 'Rodovia BR-101 e Pouco', dark: 0.76, city: 0.2, rural: 0.7 },
   mata: { name: 'Mata do Saci', dark: 0.80, city: 0, rural: 1 },
 };
 function regionKeyAt(x, y) {
@@ -1054,13 +1054,14 @@ function gasStation(R, o) {
 function oficinaBlock(R) {
   decal(R.x0, R.y0, R.x1, R.y1, 'gravel');
   decal(R.x0, R.y0, R.x0 + 260, R.y0 + 60, 'concrete');
-  const b = addBuilding(R.x0 + 20, R.y0 + 60, R.x0 + 240, R.y0 + 200, 38, { style: 'workshop', front: 'N', roofType: 'corrugated', roofColor: '#4d6b86', wall: '#d9d2c0', lit: 0.8, sign: 'DOIS IRMÃOS E MEIO', signColor: '#ffb547' });
+  const b = addBuilding(R.x0 + 20, R.y0 + 60, R.x0 + 240, R.y0 + 200, 38, { style: 'workshop', front: 'N', roofType: 'corrugated', roofColor: '#4d6b86', wall: '#d9d2c0', lit: 0.8, sign: 'OFICINA DO SEU ZÉ', signColor: '#ffb547' });
   addLight(R.x0 + 130, R.y0 + 40, 140, 1, 'white', { shop: true });
   for (let i = 0; i < 4; i++) addProp('tires', R.x0 + 262 + i * 18, R.y0 + 90 + (i % 2) * 22, { col: 'circ', cr: 8 });
   addParkedCar(R.x0 + 60, R.y0 + 30, 0, 'sedan', '#5a5a5a');
   addParkedCar(R.x0 + 190, R.y0 + 28, Math.PI, 'hatch', '#8a3b2a');
   industrialBlock({ x0: R.x0 + 280, y0: R.y0, x1: R.x1, y1: R.y1 }, { noTrucks: true });
-  return addShop({ kind: 'oficina', name: 'Oficina Dois Irmãos e Meio', x: R.x0 + 130, y: YS[1] + RT.street.lanes[0], bld: b, color: '#ffb547', region: 'industrial', pickup: true, items: ['Peças de motor', 'Bateria nova', 'Jogo de pneus'] });
+  World.animalsDef.push({ type: 'person', n: 1, rect: [R.x0 + 100, R.y0 + 30, R.x0 + 170, R.y0 + 48], look: { col: '#2a4a8a', pants: '#2a4a8a', hair: '#e8e8e2', skin: '#e0ac69', seuze: true } });
+  return addShop({ kind: 'oficina', name: 'Oficina do Seu Zé', x: R.x0 + 130, y: YS[1] + RT.street.lanes[0], bld: b, color: '#ffb547', region: 'industrial', pickup: true, items: ['Peças de motor', 'Bateria nova', 'Jogo de pneus'] });
 }
 function waterTowerBlock(R) {
   industrialBlock({ x0: R.x0, y0: R.y0, x1: R.x1, y1: R.y0 + 250 }, {});
@@ -1153,7 +1154,7 @@ function buildCity() {
     '2,1': 'plaza', '3,1': 'parking', '4,2': 'posto', '5,1': 'oficina', '5,3': 'tower', '0,5': 'soccer', '3,7': 'school',
   };
   const shopsDowntown = {
-    '1,2': { 0: { kind: 'pizzaria', name: 'Pizzaria Mamma Mia, Sô', sign: 'PIZZARIA', color: '#ff5f3d', h: 32, pickup: true, items: ['Pizza grande', 'Pizza de calabresa', 'Esfihas'], tables: true }, 3: { kind: 'farmacia', name: 'Farmácia Dorme Bem', sign: 'FARMÁCIA', color: '#3dff8a', h: 34, pickup: true, items: ['Remédios', 'Encomenda da farmácia'] } },
+    '1,2': { 0: { kind: 'moquecaria', name: 'Moquecaria Panela de Barro', sign: 'MOQUECA', color: '#ff5f3d', h: 32, pickup: true, items: ['Moqueca capixaba', 'Torta capixaba', 'Panela de moqueca'], tables: true }, 3: { kind: 'farmacia', name: 'Farmácia Dorme Bem', sign: 'FARMÁCIA', color: '#3dff8a', h: 34, pickup: true, items: ['Remédios', 'Encomenda da farmácia'] } },
     '0,0': { 1: { kind: 'hotel', name: 'Hotel Dorme e Acorda', sign: 'HOTEL', color: '#c56bff', h: 70, wall: '#c9c2b4' } },
   };
   const resSpecial = {
@@ -1569,7 +1570,7 @@ function buildHighwayStrip() {
   addShop({ kind: 'borracharia', name: 'Borracharia Furou, Chamou', x: 4240, y: 6200 - 21, bld: bb, color: '#ffd24a', region: 'rodovia' });
   scatterTrees(4035, 5400, 4515, 5900, 8, ['round', 'mango', 'palm']);
   // outdoors
-  const ads = [['PASTEL DE VENTO', 'SÓ AR, SÓ R$ 2'], ['DIRIJA DE BOA, MANO', 'A NOITE É LONGA'], ['RÁDIO GAMBIARRA FM', '171,1'], ['BOI NA BRASA', 'RODÍZIO ATÉ CAIR'], ['ACADEMIA BOMBADÃO', 'O SHAPE VEM'], ['POSTO ESTRELA CADENTE', 'ABERTO 25H']];
+  const ads = [['MOQUECA É CAPIXABA', 'O RESTO É PEIXADA'], ['DIRIJA DE BOA, MANO', 'A NOITE É LONGA'], ['RÁDIO GAMBIARRA FM', '171,1'], ['BOI NA BRASA', 'RODÍZIO ATÉ CAIR'], ['CAFÉ CONILON DO ES', 'ACORDA ATÉ DEFUNTO'], ['POSTO ESTRELA CADENTE', 'ABERTO 25H']];
   let ai = 0;
   for (const x of [900, 3400, 5000, 6900, 8200]) {
     const bx = x, by = x > 4700 ? 6320 : 6080;
@@ -1620,7 +1621,7 @@ function buildFesta() {
   addGrill(1640, 5900);
   // bandeirinhas de festa junina e gambiarras de luz perto dos comércios do bairro
   for (const s of World.shops) {
-    if (!['bar', 'lanchonete', 'padaria', 'mercado', 'pizzaria', 'churrascaria'].includes(s.kind)) continue;
+    if (!['bar', 'lanchonete', 'padaria', 'mercado', 'moquecaria', 'churrascaria'].includes(s.kind)) continue;
     const ne = nearestEdge(s.x, s.y), e = ne.e;
     const span = e.hw + (e.T.sw || 8) + 2;
     for (const d of [-70, -35, 0, 35, 70]) {
@@ -1639,12 +1640,12 @@ function buildActivitiesData() {
   const P = (id, name, x, y, desc) => World.pois.push({ id, name, x, y, r: 170, desc });
   P('praca', 'Praça da Matriz', 1756, 1260, 'O coração do Centrão, com a fonte, a igreja e o pipoqueiro.');
   P('campo', 'Campo do Várzea F.C.', 575, 3570, 'Onde o futebol de domingo vira lenda.');
-  P('ponte', 'Ponte Que Balança', riverCX(3880), 3880, 'Ponte de madeira centenária sobre o Rio Tietinho.');
-  P('mirante', 'Mirante do Tietinho', World.mirante.x, World.mirante.y, 'A melhor vista do rio à noite.');
+  P('ponte', 'Ponte Que Balança', riverCX(3880), 3880, 'Ponte de madeira centenária sobre o Rio Jucu.');
+  P('mirante', 'Mirante do Jucu', World.mirante.x, World.mirante.y, 'A melhor vista do rio à noite.');
   P('fazenda', 'Fazenda Muuuito Longe', 8075, 4380, 'Casarão antigo cercado de palmeiras.');
   P('sitio', 'Sítio Bota Fé', 7970, 1050, 'Galinhas, horta e café passado na hora.');
   P('estrela', 'Posto Estrela Cadente', 1730, 5990, 'Parada obrigatória de caminhoneiros.');
-  P('cafezal', 'Cafezal Cafeína Pura', 8100, 2420, 'Fileiras de café até onde a vista alcança.');
+  P('cafezal', 'Cafezal do Conilon', 8100, 2420, 'Fileiras de café até onde a vista alcança.');
   P('acude', 'Açude dos Sapos', 6900, 4590, 'Água parada, sapos e capivaras.');
   P('caixa', "Caixa d'Água", 3650, 2520, 'O ponto mais alto da cidade.');
   P('orla', 'Orla do Rio', 4720, 4300, 'Calçadão de pedras portuguesas à beira-rio.');
@@ -1658,7 +1659,7 @@ function buildActivitiesData() {
   };
   R('centro', 'Volta no Centrão', 'Ruas apertadas, semáforos e esquinas do Centro.', [[1720, 2080 + 19], [2700, 2099], [2719, 880], [850, 861], [831, 2080], [1450, 2099], [2081, 2099]]);
   R('fazenda', 'Rali da Vaca Atolada', 'Terra, poeira e curvas entre o cafezal e a fazenda.', [[6319, 2300], [6319, 3880], [7500, 3895], [7515, 1500], [8700, 1519], [8719, 3880], [8719, 4900]]);
-  R('rodovia', 'Corujão na BR-171', 'Reta longa, caminhões e a ponte sobre o Rio Tietinho.', [[700, 6200 + 21], [2100, 6221], [4600, 6221], [6300, 6221], [8681, 6221], [8681, 4600]]);
+  R('rodovia', 'Corujão na BR-101', 'Reta longa, caminhões e a ponte sobre o Rio Jucu.', [[700, 6200 + 21], [2100, 6221], [4600, 6221], [6300, 6221], [8681, 6221], [8681, 4600]]);
 }
 
 /* ---------- superfícies de rua (raster físico + itens de bake) ---------- */
@@ -2440,8 +2441,10 @@ function drawCar(ctx, m, color, o) {
   if (m.spoiler) { ctx.fillStyle = '#151517'; ctx.fillRect(-hl + 1.2, -hw + 1, 3, W - 2); }
   if (m.chrome) { ctx.fillStyle = shade(color, -0.3); ctx.fillRect(ws + 3, -3.5, hl - ws - 7, 7); ctx.fillStyle = '#222'; ctx.fillRect(ws + 5, -2, 4, 4); }
   if (m.police) {
-    ctx.fillStyle = '#1d3a7a'; ctx.fillRect(rw, -hw + 0.4, ws - rw, 3.2); ctx.fillRect(rw, hw - 3.6, ws - rw, 3.2);
-    ctx.fillStyle = '#1d3a7a'; ctx.fillRect(hl - 9, -4, 5, 8);
+    ctx.fillStyle = '#1d4f9c'; ctx.fillRect(rw, -hw + 0.4, ws - rw, 1.4); ctx.fillRect(rw, hw - 1.8, ws - rw, 1.4);
+    ctx.fillStyle = '#f4f4f0'; ctx.fillRect(rw, -hw + 1.8, ws - rw, 1); ctx.fillRect(rw, hw - 2.8, ws - rw, 1);
+    ctx.fillStyle = '#e98bb0'; ctx.fillRect(rw, -hw + 2.8, ws - rw, 1.4); ctx.fillRect(rw, hw - 4.2, ws - rw, 1.4);
+    ctx.fillStyle = '#f4f4f0'; ctx.font = 'bold 4px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.save(); ctx.translate(hl - 8, 0); ctx.rotate(Math.PI / 2); ctx.fillStyle = '#1d4f9c'; ctx.fillText('POLÍCIA', 0, 0); ctx.restore();
     const mid = (rr + rf) / 2;
     ctx.fillStyle = '#222'; ctx.fillRect(mid - 2.5, -7 + lean, 5, 14);
     ctx.fillStyle = '#ff2a2a'; ctx.fillRect(mid - 2, -6.5 + lean, 4, 6); ctx.fillStyle = '#2a6aff'; ctx.fillRect(mid - 2, 0.5 + lean, 4, 6);
@@ -2454,6 +2457,7 @@ function drawCar(ctx, m, color, o) {
   ctx.fillStyle = shade(color, -0.3);
   ctx.fillRect(ws - 2, -hw - 1.8, 3, 2); ctx.fillRect(ws - 2, hw - 0.2, 3, 2);
   // sujeira e dano
+  if (o.zones) drawDents(ctx, m, color, o.zones, lean);
   if (o.dirt > 0.03 || o.damage > 30) {
     ctx.save(); ctx.clip(bp);
     if (o.dirt > 0.03) {
@@ -2469,6 +2473,53 @@ function drawCar(ctx, m, color, o) {
       for (let i = 0; i < n; i++) { const sx = (hash2(i, 41) - 0.5) * L, sy = (hash2(i, 42) - 0.5) * W; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + 5, sy + (hash2(i, 43) - 0.5) * 4); ctx.stroke(); }
     }
     ctx.restore();
+  }
+}
+function drawDents(ctx, m, color, Z, lean) {
+  const L = m.L, W = m.W, hl = L / 2, hw = W / 2, bp = bodyPath(m);
+  const R = mulberry32(((Z.seed || 1) * 7919) | 0);
+  ctx.save(); ctx.clip(bp);
+  const dent = (x, y, rx, ry, depth) => {
+    const g = ctx.createRadialGradient(x - rx * 0.3, y - ry * 0.3, 0.5, x, y, Math.max(rx, ry));
+    g.addColorStop(0, shade(color, -0.55 * depth)); g.addColorStop(0.7, shade(color, -0.3 * depth)); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); ctx.fill();
+  };
+  const scratches = (x0, x1, y, n) => {
+    ctx.strokeStyle = 'rgba(225,225,220,0.75)'; ctx.lineWidth = 0.5; ctx.beginPath();
+    for (let i = 0; i < n; i++) { const sx = lerp(x0, x1, R()), sy = y + (R() - 0.5) * 3; ctx.moveTo(sx, sy); ctx.lineTo(sx + 3 + R() * 6, sy + (R() - 0.5) * 1.5); }
+    ctx.stroke();
+  };
+  // frente: capô e para-choque amassados
+  if (Z.f > 0.05) {
+    const d = Z.f;
+    dent(hl - 3, (R() - 0.5) * hw, 4 + d * 7, 3 + d * 5, d);
+    if (d > 0.35) { ctx.fillStyle = shade(color, -0.6); ctx.beginPath(); ctx.moveTo(hl, -hw); for (let y = -hw; y <= hw; y += 2.5) ctx.lineTo(hl - 1 - R() * d * 5, y); ctx.lineTo(hl, hw); ctx.closePath(); ctx.fill(); }
+    if (d > 0.6) { ctx.fillStyle = '#18181a'; ctx.fillRect(hl - 3.2, -hw + 1.6, 2.8, 4.6); }
+    if (d > 0.85) { ctx.fillStyle = '#18181a'; ctx.fillRect(hl - 3.2, hw - 6.2, 2.8, 4.6); }
+    scratches(hl - 10, hl - 2, 0, Math.round(d * 6));
+  }
+  if (Z.r > 0.05) {
+    const d = Z.r;
+    dent(-hl + 3, (R() - 0.5) * hw, 4 + d * 7, 3 + d * 5, d);
+    if (d > 0.35) { ctx.fillStyle = shade(color, -0.6); ctx.beginPath(); ctx.moveTo(-hl, -hw); for (let y = -hw; y <= hw; y += 2.5) ctx.lineTo(-hl + 1 + R() * d * 5, y); ctx.lineTo(-hl, hw); ctx.closePath(); ctx.fill(); }
+    if (d > 0.6) { ctx.fillStyle = '#2a0c0c'; ctx.fillRect(-hl + 0.4, -hw + 1.4, 2.4, 5.2); }
+    if (d > 0.85) { ctx.fillStyle = '#2a0c0c'; ctx.fillRect(-hl + 0.4, hw - 6.6, 2.4, 5.2); }
+    scratches(-hl + 2, -hl + 10, 0, Math.round(d * 6));
+  }
+  for (const [k, sy] of [['l', -1], ['rt', 1]]) {
+    const d = Z[k]; if (!(d > 0.05)) continue;
+    const cx = (R() - 0.5) * L * 0.5;
+    dent(cx, sy * (hw - 1), 5 + d * 10, 2 + d * 3, d);
+    if (d > 0.5) dent(cx + (R() - 0.5) * 14, sy * (hw - 1), 3 + d * 5, 1.5 + d * 2, d * 0.8);
+    scratches(cx - 10 - d * 8, cx + 8 + d * 8, sy * (hw - 1.5), Math.round(3 + d * 9));
+  }
+  ctx.restore();
+  // para-brisa trincado
+  if (Z.f > 0.5 && m.ws !== undefined) {
+    const ws = L * m.ws, rf = L * m.rf, cx = (ws + rf) / 2, cy = (R() - 0.5) * hw * 0.8 + lean;
+    ctx.strokeStyle = 'rgba(230,240,255,0.7)'; ctx.lineWidth = 0.5; ctx.beginPath();
+    for (let i = 0; i < 7; i++) { const a = R() * TAU, l = 3 + R() * 5; ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * l * 0.5, cy + Math.sin(a) * l); }
+    ctx.stroke();
   }
 }
 function drawTruck(ctx, m, color, o) {
@@ -2732,7 +2783,7 @@ class Player {
     const sp = Math.abs(vf);
     const f0 = Profile.fuel;
     Profile.fuel = Math.max(0, Profile.fuel - (0.022 + this.thr * 0.16 * (0.4 + Math.min(1, sp / 400) * 0.6)) * this.car.fuel * dt);
-    if (f0 > 15 && Profile.fuel <= 15) toast('Combustível na reserva', 'Procure um posto: Posto Tanque Cheio, no Centrão, ou Posto Estrela Cadente, na BR-171.', 'bad');
+    if (f0 > 15 && Profile.fuel <= 15) toast('Combustível na reserva', 'Procure um posto: Posto Tanque Cheio, no Centrão, ou Posto Estrela Cadente, na BR-101.', 'bad');
     if (f0 > 0 && Profile.fuel <= 0) toast('Tanque vazio!', 'O motor engasga, mas ainda dá para chegar devagar a um posto.', 'bad');
     Profile.dirt = clamp(Profile.dirt + surf.dirt * dt * clamp(sp / 200, 0, 1.5), 0, 1);
     Profile.distance += sp * dt;
@@ -3033,6 +3084,7 @@ class AICar {
     this.chooseNext();
   }
   hit(imp, nx, ny) {
+    addZoneDamage(this.zones || (this.zones = { f: 0, r: 0, l: 0, rt: 0 }), this, this.x - nx * 20, this.y - ny * 20, clamp((imp - 40) / 300, 0, 1));
     this.hitT = Math.max(this.hitT, 0.8 + Math.min(2, imp / 250));
     const k = Math.min(10, imp * 0.03) / this.mass * 1.6;
     this.ox += nx * k; this.oy += ny * k;
@@ -3276,7 +3328,7 @@ class Animal {
 Animals.build = function () {
   RNG = mulberry32(777);
   this.list.length = 0;
-  for (const d of World.animalsDef) for (let i = 0; i < d.n; i++) this.list.push(new Animal(d.type, d.rect));
+  for (const d of World.animalsDef) for (let i = 0; i < d.n; i++) { const a = new Animal(d.type, d.rect); if (d.look) Object.assign(a, d.look); this.list.push(a); }
 };
 Animals.update = function (dt, cx, cy) {
   for (const a of this.list) if (Math.abs(a.x - cx) < 1700 && Math.abs(a.y - cy) < 1400) a.update(dt);
@@ -3306,6 +3358,7 @@ function drawAnimal(ctx, an) {
       if (an.col === '#f7d000') { ctx.fillStyle = '#1f9a48'; ctx.fillRect(-2.2, -0.6, 4.4, 1.2); }
       ctx.fillStyle = an.skin; ctx.beginPath(); ctx.arc(0.5, 0, 2.2, 0, TAU); ctx.fill();
       ctx.fillStyle = an.hair; ctx.beginPath(); ctx.arc(0, 0, 2.3, Math.PI * 0.5, Math.PI * 1.5); ctx.fill();
+      if (an.seuze) { ctx.fillStyle = '#c8302a'; ctx.beginPath(); ctx.arc(0.2, 0, 2.4, -Math.PI * 0.5, Math.PI * 0.5); ctx.fill(); ctx.fillStyle = '#f0f0ea'; ctx.fillRect(2.1, -1, 0.9, 2); }
       break;
     }
     case 'cow': case 'horse': {
@@ -3438,7 +3491,7 @@ const Skids = {
 };
 /* ============================ ATIVIDADES ============================ */
 const SHOP_TEXT = {
-  pizzaria: 'Cheiro de lenha e calabresa. O pizzaiolo grita da cozinha: "Tem entrega saindo!"',
+  moquecaria: 'Panelas de barro fumegando no fogão. Dona Penha grita da cozinha: "Moqueca é capixaba, o resto é peixada!"',
   farmacia: 'Aberta 24 horas. A balconista separa uma sacola com receita grampeada.',
   padaria: 'O último pão de queijo da noite ainda está quente no balcão.',
   mercado: 'Prateleiras cheias e um rádio tocando sertanejo baixinho.',
@@ -3453,8 +3506,8 @@ const SHOP_TEXT = {
   oficina: 'Macacos hidráulicos, ferramentas na parede e um rádio AM chiando.',
   posto: 'Frentistas de uniforme e o zumbido das lâmpadas da cobertura.',
 };
-const FRAGILE = /Bolo|Ovos|bebidas|Arranjo|Buquê|Remédios|Doce/i;
-const HOT = /Pizza|X-tudo|Pastéis|Lanches|Esfihas|Marmitas|salgados/i;
+const FRAGILE = /Panela|Bolo|Ovos|bebidas|Arranjo|Buquê|Remédios|Doce/i;
+const HOT = /Moqueca|Torta|Pizza|X-tudo|Pastéis|Lanches|Esfihas|Marmitas|salgados/i;
 
 const Act = {
   delivery: null, race: null, parkSpot: null, parkHold: 0, parkCd: {}, waypoint: null,
@@ -3472,15 +3525,60 @@ function pay(v, why) {
 function onPlayerImpact(imp) {
   player.impactCd = 0.35;
   const k = clamp((imp - 70) / 380, 0, 1);
-  Profile.damage = clamp(Profile.damage + k * 9, 0, 100);
+  Profile.damage = clamp(Profile.damage + k * 13, 0, 100);
   AudioSys.crash(0.2 + k);
   Cam.shake = Math.max(Cam.shake, 3 + k * 12);
   const hx = player.hitX || player.x, hy = player.hitY || player.y;
   for (let i = 0; i < 4 + k * 12; i++) Particles.emit('spark', hx, hy, rnd(-220, 220), rnd(-220, 220), rnd(0.2, 0.5), 2);
+  const zone = addZoneDamage(Profile.zones || (Profile.zones = { f: 0, r: 0, l: 0, rt: 0 }), player, hx, hy, k);
+  Debris.spill(hx, hy, k, player.color, zone);
   if (Act.delivery && Act.delivery.fragile && imp > 130) {
     Act.delivery.hits++;
     toast('Carga frágil!', 'A encomenda sofreu um impacto (−15%).', 'bad');
   }
+}
+// marcas de colisão: amassados por região do carro (frente, traseira, laterais)
+function addZoneDamage(Z, car, hx, hy, k) {
+  const c = Math.cos(car.a), s = Math.sin(car.a);
+  const dx = hx - car.x, dy = hy - car.y;
+  const lx = dx * c + dy * s, ly = -dx * s + dy * c;
+  let zone;
+  if (Math.abs(lx) > car.m.L * 0.28) zone = lx > 0 ? 'f' : 'r'; else zone = ly < 0 ? 'l' : 'rt';
+  Z[zone] = clamp(Z[zone] + 0.12 + k * 0.7, 0, 1);
+  Z.seed = (Z.seed || 0) + 1;
+  return zone;
+}
+const Debris = {
+  list: [],
+  spill(x, y, k, color, zone) {
+    const n = Math.round(4 + k * 18);
+    for (let i = 0; i < n; i++) {
+      const r = rnd(), type = r < 0.45 ? 'glass' : r < 0.75 ? 'paint' : 'plastic';
+      this.list.push({ x: x + rnd(-14, 14) * (0.6 + k), y: y + rnd(-14, 14) * (0.6 + k), a: rnd(TAU), s: rnd(1.2, 3.2), type, c: type === 'paint' ? color : type === 'glass' ? (zone === 'r' ? '#ff6a5a' : '#cfe6ff') : '#202024', t: Game.time });
+    }
+    if (k > 0.25) this.list.push({ x, y, a: rnd(TAU), s: 6 + k * 8, type: 'oil', c: '#000', t: Game.time });
+    while (this.list.length > 500) this.list.shift();
+  },
+  draw(ctx, view) {
+    for (const d of this.list) {
+      if (d.x < view.x0 - 20 || d.x > view.x1 + 20 || d.y < view.y0 - 20 || d.y > view.y1 + 20) continue;
+      const age = Game.time - d.t, al = clamp(1 - (age - 120) / 60, 0, 1);
+      if (al <= 0) continue;
+      ctx.globalAlpha = al * (d.type === 'oil' ? 0.45 : d.type === 'glass' ? 0.85 : 0.95);
+      ctx.fillStyle = d.c;
+      if (d.type === 'oil') { ctx.beginPath(); ctx.ellipse(d.x, d.y, d.s, d.s * 0.65, d.a, 0, TAU); ctx.fill(); continue; }
+      ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.a);
+      ctx.beginPath(); ctx.moveTo(-d.s, -d.s * 0.4); ctx.lineTo(d.s * 0.8, -d.s * 0.6); ctx.lineTo(d.s * 0.3, d.s * 0.6); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  },
+};
+function zoneList(Z) {
+  if (!Z) return [];
+  const N = { f: 'dianteira', r: 'traseira', l: 'lateral esquerda', rt: 'lateral direita' }, out = [];
+  for (const k of ['f', 'r', 'l', 'rt']) if (Z[k] > 0.05) out.push(N[k] + (Z[k] > 0.66 ? ' destruída' : Z[k] > 0.33 ? ' amassada' : ' arranhada'));
+  return out;
 }
 function deliveryOffer(shop) {
   let off = Act.offers.get(shop.id);
@@ -3736,7 +3834,7 @@ function freeRoamHint() {
   const disc = Profile.discovered.length, totP = World.pois.length;
   const vis = Profile.visited.length, totV = World.shops.filter((x) => x.kind !== 'garagem').length;
   if (Profile.fuel < 22) { const s = nearestShop('posto'); return ['Combustível baixo', 'Procure um posto: ' + (s ? s.name : '') + '. Marque no mapa (M).']; }
-  if (Profile.damage > 55) return ['Carro avariado', 'Passe na Oficina Dois Irmãos e Meio, no Distrito da Gambiarra.'];
+  if (Profile.damage > 55) return ['Carro avariado', 'Passe na Oficina do Seu Zé, no Distrito da Gambiarra.'];
   const cheapest = CARS.filter((c) => !Profile.owned[c.id]).sort((a, b) => a.price - b.price)[0];
   const list = [
     ['Exploração livre', 'Comércios com marcador amarelo oferecem entregas. Pare em frente e aperte E.'],
@@ -3745,7 +3843,7 @@ function freeRoamHint() {
     ['Exploração livre', 'Caderneta de visitas: ' + vis + '/' + totV + ' estabelecimentos. Cada visita nova rende R$ 100.'],
     ['Exploração livre', 'Vagas marcadas em azul pagam por um estacionamento perfeito. De ré vale mais.'],
     ['Exploração livre', 'Clique no mapa (M) para traçar uma rota no GPS até qualquer lugar.'],
-    ['Exploração livre', 'Cuidado com o pardal: radares nas avenidas (80 km/h) e na BR-171 (110 km/h) multam na hora.'],
+    ['Exploração livre', 'Cuidado com o pardal: radares nas avenidas (80 km/h) e na BR-101 (110 km/h) multam na hora.'],
     ['Exploração livre', 'Tem churrasquinho na esquina do boteco e forró tocando. São Gambiarra nunca dorme.'],
   ];
   if (cheapest && Profile.money >= cheapest.price) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
@@ -4536,7 +4634,8 @@ function lightPass(view, cx, cy) {
     cone(c, c.big ? 300 : 250, 0.85);
   }
   if (player && Game.state !== 'menu') {
-    cone(player, player.highBeam ? 520 : 360, 1);
+    const zf = Profile.zones ? Profile.zones.f : 0;
+    cone(player, player.highBeam ? 520 : 360, zf > 0.85 ? 0.15 : zf > 0.6 ? 0.6 : 1);
     lctx.globalAlpha = 0.55; lctx.drawImage(LSPR, player.x - 105, player.y - 105, 210, 210);
   }
   lctx.globalAlpha = 1;
@@ -4595,11 +4694,13 @@ function emissivePass(view, talls) {
   const tail = glowSprite('#ff2a1e'), head = glowSprite('#fff1cf'), amber = glowSprite('#ffa520'), white = glowSprite('#ffffff');
   const carGlow = (c, brake, rev, blink, isPlayer) => {
     const I = carLightsInfo(c);
+    const Z = isPlayer ? Profile.zones : c.zones;
+    const brokeF = (s) => Z && (Z.f > 0.85 || (Z.f > 0.6 && s < 0)), brokeR = (s) => Z && (Z.r > 0.85 || (Z.r > 0.6 && s < 0));
     ctx.globalAlpha = 0.95;
-    for (const s of [1, -1]) ctx.drawImage(head, I.fx + I.nx * s - 9, I.fy + I.ny * s - 9, 18, 18);
+    for (const s of [1, -1]) if (!brokeF(s)) ctx.drawImage(head, I.fx + I.nx * s - 9, I.fy + I.ny * s - 9, 18, 18);
     const tr = brake ? 15 : 9;
     ctx.globalAlpha = brake ? 1 : 0.7;
-    for (const s of [1, -1]) ctx.drawImage(tail, I.rx + I.nx * s - tr, I.ry + I.ny * s - tr, tr * 2, tr * 2);
+    for (const s of [1, -1]) if (!brokeR(s)) ctx.drawImage(tail, I.rx + I.nx * s - tr, I.ry + I.ny * s - tr, tr * 2, tr * 2);
     if (brake) { ctx.globalAlpha = 0.25; ctx.drawImage(tail, I.rx - 30, I.ry - 30, 60, 60); }
     if (rev) { ctx.globalAlpha = 0.8; for (const s of [1, -1]) ctx.drawImage(white, I.rx + I.nx * s * 0.5 - 7, I.ry + I.ny * s * 0.5 - 7, 14, 14); }
     if (blink && (T * 2.6) % 1 < 0.5) {
@@ -4749,14 +4850,15 @@ function render() {
   ctx.imageSmoothingEnabled = true;
   drawGround(view, forceGround); forceGround = false;
   Skids.draw(ctx, view);
+  Debris.draw(ctx, view);
   // veículos e animais
   for (const an of Animals.list) if (an.type !== 'owl' && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
   for (const c of Traffic.cars) {
     if (!inView(view, c.x, c.y, 80)) continue;
-    drawVehicle(ctx, c.m, c.color, c.x, c.y, c.a, { steer: c.steerVis, roll: c.roll, brake: c.braking || c.v < 3, box: c.box });
+    drawVehicle(ctx, c.m, c.color, c.x, c.y, c.a, { steer: c.steerVis, roll: c.roll, brake: c.braking || c.v < 3, box: c.box, zones: c.zones });
   }
   if (player && Game.state !== 'menu') {
-    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery });
+    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery, zones: Profile.zones });
   }
   Particles.draw(ctx);
   // objetos altos ordenados por distância à câmera (longe primeiro)
@@ -4868,7 +4970,7 @@ function drawBigMap() {
   bg.drawImage(MAPIMG, 0, 0, WORLD_W, WORLD_H);
   const k = dpr / s;
   bg.font = `600 ${13 * k}px "Segoe UI", Arial`; bg.textAlign = 'center'; bg.fillStyle = 'rgba(255,255,255,0.5)';
-  const labels = [['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO TIETINHO', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-171', 4200, 6370]];
+  const labels = [['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JUCU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370]];
   for (const [t, x, y] of labels) bg.fillText(t, x, y);
   if (Act.gps) { bg.strokeStyle = '#5be38f'; bg.lineWidth = 4 * k; bg.beginPath(); Act.gps.pts.forEach((p, i) => (i ? bg.lineTo(p[0], p[1]) : bg.moveTo(p[0], p[1]))); bg.stroke(); }
   const ic = (x, y, kind) => { bg.save(); bg.translate(x, y); bg.scale(k * 1.3, k * 1.3); mapIcon(bg, 0, 0, kind, 1.25); bg.restore(); };
@@ -4882,6 +4984,17 @@ function drawBigMap() {
     bg.save(); bg.translate(player.x, player.y); bg.rotate(player.a); bg.scale(k * 1.6, k * 1.6);
     bg.fillStyle = '#fff'; bg.strokeStyle = '#000'; bg.lineWidth = 2;
     bg.beginPath(); bg.moveTo(10, 0); bg.lineTo(-7, -7); bg.lineTo(-3, 0); bg.lineTo(-7, 7); bg.closePath(); bg.stroke(); bg.fill();
+    bg.restore();
+  }
+  if (Act.waypoint) {
+    const w = Act.waypoint;
+    bg.save(); bg.translate(w.x, w.y); bg.scale(k, k);
+    bg.fillStyle = '#5be38f'; bg.strokeStyle = '#0b0d12'; bg.lineWidth = 2;
+    bg.beginPath(); bg.moveTo(0, 0); bg.bezierCurveTo(-10, -12, -10, -26, 0, -26); bg.bezierCurveTo(10, -26, 10, -12, 0, 0); bg.fill(); bg.stroke();
+    bg.fillStyle = '#0b0d12'; bg.beginPath(); bg.arc(0, -18, 3.5, 0, TAU); bg.fill();
+    bg.font = 'italic 800 12px "Segoe UI", Arial'; bg.textAlign = 'center'; bg.lineWidth = 3; bg.strokeStyle = '#0b0d12';
+    const t = (w.label || 'Destino') + (Act.gps ? ' · ' + (Act.gps.len * 0.09 / 1000).toFixed(2).replace('.', ',') + ' km' : '');
+    bg.strokeText(t, 0, -32); bg.fillStyle = '#dfffe9'; bg.fillText(t, 0, -32);
     bg.restore();
   }
   for (const p of World.pois) if (Profile.discovered.includes(p.id)) { bg.fillStyle = 'rgba(230,200,255,0.85)'; bg.font = `600 ${10 * k}px "Segoe UI", Arial`; bg.fillText(p.name, p.x, p.y - 12 * k); }
@@ -4982,7 +5095,7 @@ const Screens = {
   onOpen(id) {
     if (id === 'screen-settings') syncSettingsUI();
     if (id === 'screen-garage') Garage.render();
-    if (id === 'screen-map') requestAnimationFrame(drawBigMap);
+    if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(drawBigMap); }
     if (id === 'screen-pause') renderPauseStats();
     if (id === 'screen-main') $('btn-continue').disabled = !hasSave;
     if (id === 'screen-pause') $('btn-abandon').disabled = !(Act.race || Act.delivery || Act.waypoint);
@@ -5028,13 +5141,13 @@ function bindMenus() {
     if (x < 0 || y < 0 || x > WORLD_W || y > WORLD_H) return;
     const ne = nearestEdge(x, y);
     const px = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x, py = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s;
-    Act.waypoint = { x: px, y: py };
+    Act.waypoint = { x: px, y: py, label: 'ponto marcado no mapa' };
     Act.gpsT = 0; Act.gps = null;
     if (player) { Act.gps = gpsRoute(player.x, player.y, px, py); }
     AudioSys.click();
-    drawBigMap();
+    renderMapDests(); drawBigMap();
   });
-  bigCanvas.addEventListener('contextmenu', (e) => { e.preventDefault(); Act.waypoint = null; Act.gps = null; AudioSys.back(); drawBigMap(); });
+  bigCanvas.addEventListener('contextmenu', (e) => { e.preventDefault(); Act.waypoint = null; Act.gps = null; AudioSys.back(); renderMapDests(); drawBigMap(); });
   window.addEventListener('resize', () => { resize(); if (Screens.current === 'screen-map') drawBigMap(); });
 }
 function confirmBox(title, text, fn) {
@@ -5223,10 +5336,21 @@ function drawGaragePreview(dt) {
 function openShopDialog(s) {
   if (s.kind === 'garagem') { Garage.sel = Profile.current; Screens.open('screen-garage'); AudioSys.click(); return; }
   visitShop(s);
-  const KIND = { posto: 'POSTO DE COMBUSTÍVEL', oficina: 'OFICINA MECÂNICA', pizzaria: 'PIZZARIA', farmacia: 'FARMÁCIA', padaria: 'PADARIA', mercado: 'MERCADO', lanchonete: 'LANCHONETE', bar: 'BAR', floricultura: 'FLORICULTURA', hotel: 'HOTEL', churrascaria: 'CHURRASCARIA', borracharia: 'BORRACHARIA', sitio: 'SÍTIO', fazenda: 'FAZENDA' };
+  const KIND = { posto: 'POSTO DE COMBUSTÍVEL', oficina: 'OFICINA MECÂNICA', moquecaria: 'MOQUECARIA', farmacia: 'FARMÁCIA', padaria: 'PADARIA', mercado: 'MERCADO', lanchonete: 'LANCHONETE', bar: 'BAR', floricultura: 'FLORICULTURA', hotel: 'HOTEL', churrascaria: 'CHURRASCARIA', borracharia: 'BORRACHARIA', sitio: 'SÍTIO', fazenda: 'FAZENDA' };
   $('dialog-kind').textContent = KIND[s.kind] || 'ESTABELECIMENTO';
   $('dialog-title').textContent = s.name;
   $('dialog-text').textContent = SHOP_TEXT[s.kind] || '';
+  $('dialog-portrait').classList.toggle('hidden', s.kind !== 'oficina');
+  if (s.kind === 'oficina') {
+    drawSeuZe($('dialog-portrait'));
+    const Zs = Profile.zones || {}, zl = zoneList(Profile.zones);
+    const dm = Math.max(Profile.damage, Math.max(Zs.f || 0, Zs.r || 0, Zs.l || 0, Zs.rt || 0) * 70);
+    const fala = dm < 3 ? '"Tá zerado, meu filho. Volta quando bater, que eu sei que vai."'
+      : dm < 25 ? '"Uns arranhãozinho à toa. Isso eu resolvo enquanto o café passa."'
+      : dm < 60 ? '"Rapaz… que pancada foi essa? Beijou o poste, foi? Deixa com o Seu Zé."'
+      : '"Nossa Senhora da Penha! Isso aqui tá pocado, menino! Quarenta anos de oficina e nunca vi um estrago desse."';
+    $('dialog-text').textContent = 'Seu Zé limpa as mãos na estopa e olha o carro por cima dos óculos. ' + fala + (zl.length ? ' Orçamento: ' + zl.join(', ') + '.' : '');
+  }
   const btns = [];
   const B = (label, fn, disabled) => btns.push({ label, fn, disabled });
   if (s.kind === 'posto') {
@@ -5248,8 +5372,10 @@ function openShopDialog(s) {
     B(Profile.damage < 1 ? 'Carro em perfeito estado' : `Consertar o carro — R$ ${fmtMoney(cost)}`, () => {
       const fix = Math.min(Profile.damage, Profile.money / 4);
       const c = Math.ceil(fix * 4);
+      const before = Profile.damage;
       Profile.damage -= fix; Profile.money -= c; UI.moneyDelta(-c); AudioSys.wrench();
-      toast('Oficina', 'Lataria e mecânica revisadas.', 'good');
+      if (Profile.zones) { const f = before > 0 ? Profile.damage / before : 0; for (const z of ['f', 'r', 'l', 'rt']) Profile.zones[z] *= f; Profile.zones.seed = (Profile.zones.seed || 0) + 1; }
+      toast('Seu Zé', Profile.damage < 1 ? '"Pronto! Tá novinho em folha. Vai com Deus e devagar."' : '"Fiz o que deu com o seu dinheiro, viu?"', 'good');
       saveGame(); openShopDialog(s);
     }, Profile.damage < 1 || Profile.money < 4);
     B('Melhorias e pintura', () => { Garage.sel = Profile.current; Screens.replace('screen-garage'); });
@@ -5285,6 +5411,58 @@ function openShopDialog(s) {
     box.appendChild(el);
   }
   if (Screens.current === 'screen-dialog') Screens.onOpen('screen-dialog'); else Screens.open('screen-dialog');
+}
+function drawSeuZe(cv) {
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#3a3f4a'); bg.addColorStop(1, '#1a1d24');
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  g.fillStyle = 'rgba(255,255,255,0.05)'; for (let i = 0; i < 6; i++) g.fillRect(14 + i * 38, 20, 22, 60);
+  g.translate(W / 2, H / 2 + 10);
+  g.fillStyle = '#2a4a8a'; g.beginPath(); g.moveTo(-80, 110); g.quadraticCurveTo(-78, 30, 0, 28); g.quadraticCurveTo(78, 30, 80, 110); g.fill();
+  g.fillStyle = '#1e3a70'; g.fillRect(-30, 40, 12, 70); g.fillRect(18, 40, 12, 70);
+  g.fillStyle = '#f2f2ea'; g.fillRect(-12, 60, 24, 14); g.fillStyle = '#c8302a'; g.font = 'bold 12px Arial'; g.textAlign = 'center'; g.fillText('ZÉ', 0, 71);
+  g.fillStyle = '#d9a066'; g.fillRect(-12, 10, 24, 22);
+  g.fillStyle = '#e0ac69'; g.beginPath(); g.ellipse(0, -18, 34, 40, 0, 0, TAU); g.fill();
+  g.fillStyle = '#d29a5c'; g.beginPath(); g.ellipse(-34, -16, 7, 11, 0, 0, TAU); g.ellipse(34, -16, 7, 11, 0, 0, TAU); g.fill();
+  g.fillStyle = '#ededE6'; g.beginPath(); g.ellipse(-30, -30, 9, 16, 0.2, 0, TAU); g.ellipse(30, -30, 9, 16, -0.2, 0, TAU); g.fill();
+  g.fillStyle = '#c8302a'; g.beginPath(); g.ellipse(0, -52, 36, 15, 0, Math.PI, TAU); g.fill(); g.fillRect(-36, -54, 72, 6); g.fillRect(-4, -56, 46, 6);
+  g.fillStyle = '#f2f2ea'; g.font = 'bold 9px Arial'; g.fillText('OFICINA', 0, -58);
+  g.strokeStyle = '#a0784a'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(-18, -30); g.lineTo(-6, -28); g.moveTo(6, -28); g.lineTo(18, -30); g.stroke();
+  g.strokeStyle = '#2a2a2a'; g.lineWidth = 2; g.beginPath(); g.arc(-12, -18, 8, 0, TAU); g.moveTo(20, -18); g.arc(12, -18, 8, 0, TAU); g.moveTo(-4, -18); g.lineTo(4, -18); g.stroke();
+  g.fillStyle = '#1a1410'; g.beginPath(); g.arc(-12, -18, 2.2, 0, TAU); g.arc(12, -18, 2.2, 0, TAU); g.fill();
+  g.fillStyle = '#c98a55'; g.beginPath(); g.ellipse(0, -6, 5, 8, 0, 0, TAU); g.fill();
+  g.fillStyle = '#f0f0ea'; g.beginPath(); g.moveTo(-22, 6); g.quadraticCurveTo(0, -6, 22, 6); g.quadraticCurveTo(10, 14, 0, 6); g.quadraticCurveTo(-10, 14, -22, 6); g.fill();
+  g.strokeStyle = 'rgba(120,70,40,0.45)'; g.lineWidth = 1; g.beginPath(); g.moveTo(-24, -40 + 6); g.quadraticCurveTo(-18, -44, -10, -42); g.moveTo(10, -42); g.quadraticCurveTo(18, -44, 24, -34); g.stroke();
+  g.fillStyle = '#1a1a1a'; g.globalAlpha = 0.35; g.beginPath(); g.ellipse(24, 30, 10, 4, 0.3, 0, TAU); g.fill(); g.globalAlpha = 1;
+}
+function renderMapDests() {
+  const box = $('map-dests'); box.innerHTML = '';
+  if (Game.mode !== 'play' || !player) return;
+  const set = (x, y, label) => {
+    const ne = nearestEdge(x, y);
+    const px = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x, py = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s;
+    Act.waypoint = { x: px, y: py, label }; Act.gpsT = 0; Act.gps = gpsRoute(player.x, player.y, px, py);
+    AudioSys.click(); renderMapDests(); drawBigMap();
+  };
+  const near = (kind) => { let b = null, bd = Infinity; for (const s of World.shops) if (s.kind === kind) { const d = Math.hypot(s.x - player.x, s.y - player.y); if (d < bd) { bd = d; b = s; } } return b; };
+  const opts = [];
+  if (World.home) opts.push(['Minha garagem', World.home.x, World.home.y]);
+  const posto = near('posto'); if (posto) opts.push(['Posto mais próximo', posto.x, posto.y]);
+  const of = near('oficina'); if (of) opts.push(['Oficina do Seu Zé', of.x, of.y]);
+  const mq = near('moquecaria'); if (mq) opts.push(['Moquecaria', mq.x, mq.y]);
+  let poi = null, pd = Infinity; for (const p of World.pois) if (!Profile.discovered.includes(p.id)) { const d = Math.hypot(p.x - player.x, p.y - player.y); if (d < pd) { pd = d; poi = p; } }
+  if (poi) opts.push(['Ponto de interesse "?" mais perto', poi.x, poi.y]);
+  let rc = null, rd = Infinity; for (const r of World.races) { const d = Math.hypot(r.start[0] - player.x, r.start[1] - player.y); if (d < rd) { rd = d; rc = r; } }
+  if (rc) opts.push(['Percurso: ' + rc.name, rc.start[0], rc.start[1]]);
+  const now = document.createElement('div'); now.className = 'dest-now';
+  now.textContent = Act.waypoint ? 'Destino: ' + (Act.waypoint.label || 'ponto marcado no mapa') + (Act.gps ? ' · ' + (Act.gps.len * 0.09 / 1000).toFixed(2).replace('.', ',') + ' km' : '') : 'Clique no mapa ou escolha um destino rápido:';
+  box.appendChild(now);
+  for (const [label, x, y] of opts) {
+    const b = document.createElement('button'); b.textContent = label;
+    b.addEventListener('click', () => set(x, y, label)); box.appendChild(b);
+  }
+  if (Act.waypoint) { const b = document.createElement('button'); b.className = 'off'; b.textContent = 'Remover destino'; b.addEventListener('click', () => { Act.waypoint = null; Act.gps = null; AudioSys.back(); renderMapDests(); drawBigMap(); }); box.appendChild(b); }
 }
 function closeDialog() { if (Screens.current === 'screen-dialog') Screens.closeAll(); }
 
@@ -5380,7 +5558,7 @@ function newGame() {
   Profile = newProfile();
   startPlay();
   saveGame();
-  setTimeout(() => toast('Bem-vindo a BR NIGHT DRIVE', 'A noite é sua. Explore à vontade — pare nos comércios e aperte E para pegar entregas.', 'info'), 600);
+  setTimeout(() => toast('Bem-vindo a São Gambiarra, ES', 'A noite é sua. Explore à vontade — pare nos comércios e aperte E para pegar entregas.', 'info'), 600);
   setTimeout(() => toast('Dica', 'W/S aceleram e freiam, A/D viram, Espaço é o freio de mão. M abre o mapa.', 'info'), 4200);
 }
 function continueGame() {
@@ -5513,7 +5691,7 @@ async function boot() {
   buildPatterns(); buildLightSprites();
   RNG = mulberry32(20261108);
   const steps = [
-    [buildRoadGraph, 'Traçando ruas…'], [buildRiver, 'Enchendo o Rio Tietinho…'], [buildRoadSurface, 'Asfaltando as avenidas…'],
+    [buildRoadGraph, 'Traçando ruas…'], [buildRiver, 'Enchendo o Rio Jucu…'], [buildRoadSurface, 'Asfaltando as avenidas…'],
     [buildCity, 'Erguendo bairros e comércios…'], [buildHighwayStrip, 'Abrindo a rodovia…'], [buildRural, 'Plantando o interior…'],
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];

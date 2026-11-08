@@ -497,3 +497,13 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 #prompt { border: 2px solid var(--street-yellow); font-style: italic; font-weight: 800; }
 #countdown { font-style: italic; color: var(--street-yellow); -webkit-text-stroke: 3px var(--ink); }
 #race-timer { font-style: italic; }
+
+.map-dests { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
+.map-dests button {
+  pointer-events: auto; cursor: pointer; border: 2px solid rgba(91, 227, 143, 0.6); background: rgba(20, 40, 28, 0.85);
+  color: #dfffe9; border-radius: 8px; padding: 7px 12px; font: italic 800 13px var(--font); letter-spacing: 0.03em;
+}
+.map-dests button:hover, .map-dests button:focus-visible { background: #39d353; color: #0b0d12; outline: none; }
+.map-dests button.off { border-color: rgba(255, 90, 90, 0.6); background: rgba(50, 16, 16, 0.85); color: #ffd6d6; }
+.map-dests .dest-now { width: 100%; text-align: center; font-size: 13px; color: #5be38f; font-weight: 700; }
+#dialog-portrait { display: block; margin: 0 auto 12px; border-radius: 12px; background: #20242c; border: 2px solid rgba(255, 210, 63, 0.5); }
