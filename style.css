@@ -677,3 +677,4 @@ div.ph-wid { cursor: default; }
 .wa-quick { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 0 4px; }
 .wa-quick button { pointer-events: auto; cursor: pointer; border: 0; border-radius: 16px; padding: 7px 12px; background: #1f2c34; color: #e9edef; font: 600 12px -apple-system, "Segoe UI", sans-serif; }
 .wa-quick button:hover { background: #005c4b; }
+.wa-bar { text-align: center; font: 500 11.5px -apple-system, "Segoe UI", sans-serif; color: #8696a0; padding: 10px 0 4px; }

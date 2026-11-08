@@ -4649,9 +4649,12 @@ const JOB_TYPES = {
   cacamba: { name: 'Retirar entulho', items: ['Entulho de obra'], mult: 2.0 },
   guincho: { name: 'Reboque', items: ['Carro quebrado de cliente'], mult: 1.9 },
 };
-function addMsg(from, title, body, silent) {
+// rep: respostas possíveis [[texto, resposta do contato]]; mensagens informativas não têm
+function addMsg(from, title, body, silent, rep) {
   Profile.msgs = Profile.msgs || [];
-  Profile.msgs.unshift({ from, title, body, read: false, t: Math.floor(Profile.time) });
+  const m = { from, title, body, read: false, t: Math.floor(Profile.time) };
+  if (rep) m.rep = rep;
+  Profile.msgs.unshift(m);
   if (!silent) { const cfg = phoneCfg(); if (cfg.notif) toast('Nova mensagem: ' + from, title + ' — aperte Q para abrir o celular.', 'info'); if (cfg.sounds) { AudioSys.tone(1568, 0.08, 'sine', 0.08, 'ui'); AudioSys.tone(2093, 0.12, 'sine', 0.08, 'ui', null, 0.1); } }
 }
 function ensurePhoneData() {
@@ -4798,7 +4801,8 @@ function updateJobs(dt) {
     }
   }
   // convite do racha quando chega a madrugada
-  if (rachaOpen() && !Profile.rachaMsg) { Profile.rachaMsg = true; addMsg('Zé do Canecão', 'Racha hoje?', 'E aí, parceiro. Hoje tem racha: arrancada na BR-101, pega na Avenida Carapina e o racha do Centrão. Aposta na hora, quem ganhar leva o dobro. Abre o app Racha que eu te passo o ponto. Só fica esperto com a viatura, que se ela vir, é multa na certa.'); }
+  if (rachaOpen() && !Profile.rachaMsg) { Profile.rachaMsg = true; addMsg('Zé do Canecão', 'Racha hoje?', 'E aí, parceiro. Hoje tem racha: arrancada na BR-101, pega na Avenida Carapina e o racha do Centrão. Aposta na hora, quem ganhar leva o dobro. Abre o app Racha que eu te passo o ponto. Só fica esperto com a viatura, que se ela vir, é multa na certa.', false,
+    [['Tô dentro!', 'Fechou! Abre o app Racha que o ponto tá lá. Chega quieto e sem farol alto.'], ['Hoje não, valeu', 'Tranquilo, parceiro. Até a madrugada acaba, se mudar de ideia é só chegar.']]); }
   if (!rachaOpen()) Profile.rachaMsg = false;
 }
 
@@ -4965,7 +4969,11 @@ const Phone = {
         conv.forEach((m) => { m.read = true; });
         html = `<div class="wa-top"><button class="ph-back" data-go="msgs">‹</button>${ava(this.chat)}<div><b>${H(this.chat)}</b><small>online</small></div></div><div class="wa-chat"><div class="wa-day">HOJE</div>` +
           conv.map((m) => `<div class="wa-msg ${m.me ? 'me' : ''}">${m.title && !m.me ? `<b>${H(m.title)}</b>` : ''}${H(m.body).replace(/\n/g, '<br>')}<i>${fmtT(m.t)}${m.me ? ' <span class="wa-ok">✓✓</span>' : ''}</i></div>`).join('') +
-          '</div><div class="wa-quick">' + ['Valeu!', 'Tô indo', 'Fechou', 'Depois eu vejo'].map((q) => `<button data-reply="${q}">${q}</button>`).join('') + '</div>';
+          '</div>';
+        // só dá para responder a última mensagem do contato, se ela pedir resposta e ainda não foi respondida
+        const lastIn = M.find((m) => m.from === this.chat);
+        if (lastIn && !lastIn.me && lastIn.rep && !lastIn.answered) html += '<div class="wa-quick">' + lastIn.rep.map(([q], i) => `<button data-reply="${i}">${H(q)}</button>`).join('') + '</div>';
+        else html += '<div class="wa-bar">' + (conv.some((m) => m.me || m.answered) ? 'Você já respondeu esta conversa' : 'Mensagem informativa · não precisa responder') + '</div>';
       } else {
         const order = [], last = {}, unread = {};
         for (const m of M) { if (!(m.from in last)) { last[m.from] = m; order.push(m.from); } if (!m.read && !m.me) unread[m.from] = (unread[m.from] || 0) + 1; }
@@ -5005,7 +5013,17 @@ const Phone = {
     if (t.dataset.app) { this.go(t.dataset.app); return; }
     if (t.dataset.mz) { if (phoneMap) mapCtrl(phoneMap, t.dataset.mz); return; }
     if (t.dataset.chat) { this.chat = t.dataset.chat; this.render(); if (phoneCfg().sounds) AudioSys.click(); return; }
-    if (t.dataset.reply && this.chat) { Profile.msgs.unshift({ from: this.chat, title: '', body: t.dataset.reply, read: true, me: true, t: Math.floor(Profile.time) }); phoneTone(1760, 0.05, 0.04); this.render(); return; }
+    if (t.dataset.reply && this.chat) {
+      const who = this.chat, src = Profile.msgs.find((m) => m.from === who);
+      if (!src || !src.rep || src.answered) return;
+      const [q, ans] = src.rep[+t.dataset.reply] || [];
+      if (!q) return;
+      src.answered = true;
+      Profile.msgs.unshift({ from: who, title: '', body: q, read: true, me: true, t: Math.floor(Profile.time) });
+      phoneTone(1760, 0.05, 0.04); this.render();
+      if (ans) setTimeout(() => { addMsg(who, '', ans, true); if (Screens.current === 'screen-phone' && Phone.chat === who) { phoneTone(1320, 0.06, 0.05); Phone.render(); } }, 1800);
+      return;
+    }
     if (t.dataset.go) { this.go(t.dataset.go); return; }
     if (t.dataset.job) { const j = this.fretes[+t.dataset.job]; if (j && !Act.delivery && !Act.race) { startJob(j); this.fretes = []; Screens.closeAll(); } return; }
     if (t.dataset.racha) { const r = World.rachas[+t.dataset.racha]; Act.waypoint = { x: r.start[0], y: r.start[1], label: 'Racha: ' + r.name }; Act.gpsT = 0; AudioSys.click(); toast('Ponto do racha no GPS', r.name, 'info'); Screens.closeAll(); return; }
