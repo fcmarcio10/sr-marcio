@@ -761,6 +761,7 @@ function addShop(def) {
 const MURO_FRASES = ['FÉ EM DEUS', 'DEUS É FIEL', 'JESUS TE AMA', 'NÃO JOGUE LIXO', 'ALUGA-SE', 'VENDE-SE', 'RESPEITA AS MINA', 'SAUDADE ETERNA', 'MAIS AMOR', 'PAZ NA QUEBRADA', 'FAVELA VIVE', 'CRIA DO MORRO', 'SÓ OS CRIA', 'VAI DAR CERTO', 'O MORRO É TALENTO', 'CAPIXABA COM ORGULHO', 'ESTUDA, MOLEQUE', 'FAZ O BEM', 'TÁ PAGO', 'SORRIA, VOCÊ ESTÁ NO 027'];
 const PIXOS = ['CREW 027', 'OS GAMBIARRA', 'NOIS', 'ZN 027', 'LOKOS', 'PIXO ES', 'LAJE CREW', '027 SKATE', 'MANOS DA SERRA', 'TINTA FRESCA'];
 function addGraffiti(b, kind) {
+  return; // pichações removidas (custavam muito desempenho)
   kind = kind || (chance(0.45) ? 'frase' : chance(0.6) ? 'pixo' : 'mural');
   b.graf = { kind, text: kind === 'frase' || kind === 'mural' ? pick(MURO_FRASES) : pick(PIXOS), color: kind === 'pixo' ? pick(['#111111', '#111111', '#f2f2ea', '#c8241c']) : pick(['#e63946', '#1d4f9c', '#2a9d8f', '#111111', '#f4c430']), seed: rnd() };
 }
@@ -1163,7 +1164,7 @@ function comunidadeBlock(R) {
   // muro grafitado virado para a rua (face sul)
   const gl = [];
   for (let x = R.x0 + 6; x < R.x1 - 60; x += rndi(70, 110)) gl.push({ x, text: chance(0.5) ? pick(MURO_FRASES) : pick(PIXOS), color: pick(['#111111', '#f2f2ea', '#c8241c', '#1d4f9c', '#2a9d8f', '#f4c430']), mural: chance(0.25) });
-  addWall(R.x0, R.y1 + 1, R.x1, R.y1 + 5, pick(['#d8d0c0', '#c9b79c', '#e2d2b6', '#b8b0a2']), { graf: gl });
+  addWall(R.x0, R.y1 + 1, R.x1, R.y1 + 5, pick(['#d8d0c0', '#c9b79c', '#e2d2b6', '#b8b0a2']), {});
   const cols = ['#e9c46a', '#f4a261', '#2a9d8f', '#e76f51', '#8ecae6', '#f1efe8', '#b5603a', '#b5603a', '#c06a40', '#9bc53d', '#ff99c8'];
   let y = R.y0 + 4, row = 0;
   while (y < R.y1 - 30) {
@@ -4697,7 +4698,6 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
       ctx.stroke();
     }
     wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, false);
-    if (b.graf) wallGraffiti(ctx, b, ax, ay, bx, by, ox, oy);
     if (b.style === 'colonial') {
       // janelas coloniais com venezianas coloridas
       ctx.fillStyle = b.seed % 2 ? '#2f6b4a' : '#2d4f7a';
