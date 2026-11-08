@@ -456,16 +456,16 @@ function areaBlocked(x0, y0, x1, y1) {
 const World = {
   nodes: [], edges: [], nodeMap: new Map(),
   buildings: [], tall: [], lights: [], shops: [], pois: [], races: [], parkSpots: [],
-  homes: [], animalsDef: [], pickups: [], trafficPoles: [], bumps: [],
+  homes: [], animalsDef: [], pickups: [], trafficPoles: [], bumps: [], grills: [], radars: [],
 };
 
 /* -------- tipos de via -------- */
 const RT = {
-  street: { id: 'street', w: 76, sw: 22, lanes: [19], speed: 140, asphalt: true, center: 'dash' },
-  avenue: { id: 'avenue', w: 150, sw: 22, lanes: [21, 57], speed: 185, asphalt: true, center: 'double', laneDiv: 39 },
-  highway: { id: 'highway', w: 160, sw: 0, lanes: [21, 58], speed: 280, asphalt: true, center: 'double', laneDiv: 39, edgeLine: true, shoulder: 16 },
-  road: { id: 'road', w: 76, sw: 0, lanes: [19], speed: 200, asphalt: true, center: 'dash', edgeLine: true, shoulder: 12 },
-  dirt: { id: 'dirt', w: 66, sw: 0, lanes: [15], speed: 115, asphalt: false },
+  street: { id: 'street', w: 90, sw: 22, lanes: [22], speed: 150, asphalt: true, center: 'dash' },
+  avenue: { id: 'avenue', w: 172, sw: 22, lanes: [24, 64], speed: 190, asphalt: true, center: 'double', laneDiv: 44 },
+  highway: { id: 'highway', w: 172, sw: 0, lanes: [23, 63], speed: 280, asphalt: true, center: 'double', laneDiv: 43, edgeLine: true, shoulder: 16 },
+  road: { id: 'road', w: 86, sw: 0, lanes: [22], speed: 200, asphalt: true, center: 'dash', edgeLine: true, shoulder: 12 },
+  dirt: { id: 'dirt', w: 72, sw: 0, lanes: [17], speed: 115, asphalt: false },
 };
 const XS = [300, 850, 1450, 2100, 2700, 3350, 3950, 4600];
 const YS = [300, 880, 1500, 2080, 2700, 3300, 3880, 4500, 5300];
@@ -478,31 +478,31 @@ function riverCX(y) { return 5450 + Math.sin(y * 0.00105) * 140 + Math.sin(y * 0
 function riverHW(y) { return 135 + Math.sin(y * 0.0021 + 0.5) * 22; }
 
 function defineRoads() {
-  H(300, 300, 4600, 'street', 'Rua Tiradentes');
-  H(880, 300, 4600, 'street', 'Rua Sete de Setembro');
-  H(1500, 300, 4600, 'avenue', 'Avenida Brasil');
-  H(1500, 4600, 8700, 'road', 'Estrada do Sol');
-  H(2080, 300, 4600, 'street', 'Rua XV de Novembro');
-  H(2700, 300, 4600, 'street', 'Rua das Acácias');
-  H(3300, 300, 4600, 'street', 'Rua dos Ipês');
-  H(3880, 300, 4600, 'avenue', 'Avenida das Palmeiras');
-  H(3880, 4600, 8700, 'dirt', 'Estrada da Ponte Velha');
-  H(4500, 300, 4600, 'street', 'Rua do Sabiá');
-  H(5300, 300, 4600, 'street', 'Rua da Esperança');
-  H(880, 7500, 8700, 'dirt', 'Estrada da Boa Vista');
-  H(5300, 6300, 7500, 'dirt', 'Ramal da Fazenda');
-  H(HWY_Y, 300, 8700, 'highway', 'Rodovia BR-Noite');
-  V(300, 300, 6200, 'street', 'Rua Santos Dumont');
-  V(850, 300, 5300, 'street', 'Rua da Matriz');
-  V(1450, 300, 6200, 'street', 'Rua Carlos Gomes');
-  V(2100, 300, 6200, 'avenue', 'Avenida Central');
-  V(2700, 300, 5300, 'street', 'Rua Bela Vista');
-  V(3350, 300, 5300, 'street', 'Rua das Indústrias');
-  V(3950, 300, 6200, 'street', 'Rua do Comércio');
-  V(4600, 300, 6200, 'street', 'Rua Beira-Rio');
-  V(6300, 1500, 6200, 'road', 'Estrada Velha');
-  V(7500, 880, 6200, 'dirt', 'Estrada do Sítio');
-  V(8700, 880, 6200, 'road', 'Estrada Alta');
+  H(300, 300, 4600, 'street', 'Rua do Pão de Queijo');
+  H(880, 300, 4600, 'street', 'Rua Sete de Sextembro');
+  H(1500, 300, 4600, 'avenue', 'Avenida Brasil Sil Sil');
+  H(1500, 4600, 8700, 'road', 'Estrada do Sol Rachando');
+  H(2080, 300, 4600, 'street', 'Rua 15 de Novembrinho');
+  H(2700, 300, 4600, 'street', 'Rua dos Bobos');
+  H(3300, 300, 4600, 'street', 'Rua Ipê-Ipê Urra');
+  H(3880, 300, 4600, 'avenue', 'Avenida Sem Mundial');
+  H(3880, 4600, 8700, 'dirt', 'Estrada da Ponte Que Balança');
+  H(4500, 300, 4600, 'street', 'Rua Tem Que Ver Isso Aí');
+  H(5300, 300, 4600, 'street', 'Rua da Esperança Equilibrista');
+  H(880, 7500, 8700, 'dirt', 'Estrada da Vaca Atolada');
+  H(5300, 6300, 7500, 'dirt', 'Ramal do Fim do Mundo');
+  H(HWY_Y, 300, 8700, 'highway', 'Rodovia BR-171');
+  V(300, 300, 6200, 'street', 'Rua Santos Dumontanha');
+  V(850, 300, 5300, 'street', 'Rua da Matriz Perdoa');
+  V(1450, 300, 6200, 'street', 'Rua do Cafezinho');
+  V(2100, 300, 6200, 'avenue', 'Avenida Paulistinha');
+  V(2700, 300, 5300, 'street', 'Rua Bela Vista Cansada');
+  V(3350, 300, 5300, 'street', 'Rua da Gambiarra');
+  V(3950, 300, 6200, 'street', 'Rua do Comércio Fiado');
+  V(4600, 300, 6200, 'street', 'Rua Beira-Rio Sem Peixe');
+  V(6300, 1500, 6200, 'road', 'Estrada Velha de Guerra');
+  V(7500, 880, 6200, 'dirt', 'Estrada do Sítio Bota Fé');
+  V(8700, 880, 6200, 'road', 'Estrada Alta Pressão');
 }
 
 function getNode(x, y) {
@@ -563,15 +563,15 @@ function nearestEdge(x, y) {
 
 /* -------- regiões -------- */
 const REGIONS = {
-  centro: { name: 'Centro', dark: 0.72, city: 1, rural: 0 },
-  industrial: { name: 'Distrito Industrial', dark: 0.76, city: 0.6, rural: 0.1 },
-  vila: { name: 'Vila Esperança', dark: 0.75, city: 0.55, rural: 0.25 },
-  jardim: { name: 'Jardim das Palmeiras', dark: 0.75, city: 0.45, rural: 0.3 },
-  rio: { name: 'Rio Claro', dark: 0.76, city: 0.15, rural: 0.8 },
-  sitio: { name: 'Sítio Boa Vista', dark: 0.76, city: 0, rural: 1 },
-  fazenda: { name: 'Fazenda Santa Luzia', dark: 0.76, city: 0, rural: 1 },
-  rodovia: { name: 'Rodovia BR-Noite', dark: 0.76, city: 0.2, rural: 0.7 },
-  mata: { name: 'Mata da Serra', dark: 0.80, city: 0, rural: 1 },
+  centro: { name: 'Centrão', dark: 0.72, city: 1, rural: 0 },
+  industrial: { name: 'Distrito da Gambiarra', dark: 0.76, city: 0.6, rural: 0.1 },
+  vila: { name: 'Vila Sem Pressa', dark: 0.75, city: 0.55, rural: 0.25 },
+  jardim: { name: 'Alfavila', dark: 0.75, city: 0.45, rural: 0.3 },
+  rio: { name: 'Rio Tietinho', dark: 0.76, city: 0.15, rural: 0.8 },
+  sitio: { name: 'Sítio Bota Fé', dark: 0.76, city: 0, rural: 1 },
+  fazenda: { name: 'Fazenda Muuuito Longe', dark: 0.76, city: 0, rural: 1 },
+  rodovia: { name: 'Rodovia BR-171', dark: 0.76, city: 0.2, rural: 0.7 },
+  mata: { name: 'Mata do Saci', dark: 0.80, city: 0, rural: 1 },
 };
 function regionKeyAt(x, y) {
   if (x < 230 || y < 230 || x > 8790 || y > 6440) return 'mata';
@@ -909,7 +909,7 @@ function downtownBlock(R, o) {
         const colonial = hh0 < 100 && chance(0.32);
         const hh = colonial ? rnd(34, 46) : hh0;
         const style = colonial ? 'colonial' : hh < 52 ? 'shop' : (chance(0.45) ? 'apart' : 'office');
-        const signs = ['AÇOUGUE', 'SORVETERIA', 'LOJA 1,99', 'SALGADOS', 'CHAVEIRO', 'ACADEMIA', 'DROGARIA', 'PASTELARIA', 'LOTÉRICA', 'BOTECO', 'CABELEIREIRO', 'CALÇADOS', 'MODAS', 'MATERIAIS', 'ÓTICA', 'BAZAR'];
+        const signs = ['AÇOUGUE BOI GORDO', 'SORVETERIA GELADÃO', 'TUDO 1,99', 'SALGADOS DA TIA', 'CHAVEIRO 25H', 'ACADEMIA BOMBADÃO', 'DROGARIA DOR-ZERO', 'PASTEL DE VENTO', 'LOTÉRICA SORTE NADA', 'BOTECO DO ZÉ', 'SALÃO CABELO DURO', 'CALÇADOS PÉ DE BOI', 'MODAS ARRASA', 'MATERIAIS DO BAIANO', 'ÓTICA VÊ BEM', 'BAZAR DA FÉ', 'LAN HOUSE 2005', 'CAFÉ COM PROSA'];
         const cols2 = ['#ff5f7a', '#59e0ff', '#ffd24a', '#5be38f', '#c56bff', '#ff8a3d'];
         const b = addBuilding(px0 + il + rnd(0, 4), py0 + it + rnd(0, 4), px1 - ir - rnd(0, 4), py1 - ib - rnd(0, 4), hh, {
           style, front, roofType: colonial ? 'hip' : 'flat', roofColor: colonial ? pick(ROOF_TILE) : pick(['#6f6d6a', '#7d7a74', '#5f5e5b', '#85817a']),
@@ -949,12 +949,12 @@ function industrialBlock(R, o) {
 }
 
 /* ---------- quarteirões especiais ---------- */
-function hwV(x) { return x === 2100 ? 75 : 38; }
-function hwH(y) { return (y === 1500 || y === 3880) ? 75 : 38; }
+function hwV(x) { return x === 2100 ? RT.avenue.w / 2 : RT.street.w / 2; }
+function hwH(y) { return (y === 1500 || y === 3880) ? RT.avenue.w / 2 : RT.street.w / 2; }
 function cellRect(c, r) { return { x0: XS[c] + hwV(XS[c]) + 22, x1: XS[c + 1] - hwV(XS[c + 1]) - 22, y0: YS[r] + hwH(YS[r]) + 22, y1: YS[r + 1] - hwH(YS[r + 1]) - 22 }; }
 const NAMES_H = {}, NAMES_V = {};
 function cellRoads(c, r) {
-  const mk = (name, hw) => ({ name, hw, lane: hw > 50 ? 57 : 19 });
+  const mk = (name, hw) => ({ name, hw, lane: hw > 60 ? RT.avenue.lanes[1] : RT.street.lanes[0] });
   return {
     N: mk(NAMES_H[YS[r]], hwH(YS[r])), S: mk(NAMES_H[YS[r + 1]], hwH(YS[r + 1])),
     W: mk(NAMES_V[XS[c]], hwV(XS[c])), E: mk(NAMES_V[XS[c + 1]], hwV(XS[c + 1])),
@@ -1054,13 +1054,13 @@ function gasStation(R, o) {
 function oficinaBlock(R) {
   decal(R.x0, R.y0, R.x1, R.y1, 'gravel');
   decal(R.x0, R.y0, R.x0 + 260, R.y0 + 60, 'concrete');
-  const b = addBuilding(R.x0 + 20, R.y0 + 60, R.x0 + 240, R.y0 + 200, 38, { style: 'workshop', front: 'N', roofType: 'corrugated', roofColor: '#4d6b86', wall: '#d9d2c0', lit: 0.8, sign: 'OFICINA DOIS IRMÃOS', signColor: '#ffb547' });
+  const b = addBuilding(R.x0 + 20, R.y0 + 60, R.x0 + 240, R.y0 + 200, 38, { style: 'workshop', front: 'N', roofType: 'corrugated', roofColor: '#4d6b86', wall: '#d9d2c0', lit: 0.8, sign: 'DOIS IRMÃOS E MEIO', signColor: '#ffb547' });
   addLight(R.x0 + 130, R.y0 + 40, 140, 1, 'white', { shop: true });
   for (let i = 0; i < 4; i++) addProp('tires', R.x0 + 262 + i * 18, R.y0 + 90 + (i % 2) * 22, { col: 'circ', cr: 8 });
   addParkedCar(R.x0 + 60, R.y0 + 30, 0, 'sedan', '#5a5a5a');
   addParkedCar(R.x0 + 190, R.y0 + 28, Math.PI, 'hatch', '#8a3b2a');
   industrialBlock({ x0: R.x0 + 280, y0: R.y0, x1: R.x1, y1: R.y1 }, { noTrucks: true });
-  return addShop({ kind: 'oficina', name: 'Oficina Dois Irmãos', x: R.x0 + 130, y: YS[1] + 19, bld: b, color: '#ffb547', region: 'industrial', pickup: true, items: ['Peças de motor', 'Bateria nova', 'Jogo de pneus'] });
+  return addShop({ kind: 'oficina', name: 'Oficina Dois Irmãos e Meio', x: R.x0 + 130, y: YS[1] + RT.street.lanes[0], bld: b, color: '#ffb547', region: 'industrial', pickup: true, items: ['Peças de motor', 'Bateria nova', 'Jogo de pneus'] });
 }
 function waterTowerBlock(R) {
   industrialBlock({ x0: R.x0, y0: R.y0, x1: R.x1, y1: R.y0 + 250 }, {});
@@ -1148,21 +1148,21 @@ function shopLotBuilder(def) { return (F, ro) => shopBuilding(F, def, ro); }
 /* ---------- construção da cidade ---------- */
 function buildCity() {
   for (const r of ROADS) { if (r.h && r.x1 < 4700) NAMES_H[r.y] = r.name; if (!r.h && r.y1 < 1000) NAMES_V[r.x] = r.name; }
-  NAMES_V[4600] = 'Rua Beira-Rio';
+  NAMES_V[4600] = 'Rua Beira-Rio Sem Peixe';
   const SPECIAL = {
     '2,1': 'plaza', '3,1': 'parking', '4,2': 'posto', '5,1': 'oficina', '5,3': 'tower', '0,5': 'soccer', '3,7': 'school',
   };
   const shopsDowntown = {
-    '1,2': { 0: { kind: 'pizzaria', name: 'Pizzaria Forno a Lenha', sign: 'PIZZARIA', color: '#ff5f3d', h: 32, pickup: true, items: ['Pizza grande', 'Pizza de calabresa', 'Esfihas'], tables: true }, 3: { kind: 'farmacia', name: 'Farmácia Saúde Já', sign: 'FARMÁCIA', color: '#3dff8a', h: 34, pickup: true, items: ['Remédios', 'Encomenda da farmácia'] } },
-    '0,0': { 1: { kind: 'hotel', name: 'Hotel Estrela da Manhã', sign: 'HOTEL', color: '#c56bff', h: 70, wall: '#c9c2b4' } },
+    '1,2': { 0: { kind: 'pizzaria', name: 'Pizzaria Mamma Mia, Sô', sign: 'PIZZARIA', color: '#ff5f3d', h: 32, pickup: true, items: ['Pizza grande', 'Pizza de calabresa', 'Esfihas'], tables: true }, 3: { kind: 'farmacia', name: 'Farmácia Dorme Bem', sign: 'FARMÁCIA', color: '#3dff8a', h: 34, pickup: true, items: ['Remédios', 'Encomenda da farmácia'] } },
+    '0,0': { 1: { kind: 'hotel', name: 'Hotel Dorme e Acorda', sign: 'HOTEL', color: '#c56bff', h: 70, wall: '#c9c2b4' } },
   };
   const resSpecial = {
     '1,4': { side: 'N', w: 186, build: homeLot },
-    '2,4': { side: 'N', w: 150, build: shopLotBuilder({ kind: 'padaria', name: 'Padaria Pão Quente', sign: 'PADARIA', color: '#ffc24a', h: 32, depth: 100, pickup: true, items: ['Bolo de aniversário', 'Pães e frios', 'Encomenda de salgados'], tables: true }) },
-    '0,4': { side: 'N', w: 160, build: shopLotBuilder({ kind: 'mercado', name: 'Mercadinho Bom Preço', sign: 'MERCADINHO', color: '#ff7a3d', h: 32, depth: 105, pickup: true, items: ['Compras do mês', 'Caixa de bebidas', 'Sacolas de compras'] }) },
-    '4,6': { side: 'N', w: 150, build: shopLotBuilder({ kind: 'lanchonete', name: 'Lanchonete do Bigode', sign: 'LANCHES', color: '#ff4f8a', h: 30, depth: 95, pickup: true, items: ['X-tudo e batata', 'Pastéis', 'Lanches para a turma'], tables: true }) },
-    '2,6': { side: 'N', w: 140, build: shopLotBuilder({ kind: 'bar', name: 'Bar do Toninho', sign: 'BAR DO TONINHO', color: '#ffd24a', h: 28, depth: 90, tables: true }) },
-    '5,5': { side: 'W', w: 150, build: shopLotBuilder({ kind: 'floricultura', name: 'Floricultura Primavera', sign: 'FLORES', color: '#ff8ad8', h: 30, depth: 96, pickup: true, items: ['Buquê de rosas', 'Arranjo de flores'] }) },
+    '2,4': { side: 'N', w: 150, build: shopLotBuilder({ kind: 'padaria', name: 'Padaria Pão-Duro', sign: 'PADARIA', color: '#ffc24a', h: 32, depth: 100, pickup: true, items: ['Bolo de aniversário', 'Pães e frios', 'Encomenda de salgados'], tables: true }) },
+    '0,4': { side: 'N', w: 160, build: shopLotBuilder({ kind: 'mercado', name: 'Mercadinho Leva Tudo', sign: 'MERCADINHO', color: '#ff7a3d', h: 32, depth: 105, pickup: true, items: ['Compras do mês', 'Caixa de bebidas', 'Sacolas de compras'] }) },
+    '4,6': { side: 'N', w: 150, build: shopLotBuilder({ kind: 'lanchonete', name: 'Lanchonete X-Tudo do Bigode', sign: 'LANCHES', color: '#ff4f8a', h: 30, depth: 95, pickup: true, items: ['X-tudo e batata', 'Pastéis', 'Lanches para a turma'], tables: true }) },
+    '2,6': { side: 'N', w: 140, build: shopLotBuilder({ kind: 'bar', name: 'Boteco Saideira do Toninho', sign: 'SAIDEIRA', color: '#ffd24a', h: 28, depth: 90, tables: true }) },
+    '5,5': { side: 'W', w: 150, build: shopLotBuilder({ kind: 'floricultura', name: 'Floricultura Rosa Choque', sign: 'FLORES', color: '#ff8ad8', h: 30, depth: 96, pickup: true, items: ['Buquê de rosas', 'Arranjo de flores'] }) },
   };
   for (let c = 0; c < 7; c++) for (let r = 0; r < 8; r++) {
     const R = cellRect(c, r), k = c + ',' + r;
@@ -1172,7 +1172,7 @@ function buildCity() {
     if (sp === 'plaza') plazaChurch(R);
     else if (sp === 'parking') parkingLot(R);
     else if (sp === 'posto') {
-      gasStation({ x0: R.x0, y0: R.y0, x1: R.x0 + 300, y1: R.y1 }, { name: 'Posto Centro', color: '#ff3d3d', front: 'S', canopy: [R.x0 + 40, R.y0 + 40, R.x0 + 260, R.y0 + 190], store: [R.x0 + 34, R.y1 - 120, R.x0 + 180, R.y1 - 14], wash: [R.x0 + 196, R.y1 - 120, R.x0 + 286, R.y1 - 14], totem: [R.x0 + 14, R.y0 + 14], region: 'centro' });
+      gasStation({ x0: R.x0, y0: R.y0, x1: R.x0 + 300, y1: R.y1 }, { name: 'Posto Tanque Cheio', color: '#ff3d3d', front: 'S', canopy: [R.x0 + 40, R.y0 + 40, R.x0 + 260, R.y0 + 190], store: [R.x0 + 34, R.y1 - 120, R.x0 + 180, R.y1 - 14], wash: [R.x0 + 196, R.y1 - 120, R.x0 + 286, R.y1 - 14], totem: [R.x0 + 14, R.y0 + 14], region: 'centro' });
       downtownBlock({ x0: R.x0 + 300, y0: R.y0, x1: R.x1, y1: R.y1 }, { roads, region, cols: 1 });
     }
     else if (sp === 'oficina') oficinaBlock(R);
@@ -1282,6 +1282,39 @@ function buildRoadProps() {
           const ph = { kind: 'phone', x: px, y: py, h: 24, col: chance(0.7) ? '#ff8c1a' : '#2f7fd6' };
           addTall(ph, px - 14, py - 30, px + 14, py + 14); addCircCol(px, py, 4, 'pole');
         } else addProp(chance(0.7) ? 'bin' : 'hydrant', px, py, { col: 'circ', cr: 4, R: 8 });
+      }
+    }
+    // pedestres nas calçadas
+    if (T.sw) {
+      const mx = e.h ? (e.a.x + e.b.x) / 2 : e.a.x, my = e.h ? e.a.y : (e.a.y + e.b.y) / 2;
+      const rk = regionKeyAt(mx, my);
+      const per = rk === 'centro' ? 120 : rk === 'vila' ? 170 : 230;
+      const s0 = e.perpA + 8, s1 = e.len - e.perpB - 8;
+      if (s1 - s0 > 60) for (const sd of [1, -1]) {
+        const o = e.hw + T.sw * 0.5;
+        const ax = e.a.x + e.dx * s0 + nx * o * sd, ay = e.a.y + e.dy * s0 + ny * o * sd;
+        const bx = e.a.x + e.dx * s1 + nx * o * sd, by = e.a.y + e.dy * s1 + ny * o * sd;
+        const rect = [Math.min(ax, bx) - (e.h ? 0 : 5), Math.min(ay, by) - (e.h ? 5 : 0), Math.max(ax, bx) + (e.h ? 0 : 5), Math.max(ay, by) + (e.h ? 5 : 0)];
+        World.animalsDef.push({ type: 'person', n: Math.max(1, Math.round((s1 - s0) / per * rnd(0.6, 1.3))), rect });
+      }
+    }
+    // radar (pardal) nas avenidas e na rodovia
+    if ((T.id === 'avenue' || T.id === 'highway') && e.len > 450 && chance(0.32)) {
+      const s = e.len * 0.5, sd = 1, o = e.hw + (T.sw ? T.sw * 0.5 : 10);
+      const px = e.a.x + e.dx * s + nx * o * sd, py = e.a.y + e.dy * s + ny * o * sd;
+      if (!areaBlocked(px - 5, py - 5, px + 5, py + 5)) {
+        const lim = T.id === 'avenue' ? 80 : 110;
+        const rd = { kind: 'radar', x: px, y: py, h: 40, lim, last: -99 };
+        addTall(rd, px - 30, py - 30, px + 30, py + 30); addCircCol(px, py, 3, 'pole');
+        const cx = e.a.x + e.dx * s, cy = e.a.y + e.dy * s;
+        World.radars.push({ obj: rd, lim, x0: e.h ? cx - 22 : cx - e.hw, x1: e.h ? cx + 22 : cx + e.hw, y0: e.h ? cy - e.hw : cy - 22, y1: e.h ? cy + e.hw : cy + 22 });
+        const tx = cx - nx * e.hw * 0.5, ty = cy - ny * e.hw * 0.5;
+        bake(cx - 60, cy - 60, cx + 60, cy + 60, 5.5, (g) => {
+          g.save(); g.translate(cx - e.dx * 70 + nx * e.hw * 0.5, cy - e.dy * 70 + ny * e.hw * 0.5); g.rotate(Math.atan2(e.dy, e.dx) + Math.PI / 2);
+          g.fillStyle = 'rgba(235,235,225,0.7)'; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(lim), 0, 0); g.restore();
+          g.save(); g.translate(cx + e.dx * 70 + -nx * e.hw * 0.5, cy + e.dy * 70 - ny * e.hw * 0.5); g.rotate(Math.atan2(e.dy, e.dx) - Math.PI / 2);
+          g.fillStyle = 'rgba(235,235,225,0.7)'; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(lim), 0, 0); g.restore();
+        });
       }
     }
     // pontos de ônibus nas avenidas
@@ -1409,7 +1442,7 @@ function buildRural() {
   World.animalsDef.push({ type: 'chicken', n: 9, rect: [8300, 1130, 8460, 1280] });
   World.animalsDef.push({ type: 'cow', n: 4, rect: [7600, 1320, 8600, 1420] });
   World.animalsDef.push({ type: 'dog', n: 1, rect: [7860, 1110, 8120, 1280] });
-  addShop({ kind: 'sitio', name: 'Sítio Boa Vista', x: 7970, y: 880 + 15, color: '#9be36a', region: 'sitio', pickup: true, items: ['Ovos caipiras', 'Queijo minas', 'Caixa de verduras'] });
+  addShop({ kind: 'sitio', name: 'Sítio Bota Fé', x: 7970, y: 880 + 15, color: '#9be36a', region: 'sitio', pickup: true, items: ['Ovos caipiras', 'Queijo minas', 'Caixa de verduras'] });
   // pasto grande
   decal(6340, 1540, 7460, 3840, 'pasture');
   fenceRect(6380, 1580, 7420, 3800, [{ side: 'E', at: 2400, w: 60 }, { side: 'W', at: 3200, w: 60 }], 'wood');
@@ -1431,7 +1464,7 @@ function buildRural() {
   decal(7900, 4250, 8460, 4940, 'earth');
   decal(8050, 3913, 8100, 4260, 'earth');
   for (let y = 3980; y < 4240; y += 46) { addTree(8030, y, 'palm', 1.1, { force: true }); addTree(8122, y, 'palm', 1.1, { force: true }); }
-  addBuilding(7950, 4300, 8200, 4460, 36, { style: 'farmhouse', roofType: 'hip', roofColor: '#b0532e', wall: '#f4efe2', lit: 0.75, front: 'N', sign: 'FAZENDA SANTA LUZIA', signColor: '#ffd24a' });
+  addBuilding(7950, 4300, 8200, 4460, 36, { style: 'farmhouse', roofType: 'hip', roofColor: '#b0532e', wall: '#f4efe2', lit: 0.75, front: 'N', sign: 'FAZENDA MUUUITO LONGE', signColor: '#ffd24a' });
   addLight(8075, 4280, 150, 0.9, 'warm');
   fenceRect(8300, 4000, 8600, 4240, [{ side: 'W', at: 4120, w: 40 }], 'wood');
   World.animalsDef.push({ type: 'horse', n: 4, rect: [8320, 4020, 8580, 4220] });
@@ -1446,7 +1479,7 @@ function buildRural() {
   World.animalsDef.push({ type: 'chicken', n: 7, rect: [7920, 4480, 8200, 4600] });
   World.animalsDef.push({ type: 'cow', n: 6, rect: [7600, 3960, 7880, 4900] });
   World.animalsDef.push({ type: 'dog', n: 1, rect: [7950, 4470, 8250, 4650] });
-  addShop({ kind: 'fazenda', name: 'Fazenda Santa Luzia', x: 8075, y: 3880 + 15, color: '#ffd24a', region: 'fazenda', pickup: true, items: ['Leite fresco', 'Queijo da fazenda', 'Doce de leite'] });
+  addShop({ kind: 'fazenda', name: 'Fazenda Muuuito Longe', x: 8075, y: 3880 + 15, color: '#ffd24a', region: 'fazenda', pickup: true, items: ['Leite fresco', 'Queijo da fazenda', 'Doce de leite'] });
   // açude
   decal(6340, 3920, 7460, 4280, 'soy');
   bake(6600, 4380, 7200, 4800, 2, (g) => drawPond(g, 6900, 4590, 230, 150));
@@ -1488,32 +1521,32 @@ function buildRural() {
   }
 }
 function buildHighwayStrip() {
-  const y0 = 5360, y1 = 6108;
+  const y0 = 5368, y1 = 6102;
   // chácaras
-  decal(360, y0, 1390, y1, 'lawn');
+  decal(368, y0, 1382, y1, 'lawn');
   for (const [x0, x1] of [[380, 700], [760, 1100]]) {
     const F = lotFrame(x0, y0, x1, y0 + 220, 'N');
-    houseLot(F, { rich: true, back: true, lastLot: true, street: 'Rua da Esperança', roadHW: 38, laneOff: 19, region: 'rodovia' });
+    houseLot(F, { rich: true, back: true, lastLot: true, street: 'Rua da Esperança Equilibrista', roadHW: RT.street.w / 2, laneOff: RT.street.lanes[0], region: 'rodovia' });
   }
-  scatterTrees(380, 5600, 1380, 6080, 14, ['mango', 'round', 'palm', 'pine']);
-  // Posto Estrela
-  decal(1510, y0, 2003, y1, 'lawn');
-  World.posto2 = gasStation({ x0: 1510, y0: 5760, x1: 2003, y1: y1 }, { name: 'Posto Estrela', color: '#ffb000', front: 'N', canopy: [1580, 5920, 1880, 6070], store: [1560, 5780, 1760, 5880], totem: [1990, 6090], region: 'rodovia' });
-  decal(1510, y0 + 20, 2003, 5740, 'paved');
+  scatterTrees(385, 5600, 1370, 6080, 14, ['mango', 'round', 'palm', 'pine']);
+  // Posto Estrela Cadente
+  decal(1518, y0, 1992, y1, 'lawn');
+  World.posto2 = gasStation({ x0: 1518, y0: 5760, x1: 1992, y1: y1 }, { name: 'Posto Estrela Cadente', color: '#ffb000', front: 'N', canopy: [1580, 5920, 1880, 6070], store: [1560, 5780, 1760, 5880], totem: [1978, 6086], region: 'rodovia' });
+  decal(1518, y0 + 20, 1992, 5740, 'paved');
   const sx0 = 1540, SW = 34;
   bake(sx0, 5400, sx0 + 13 * SW, 5470, 6, (g) => { g.strokeStyle = 'rgba(240,240,230,0.7)'; g.lineWidth = 2; g.beginPath(); for (let i = 0; i <= 13; i++) { g.moveTo(sx0 + i * SW, 5400); g.lineTo(sx0 + i * SW, 5470); } g.moveTo(sx0, 5400); g.lineTo(sx0 + 13 * SW, 5400); g.stroke(); });
   for (let i = 0; i < 13; i++) {
     const x = sx0 + i * SW + SW / 2;
-    if (i === 3 || i === 9) { World.parkSpots.push({ id: 'estrela_' + i, name: 'Pátio do Posto Estrela', x, y: 5435, a: -Math.PI / 2, w: SW, l: 62, reward: 200 }); continue; }
+    if (i === 3 || i === 9) { World.parkSpots.push({ id: 'estrela_' + i, name: 'Pátio do Posto Estrela Cadente', x, y: 5435, a: -Math.PI / 2, w: SW, l: 62, reward: 200 }); continue; }
     if (chance(0.5)) addParkedCar(x, 5435, -Math.PI / 2, randomCarModel(), pick(CAR_COLORS));
   }
   for (let i = 0; i < 3; i++) addParkedCar(1620 + i * 120, 5640, 0, 'truck', pick(['#d8d8d8', '#c43d2e', '#2c5d9c', '#e0a020']));
   addLamp(1700, 5520, 1700, 5520, 'white', { style: 'pole', h: 64, r: 200 });
   addLamp(1900, 5520, 1900, 5520, 'white', { style: 'pole', h: 64, r: 200 });
   // churrascaria
-  decal(2197, y0, 3890, y1, 'lawn');
+  decal(2208, y0, 3883, y1, 'lawn');
   decal(2600, 5780, 3100, y1, 'paved');
-  const chb = addBuilding(2680, 5790, 3000, 5930, 34, { style: 'shop', front: 'S', roofType: 'hip', roofColor: '#8a3a22', wall: '#e8d2a8', lit: 0.9, sign: 'CHURRASCARIA RODEIO', signColor: '#ff5f3d' });
+  const chb = addBuilding(2680, 5790, 3000, 5930, 34, { style: 'shop', front: 'S', roofType: 'hip', roofColor: '#8a3a22', wall: '#e8d2a8', lit: 0.9, sign: 'BOI NA BRASA', signColor: '#ff5f3d' });
   addLight(2840, 5950, 160, 0.9, 'warm', { shop: true });
   const cx0 = 2620;
   bake(cx0, 5990, cx0 + 14 * 34, 6060, 6, (g) => { g.strokeStyle = 'rgba(240,240,230,0.7)'; g.lineWidth = 2; g.beginPath(); for (let i = 0; i <= 14; i++) { g.moveTo(cx0 + i * 34, 5990); g.lineTo(cx0 + i * 34, 6060); } g.moveTo(cx0, 5990); g.lineTo(cx0 + 14 * 34, 5990); g.stroke(); });
@@ -1524,19 +1557,19 @@ function buildHighwayStrip() {
   }
   addLamp(2760, 5970, 2760, 5970, 'sodium', { style: 'pole', h: 60, r: 180 });
   addLamp(3000, 5970, 3000, 5970, 'sodium', { style: 'pole', h: 60, r: 180 });
-  addShop({ kind: 'churrascaria', name: 'Churrascaria Rodeio', x: 2840, y: 6200 - 21, bld: chb, color: '#ff5f3d', region: 'rodovia', pickup: true, items: ['Marmitas de churrasco', 'Encomenda de carnes'] });
-  scatterTrees(2220, 5400, 2580, 6080, 8, ['mango', 'round', 'pine']);
-  scatterTrees(3150, 5400, 3880, 6080, 12, ['mango', 'round', 'pine', 'palm']);
+  addShop({ kind: 'churrascaria', name: 'Churrascaria Boi na Brasa', x: 2840, y: 6200 - 21, bld: chb, color: '#ff5f3d', region: 'rodovia', pickup: true, items: ['Marmitas de churrasco', 'Encomenda de carnes'] });
+  scatterTrees(2230, 5400, 2580, 6080, 8, ['mango', 'round', 'pine']);
+  scatterTrees(3150, 5400, 3870, 6080, 12, ['mango', 'round', 'pine', 'palm']);
   // borracharia
-  decal(4010, y0, 4540, y1, 'lawn');
+  decal(4017, y0, 4533, y1, 'lawn');
   decal(4100, 5940, 4400, y1, 'gravel');
   const bb = addBuilding(4150, 5960, 4330, 6060, 26, { style: 'shop', front: 'S', roofType: 'corrugated', roofColor: '#6a6a60', wall: '#d4cdb4', lit: 0.9, sign: 'BORRACHARIA 24H', signColor: '#ffd24a' });
   for (let i = 0; i < 5; i++) addProp('tires', 4120 + i * 22, 6080, { col: 'circ', cr: 8 });
   addLight(4240, 6080, 120, 0.9, 'warm', { shop: true });
-  addShop({ kind: 'borracharia', name: 'Borracharia 24h', x: 4240, y: 6200 - 21, bld: bb, color: '#ffd24a', region: 'rodovia' });
-  scatterTrees(4030, 5400, 4520, 5900, 8, ['round', 'mango', 'palm']);
+  addShop({ kind: 'borracharia', name: 'Borracharia Furou, Chamou', x: 4240, y: 6200 - 21, bld: bb, color: '#ffd24a', region: 'rodovia' });
+  scatterTrees(4035, 5400, 4515, 5900, 8, ['round', 'mango', 'palm']);
   // outdoors
-  const ads = [['PASTEL DA ESTRADA', '2 KM'], ['VIAJE COM CALMA', 'A NOITE É LONGA'], ['RÁDIO NOITE FM', '98,7'], ['CHURRASCARIA RODEIO', 'ABERTO ATÉ TARDE'], ['FAZENDA STA. LUZIA', 'QUEIJO E DOCE'], ['POSTO ESTRELA', 'ABERTO 24H']];
+  const ads = [['PASTEL DE VENTO', 'SÓ AR, SÓ R$ 2'], ['DIRIJA DE BOA, MANO', 'A NOITE É LONGA'], ['RÁDIO GAMBIARRA FM', '171,1'], ['BOI NA BRASA', 'RODÍZIO ATÉ CAIR'], ['ACADEMIA BOMBADÃO', 'O SHAPE VEM'], ['POSTO ESTRELA CADENTE', 'ABERTO 25H']];
   let ai = 0;
   for (const x of [900, 3400, 5000, 6900, 8200]) {
     const bx = x, by = x > 4700 ? 6320 : 6080;
@@ -1566,7 +1599,25 @@ function addFlags(x1, y1, x2, y2, bulbs) {
   const f = { kind: 'flags', x1, y1, x2, y2, h: 44, bulbs: !!bulbs, x: (x1 + x2) / 2, y: (y1 + y2) / 2, seed: rnd() };
   addTall(f, Math.min(x1, x2) - 20, Math.min(y1, y2) - 30, Math.max(x1, x2) + 20, Math.max(y1, y2) + 20);
 }
+function addGrill(x, y) {
+  if (areaBlocked(x - 8, y - 6, x + 8, y + 6)) return;
+  const g = { kind: 'grill', x, y, h: 10 };
+  addTall(g, x - 20, y - 20, x + 20, y + 20); addCircCol(x, y, 6, 'prop');
+  World.grills.push(g);
+  addLight(x, y, 70, 0.7, 'sodium');
+  World.animalsDef.push({ type: 'person', n: 3, rect: [x - 30, y - 8, x + 30, y + 8] });
+}
 function buildFesta() {
+  for (const s of World.shops) {
+    if (!['bar', 'lanchonete', 'churrascaria', 'mercado'].includes(s.kind)) continue;
+    const ne = nearestEdge(s.x, s.y), e = ne.e;
+    const sd = e.h ? Math.sign((s.bld ? s.bld.cy : s.y) - e.a.y) || 1 : Math.sign((s.bld ? s.bld.cx : s.x) - e.a.x) || 1;
+    const o = e.hw + (e.T.sw ? e.T.sw * 0.5 : 14);
+    if (e.h) addGrill(s.x + 70, e.a.y + sd * o); else addGrill(e.a.x + sd * o, s.y + 70);
+  }
+  { const R = cellRect(2, 1); addGrill(R.x1 - 80, R.y1 - 26); }
+  { const R = cellRect(0, 5); addGrill(XS[1] - RT.street.w / 2 - 11, (R.y0 + R.y1) / 2 + 60); }
+  addGrill(1640, 5900);
   // bandeirinhas de festa junina e gambiarras de luz perto dos comércios do bairro
   for (const s of World.shops) {
     if (!['bar', 'lanchonete', 'padaria', 'mercado', 'pizzaria', 'churrascaria'].includes(s.kind)) continue;
@@ -1586,28 +1637,28 @@ function buildActivitiesData() {
   markReflections();
   buildFesta();
   const P = (id, name, x, y, desc) => World.pois.push({ id, name, x, y, r: 170, desc });
-  P('praca', 'Praça da Matriz', 1756, 1260, 'O coração do Centro, com a fonte e a igreja.');
-  P('campo', 'Campo de Várzea', 575, 3570, 'Onde o futebol de domingo vira lenda.');
-  P('ponte', 'Ponte Velha', riverCX(3880), 3880, 'Ponte de madeira centenária sobre o Rio Claro.');
-  P('mirante', 'Mirante do Rio Claro', World.mirante.x, World.mirante.y, 'A melhor vista do rio à noite.');
-  P('fazenda', 'Fazenda Santa Luzia', 8075, 4380, 'Casarão antigo cercado de palmeiras.');
-  P('sitio', 'Sítio Boa Vista', 7970, 1050, 'Galinhas, horta e café passado na hora.');
-  P('estrela', 'Posto Estrela', 1730, 5990, 'Parada obrigatória de caminhoneiros.');
-  P('cafezal', 'Cafezal da Serra', 8100, 2420, 'Fileiras de café até onde a vista alcança.');
-  P('acude', 'Açude da Fazenda', 6900, 4590, 'Água parada, sapos e capivaras.');
+  P('praca', 'Praça da Matriz', 1756, 1260, 'O coração do Centrão, com a fonte, a igreja e o pipoqueiro.');
+  P('campo', 'Campo do Várzea F.C.', 575, 3570, 'Onde o futebol de domingo vira lenda.');
+  P('ponte', 'Ponte Que Balança', riverCX(3880), 3880, 'Ponte de madeira centenária sobre o Rio Tietinho.');
+  P('mirante', 'Mirante do Tietinho', World.mirante.x, World.mirante.y, 'A melhor vista do rio à noite.');
+  P('fazenda', 'Fazenda Muuuito Longe', 8075, 4380, 'Casarão antigo cercado de palmeiras.');
+  P('sitio', 'Sítio Bota Fé', 7970, 1050, 'Galinhas, horta e café passado na hora.');
+  P('estrela', 'Posto Estrela Cadente', 1730, 5990, 'Parada obrigatória de caminhoneiros.');
+  P('cafezal', 'Cafezal Cafeína Pura', 8100, 2420, 'Fileiras de café até onde a vista alcança.');
+  P('acude', 'Açude dos Sapos', 6900, 4590, 'Água parada, sapos e capivaras.');
   P('caixa', "Caixa d'Água", 3650, 2520, 'O ponto mais alto da cidade.');
   P('orla', 'Orla do Rio', 4720, 4300, 'Calçadão de pedras portuguesas à beira-rio.');
-  P('milharal', 'Milharal', 6900, 900, 'Um espantalho vigia o milho no escuro.');
+  P('milharal', 'Milharal do Espantalho', 6900, 900, 'Um espantalho vigia o milho no escuro.');
   P('escola', 'Escola Estadual', 2420, 4900, 'A quadra iluminada da escola do bairro.');
-  P('rodeio', 'Churrascaria Rodeio', 2840, 5900, 'Picanha na brasa até de madrugada.');
+  P('rodeio', 'Churrascaria Boi na Brasa', 2840, 5900, 'Picanha na brasa até de madrugada.');
   const R = (id, name, desc, pts) => {
     let len = 0;
     for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
     World.races.push({ id, name, desc, start: pts[0], pts: pts.slice(1), len, gold: len / 270, silver: len / 220, bronze: len / 170, a0: Math.atan2(pts[1][1] - pts[0][1], pts[1][0] - pts[0][0]) });
   };
-  R('centro', 'Volta do Centro', 'Ruas apertadas, semáforos e esquinas do Centro.', [[1720, 2080 + 19], [2700, 2099], [2719, 880], [850, 861], [831, 2080], [1450, 2099], [2081, 2099]]);
-  R('fazenda', 'Estrada da Fazenda', 'Terra, poeira e curvas entre o cafezal e a fazenda.', [[6319, 2300], [6319, 3880], [7500, 3895], [7515, 1500], [8700, 1519], [8719, 3880], [8719, 4900]]);
-  R('rodovia', 'Rodovia Noturna', 'Reta longa, caminhões e a ponte sobre o Rio Claro.', [[700, 6200 + 21], [2100, 6221], [4600, 6221], [6300, 6221], [8681, 6221], [8681, 4600]]);
+  R('centro', 'Volta no Centrão', 'Ruas apertadas, semáforos e esquinas do Centro.', [[1720, 2080 + 19], [2700, 2099], [2719, 880], [850, 861], [831, 2080], [1450, 2099], [2081, 2099]]);
+  R('fazenda', 'Rali da Vaca Atolada', 'Terra, poeira e curvas entre o cafezal e a fazenda.', [[6319, 2300], [6319, 3880], [7500, 3895], [7515, 1500], [8700, 1519], [8719, 3880], [8719, 4900]]);
+  R('rodovia', 'Corujão na BR-171', 'Reta longa, caminhões e a ponte sobre o Rio Tietinho.', [[700, 6200 + 21], [2100, 6221], [4600, 6221], [6300, 6221], [8681, 6221], [8681, 4600]]);
 }
 
 /* ---------- superfícies de rua (raster físico + itens de bake) ---------- */
@@ -2225,6 +2276,7 @@ function drawAwning(g, r, color, front) {
 const VMODELS = {
   hatch: { id: 'hatch', L: 44, W: 22, ws: 0.20, rf: 0.06, rr: -0.30, rw: -0.43, nose: 6, tail: 5, kind: 'car' },
   sedan: { id: 'sedan', L: 50, W: 23, ws: 0.17, rf: 0.02, rr: -0.20, rw: -0.32, nose: 6, tail: 5, kind: 'car' },
+  police: { id: 'police', L: 50, W: 23, ws: 0.17, rf: 0.02, rr: -0.20, rw: -0.32, nose: 6, tail: 5, kind: 'car', police: true },
   taxi: { id: 'taxi', L: 50, W: 23, ws: 0.17, rf: 0.02, rr: -0.20, rw: -0.32, nose: 6, tail: 5, kind: 'car', taxi: true },
   pickup: { id: 'pickup', L: 52, W: 24, ws: 0.25, rf: 0.13, rr: -0.07, rw: -0.10, nose: 5, tail: 3, kind: 'car', bed: -0.12 },
   van: { id: 'van', L: 48, W: 24, ws: 0.45, rf: 0.37, rr: -0.44, rw: -0.47, nose: 10, tail: 6, kind: 'car', van: true },
@@ -2387,6 +2439,13 @@ function drawCar(ctx, m, color, o) {
   }
   if (m.spoiler) { ctx.fillStyle = '#151517'; ctx.fillRect(-hl + 1.2, -hw + 1, 3, W - 2); }
   if (m.chrome) { ctx.fillStyle = shade(color, -0.3); ctx.fillRect(ws + 3, -3.5, hl - ws - 7, 7); ctx.fillStyle = '#222'; ctx.fillRect(ws + 5, -2, 4, 4); }
+  if (m.police) {
+    ctx.fillStyle = '#1d3a7a'; ctx.fillRect(rw, -hw + 0.4, ws - rw, 3.2); ctx.fillRect(rw, hw - 3.6, ws - rw, 3.2);
+    ctx.fillStyle = '#1d3a7a'; ctx.fillRect(hl - 9, -4, 5, 8);
+    const mid = (rr + rf) / 2;
+    ctx.fillStyle = '#222'; ctx.fillRect(mid - 2.5, -7 + lean, 5, 14);
+    ctx.fillStyle = '#ff2a2a'; ctx.fillRect(mid - 2, -6.5 + lean, 4, 6); ctx.fillStyle = '#2a6aff'; ctx.fillRect(mid - 2, 0.5 + lean, 4, 6);
+  }
   if (m.taxi) {
     ctx.fillStyle = '#f2c230'; ctx.fillRect((rr + rf) / 2 - 3, -5 + lean, 6, 10);
     ctx.fillStyle = '#2a2a2a'; ctx.fillRect((rr + rf) / 2 - 1, -4 + lean, 2, 8);
@@ -2673,7 +2732,7 @@ class Player {
     const sp = Math.abs(vf);
     const f0 = Profile.fuel;
     Profile.fuel = Math.max(0, Profile.fuel - (0.022 + this.thr * 0.16 * (0.4 + Math.min(1, sp / 400) * 0.6)) * this.car.fuel * dt);
-    if (f0 > 15 && Profile.fuel <= 15) toast('Combustível na reserva', 'Procure um posto: Posto Centro ou Posto Estrela, na rodovia.', 'bad');
+    if (f0 > 15 && Profile.fuel <= 15) toast('Combustível na reserva', 'Procure um posto: Posto Tanque Cheio, no Centrão, ou Posto Estrela Cadente, na BR-171.', 'bad');
     if (f0 > 0 && Profile.fuel <= 0) toast('Tanque vazio!', 'O motor engasga, mas ainda dá para chegar devagar a um posto.', 'bad');
     Profile.dirt = clamp(Profile.dirt + surf.dirt * dt * clamp(sp / 200, 0, 1.5), 0, 1);
     Profile.distance += sp * dt;
@@ -2826,10 +2885,10 @@ function wpick(list) {
 function trafficModelFor(e) {
   switch (e.T.id) {
     case 'dirt': return wpick([['pickup', 4], ['hatch', 3], ['tractor', 1.6], ['sedan', 1], ['van', 1]]);
-    case 'highway': return wpick([['truck', 4], ['bus', 1.2], ['sedan', 3], ['hatch', 2.5], ['pickup', 2], ['van', 0.8], ['sport', 0.4]]);
+    case 'highway': return wpick([['truck', 4], ['bus', 1.2], ['sedan', 3], ['hatch', 2.5], ['pickup', 2], ['van', 0.8], ['sport', 0.4], ['police', 0.5]]);
     case 'road': return wpick([['pickup', 3], ['hatch', 3], ['sedan', 2], ['truck', 1.5], ['van', 1]]);
-    case 'avenue': return wpick([['hatch', 4], ['sedan', 3.5], ['taxi', 1.5], ['bus', 1.1], ['pickup', 1.2], ['van', 1], ['sport', 0.5], ['truck', 0.4], ['moto', 1.8]]);
-    default: return wpick([['hatch', 5], ['sedan', 3], ['taxi', 1], ['pickup', 1.5], ['van', 1.2], ['sport', 0.5], ['moto', 2.2]]);
+    case 'avenue': return wpick([['hatch', 4], ['sedan', 3.5], ['taxi', 1.5], ['bus', 1.1], ['pickup', 1.2], ['van', 1], ['sport', 0.5], ['truck', 0.4], ['moto', 1.8], ['police', 0.6]]);
+    default: return wpick([['hatch', 5], ['sedan', 3], ['taxi', 1], ['pickup', 1.5], ['van', 1.2], ['sport', 0.5], ['moto', 2.2], ['police', 0.35]]);
   }
 }
 class AICar {
@@ -2837,7 +2896,7 @@ class AICar {
     this.id = Traffic.idc++;
     this.m = VMODELS[model]; this.model = model;
     this.big = model === 'truck' || model === 'bus';
-    this.color = model === 'taxi' ? '#f2f2ee' : model === 'bus' ? pick(['#2a6fd1', '#d13a2a', '#1f9a5a', '#e0a020']) : model === 'tractor' ? pick(['#2e8b3a', '#c0392b', '#2e5fae']) : pick(CAR_COLORS);
+    this.color = model === 'taxi' || model === 'police' ? '#f2f2ee' : model === 'bus' ? pick(['#2a6fd1', '#d13a2a', '#1f9a5a', '#e0a020']) : model === 'tractor' ? pick(['#2e8b3a', '#c0392b', '#2e5fae']) : pick(CAR_COLORS);
     this.box = pick(['#d9d6cc', '#e8e8e8', '#c9c3b5', '#d07a2a', '#5a7aa0']);
     this.mass = this.big ? 6 : model === 'tractor' ? 3 : model === 'moto' ? 0.7 : 1.6;
     this.vmax = model === 'truck' ? 235 : model === 'bus' ? 190 : model === 'tractor' ? 70 : model === 'van' ? 205 : 1e9;
@@ -2866,6 +2925,7 @@ class AICar {
     this.sEnd = Math.max(this.sStart, e.len - (dir > 0 ? e.clearB : e.clearA));
     this.cruise = Math.min(e.T.speed * this.mul, this.vmax);
     this.committed = false;
+    this.offT = this.off; this.overtake = 0; this.lcBlink = 0;
   }
   edgePos(s) { return [this.from.x + this.dx * s - this.dy * this.off, this.from.y + this.dy * s + this.dx * this.off]; }
   allowed(e) {
@@ -2892,8 +2952,43 @@ class AICar {
     this.next = { e: ne, dir: nd, lane };
     this.blink = this.turnType === 'right' ? 1 : this.turnType === 'left' || this.turnType === 'uturn' ? -1 : 0;
   }
+  exitBlocked() {
+    const N = this.next;
+    for (const o of Traffic.cars) {
+      if (o === this || o.state !== 'edge' || o.e !== N.e || o.dir !== N.dir) continue;
+      if (o.s - o.sStart < this.m.L + 16 && o.v < 25) return true;
+    }
+    return false;
+  }
+  laneClear(off2, back, fwd) {
+    const nx = -this.dy, ny = this.dx;
+    const test = (ox, oy) => {
+      const al = (ox - this.x) * this.dx + (oy - this.y) * this.dy;
+      if (al < back || al > fwd) return true;
+      const lat = (ox - this.from.x) * nx + (oy - this.from.y) * ny;
+      return Math.abs(lat - off2) > 20;
+    };
+    for (const o of Traffic.cars) if (o !== this && !test(o.x, o.y)) return false;
+    if (player && Game.state !== 'menu' && !test(player.x, player.y)) return false;
+    return true;
+  }
+  tryPass() {
+    const T = this.e.T, bl = this.blocker;
+    const bv = bl === player ? player.speed : (bl.v || 0);
+    if (bv > this.cruise - 12) return;
+    if (T.lanes.length > 1 && !this.big) {
+      const L2 = 1 - this.lane, off2 = T.lanes[L2];
+      if (this.laneClear(off2, -70, 120)) { this.lane = L2; this.offT = off2; this.lcT = 3.5; }
+      else this.lcT = 0.6;
+    } else if (T.lanes.length === 1 && bl === player && this.wait > 2 && this.overtake <= 0) {
+      const off2 = -T.lanes[0];
+      if (this.laneClear(off2, -40, 280)) { this.offT = off2; this.overtake = 4; this.lcT = 6; }
+      else this.lcT = 1;
+    }
+  }
   canEnter(remain, now) {
     const n = this.to;
+    if (this.exitBlocked()) return false;
     if (n.light) {
       const st = lightState(n, this.e.h ? 'H' : 'V', now);
       const go = st === 'G' || (st === 'Y' && remain < 25);
@@ -2973,7 +3068,24 @@ class AICar {
       }
     } else target = this.turnType === 'straight' ? this.cruise : this.turnV;
     const gap = this.scanAhead();
-    if (gap < 1e9) target = Math.min(target, Math.max(0, (gap - 8) * 2.0));
+    if (gap < 1e9) {
+      const bl = this.blocker;
+      let bv = 0;
+      if (bl === player) bv = Math.max(0, player.vx * Math.cos(this.a) + player.vy * Math.sin(this.a));
+      else if (bl instanceof AICar) bv = Math.max(0, bl.v * Math.cos(bl.a - this.a));
+      target = Math.min(target, Math.max(0, bv + (gap - 14) * 1.1), Math.max(0, (gap - 6) * 3));
+    }
+    // ultrapassagem / troca de faixa
+    this.lcT = (this.lcT || 0) - dt;
+    if (this.state === 'edge' && gap < 110 && this.blocker && !(this.blocker instanceof Animal) && this.lcT <= 0 && this.sEnd - this.s > 170) this.tryPass();
+    if (this.overtake > 0) {
+      this.overtake -= dt;
+      const passed = player && ((player.x - this.x) * this.dx + (player.y - this.y) * this.dy) < -this.m.L - 10;
+      if (this.overtake <= 0 || passed || this.sEnd - this.s < 120 || !this.laneClear(this.offT, 0, 140)) { this.overtake = 0; this.offT = this.e.T.lanes[this.lane]; }
+    }
+    const dOff = this.offT - this.off;
+    this.off += clamp(dOff, -42 * dt, 42 * dt);
+    this.lcBlink = Math.abs(dOff) > 2 ? (dOff > 0 ? 1 : -1) : 0;
     if (this.hitT > 0) { this.hitT -= dt; target = 0; }
     this.ghost -= dt;
     if (this.v < 5 && target < 5) this.wait += dt; else this.wait = Math.max(0, this.wait - dt * 2);
@@ -3101,6 +3213,7 @@ const ANIMAL = {
   dog: { r: 6, walk: 38, flee: 120, scare: 120 },
   capybara: { r: 7, walk: 9, flee: 40, scare: 70 },
   owl: { r: 3, walk: 0, flee: 0, scare: 0 },
+  person: { r: 4, walk: 20, flee: 85, scare: 95 },
 };
 class Animal {
   constructor(type, rect) {
@@ -3112,7 +3225,13 @@ class Animal {
     }
     this.a = rnd(TAU); this.state = 'idle'; this.t = rnd(0, 3); this.tx = this.x; this.ty = this.y;
     this.phase = rnd(TAU); this.seed = rnd(); this.v = 0; this.onRoad = false; this.blinkT = rnd(2, 6);
-    this.col = type === 'cow' ? pick(['#ece7dc', '#ece7dc', '#8a5a3a', '#2a2420']) : type === 'horse' ? pick(['#6a4026', '#3a2618', '#d8cfc0', '#8a5a34']) : type === 'chicken' ? pick(['#f2efe6', '#b56a2a', '#3a2a1e']) : type === 'dog' ? pick(['#c98a3a', '#c98a3a', '#2a2420', '#e8e0d0', '#7a5a3a']) : '#7a5a3c';
+    if (type === 'person') {
+      this.col = chance(0.15) ? '#f7d000' : pick(['#e63946', '#3a86ff', '#2a9d8f', '#f1f1f1', '#22223b', '#ff7f11', '#8338ec', '#2bb24c', '#b5838d', '#14213d', '#d62828']);
+      this.skin = pick(['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#5a3a22', '#ffdbac']);
+      this.hair = pick(['#1a1410', '#2a1a10', '#4a2e1a', '#8a6a3a', '#d8c08a', '#1a1410']);
+      this.pants = pick(['#2b3a55', '#1d1d1f', '#5a4a3a', '#3a5a7a']);
+    }
+    this.col = this.col || (type === 'cow' ? pick(['#ece7dc', '#ece7dc', '#8a5a3a', '#2a2420']) : type === 'horse' ? pick(['#6a4026', '#3a2618', '#d8cfc0', '#8a5a34']) : type === 'chicken' ? pick(['#f2efe6', '#b56a2a', '#3a2a1e']) : type === 'dog' ? pick(['#c98a3a', '#c98a3a', '#2a2420', '#e8e0d0', '#7a5a3a']) : '#7a5a3c');
   }
   scare(px, py, hard) {
     if (this.type === 'owl') return;
@@ -3161,6 +3280,7 @@ Animals.build = function () {
 };
 Animals.update = function (dt, cx, cy) {
   for (const a of this.list) if (Math.abs(a.x - cx) < 1700 && Math.abs(a.y - cy) < 1400) a.update(dt);
+  for (const g of World.grills) if (Math.abs(g.x - cx) < 900 && Math.abs(g.y - cy) < 700 && chance(dt * 6)) Particles.emit('smoke', g.x + rnd(-4, 4), g.y + rnd(-3, 3), rnd(-6, 6), rnd(-14, -4), rnd(1.2, 2.2), 4);
   this.soundT -= dt;
   if (this.soundT <= 0 && Game.state === 'playing') {
     this.soundT = rnd(5, 11);
@@ -3177,6 +3297,17 @@ function drawAnimal(ctx, an) {
   const walk = an.v > 0 ? Math.sin(an.phase) : 0;
   const graze = an.state === 'graze';
   switch (an.type) {
+    case 'person': {
+      const sw = an.v > 0 ? Math.sin(an.phase) * 2.4 : 0;
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(1.5, 2, 4, 5, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = an.pants; ctx.fillRect(-1 + sw * 0.5, -2.6, 2.6, 1.8); ctx.fillRect(-1 - sw * 0.5, 0.8, 2.6, 1.8);
+      ctx.fillStyle = an.skin; ctx.beginPath(); ctx.arc(sw, -4.6, 1.2, 0, TAU); ctx.arc(-sw, 4.6, 1.2, 0, TAU); ctx.fill();
+      ctx.fillStyle = an.col; ctx.beginPath(); ctx.ellipse(0, 0, 2.6, 4.4, 0, 0, TAU); ctx.fill();
+      if (an.col === '#f7d000') { ctx.fillStyle = '#1f9a48'; ctx.fillRect(-2.2, -0.6, 4.4, 1.2); }
+      ctx.fillStyle = an.skin; ctx.beginPath(); ctx.arc(0.5, 0, 2.2, 0, TAU); ctx.fill();
+      ctx.fillStyle = an.hair; ctx.beginPath(); ctx.arc(0, 0, 2.3, Math.PI * 0.5, Math.PI * 1.5); ctx.fill();
+      break;
+    }
     case 'cow': case 'horse': {
       const horse = an.type === 'horse';
       const L = horse ? 13 : 13, W = horse ? 5.5 : 7.5;
@@ -3493,6 +3624,18 @@ function updateActivities(dt) {
       if (Profile.discovered.length === World.pois.length) setTimeout(() => pay(2000, 'Todos os pontos de interesse descobertos!'), 1200);
     }
   }
+  // radares (pardal)
+  for (const r of World.radars) {
+    if (p.x < r.x0 || p.x > r.x1 || p.y < r.y0 || p.y > r.y1) continue;
+    const kmh = sp * 0.3;
+    if (kmh > r.lim + 3 && Game.time - r.obj.last > 6) {
+      r.obj.last = Game.time; Cam.flash = 1;
+      AudioSys.tone(2400, 0.06, 'square', 0.06, 'ui'); AudioSys.tone(2400, 0.06, 'square', 0.06, 'ui', null, 0.1);
+      const fine = Math.min(130, Math.max(0, Math.floor(Profile.money)));
+      if (fine > 0) pay(-fine, 'Pardal! ' + Math.round(kmh) + ' km/h numa via de ' + r.lim);
+      else toast('Pardal!', 'Flagrado a ' + Math.round(kmh) + ' km/h. A multa vai chegar pelo correio…', 'bad');
+    }
+  }
   // entrega em andamento
   if (Act.delivery) {
     const d = Act.delivery;
@@ -3593,7 +3736,7 @@ function freeRoamHint() {
   const disc = Profile.discovered.length, totP = World.pois.length;
   const vis = Profile.visited.length, totV = World.shops.filter((x) => x.kind !== 'garagem').length;
   if (Profile.fuel < 22) { const s = nearestShop('posto'); return ['Combustível baixo', 'Procure um posto: ' + (s ? s.name : '') + '. Marque no mapa (M).']; }
-  if (Profile.damage > 55) return ['Carro avariado', 'Passe na Oficina Dois Irmãos, no Distrito Industrial.'];
+  if (Profile.damage > 55) return ['Carro avariado', 'Passe na Oficina Dois Irmãos e Meio, no Distrito da Gambiarra.'];
   const cheapest = CARS.filter((c) => !Profile.owned[c.id]).sort((a, b) => a.price - b.price)[0];
   const list = [
     ['Exploração livre', 'Comércios com marcador amarelo oferecem entregas. Pare em frente e aperte E.'],
@@ -3602,6 +3745,8 @@ function freeRoamHint() {
     ['Exploração livre', 'Caderneta de visitas: ' + vis + '/' + totV + ' estabelecimentos. Cada visita nova rende R$ 100.'],
     ['Exploração livre', 'Vagas marcadas em azul pagam por um estacionamento perfeito. De ré vale mais.'],
     ['Exploração livre', 'Clique no mapa (M) para traçar uma rota no GPS até qualquer lugar.'],
+    ['Exploração livre', 'Cuidado com o pardal: radares nas avenidas (80 km/h) e na BR-171 (110 km/h) multam na hora.'],
+    ['Exploração livre', 'Tem churrasquinho na esquina do boteco e forró tocando. São Gambiarra nunca dorme.'],
   ];
   if (cheapest && Profile.money >= cheapest.price) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
   return list[Act.hintI % list.length];
@@ -3655,6 +3800,7 @@ function updateCamera(dt) {
     Cam.zoom = lerp(Cam.zoom, target, 1 - Math.exp(-2.5 * dt));
   }
   Cam.shake *= Math.exp(-7 * dt);
+  Cam.flash = (Cam.flash || 0) * Math.exp(-5 * dt);
   const rk = regionKeyAt(Cam.x, Cam.y);
   let dk = REGIONS[rk].dark;
   const tm = Profile.time % 1440;
@@ -4141,6 +4287,27 @@ function drawTall(ctx, o) {
       }
       break;
     }
+    case 'grill': {
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(o.x - 7, o.y - 3, 17, 10);
+      ctx.fillStyle = '#7a7d82'; ctx.fillRect(o.x - 9, o.y - 5, 18, 10);
+      ctx.fillStyle = '#1a1a1a'; ctx.fillRect(o.x - 8, o.y - 4, 16, 8);
+      const fl = 0.6 + 0.4 * Math.sin(Game.time * 9 + o.x);
+      ctx.fillStyle = `rgba(255,${90 + fl * 60 | 0},30,0.9)`; ctx.fillRect(o.x - 7, o.y - 3, 14, 6);
+      ctx.strokeStyle = '#8a5a34'; ctx.lineWidth = 1;
+      ctx.beginPath(); for (let i = -6; i <= 6; i += 3) { ctx.moveTo(o.x + i, o.y - 7); ctx.lineTo(o.x + i, o.y + 7); } ctx.stroke();
+      ctx.fillStyle = '#5a2a1a'; for (let i = -6; i <= 6; i += 3) { ctx.fillRect(o.x + i - 1, o.y - 2.5, 2, 1.6); ctx.fillRect(o.x + i - 1, o.y + 1, 2, 1.6); }
+      ctx.fillStyle = '#333'; ctx.fillRect(o.x - 11, o.y + 5, 3, 3); ctx.fillRect(o.x + 8, o.y + 5, 3, 3);
+      break;
+    }
+    case 'radar': {
+      const [ox, oy] = offAt(o.x, o.y, o.h);
+      ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + ox, o.y + oy); ctx.stroke();
+      ctx.fillStyle = '#2a2d33'; ctx.fillRect(o.x + ox - 6, o.y + oy - 5, 12, 10);
+      ctx.fillStyle = '#0c0e12'; ctx.beginPath(); ctx.arc(o.x + ox, o.y + oy, 2.6, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#1d4fa0'; ctx.fillRect(o.x + ox - 7, o.y + oy - 14, 14, 8);
+      ctx.fillStyle = '#fff'; ctx.font = '800 6px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(o.lim), o.x + ox, o.y + oy - 10);
+      break;
+    }
     case 'phone': {
       const [ox, oy] = offAt(o.x, o.y, o.h);
       ctx.strokeStyle = '#5a5d62'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + ox, o.y + oy + 4); ctx.stroke();
@@ -4284,6 +4451,17 @@ function drawTallEmissive(ctx, o) {
     case 'billboard': {
       const [ox, oy] = offAt(o.x, o.y, o.h);
       ctx.globalAlpha = 0.35; ctx.drawImage(billboardPanel(o), o.x + ox - 50, o.y + oy - 20, 100, 40); ctx.globalAlpha = 1;
+      break;
+    }
+    case 'grill': {
+      ctx.globalAlpha = 0.5 + 0.2 * Math.sin(Game.time * 9 + o.x); ctx.drawImage(glowSprite('#ff7a2a'), o.x - 18, o.y - 18, 36, 36); ctx.globalAlpha = 1;
+      break;
+    }
+    case 'radar': {
+      const [ox, oy] = offAt(o.x, o.y, o.h);
+      ctx.drawImage(glowSprite('#ff2a2a'), o.x + ox + 3, o.y + oy - 6, 5, 5);
+      const fl = Game.time - o.last;
+      if (fl < 0.25) { ctx.globalAlpha = 1 - fl * 4; ctx.drawImage(glowSprite('#ffffff'), o.x + ox - 90, o.y + oy - 90, 180, 180); ctx.globalAlpha = 1; }
       break;
     }
     case 'flags': {
@@ -4430,13 +4608,19 @@ function emissivePass(view, talls) {
       ctx.drawImage(amber, I.fx + I.nx * s * 1.2 - 8, I.fy + I.ny * s * 1.2 - 8, 16, 16);
       ctx.drawImage(amber, I.rx + I.nx * s * 1.2 - 8, I.ry + I.ny * s * 1.2 - 8, 16, 16);
     }
+    if (c.model === 'police') {
+      const ph = Math.floor(T * 7) % 2;
+      ctx.globalAlpha = 0.95;
+      ctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), c.x - 14, c.y - 14, 28, 28);
+      ctx.globalAlpha = 0.25; ctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), c.x - 60, c.y - 60, 120, 120);
+    }
     if (c.model === 'taxi') { ctx.globalAlpha = 0.8; ctx.drawImage(amber, c.x - 7, c.y - 7, 14, 14); }
     if (c.model === 'bus') { ctx.globalAlpha = 0.6; ctx.drawImage(amber, I.fx - I.ca * 4 - 10, I.fy - I.sa * 4 - 10, 20, 20); }
   };
   for (const c of Traffic.cars) {
     if (c.x < view.x0 - 300 || c.x > view.x1 + 300 || c.y < view.y0 - 300 || c.y > view.y1 + 300) continue;
     const nearNode = c.state === 'turn' || (c.sEnd - c.s) < 150;
-    carGlow(c, c.braking || c.hitT > 0 || c.v < 3, false, nearNode ? c.blink : 0, false);
+    carGlow(c, c.braking || c.hitT > 0 || c.v < 3, false, c.lcBlink || (nearNode ? c.blink : 0), false);
   }
   if (player && Game.state !== 'menu') carGlow(player, player.braking || Keys.Space, player.rev, 0, true);
   // animais (olhos de coruja)
@@ -4593,6 +4777,7 @@ function render() {
   ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
   emissivePass(view, _talls);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (Cam.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${(Cam.flash * 0.6).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
 }
 
 /* ---------- mapa (minimapa e mapa grande) ---------- */
@@ -4683,7 +4868,7 @@ function drawBigMap() {
   bg.drawImage(MAPIMG, 0, 0, WORLD_W, WORLD_H);
   const k = dpr / s;
   bg.font = `600 ${13 * k}px "Segoe UI", Arial`; bg.textAlign = 'center'; bg.fillStyle = 'rgba(255,255,255,0.5)';
-  const labels = [['CENTRO', 1600, 1150], ['DISTRITO INDUSTRIAL', 3650, 700], ['VILA ESPERANÇA', 1150, 4100], ['JARDIM DAS PALMEIRAS', 3400, 4700], ['RIO CLARO', 5450, 5000], ['SÍTIO BOA VISTA', 7500, 2600], ['FAZENDA SANTA LUZIA', 7700, 5000], ['RODOVIA BR-NOITE', 4200, 6370]];
+  const labels = [['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO TIETINHO', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-171', 4200, 6370]];
   for (const [t, x, y] of labels) bg.fillText(t, x, y);
   if (Act.gps) { bg.strokeStyle = '#5be38f'; bg.lineWidth = 4 * k; bg.beginPath(); Act.gps.pts.forEach((p, i) => (i ? bg.lineTo(p[0], p[1]) : bg.moveTo(p[0], p[1]))); bg.stroke(); }
   const ic = (x, y, kind) => { bg.save(); bg.translate(x, y); bg.scale(k * 1.3, k * 1.3); mapIcon(bg, 0, 0, kind, 1.25); bg.restore(); };
@@ -5070,8 +5255,8 @@ function openShopDialog(s) {
     B('Melhorias e pintura', () => { Garage.sel = Profile.current; Screens.replace('screen-garage'); });
   }
   if (s.kind === 'borracharia') B('Calibrar os pneus (grátis)', () => { Profile.damage = Math.max(0, Profile.damage - 3); AudioSys.pump(); toast('Borracharia', 'Pneus calibrados. Valeu, chefe!', 'info'); closeDialog(); });
-  if (s.kind === 'bar') B('Pedir um guaraná — R$ 6', () => { Profile.money -= 6; UI.moneyDelta(-6); toast('Bar do Toninho', 'Guaraná trincando de gelado.', 'info'); closeDialog(); }, Profile.money < 6);
-  if (s.kind === 'lanchonete') B('Comer um pastel — R$ 8', () => { Profile.money -= 8; UI.moneyDelta(-8); toast('Lanchonete do Bigode', 'Pastel de carne com caldo de cana. Perfeito.', 'info'); closeDialog(); }, Profile.money < 8);
+  if (s.kind === 'bar') B('Pedir um guaraná — R$ 6', () => { Profile.money -= 6; UI.moneyDelta(-6); toast('Boteco Saideira do Toninho', 'Guaraná trincando de gelado.', 'info'); closeDialog(); }, Profile.money < 6);
+  if (s.kind === 'lanchonete') B('Comer um pastel — R$ 8', () => { Profile.money -= 8; UI.moneyDelta(-8); toast('Lanchonete X-Tudo do Bigode', 'Pastel de carne com caldo de cana. Perfeito.', 'info'); closeDialog(); }, Profile.money < 8);
   if (s.kind === 'hotel') B('Pedir uma dica de passeio ao porteiro', () => {
     const left = World.pois.filter((p) => !Profile.discovered.includes(p.id));
     if (!left.length) { toast('Porteiro', '"Você já conhece tudo por aqui!"', 'info'); closeDialog(); return; }
@@ -5328,7 +5513,7 @@ async function boot() {
   buildPatterns(); buildLightSprites();
   RNG = mulberry32(20261108);
   const steps = [
-    [buildRoadGraph, 'Traçando ruas…'], [buildRiver, 'Enchendo o Rio Claro…'], [buildRoadSurface, 'Asfaltando as avenidas…'],
+    [buildRoadGraph, 'Traçando ruas…'], [buildRiver, 'Enchendo o Rio Tietinho…'], [buildRoadSurface, 'Asfaltando as avenidas…'],
     [buildCity, 'Erguendo bairros e comércios…'], [buildHighwayStrip, 'Abrindo a rodovia…'], [buildRural, 'Plantando o interior…'],
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];

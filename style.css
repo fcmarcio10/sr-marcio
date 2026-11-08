@@ -437,3 +437,63 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
   position: fixed; inset: 0; pointer-events: none; z-index: 1;
   background: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
 }
+
+/* ================= IDENTIDADE "RUA" (v5) =================
+   Tipografia pesada e inclinada, placas de rua e cores de letreiro de bairro. */
+:root {
+  --street-yellow: #ffd23f;
+  --street-green: #39d353;
+  --street-pink: #ff4f8b;
+  --ink: #0b0d12;
+}
+.logo-main {
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  transform: skewX(-8deg);
+  background: linear-gradient(180deg, #fff6c9 0%, var(--street-yellow) 45%, #ff8a1f 100%);
+  -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(4px 4px 0 var(--ink)) drop-shadow(0 0 18px rgba(255, 140, 40, 0.35));
+  animation: none;
+}
+.logo-top {
+  display: inline-block; align-self: flex-start;
+  background: var(--street-green); color: var(--ink); text-shadow: none;
+  padding: 2px 12px 2px 14px; letter-spacing: 0.4em; font-style: italic;
+  transform: skewX(-8deg); border-radius: 3px;
+}
+.logo-sub { font-style: italic; color: #e8e2c8; letter-spacing: 0.22em; }
+.mbtn { font-style: italic; font-weight: 900; letter-spacing: 0.1em; }
+.mbtn:hover, .mbtn:focus-visible {
+  background: linear-gradient(90deg, rgba(255, 210, 63, 0.95), rgba(255, 210, 63, 0) 85%);
+  color: var(--ink); border-left-color: var(--street-pink);
+}
+.mbtn.small:hover { color: var(--ink); }
+.panel-card h2, .garage-head h2, .map-head h2 { font-style: italic; font-weight: 900; letter-spacing: 0.12em; }
+#region-name { font-style: italic; font-weight: 900; font-size: 21px; text-transform: uppercase; letter-spacing: 0.03em; }
+#hud-region {
+  background: #1c5c34; border: 3px solid #f2f2ea; border-radius: 8px;
+  box-shadow: 0 0 0 2px #1c5c34, 0 10px 24px rgba(0, 0, 0, 0.45);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+#hud-region .tag { color: #cfe8d6; }
+#clock { color: var(--street-yellow); }
+#hud-money {
+  background: none; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+  font-size: 34px; font-weight: 900; font-style: italic; color: var(--street-green);
+  text-shadow: 2px 2px 0 var(--ink), -2px 2px 0 var(--ink), 2px -2px 0 var(--ink), -2px -2px 0 var(--ink), 0 0 14px rgba(57, 211, 83, 0.45);
+}
+#hud-money .cur { color: var(--street-green); font-size: 22px; }
+#hud-objective { border-left: 4px solid var(--street-yellow); }
+#obj-title { font-style: italic; font-weight: 900; }
+#region-banner {
+  font-weight: 900; font-style: italic; letter-spacing: 0.08em; font-size: 46px;
+  color: #fff; -webkit-text-stroke: 2px var(--ink);
+  text-shadow: 4px 4px 0 var(--ink), 0 0 30px rgba(255, 210, 63, 0.5);
+}
+.toast { border-left-width: 5px; font-weight: 500; }
+.toast b { font-style: italic; font-weight: 900; text-transform: uppercase; letter-spacing: 0.03em; }
+#car-name { font-style: italic; font-weight: 900; text-transform: uppercase; color: var(--street-yellow); }
+#prompt { border: 2px solid var(--street-yellow); font-style: italic; font-weight: 800; }
+#countdown { font-style: italic; color: var(--street-yellow); -webkit-text-stroke: 3px var(--ink); }
+#race-timer { font-style: italic; }
