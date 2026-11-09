@@ -4912,7 +4912,10 @@ Police.spawnUnit = function () {
 };
 Police.unitDrive = function (u, dt) {
   const p = player, d = Math.hypot(p.x - u.x, p.y - u.y);
-  const vmax = [0, 380, 440, 500][this.level] || 380;
+  // velocidade equilibrada com o SEU carro: um pouco abaixo/igual/acima conforme as estrelas
+  const pmax = Math.max(300, p.st.max);
+  let vmax = pmax * ([0, 0.9, 0.98, 1.05][this.level] || 0.9);
+  if (d > 900) vmax = Math.max(vmax, pmax * 1.12); // longe: corre um pouco mais para te alcançar
   u.rt -= dt;
   // de perto vai direto em você (se não tiver parede no meio); de longe segue as ruas
   let tx, ty;
@@ -4933,8 +4936,9 @@ Police.unitDrive = function (u, dt) {
   u.a += clamp(da, -3.2 * dt, 3.2 * dt);
   const turnSlow = 1 - Math.min(0.75, Math.abs(da) * 0.6);
   let target = vmax * turnSlow;
-  if (u.mode === 'direct' && d < 60) target = Math.min(target, p.speed + 40);
-  u.v += clamp(target - u.v, -620 * dt, 300 * dt);
+  if (d < 220) target = Math.min(target, p.speed + 35 + d * 0.15); // de perto não passa voando por cima de você
+  if (d < 70) target = Math.min(target, p.speed + 10);
+  u.v += clamp(target - u.v, -520 * dt, Math.max(90, p.st.acc * 1.1) * dt); // acelera parecido com um carro comum
   const ox = u.x, oy = u.y;
   u.x += Math.cos(u.a) * u.v * dt; u.y += Math.sin(u.a) * u.v * dt;
   // não atravessa prédio: se bater, volta e recalcula a rota
@@ -4945,12 +4949,23 @@ Police.unitDrive = function (u, dt) {
     const rx = c.x - u.x, ry = c.y - u.y, f = rx * Math.cos(u.a) + ry * Math.sin(u.a);
     if (f > 0 && f < 260 && Math.abs(-rx * Math.sin(u.a) + ry * Math.cos(u.a)) < 40) c.yieldT = 1.2;
   }
-  // encostou em você: empurra (e se vier rápido, amassa)
-  if (d < 34) {
-    const nx = (p.x - u.x) / (d || 1), ny = (p.y - u.y) / (d || 1), pen = 34 - d;
-    p.x += nx * pen * 0.7; p.y += ny * pen * 0.7; u.x -= nx * pen * 0.3; u.y -= ny * pen * 0.3;
-    const rel = (u.v * Math.cos(u.a) - p.vx) * nx + (u.v * Math.sin(u.a) - p.vy) * ny;
-    if (rel > 60) { p.vx += nx * rel * 0.6; p.vy += ny * rel * 0.6; p.spin = clamp(p.spin + rnd(-1, 1) * rel / 400, -2.5, 2.5); u.v *= 0.5; if (rel > 140 && p.impactCd <= 0) { p.hitX = u.x + nx * 14; p.hitY = u.y + ny * 14; onPlayerImpact(rel * 0.8); } }
+  // colisão com o formato dos carros (3 círculos ao longo de cada um): nunca entra dentro do seu
+  if (d < 90) {
+    const ur = u.m.W / 2, us = u.m.L / 2 - ur, pr = p.m.W / 2, uc = Math.cos(u.a), usn = Math.sin(u.a), pc = Math.cos(p.a), ps = Math.sin(p.a);
+    let hit = 0, hx = 0, hy = 0, hnx = 0, hny = 0;
+    for (let iter = 0; iter < 2; iter++) for (const ko of [-us, 0, us]) for (const kp of p.circleOffsets()) {
+      const ax = u.x + uc * ko, ay = u.y + usn * ko, bx = p.x + pc * kp, by = p.y + ps * kp;
+      const dx = bx - ax, dy = by - ay, dd = Math.hypot(dx, dy), R = ur + pr;
+      if (dd >= R) continue;
+      const nx = dd > 0.01 ? dx / dd : Math.cos(p.a + 1.57), ny = dd > 0.01 ? dy / dd : Math.sin(p.a + 1.57), pen = R - dd;
+      p.x += nx * pen * 0.6; p.y += ny * pen * 0.6; u.x -= nx * pen * 0.4; u.y -= ny * pen * 0.4;
+      const rel = (uc * u.v - p.vx) * nx + (usn * u.v - p.vy) * ny;
+      if (rel > hit) { hit = rel; hx = ax + nx * ur; hy = ay + ny * ur; hnx = nx; hny = ny; }
+    }
+    if (hit > 40) {
+      p.vx += hnx * hit * 0.55; p.vy += hny * hit * 0.55; p.spin = clamp(p.spin + rnd(-1, 1) * hit / 500, -2.5, 2.5); u.v *= 0.55;
+      if (hit > 150 && p.impactCd <= 0) { p.hitX = hx; p.hitY = hy; onPlayerImpact(hit * 0.75); }
+    }
   }
 };
 Police.update = function (dt) {
