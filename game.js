@@ -3383,8 +3383,9 @@ class Player {
     const surf = SURF[this.surface];
     const offK = this.car.offroad ? 0.4 : 1;
     const paved = this.surface === SF.ROAD || this.surface === SF.BRIDGE || this.surface === SF.PAVED || this.surface === SF.SIDEWALK;
-    const wetK = Weather.wet * (paved ? 0.28 : 0.12);
-    const drag = surf.drag * offK, gripS = (this.car.offroad ? lerp(1, surf.grip, 0.45) : surf.grip) * (1 - wetK);
+    const muddyS = this.surface === SF.DIRT || this.surface === SF.EARTH;
+    const wetK = Weather.wet * (paved ? 0.28 : muddyS ? 0.3 : 0.12); // barro escorrega mais que asfalto molhado
+    const drag = surf.drag * offK * (1 + (muddyS ? Weather.wet * 0.6 : 0)), gripS = (this.car.offroad ? lerp(1, surf.grip, 0.45) : surf.grip) * (1 - wetK);
     const brkW = 1 - 0.22 * Weather.wet;
     let maxS = st.max * (1 - Profile.damage / 100 * 0.3), acc = st.acc;
     if (Profile.fuel <= 0) { maxS *= 0.3; acc *= 0.3; }
@@ -3476,6 +3477,21 @@ class Player {
       this.lastRear = [rx + ox, ry + oy, rx - ox, ry - oy];
       if (chance(0.35)) Particles.emit(this.surface === SF.ROAD || this.surface === SF.PAVED ? 'smoke' : 'dust', rx + (chance(0.5) ? ox : -ox), ry + (chance(0.5) ? oy : -oy), -this.vx * 0.1 + rnd(-10, 10), -this.vy * 0.1 + rnd(-10, 10), rnd(0.8, 1.4), 6);
     } else this.lastRear = null;
+    // pneu junta barro na estrada de terra (muito mais na chuva) e larga o rastro no começo do asfalto
+    const muddy = this.surface === SF.DIRT || this.surface === SF.EARTH || this.surface === SF.FIELD;
+    if (muddy && sp > 10) this.mud = Math.min(1, (this.mud || 0) + dt * (0.25 + Weather.wet * 0.9));
+    if (paved && this.mud > 0.02 && sp > 8) {
+      const rx = this.x - c * this.m.L * 0.3, ry = this.y - s * this.m.L * 0.3, fx = this.x + c * this.m.L * 0.3, fy = this.y + s * this.m.L * 0.3;
+      const ox = -s * (this.m.W / 2 - 3), oy = c * (this.m.W / 2 - 3);
+      if (this.lastMud && Math.hypot(rx - this.lastMud[4], ry - this.lastMud[5]) > 3) {
+        const L = this.lastMud;
+        Skids.add(L[0], L[1], rx + ox, ry + oy, L[2], L[3], rx - ox, ry - oy, 'mud');
+        if (this.mud > 0.45) Skids.add(L[6], L[7], fx + ox, fy + oy, L[8], L[9], fx - ox, fy - oy, 'mud');
+      }
+      if (!this.lastMud || Math.hypot(rx - this.lastMud[4], ry - this.lastMud[5]) > 3) this.lastMud = [rx + ox, ry + oy, rx - ox, ry - oy, rx, ry, fx + ox, fy + oy, fx - ox, fy - oy];
+      this.mud = Math.max(0, this.mud - sp * dt * 0.0042); // ~240 unidades de rastro
+    } else this.lastMud = null;
+    if (muddy && Weather.wet > 0.3) Profile.dirt = clamp(Profile.dirt + dt * 0.02 * Weather.wet * clamp(sp / 150, 0, 1.5), 0, 1);
     // spray de água atrás das rodas na pista molhada
     if (Weather.wet > 0.25 && sp > 140 && paved && chance(0.35 * Weather.wet)) Particles.emit('water', this.x - c * this.m.L * 0.45 + rnd(-6, 6), this.y - s * this.m.L * 0.45 + rnd(-6, 6), -this.vx * 0.12 + rnd(-20, 20), -this.vy * 0.12 + rnd(-20, 20), rnd(0.3, 0.6), 3);
     if (sp > 120 && (this.surface === SF.DIRT || this.surface === SF.EARTH || this.surface === SF.FIELD || this.surface === SF.SAND) && chance(0.45)) {
@@ -4308,6 +4324,7 @@ const Particles = {
   list: [],
   emit(type, x, y, vx, vy, life, size) {
     if (Settings.quality === 'baixa') return; // gráfico baixo: sem partículas
+    if (type === 'dust' && Weather.wet > 0.3) { type = 'mud'; size = Math.min(size, 3.5); life *= 0.55; } // na chuva não levanta poeira: espirra barro
     const max = Settings.quality === 'alta' ? 560 : 320;
     if (this.list.length >= max) this.list.shift();
     this.list.push({ type, x, y, vx, vy, life, max: life, size });
@@ -4321,7 +4338,7 @@ const Particles = {
       const k = p.type === 'spark' ? 2.5 : p.type === 'leaf' ? 1.4 : p.type === 'hubcap' ? 0.9 : p.type === 'water' ? 1.2 : 1.8;
       if (p.type === 'hubcap') p.rot = (p.rot || 0) + dt * 12;
       p.vx *= Math.exp(-k * dt); p.vy *= Math.exp(-k * dt);
-      if (p.type !== 'spark') p.size += dt * (p.type === 'dust' ? 14 : 10);
+      if (p.type !== 'spark') p.size += dt * (p.type === 'dust' ? 14 : p.type === 'mud' ? 1.5 : p.type === 'water' ? 6 : 10);
     }
   },
   draw(ctx) {
@@ -4331,8 +4348,8 @@ const Particles = {
       if (p.type === 'hubcap') { ctx.globalAlpha = Math.min(1, t * 3); ctx.fillStyle = '#c9ccd2'; ctx.beginPath(); ctx.arc(p.x, p.y, 3.4, 0, TAU); ctx.fill(); ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.x + Math.cos(p.rot) * 3, p.y + Math.sin(p.rot) * 3); ctx.lineTo(p.x - Math.cos(p.rot) * 3, p.y - Math.sin(p.rot) * 3); ctx.stroke(); continue; }
       if (p.type === 'leaf') { ctx.globalAlpha = t; ctx.fillStyle = '#3f7a2e'; ctx.fillRect(p.x, p.y, 2.4, 1.6); continue; }
       if (p.type === 'steam' || p.type === 'exhaust') { ctx.globalAlpha = t * (p.type === 'steam' ? 0.35 : 0.18); ctx.fillStyle = p.type === 'steam' ? '#f0f4f8' : '#9a9a9a'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); continue; }
-      ctx.globalAlpha = t * (p.type === 'dust' ? 0.35 : 0.28);
-      ctx.fillStyle = p.type === 'dust' ? '#9a7e5a' : p.type === 'water' ? '#9ec8dc' : '#c8c8c8';
+      ctx.globalAlpha = t * (p.type === 'dust' ? 0.35 : p.type === 'mud' ? 0.75 : p.type === 'water' ? 0.45 : 0.28);
+      ctx.fillStyle = p.type === 'dust' ? '#9a7e5a' : p.type === 'mud' ? '#4e3220' : p.type === 'water' ? '#b9d6e6' : '#c8c8c8';
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -4355,7 +4372,7 @@ const Skids = {
     for (const [x0, y0, x1, y1] of [[ax, ay, bx, by], [cx, cy, dx, dy]]) {
       const j = this.i;
       this.buf[j * 4] = x0; this.buf[j * 4 + 1] = y0; this.buf[j * 4 + 2] = x1; this.buf[j * 4 + 3] = y1;
-      this.t[j] = Game.time; this.dirt[j] = surf === SF.ROAD || surf === SF.PAVED || surf === SF.BRIDGE ? 0 : 1;
+      this.t[j] = Game.time; this.dirt[j] = surf === 'mud' ? 2 : surf === SF.ROAD || surf === SF.PAVED || surf === SF.BRIDGE ? 0 : 1;
       this.i = (j + 1) % this.N; this.count = Math.min(this.N, this.count + 1);
     }
   },
@@ -4368,6 +4385,22 @@ const Skids = {
       ctx.beginPath();
       let any = false;
       for (let j = 0; j < this.count; j++) {
+        const age = Game.time - this.t[j];
+        if (age < lo || age >= hi || this.dirt[j] === 2) continue;
+        const x = this.buf[j * 4], y = this.buf[j * 4 + 1];
+        if (x < view.x0 - 20 || x > view.x1 + 20 || y < view.y0 - 20 || y > view.y1 + 20) continue;
+        ctx.moveTo(x, y); ctx.lineTo(this.buf[j * 4 + 2], this.buf[j * 4 + 3]); any = true;
+      }
+      if (any) ctx.stroke();
+    }
+    // rastro de barro dos pneus no asfalto (some devagar)
+    ctx.lineWidth = 4.2;
+    for (let bucket = 0; bucket < 3; bucket++) {
+      const lo = bucket * 20, hi = lo + 20;
+      ctx.strokeStyle = `rgba(78,50,30,${0.75 - bucket * 0.2})`;
+      ctx.beginPath(); let any = false;
+      for (let j = 0; j < this.count; j++) {
+        if (this.dirt[j] !== 2) continue;
         const age = Game.time - this.t[j];
         if (age < lo || age >= hi) continue;
         const x = this.buf[j * 4], y = this.buf[j * 4 + 1];
@@ -6336,19 +6369,91 @@ Weather.update = function (dt) {
   // respingos no chão (espaço do mundo)
   if (Settings.quality !== 'baixa' && this.rain > 0.05) {
     const v = Cam.view, n = this.rain * 60 * dt;
-    for (let i = 0; i < n || (Math.random() < n - Math.floor(n) && i < n + 1); i++) this.ripples.push({ x: rnd(v.x0, v.x1), y: rnd(v.y0, v.y1), t: 0 });
+    for (let i = 0; i < n || (Math.random() < n - Math.floor(n) && i < n + 1); i++) {
+      const x = rnd(v.x0, v.x1), y = rnd(v.y0, v.y1), g = groundAt(x, y);
+      if (g === SF.ROAD || g === SF.PAVED || g === SF.SIDEWALK || g === SF.BRIDGE || g === SF.WATER) this.ripples.push({ x, y, t: 0 });
+    }
   }
   for (const r of this.ripples) r.t += dt;
   if (this.ripples.length) this.ripples = this.ripples.filter((r) => r.t < 0.45);
   if (this.ripples.length > 160) this.ripples.splice(0, this.ripples.length - 160);
   AudioSys.rainSet && AudioSys.rainSet(this.rain);
 };
+// poças: aparecem na chuva no asfalto (junto ao meio-fio) e nas trilhas da estrada de terra
+Weather.puddleGrid = null;
+Weather.buildPuddles = function () {
+  const G = new Map(), C = 400, R = mulberry32(4242);
+  const put = (p) => { const k = Math.floor(p.x / C) + ',' + Math.floor(p.y / C); if (!G.has(k)) G.set(k, []); G.get(k).push(p); };
+  for (const e of World.edges) {
+    if (e.bridge) continue;
+    const dirt = e.T.id === 'dirt', step = dirt ? 150 : 280;
+    for (let s = 40 + R() * step; s < e.len - 40; s += step * (0.6 + R() * 0.8)) {
+      const side = R() < 0.5 ? -1 : 1;
+      const lat = dirt ? side * (11 + R() * 14) : side * (e.hw - 9 - R() * 12);
+      const x = e.h ? e.a.x + s : e.a.x - lat, y = e.h ? e.a.y + lat : e.a.y + s;
+      const along = (dirt ? 14 : 16) + R() * 18, across = 6 + R() * 6;
+      put({ x, y, rx: e.h ? along : across, ry: e.h ? across : along, mud: dirt, cool: 0, ph: R() * 10 });
+    }
+  }
+  this.puddleGrid = G; this.puddleCell = C;
+};
+Weather.puddlesNear = function (x0, y0, x1, y1, out) {
+  out.length = 0; if (!this.puddleGrid) return out;
+  const C = this.puddleCell;
+  for (let cx = Math.floor(x0 / C); cx <= Math.floor(x1 / C); cx++) for (let cy = Math.floor(y0 / C); cy <= Math.floor(y1 / C); cy++) { const a = this.puddleGrid.get(cx + ',' + cy); if (a) for (const p of a) out.push(p); }
+  return out;
+};
+const _pq = [];
+Weather.drawPuddles = function (ctx, view) {
+  if (this.wet < 0.05) return;
+  if (!this.puddleGrid) this.buildPuddles();
+  const k = clamp((this.wet - 0.05) / 0.4, 0, 1), T = Game.time;
+  this.puddlesNear(view.x0 - 40, view.y0 - 40, view.x1 + 40, view.y1 + 40, _pq);
+  for (const p of _pq) {
+    ctx.globalAlpha = k;
+    ctx.fillStyle = p.mud ? 'rgba(52,34,20,0.75)' : 'rgba(16,22,32,0.7)';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle = p.mud ? 'rgba(120,90,60,0.5)' : 'rgba(150,170,200,0.35)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = 'rgba(210,225,245,0.18)'; ctx.beginPath(); ctx.ellipse(p.x - p.rx * 0.2, p.y - p.ry * 0.25, p.rx * 0.45, p.ry * 0.25, 0, 0, TAU); ctx.fill();
+    // gotas caindo na poça: anéis
+    if (this.rain > 0.1) { const t = ((T * (0.8 + this.rain) + p.ph) % 1); ctx.strokeStyle = `rgba(200,215,235,${(0.5 * (1 - t) * this.rain).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(p.x + Math.sin(p.ph * 7) * p.rx * 0.4, p.y + Math.cos(p.ph * 5) * p.ry * 0.3, 1 + t * 5, (1 + t * 5) * 0.7, 0, 0, TAU); ctx.stroke(); }
+    // ondas depois de você passar
+    if (p.wave > 0) { const t = 1 - p.wave; ctx.strokeStyle = `rgba(210,225,245,${(0.6 * p.wave).toFixed(3)})`; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.ellipse(p.x, p.y, p.rx * (0.4 + t), p.ry * (0.4 + t), 0, 0, TAU); ctx.stroke(); }
+  }
+  ctx.globalAlpha = 1;
+};
+// passar na poça: espirra água (ou barro), faz barulho e puxa um pouco o carro
+Weather.updatePlayer = function (dt, pl) {
+  if (!this.puddleGrid || this.wet < 0.15 || !pl) return;
+  this.puddlesNear(pl.x - 60, pl.y - 60, pl.x + 60, pl.y + 60, _pq);
+  for (const p of _pq) {
+    if (p.wave > 0) p.wave = Math.max(0, p.wave - dt * 1.2);
+    p.cool -= dt;
+    const dx = (pl.x - p.x) / (p.rx + 8), dy = (pl.y - p.y) / (p.ry + 8);
+    if (dx * dx + dy * dy > 1 || p.cool > 0) continue;
+    const sp = pl.speed; if (sp < 30) continue;
+    p.cool = 0.6; p.wave = 1;
+    const n = Math.min(26, 6 + sp / 18);
+    for (let i = 0; i < n; i++) {
+      const a = Math.atan2(pl.vy, pl.vx) + (chance(0.5) ? 1 : -1) * rnd(1.1, 1.9), v = rnd(60, 140) + sp * 0.25;
+      Particles.emit(p.mud ? 'mud' : 'water', pl.x + rnd(-8, 8), pl.y + rnd(-8, 8), Math.cos(a) * v, Math.sin(a) * v, rnd(0.35, 0.7), p.mud ? 3 : 3.5);
+    }
+    AudioSys.noise(0.35, p.mud ? 700 : 1900, 0.7, clamp(sp / 900, 0.05, 0.22), 'engine', 'bandpass');
+    pl.vx *= 0.96; pl.vy *= 0.96;
+    if (sp > 260) pl.spin += rnd(-0.5, 0.5) * this.wet; // aquaplanagem leve
+    if (p.mud) { pl.mud = Math.min(1, (pl.mud || 0) + 0.3); Profile.dirt = clamp(Profile.dirt + 0.04, 0, 1); }
+    Cam.shake = Math.max(Cam.shake, 1.5);
+  }
+};
 Weather.drawRipples = function (ctx, view) {
   if (!this.ripples.length) return;
   ctx.strokeStyle = 'rgba(200,215,235,0.5)'; ctx.lineWidth = 0.8;
   ctx.beginPath();
   for (const r of this.ripples) { if (!inView(view, r.x, r.y, 10)) continue; const k = r.t / 0.45, rr = 1 + k * 6; ctx.moveTo(r.x + rr, r.y); ctx.ellipse(r.x, r.y, rr, rr * 0.6, 0, 0, TAU); }
-  ctx.globalAlpha = 0.6; ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.globalAlpha = 0.6; ctx.stroke();
+  ctx.fillStyle = 'rgba(225,235,250,0.7)';
+  for (const r of this.ripples) if (r.t < 0.12 && inView(view, r.x, r.y, 4)) ctx.fillRect(r.x - 0.8, r.y - 0.8, 1.6, 1.6);
+  ctx.globalAlpha = 1;
 };
 Weather.drawDrops = function (ctx) {
   if (!this.drops.length) return;
@@ -6676,6 +6781,7 @@ function render() {
   ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
   ctx.imageSmoothingEnabled = true;
   drawGround(view, forceGround); forceGround = false;
+  Weather.drawPuddles(ctx, view);
   Skids.draw(ctx, view);
   Weather.drawRipples(ctx, view);
   Debris.draw(ctx, view);
@@ -7630,6 +7736,7 @@ function stepPlay(dt) {
   updateActivities(dt);
   Socorro.update(dt);
   Achievements.check(dt);
+  Weather.updatePlayer(dt, player);
   const kmh = player.speed * 0.3; if (kmh > (Profile.topSpeed || 0)) Profile.topSpeed = kmh;
   if (player.drift > 0.45 && player.speed > 180) Profile.driftT = (Profile.driftT || 0) + dt;
 }
