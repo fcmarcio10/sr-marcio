@@ -5094,6 +5094,25 @@ function restoreSave(txt) {
   return true;
 }
 
+// baixa o save como arquivo: dentro do claude.ai usa a permissão de download; fora dele, um link normal
+async function saveFileDownload() {
+  const data = JSON.stringify(Profile), name = 'br-night-drive-save.json';
+  const done = (msg) => { Phone.bkMsg = msg; if (Phone.app === 'aj-backup') Phone.render(); };
+  let dl = null;
+  try { if (window.claude && window.claude.use) dl = await window.claude.use('downloads'); } catch (e) { dl = null; }
+  if (dl) {
+    try { await dl.save({ filename: name, data }); done('Arquivo salvo.'); }
+    catch (e) { done(e && e.code === 'declined' ? 'Download cancelado.' : 'Não deu para baixar aqui. Use "Copiar código".'); }
+    return;
+  }
+  if (window.claude) { done('Download indisponível aqui. Use "Copiar código".'); return; }
+  try {
+    const u = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+    const l = document.createElement('a'); l.href = u; l.download = name; document.body.appendChild(l); l.click(); l.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 2000); done('Arquivo baixado.');
+  } catch (e) { done('Não deu para baixar aqui. Use "Copiar código".'); }
+}
+
 /* ---------- conquistas ---------- */
 const kmRodados = () => (Profile.distance || 0) * 0.09 / 1000;
 const ACHIEVEMENTS = [
@@ -5397,7 +5416,7 @@ const Phone = {
     const a = t.dataset.act2;
     if (a === 'map-full') { Object.assign(MapState.full, MapState.phone); Screens.open('screen-map'); AudioSys.click(); return; }
     if (a === 'bk-copy') { const ta = $('bk-out'); ta.select(); let ok = false; try { if (navigator.clipboard) { navigator.clipboard.writeText(ta.value); ok = true; } else ok = document.execCommand('copy'); } catch (e) { ok = false; } this.bkMsg = ok ? 'Código copiado.' : 'Selecione o texto acima e copie (Ctrl+C).'; this.render(); return; }
-    if (a === 'bk-file') { try { const blob = new Blob([JSON.stringify(Profile)], { type: 'application/json' }); const u = URL.createObjectURL(blob); const l = document.createElement('a'); l.href = u; l.download = 'br-night-drive-save.json'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 2000); this.bkMsg = 'Arquivo baixado.'; } catch (e) { this.bkMsg = 'Não deu para baixar aqui. Use "Copiar código".'; } this.render(); return; }
+    if (a === 'bk-file') { saveFileDownload(); return; }
     if (a === 'bk-restore') { const v = ($('bk-in').value || '').trim(); this.bkMsg = restoreSave(v) ? '' : 'Código inválido.'; if (this.bkMsg) this.render(); return; }
     if (a === 'bk-open') { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json,text/plain'; inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { if (!restoreSave(String(rd.result))) { this.bkMsg = 'Arquivo inválido.'; this.render(); } }; rd.readAsText(f); }; inp.click(); return; }
     if (a === 'save') { saveGame(); phoneCfg().lastSave = clockStr(); writeProfile(); AudioSys.chime(); toast('Jogo salvo', 'Progresso, dinheiro e carros guardados neste navegador.', 'good'); this.render(); return; }
