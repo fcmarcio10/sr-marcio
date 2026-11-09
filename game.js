@@ -708,9 +708,11 @@ function addTree(x, y, type, size, opt) {
   const R = (type === 'palm' ? 26 : type === 'bush' ? 12 : 24) * size;
   rendGrid.insert(t, x - R, y - R, x + R, y + R);
   const tc = type !== 'bush' ? addCircCol(x, y, type === 'palm' ? 4 : 5 * size, 'tree') : addCircCol(x, y, 7 * size, 'tree');
+  t.col = tc;
   if (opt.sidewalk || type === 'bush' || size < 0.9) tc.brk = { kind: 'tree', obj: t };
   const sr = R * 0.9;
   bake(x - sr, y - sr, x + sr * 2, y + sr * 2, 7, (g) => {
+    if (t.removed) return;
     g.fillStyle = 'rgba(0,0,0,0.28)';
     g.beginPath(); g.ellipse(x + sr * 0.45, y + sr * 0.55, sr, sr * 0.8, 0.5, 0, TAU); g.fill();
   });
@@ -1748,6 +1750,19 @@ function buildHighwayStrip() {
 }
 
 /* ---------- pontos de interesse e percursos ---------- */
+// tira árvores que acabaram em cima do asfalto (ruas alargadas depois do plantio)
+function pruneRoadTrees() {
+  let n = 0;
+  for (const t of World.tall) {
+    if (t.kind !== 'tree' || t.removed) continue;
+    const gt = groundAt(t.x, t.y);
+    let onRoad = gt === SF.ROAD || gt === SF.BRIDGE || gt === SF.DIRT;
+    if (!onRoad) { const ne = nearestEdge(t.x, t.y); if (ne && ne.d !== undefined && ne.d < ne.e.hw + 4) onRoad = true; }
+    if (onRoad) { t.removed = true; if (t.col) { t.col.r = -999; t.col.tag = 'none'; } n++; }
+  }
+  World.tall = World.tall.filter((t) => !t.removed);
+  return n;
+}
 function markReflections() {
   for (const L of World.lights) {
     for (let dy = 30; dy <= 260; dy += 20) if (groundAt(L.x, L.y + dy) === SF.WATER) { L.refl = dy + 30; break; }
@@ -2033,6 +2048,26 @@ function buildPatterns() {
     for (let i = 0; i < 14; i++) { g.fillStyle = 'rgba(30,50,20,0.35)'; g.beginPath(); g.arc(R() * s, R() * s, 3 + R() * 5, 0, TAU); g.fill(); }
   });
   PSRC.asphalt = tex(128, '#33353b', (g, s, R) => speck(g, s, R, 1500, ['#2b2d32', '#3b3e44', '#43464d', '#2f3136', '#4b4d52'], 1, 1.8));
+  // bloquete de concreto (paver), muito usado nas ruas de bairro da Grande Vitória e da Serra
+  PSRC.bloquete = tex(64, '#5f5e5a', (g, s, R) => {
+    for (let y = 0; y < s; y += 6) for (let x = ((y / 6) % 2) * 6 - 6; x < s; x += 12) {
+      const t = R(); g.fillStyle = t < 0.3 ? '#77756f' : t < 0.6 ? '#6e6c66' : t < 0.85 ? '#81807a' : '#68665f';
+      g.fillRect(x + 0.6, y + 0.6, 10.8, 4.8);
+      g.fillStyle = 'rgba(255,255,255,0.06)'; g.fillRect(x + 0.6, y + 0.6, 10.8, 1);
+    }
+    for (let i = 0; i < 40; i++) { g.fillStyle = 'rgba(30,30,28,0.25)'; g.fillRect(R() * s, R() * s, 1.5, 1.5); }
+  });
+  // pedra portuguesa em ondas (calçadão), preto e branco
+  PSRC.portuguesa = tex(128, '#d9d5ca', (g, s, R) => {
+    for (let y = 0; y < s; y += 2.6) for (let x = 0; x < s; x += 2.6) {
+      const w = s / 2 + Math.sin(x / s * TAU) * 22, w2 = Math.sin((x / s) * TAU) * 22;
+      const d = Math.min(Math.abs(y - w), Math.abs(y - (w2 + 6)), Math.abs(y - (w2 + 6 + s)));
+      const dark = d < 7;
+      const t = R();
+      g.fillStyle = dark ? (t < 0.5 ? '#2b2b2c' : '#3a3a3b') : (t < 0.5 ? '#dcd8cd' : '#cfcabd');
+      g.fillRect(x + 0.3, y + 0.3, 2.1, 2.1);
+    }
+  });
   PSRC.paved = tex(128, '#3b3d42', (g, s, R) => speck(g, s, R, 1200, ['#34363b', '#45474d', '#4d4f55', '#303237'], 1, 1.8));
   PSRC.sidewalk = tex(64, '#8b8a84', (g, s, R) => {
     speck(g, s, R, 300, ['#83827c', '#93928b', '#7d7c76'], 1, 2);
@@ -2234,24 +2269,57 @@ function drawStallLines(g, x0, y0, x1, y1, vert) {
 
 /* ============================ RUAS ============================ */
 function edgeLocal(g, e) { g.save(); g.translate(e.a.x, e.a.y); if (!e.h) g.rotate(Math.PI / 2); }
+// cara de rua capixaba: bloquete nos bairros, asfalto remendado nas avenidas,
+// calçadão de pedra portuguesa no Centrão e meio-fio caiado de branco
+const PAVER_REGIONS = { vila: 0.65, saopedro: 0.75, terravermelha: 0.75, feurosa: 0.7, carapina: 0.7, novarosa: 0.7, flexal: 0.7, jardim: 0.35, industrial: 0.3 };
+function edgePave(e) {
+  if (e.pave) return e.pave;
+  if (!e.T.asphalt || e.T.id !== 'street' || e.bridge) return (e.pave = 'asphalt');
+  const rk = regionKeyAt((e.a.x + e.b.x) / 2, (e.a.y + e.b.y) / 2);
+  return (e.pave = hash2(e.id * 17 + 3, 91) < (PAVER_REGIONS[rk] || 0) ? 'bloquete' : 'asphalt');
+}
+function edgeWalk(e) {
+  if (e.walkT) return e.walkT;
+  const rk = regionKeyAt((e.a.x + e.b.x) / 2, (e.a.y + e.b.y) / 2);
+  return (e.walkT = rk === 'centro' || (e.T.id === 'avenue' && (rk === 'jardim' || rk === 'vila')) ? 'portuguesa' : 'sidewalk');
+}
+const CURB_W = '#e6e3d6', CURB_Y = '#e0b83a';
 function drawEdgeBase(g, e) {
   const T = e.T, L = e.len, hw = e.hw;
   edgeLocal(g, e);
   if (T.sw) {
-    g.fillStyle = pat(g, 'sidewalk');
+    g.fillStyle = pat(g, edgeWalk(e));
     const s0 = e.perpA, s1 = L - e.perpB;
     g.fillRect(s0, -hw - T.sw, s1 - s0, T.sw); g.fillRect(s0, hw, s1 - s0, T.sw);
-    g.fillStyle = '#a3a29b'; g.fillRect(s0, -hw - 2.5, s1 - s0, 2.5); g.fillRect(s0, hw, s1 - s0, 2.5);
+    // meio-fio caiado; amarelo perto das esquinas (proibido estacionar)
+    g.fillStyle = CURB_W; g.fillRect(s0, -hw - 2.5, s1 - s0, 2.5); g.fillRect(s0, hw, s1 - s0, 2.5);
+    g.fillStyle = CURB_Y; for (const [a, b] of [[s0, s0 + 36], [s1 - 36, s1]]) if (b > a) { g.fillRect(a, -hw - 2.5, b - a, 2.5); g.fillRect(a, hw, b - a, 2.5); }
+    g.fillStyle = 'rgba(0,0,0,0.18)'; for (let s = s0 + 8; s < s1; s += 9) { g.fillRect(s, -hw - 2.5, 0.8, 2.5); g.fillRect(s, hw, 0.8, 2.5); }
     g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(s0, -hw - T.sw, s1 - s0, 1.5); g.fillRect(s0, hw + T.sw - 1.5, s1 - s0, 1.5);
   }
   if (T.shoulder) {
     g.fillStyle = pat(g, 'gravel');
     g.fillRect(0, -hw - T.shoulder, L, T.shoulder); g.fillRect(0, hw, L, T.shoulder);
   }
-  if (T.asphalt) {
+  if (T.asphalt && edgePave(e) === 'bloquete') {
+    g.fillStyle = pat(g, 'bloquete'); g.fillRect(0, -hw, L, hw * 2);
+    const R = mulberry32(e.id * 977 + 13);
+    // trilhas de pneu escurecidas, manchas de óleo e bloquetes afundados/remendados com cimento
+    g.fillStyle = 'rgba(25,25,28,0.16)'; for (const y of [-hw * 0.55, -hw * 0.3, hw * 0.3, hw * 0.55]) g.fillRect(0, y - 3, L, 6);
+    for (let i = 0; i < L / 120; i++) { g.fillStyle = 'rgba(15,15,18,0.28)'; g.beginPath(); g.ellipse(R() * L, (R() - 0.5) * hw * 1.4, 4 + R() * 6, 3 + R() * 4, 0, 0, TAU); g.fill(); }
+    for (let i = 0; i < L / 300; i++) { g.fillStyle = R() < 0.5 ? 'rgba(150,148,140,0.75)' : 'rgba(40,40,42,0.45)'; g.fillRect(R() * L, (R() - 0.5) * hw * 1.5, 10 + R() * 18, 6 + R() * 10); }
+    g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(0, -hw, L, 3); g.fillRect(0, hw - 3, L, 3);
+  } else if (T.asphalt) {
     g.fillStyle = pat(g, 'asphalt'); g.fillRect(0, -hw, L, hw * 2);
     g.fillStyle = 'rgba(0,0,0,0.13)'; g.fillRect(0, -hw, L, 5); g.fillRect(0, hw - 5, L, 5);
     const R = mulberry32(e.id * 977 + 13);
+    // remendos de asfalto (operação tapa-buraco) e desgaste nas trilhas de roda
+    g.fillStyle = 'rgba(0,0,0,0.07)'; for (const y of [-hw * 0.6, -hw * 0.25, hw * 0.25, hw * 0.6]) g.fillRect(0, y - 3.5, L, 7);
+    for (let i = 0; i < L / 180; i++) {
+      const s = R() * L, y = (R() - 0.5) * hw * 1.5, w = 16 + R() * 34, h = 10 + R() * 16;
+      g.fillStyle = R() < 0.55 ? '#25272b' : '#3f4146'; g.fillRect(s, y, w, h);
+      g.strokeStyle = 'rgba(10,10,12,0.5)'; g.lineWidth = 1; g.strokeRect(s, y, w, h);
+    }
     for (let i = 0; i < L / 260; i++) {
       const s = R() * L, y = (R() - 0.5) * hw * 1.6;
       g.fillStyle = R() < 0.5 ? 'rgba(20,20,24,0.35)' : 'rgba(80,80,85,0.25)';
@@ -2318,13 +2386,15 @@ function drawEdgeBase(g, e) {
 function drawEdgeMarkings(g, e) {
   const T = e.T;
   if (!T.asphalt) return;
+  const blq = edgePave(e) === 'bloquete';
   const L = e.len, hw = e.hw;
   const pad = T.sw ? 26 : 6;
   const s0 = e.perpA ? e.perpA + pad : 0, s1 = e.perpB ? L - e.perpB - pad : L;
   if (s1 <= s0) return;
   edgeLocal(g, e);
   const yel = '#e3bf3f', wht = 'rgba(236,236,230,0.92)';
-  if (T.center === 'dash') {
+  if (blq) { /* rua de bloquete: sem faixa no meio */ }
+  else if (T.center === 'dash') {
     g.fillStyle = yel;
     for (let s = s0; s < s1; s += 46) g.fillRect(s, -1.5, Math.min(24, s1 - s), 3);
   } else {
@@ -2355,15 +2425,17 @@ function drawNode(g, n, asph) {
     if (e.h) { if (e.a === n) dirs.E = true; else dirs.W = true; }
     else { if (e.a === n) dirs.S = true; else dirs.N = true; }
   }
+  const walkP = n.edges.some((e) => e.T.sw && edgeWalk(e) === 'portuguesa') ? 'portuguesa' : 'sidewalk';
+  const blq = n.edges.length > 0 && n.edges.every((e) => edgePave(e) === 'bloquete');
   if (sw) {
-    g.fillStyle = pat(g, 'sidewalk');
+    g.fillStyle = pat(g, walkP);
     g.fillRect(n.x - hv - sw, n.y - hh - sw, sw, sw); g.fillRect(n.x + hv, n.y - hh - sw, sw, sw);
     g.fillRect(n.x - hv - sw, n.y + hh, sw, sw); g.fillRect(n.x + hv, n.y + hh, sw, sw);
     if (!dirs.N) g.fillRect(n.x - hv, n.y - hh - sw, hv * 2, sw);
     if (!dirs.S) g.fillRect(n.x - hv, n.y + hh, hv * 2, sw);
     if (!dirs.W) g.fillRect(n.x - hv - sw, n.y - hh, sw, hh * 2);
     if (!dirs.E) g.fillRect(n.x + hv, n.y - hh, sw, hh * 2);
-    g.fillStyle = '#a3a29b';
+    g.fillStyle = CURB_Y;
     if (!dirs.N) g.fillRect(n.x - hv, n.y - hh - 2.5, hv * 2, 2.5);
     if (!dirs.S) g.fillRect(n.x - hv, n.y + hh, hv * 2, 2.5);
     if (!dirs.W) g.fillRect(n.x - hv - 2.5, n.y - hh, 2.5, hh * 2);
@@ -2372,7 +2444,7 @@ function drawNode(g, n, asph) {
     let sh = 0; for (const e of n.edges) sh = Math.max(sh, e.T.shoulder || 0);
     if (sh) { g.fillStyle = pat(g, 'gravel'); g.fillRect(n.x - hv - sh, n.y - hh - sh, (hv + sh) * 2, (hh + sh) * 2); }
   }
-  g.fillStyle = pat(g, asph ? 'asphalt' : 'dirt');
+  g.fillStyle = pat(g, asph ? (blq ? 'bloquete' : 'asphalt') : 'dirt');
   if (asph) g.fillRect(n.x - hv, n.y - hh, hv * 2, hh * 2);
   else { g.beginPath(); g.arc(n.x, n.y, Math.max(hv, hh) * 1.15, 0, TAU); g.fill(); g.fillRect(n.x - hv, n.y - hh, hv * 2, hh * 2); }
   if (asph && n.edges.length >= 3) {
@@ -2404,9 +2476,14 @@ function drawBridge(g, e) {
     g.fillStyle = '#2e1f12';
     for (let x = b.x0; x < b.x1; x += 30) { g.fillRect(x, y - hw - 8, 6, 8); g.fillRect(x, y + hw, 6, 8); }
   } else {
-    g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(b.x0, y - hw, b.x1 - b.x0, hw * 2);
-    g.fillStyle = 'rgba(0,0,0,0.35)';
-    for (let x = b.x0 + 60; x < b.x1; x += 120) g.fillRect(x, y - hw, 2, hw * 2);
+    // tabuleiro um pouco mais claro, com transição suave para o asfalto da pista (sem corte seco)
+    const fade = 46, gr = g.createLinearGradient(b.x0, 0, b.x1, 0), f = fade / (b.x1 - b.x0);
+    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(f, 'rgba(255,255,255,0.045)'); gr.addColorStop(1 - f, 'rgba(255,255,255,0.045)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(b.x0, y - hw, b.x1 - b.x0, hw * 2);
+    // juntas de dilatação: perfil metálico nas duas cabeceiras e a cada vão
+    for (const x of [b.x0 + fade, b.x1 - fade]) { g.fillStyle = '#1c1d20'; g.fillRect(x - 2, y - hw, 4, hw * 2); g.fillStyle = 'rgba(190,195,200,0.55)'; g.fillRect(x - 0.6, y - hw, 1.2, hw * 2); }
+    g.fillStyle = 'rgba(0,0,0,0.3)';
+    for (let x = b.x0 + fade + 110; x < b.x1 - fade - 20; x += 110) g.fillRect(x, y - hw, 2, hw * 2);
     g.fillStyle = '#b9b7ae'; g.fillRect(b.x0, y - hw - 7, b.x1 - b.x0, 6); g.fillRect(b.x0, y + hw + 1, b.x1 - b.x0, 6);
     g.fillStyle = '#8a8880';
     for (let x = b.x0; x < b.x1; x += 22) { g.fillRect(x, y - hw - 8, 4, 8); g.fillRect(x, y + hw, 4, 8); }
@@ -3528,11 +3605,11 @@ function trafficRush() {
   return { k: 1.2, label: 'horário de pico' };
 }
 // área rural: 60% menos movimento que na cidade
-function ruralFactor(x, y) { const R = REGIONS[regionKeyAt(x, y)]; return 1 - 0.6 * clamp((R.rural - 0.3) / 0.5, 0, 1); }
+function ruralFactor(x, y) { const R = REGIONS[regionKeyAt(x, y)]; return 1 - 0.8 * clamp((R.rural - 0.3) / 0.5, 0, 1); }
 function trafficMax() {
   const base = Settings.quality === 'alta' ? 22 : Settings.quality === 'baixa' ? 10 : 17;
   const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
-  return Math.max(k < 0.7 ? 3 : 5, Math.round(base * trafficRush().k * k));
+  return Math.max(k < 0.7 ? 2 : 5, Math.round(base * trafficRush().k * k));
 }
 function lightState(n, axis, now) {
   const t = (now + n.light.off) % 15;
@@ -3903,7 +3980,7 @@ Traffic.spawnNear = function (cx, cy, minD, maxD, view) {
     if (player && Math.abs(player.x - x) < 120 && Math.abs(player.y - y) < 120) ok = false;
     if (!ok) continue;
     // estradas da roça recebem bem menos carros
-    if ((e.T.id === 'dirt' || e.T.id === 'road') && !chance(0.45)) continue;
+    if ((e.T.id === 'dirt' || e.T.id === 'road') && !chance(0.22)) continue;
     const model = trafficModelFor(e);
     const car = new AICar(e, dir, s, lane, model);
     if (!car.allowed(e)) { car.release(); continue; }
@@ -5595,6 +5672,7 @@ function drawTall(ctx, o) {
   switch (o.kind) {
     case 'bld': drawBuilding(ctx, o); break;
     case 'tree': {
+      if (o.removed) break;
       if (o.down !== undefined) {
         const spr2 = treeSprite(o.type, o.v), S2 = 64 * o.size * (o.type === 'bush' ? 0.55 : 1);
         ctx.strokeStyle = '#3a2a1c'; ctx.lineWidth = 3 * o.size; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + Math.cos(o.down) * S2 * 0.4, o.y + Math.sin(o.down) * S2 * 0.4); ctx.stroke();
@@ -7262,6 +7340,7 @@ async function boot() {
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
+  pruneRoadTrees();
   prog(0.84, 'Desenhando o mapa…'); await tick();
   buildMapImage();
   Traffic.prepare();
