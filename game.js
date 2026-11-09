@@ -4926,13 +4926,19 @@ Police.route = function (u, tx, ty) {
   pts = laneShift(pts, 14); if (pts.length > 2) pts.pop();
   return pts;
 };
+// caminho livre (sem prédio, muro, árvore ou poste) entre dois pontos
+function lineClearFor(x0, y0, x1, y1) {
+  const n = Math.max(2, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 25));
+  for (let i = 1; i <= n; i++) { const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n; if (areaBlocked(x - 9, y - 9, x + 9, y + 9)) return false; }
+  return true;
+}
 Police.unitDrive = function (u, dt) {
   const p = player, d = Math.hypot(p.x - u.x, p.y - u.y);
   // velocidade 70% menor que antes: a viatura é perigosa se você parar ou bater, mas dá para fugir
   this.pace = lerp(this.pace || p.speed, p.speed, 1 - Math.exp(-1.0 * dt));
   const pmax = Math.max(300, p.st.max);
   const capK = [0, 0.9, 0.98, 1.05][this.level] || 0.9;
-  const vmax = Math.max(246, Math.min(pmax * capK, this.pace * 1.12 + 55) * 0.672); // 0,48 + 40%
+  const vmax = Math.max(344, Math.min(pmax * capK, this.pace * 1.12 + 55) * 0.94); // 0,672 + 40%
   // rota pelas ruas, na mão direita; recalcula com calma (não copia cada virada sua)
   u.rt -= dt;
   const tgt = this.lostT > 0 && this.lastSeen ? this.lastSeen : p;
@@ -4947,9 +4953,16 @@ Police.unitDrive = function (u, dt) {
     const dB = Math.hypot(B[0] - u.x, B[1] - u.y);
     if (turn > 0.3 && dB < 40 + u.v * 0.8) cornerV = 45 + (1 - turn / Math.PI) * 90 + dB * 0.6;
   }
+  // cerco: perto de você e com caminho livre, sai da rota e fecha seu carro
+  // (a 1ª viatura atravessa na sua frente, a 2ª encosta atrás, a 3ª fecha o lado)
+  const role = this.units.indexOf(u) % 3, ca = Math.cos(p.a), sa = Math.sin(p.a);
+  const bp = role === 0 ? [p.x + ca * (48 + p.speed * 0.25), p.y + sa * (48 + p.speed * 0.25)] : role === 1 ? [p.x - ca * 48, p.y - sa * 48] : [p.x - sa * 30, p.y + ca * 30];
+  u.block = d < 180 && lineClearFor(u.x, u.y, bp[0], bp[1]);
   let target = Math.min(vmax, cornerV);
-  if (d < 160) target = Math.min(target, p.speed + 20 + d * 0.1);
-  if (d < 70) target = Math.min(target, p.speed + 6);
+  if (!u.block) {
+    if (d < 160) target = Math.min(target, p.speed + 20 + d * 0.1);
+    if (d < 70) target = Math.min(target, p.speed + 6);
+  } else target = Math.min(vmax, Math.hypot(bp[0] - u.x, bp[1] - u.y) * 3 + p.speed * 0.9);
   // não encosta na traseira da outra viatura
   for (const o of this.units) {
     if (o === u) continue;
@@ -4957,10 +4970,16 @@ Police.unitDrive = function (u, dt) {
     if (f > 0 && f < 75 && Math.abs(-rx * Math.sin(u.a) + ry * Math.cos(u.a)) < 26) target = Math.min(target, Math.max(0, o.v - 10 + (f - 55)));
   }
   if (u.hitT > 0) { u.hitT -= dt; target = Math.min(target, 40); }
-  u.v += clamp(target - u.v, -420 * dt, 157 * dt);
+  u.v += clamp(target - u.v, -420 * dt, 220 * dt);
   // anda exatamente pela rota (como os outros carros), com o volante suave
   let step = Math.max(0, u.v) * dt;
   const ox = u.x, oy = u.y;
+  if (u.block) {
+    // manobra de cerco: vai até o ponto de bloqueio e, chegando, fica atravessada
+    const dx = bp[0] - u.x, dy = bp[1] - u.y, dd = Math.hypot(dx, dy);
+    if (dd > 3) { const m = Math.min(dd, step); u.x += dx / dd * m; u.y += dy / dd * m; }
+    step = 0; u.rt = 0;
+  }
   while (step > 0 && u.ri < u.pts.length) {
     const q = u.pts[u.ri], dx = q[0] - u.x, dy = q[1] - u.y, dd = Math.hypot(dx, dy);
     if (dd < 0.5) { u.ri++; continue; }
@@ -4968,9 +4987,15 @@ Police.unitDrive = function (u, dt) {
     if (m >= dd) u.ri++;
   }
   // fim da rota e você bem perto: vai encostar devagar
-  if (u.ri >= u.pts.length && d < 120 && d > 40) { const m = Math.min(d - 40, u.v * dt); u.x += (p.x - u.x) / d * m; u.y += (p.y - u.y) / d * m; }
+  if (!u.block && u.ri >= u.pts.length && d < 120 && d > 40 && lineClearFor(u.x, u.y, p.x, p.y)) { const m = Math.min(d - 40, u.v * dt); u.x += (p.x - u.x) / d * m; u.y += (p.y - u.y) / d * m; }
+  // nunca entra em prédio, muro ou poste: se for entrar, volta e recalcula
+  const bodyHit = [-17, 0, 17].some((k) => { const x = u.x + Math.cos(u.a) * k, y = u.y + Math.sin(u.a) * k; return areaBlocked(x - 7, y - 7, x + 7, y + 7); });
+  if (bodyHit && !areaBlocked(ox - 7, oy - 7, ox + 7, oy + 7)) { u.x = ox; u.y = oy; u.v *= 0.5; u.rt = 0; u.stuckT += dt; } else u.stuckT = Math.max(0, u.stuckT - dt);
+  if (u.stuckT > 2.5) { const ne = nearestEdge(u.x, u.y), q = edgePt(ne.e, ne.s); u.x = q[0]; u.y = q[1]; u.stuckT = 0; u.pts = null; }
   const mvx = u.x - ox, mvy = u.y - oy;
-  if (mvx * mvx + mvy * mvy > 0.0004) u.a += clamp(angDiff(u.a, Math.atan2(mvy, mvx)), -5 * dt, 5 * dt);
+  const near = Math.hypot(bp[0] - u.x, bp[1] - u.y) < 14;
+  if (u.block && near && role === 0) u.a += clamp(angDiff(u.a, p.a + Math.PI / 2), -4 * dt, 4 * dt); // atravessada na sua frente
+  else if (mvx * mvx + mvy * mvy > 0.0004) u.a += clamp(angDiff(u.a, Math.atan2(mvy, mvx)), -5 * dt, 5 * dt);
   // trânsito abre caminho para a sirene
   for (const c of Traffic.cars) {
     const rx = c.x - u.x, ry = c.y - u.y, f = rx * Math.cos(u.a) + ry * Math.sin(u.a);
@@ -5028,7 +5053,8 @@ Police.update = function (dt) {
     } else { toast('Perdendo você de vista…', '★'.repeat(this.level) + ' · continue sumido', 'info'); if (this.units.length > this.level) this.units.length = this.level; }
   }
   // prisão: parado (ou quase) com a viatura colada
-  if (nearest < 80 && p.speed < 40) this.bustT += dt; else this.bustT = Math.max(0, this.bustT - dt * 2);
+  const boxed = this.units.filter((u) => Math.hypot(u.x - p.x, u.y - p.y) < 100).length;
+  if (nearest < 95 && p.speed < 45) this.bustT += dt * (boxed >= 2 ? 1.5 : 1); else this.bustT = Math.max(0, this.bustT - dt * 2);
   if (this.bustT > 2.6) this.bust();
   // sirene com efeito de aproximação (Doppler)
   if (nu) {
