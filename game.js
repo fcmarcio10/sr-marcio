@@ -3388,10 +3388,13 @@ class Player {
     const drag = surf.drag * offK * (1 + (muddyS ? Weather.wet * 0.6 : 0)), gripS = (this.car.offroad ? lerp(1, surf.grip, 0.45) : surf.grip) * (1 - wetK);
     const brkW = 1 - 0.22 * Weather.wet;
     let maxS = st.max * (1 - Profile.damage / 100 * 0.3), acc = st.acc;
+    // barro molhado: patina na saída, a traseira escorrega fácil e o carro “nada” de lado
+    const mudS = muddyS ? Weather.wet : 0;
+    acc *= 1 - 0.35 * mudS;
     if (Profile.fuel <= 0) { maxS *= 0.3; acc *= 0.3; }
     this.braking = false;
     // arrancada: pneu patina ao sair forte com o carro parado
-    if (inp.thr && !this.prevThr && !inp.brk && Math.abs(vf) < 60 && surf.grip > 0.75) this.launchT = 0.5 + st.acc / 650;
+    if (inp.thr && !this.prevThr && !inp.brk && Math.abs(vf) < 60 && (surf.grip > 0.75 || mudS > 0.3)) this.launchT = 0.5 + st.acc / 650 + mudS * 0.7;
     if (!inp.thr || inp.brk) this.launchT = 0;
     if (this.launchT > 0) this.launchT -= dt;
     if (inp.thr && !inp.brk) {
@@ -3420,12 +3423,15 @@ class Player {
     // derrapagem: curva fechada em alta velocidade faz a traseira escorregar
     const sMax = 0.42 * st.steer / (1 + Math.abs(vf) / 330);
     const frac = Math.abs(this.steer) / Math.max(0.01, sMax);
-    const drift = vf > 0 ? clamp((vf - 210) / 250, 0, 1) * clamp(frac * 1.5 - 0.45, 0, 1) * (this.car.offroad ? 0.7 : 1) : 0;
+    const dStart = 210 - 140 * mudS, dRange = 250 - 120 * mudS;
+    const drift = vf > 0 ? clamp((vf - dStart) / dRange, 0, 1) * clamp(frac * (1.5 + mudS) - 0.45, 0, 1) * (this.car.offroad ? 0.7 : 1) : 0;
     this.drift = lerp(this.drift || 0, drift, 1 - Math.exp(-6 * dt));
     if (inp.hb && Math.abs(vf) > 40) yaw *= 1.28;
     yaw *= 1 + 0.22 * this.drift;
     this.yaw = yaw;
-    const g = (inp.hb ? 3.4 : 17 * (1 - 0.64 * this.drift)) * st.grip * gripS;
+    const g = (inp.hb ? 3.4 : 17 * (1 - 0.64 * this.drift)) * st.grip * gripS * (1 - 0.55 * mudS);
+    // no barro o carro dá umas escorregadas de lado sozinho
+    if (mudS > 0.2 && Math.abs(vf) > 40) { this.mudWob = (this.mudWob || 0) + (rnd(-1, 1) * 3 - (this.mudWob || 0) * 1.5) * dt; vl += this.mudWob * mudS * Math.min(1, Math.abs(vf) / 250) * 60 * dt; }
     if (this.drift > 0.05) vl += Math.sign(yaw) * this.drift * Math.abs(vf) * 0.55 * dt;
     vl *= Math.exp(-g * dt);
     this.slip = clamp(Math.abs(vl) / 110 + (this.braking && Math.abs(vf) > 200 ? 0.35 : 0) + (inp.hb && Math.abs(vf) > 70 ? 0.45 : 0) + this.drift * 0.4 + (this.launchT > 0 ? 0.9 : 0), 0, 1.2);
@@ -6363,9 +6369,13 @@ Weather.update = function (dt) {
   if (this.rain > 0.6) { this.thunderT -= dt; if (this.thunderT <= 0) { this.thunderT = rnd(14, 32); Cam.flash = Math.max(Cam.flash, 0.55); const d = rnd(0.4, 2); setTimeout(() => AudioSys.thunder(d), d * 1000); } }
   // gotas na tela (espaço da tela)
   const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 90 : Settings.quality === 'alta' ? 420 : 240));
-  while (this.drops.length < want) this.drops.push({ x: Math.random() * (SCREEN_W + 200) - 100, y: Math.random() * SCREEN_H, v: rnd(900, 1300), l: rnd(10, 22) });
+  // câmera olhando de cima: a gota cai na direção do chão, então na tela ela "afunda" em direção ao centro,
+  // encolhendo e ficando mais fina até bater no chão (onde vira respingo)
+  const newDrop = (d, z) => { const R = Math.hypot(SCREEN_W, SCREEN_H) * 0.62; d.a = Math.random() * TAU; d.r = Math.sqrt(Math.random()) * R; d.z = z; d.life = rnd(0.3, 0.55); d.l = rnd(0.025, 0.055); return d; };
+  while (this.drops.length < want) this.drops.push(newDrop({}, Math.random()));
   if (this.drops.length > want) this.drops.length = want;
-  for (const d of this.drops) { d.y += d.v * dt; d.x += d.v * 0.16 * dt; if (d.y > SCREEN_H + 30) { d.y = -30 - Math.random() * 60; d.x = Math.random() * (SCREEN_W + 200) - 200; } }
+  this.wind = lerp(this.wind || 0, Math.sin(Game.time * 0.13) * 0.6 + this.rain * 0.4, 1 - Math.exp(-dt * 0.5));
+  for (const d of this.drops) { d.z -= dt / d.life; if (d.z <= 0) newDrop(d, 1); }
   // respingos no chão (espaço do mundo)
   if (Settings.quality !== 'baixa' && this.rain > 0.05) {
     const v = Cam.view, n = this.rain * 60 * dt;
@@ -6458,10 +6468,21 @@ Weather.drawRipples = function (ctx, view) {
 Weather.drawDrops = function (ctx) {
   if (!this.drops.length) return;
   ctx.setTransform(RS, 0, 0, RS, 0, 0);
-  ctx.strokeStyle = 'rgba(185,205,235,0.32)'; ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (const d of this.drops) { ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - d.l * 0.16, d.y - d.l); }
-  ctx.stroke();
+  const cx = SCREEN_W / 2, cy = SCREEN_H / 2, wx = (this.wind || 0) * 60;
+  // duas camadas: gotas perto da câmera (grossas e claras) e longe (finas)
+  for (const near of [true, false]) {
+    ctx.strokeStyle = near ? 'rgba(200,215,240,0.34)' : 'rgba(170,190,220,0.22)'; ctx.lineWidth = near ? 1.6 : 0.9;
+    ctx.beginPath();
+    for (const d of this.drops) {
+      if ((d.z > 0.5) !== near) continue;
+      const k = 0.55 + 0.45 * d.z; // perto da câmera = mais longe do centro
+      const ca = Math.cos(d.a), sa = Math.sin(d.a);
+      const x = cx + ca * d.r * k + wx * (1 - d.z), y = cy + sa * d.r * k;
+      const tl = Math.max(4, d.r * d.l) * (0.4 + d.z); // rastro curto apontando para fora (de onde a gota veio)
+      ctx.moveTo(x, y); ctx.lineTo(x + ca * tl - wx * 0.08, y + sa * tl);
+    }
+    ctx.stroke();
+  }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 };
 const Fireflies = { list: [] };
