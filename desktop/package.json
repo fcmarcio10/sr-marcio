@@ -22,7 +22,7 @@
     "productName": "BR Night Drive",
     "files": ["main.js", "app/**/*"],
     "directories": { "output": "release" },
-    "win": { "target": ["nsis", "portable"] },
+    "win": { "target": ["nsis", "portable"], "signAndEditExecutable": false },
     "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "shortcutName": "BR Night Drive" },
     "linux": { "target": ["AppImage"], "category": "Game" },
     "mac": { "target": ["dmg"], "category": "public.app-category.racing-games" }
