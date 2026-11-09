@@ -4459,6 +4459,7 @@ function refreshGroundArea(x0, y0, x1, y1) {
 }
 function breakObject(col, vx, vy, sp, hx, hy) {
   col.dead = true;
+  if (vx !== undefined) Profile.broken = (Profile.broken || 0) + 1;
   const b = col.brk, o = b.obj, ang = Math.atan2(vy, vx) + rnd(-0.4, 0.4);
   if (b.kind === 'fence') {
     const long = (o.x1 - o.x0) > (o.y1 - o.y0), L = long ? o.x1 - o.x0 : o.y1 - o.y0;
@@ -4876,7 +4877,7 @@ function startRacha(r) {
 function finishRacha(R) {
   const r = R.r;
   Act.race = null;
-  if (R.t < r.rivalTime) { AudioSys.chime(); pay(r.bet * 2, 'Ganhou o racha de ' + r.rival + '! (' + fmtTime(R.t) + ')'); }
+  if (R.t < r.rivalTime) { AudioSys.chime(); Profile.rachaWins = (Profile.rachaWins || 0) + 1; pay(r.bet * 2, 'Ganhou o racha de ' + r.rival + '! (' + fmtTime(R.t) + ')'); }
   else toast('Perdeu o racha', r.rival + ' chegou antes (' + fmtTime(r.rivalTime) + ' contra ' + fmtTime(R.t) + '). Já era a aposta.', 'bad');
   saveGame();
 }
@@ -4999,6 +5000,7 @@ function socorroCall(kind) {
   const route = gpsRoute(sx, sy, player.x, player.y);
   const pts = route ? laneShift(route.pts, 20) : [[sx, sy], [player.x, player.y]];
   const J = { kind, x: sx, y: sy, a: 0, pts, ri: 1, state: 'coming', t: 0, rt: 3, quote: socorroQuote(kind) };
+  Profile.sos = (Profile.sos || 0) + 1;
   Socorro.job = J;
   const len = route ? route.len : Math.hypot(sx - player.x, sy - player.y), eta = Math.max(1, Math.round(len / 280 / 20));
   const what = kind === 'gas' ? 'gasolina' : kind === 'fix' ? 'conserto' : 'gasolina e conserto';
@@ -5070,6 +5072,48 @@ function socorroBar(H) {
     btn('gas', 'Gasolina', qg, qg > 0) + btn('fix', 'Conserto', qf, qf > 0) + btn('both', 'Os dois', qg + qf, qg > 0 && qf > 0) + '</div></div>';
 }
 
+/* ---------- conquistas ---------- */
+const kmRodados = () => (Profile.distance || 0) * 0.09 / 1000;
+const ACHIEVEMENTS = [
+  { id: 'entrega1', name: 'Primeira entrega', desc: 'Faça sua primeira entrega.', goal: 1, val: () => Profile.deliveries || 0, prize: 50 },
+  { id: 'entrega10', name: 'Motoboy honorário', desc: 'Complete 10 entregas ou fretes.', goal: 10, val: () => Profile.deliveries || 0, prize: 250 },
+  { id: 'corrida1', name: 'Bem-vindo ao PegaAí', desc: 'Faça sua primeira corrida no PegaAí.', goal: 1, val: () => Profile.rides || 0, prize: 50 },
+  { id: 'corrida25', name: 'Motorista cinco estrelas', desc: 'Complete 25 corridas no PegaAí.', goal: 25, val: () => Profile.rides || 0, prize: 400 },
+  { id: 'turista', name: 'Turista capixaba', desc: 'Descubra 5 pontos de interesse.', goal: 5, val: () => (Profile.discovered || []).length, prize: 100 },
+  { id: 'explorador', name: 'Conhece cada canto', desc: 'Descubra todos os pontos de interesse.', goal: () => World.pois.length, val: () => (Profile.discovered || []).length, prize: 600 },
+  { id: 'ouro', name: 'Medalha de ouro', desc: 'Ganhe ouro em um percurso cronometrado.', goal: 1, val: () => Object.values(Profile.races || {}).filter((r) => r.medal === 3).length, prize: 150 },
+  { id: 'reiouro', name: 'Rei dos percursos', desc: 'Ouro em todos os percursos.', goal: () => World.races.length, val: () => Object.values(Profile.races || {}).filter((r) => r.medal === 3).length, prize: 800 },
+  { id: 'racha1', name: 'Primeiro racha', desc: 'Ganhe um racha de madrugada.', goal: 1, val: () => Profile.rachaWins || 0, prize: 150 },
+  { id: 'racha5', name: 'Lenda da madrugada', desc: 'Ganhe 5 rachas.', goal: 5, val: () => Profile.rachaWins || 0, prize: 500 },
+  { id: 'km10', name: 'Pé na estrada', desc: 'Rode 10 km por São Gambiarra.', goal: 10, val: kmRodados, prize: 100, unit: ' km' },
+  { id: 'km100', name: 'Rodou o ES inteiro', desc: 'Rode 100 km.', goal: 100, val: kmRodados, prize: 600, unit: ' km' },
+  { id: 'veloz', name: 'Radar nem viu', desc: 'Passe dos 180 km/h.', goal: 180, val: () => Profile.topSpeed || 0, prize: 150, unit: ' km/h' },
+  { id: 'drift', name: 'Rei do drift', desc: 'Derrape de lado por 20 segundos no total.', goal: 20, val: () => Profile.driftT || 0, prize: 200, unit: ' s' },
+  { id: 'vaga', name: 'Baliza perfeita', desc: 'Estacione em 3 vagas marcadas.', goal: 3, val: () => Object.keys(Profile.parks || {}).length, prize: 150 },
+  { id: 'colecao', name: 'Colecionador', desc: 'Tenha 4 veículos na garagem.', goal: 4, val: () => Object.keys(Profile.owned || {}).length, prize: 300 },
+  { id: 'rico', name: 'Tá podendo, hein', desc: 'Ganhe R$ 10.000 no total.', goal: 10000, val: () => Profile.earned || 0, prize: 500, money: true },
+  { id: 'vandalo', name: 'Prefeitura chora', desc: 'Derrube 25 objetos da cidade.', goal: 25, val: () => Profile.broken || 0, prize: 50 },
+  { id: 'socorro', name: 'Seu Zé salvou', desc: 'Chame o socorro do Seu Zé.', goal: 1, val: () => Profile.sos || 0, prize: 30 },
+  { id: 'noite', name: 'Varou a madrugada', desc: 'Jogue até o dia amanhecer.', goal: 1, val: () => Profile.nights || 0, prize: 200 },
+];
+const Achievements = {
+  t: 0,
+  goal(a) { return typeof a.goal === 'function' ? Math.max(1, a.goal()) : a.goal; },
+  check(dt) {
+    this.t -= dt; if (this.t > 0) return; this.t = 1;
+    Profile.ach = Profile.ach || {};
+    for (const a of ACHIEVEMENTS) {
+      if (Profile.ach[a.id]) continue;
+      if (a.val() >= this.goal(a)) {
+        Profile.ach[a.id] = clockStr();
+        AudioSys.chime();
+        toast('Conquista desbloqueada!', a.name + ' — prêmio de R$ ' + fmtMoney(a.prize), 'good');
+        pay(a.prize, null);
+      }
+    }
+  },
+};
+
 /* ---------- interface do celular ---------- */
 /* ---------- celular Pera: papéis de parede capixabas, ícones e ajustes ---------- */
 const PERA_LOGO = '<svg class="pera-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.4c-1.7 0-2.7 1.4-3 3.1C8.7 11.2 5.8 12.6 5.8 16.2c0 3.4 2.8 5.6 6.2 5.6s6.2-2.2 6.2-5.6c0-3.6-2.9-5-3.2-6.7-.3-1.7-1.3-3.1-3-3.1z" fill="currentColor"/><path d="M12 6.4c0-1.6.4-2.9 1.3-3.8" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M13.1 4.3c1.6-1.5 3.6-1.4 4.6-.8-1 1.7-3 2.3-4.6.8z" fill="currentColor"/></svg>';
@@ -5082,9 +5126,10 @@ const PH_ICONS = {
   fretes: ['#f08a24', _ln('<path d="M12 3.5 19.5 7.5v9L12 20.5 4.5 16.5v-9z"/><path d="M4.5 7.5 12 11.5l7.5-4M12 11.5v9"/>')],
   racha: ['#e0353b', _ln('<path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/>')],
   carteira: ['#2f6fdf', _ln('<rect x="3.5" y="6" width="17" height="13" rx="2.5"/><path d="M3.5 10h17"/><circle cx="16.5" cy="14.5" r="1" fill="#fff"/>')],
+  conquistas: ['#e0a21b', _ln('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>')],
   ajustes: ['#7b808a', _ln('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>')],
 };
-const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', ajustes: 'Ajustes' };
+const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', ajustes: 'Ajustes' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
   return `<button class="ph-app" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge ? `<i class="ph-badge">${badge}</i>` : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
@@ -5198,7 +5243,7 @@ const Phone = {
       html = `<div class="ph-lock"><div class="ph-date">São Gambiarra · ES</div><div class="ph-time">${clockStr()}</div></div>` +
         `<div class="ph-widgets"><div class="ph-wid wid-sky"><small>São Gambiarra</small><b>${temp}°</b><span>${hr >= 19 || hr < 5 ? 'Noite abafada' : 'Céu limpo'}</span><span class="wid-sub">Máx. 31° Mín. 21°</span></div>` +
         `<button class="ph-wid wid-money" data-app="carteira"><small>Carteira</small><b>R$ ${fmtMoney(Profile.money)}</b><span>${Profile.deliveries || 0} entregas · ${Profile.rides || 0} corridas</span><span class="wid-sub">${job ? H(job) : dest ? 'Destino: ' + H(dest) : 'Nenhum serviço ativo'}</span></button></div>` +
-        '<div class="ph-grid">' + ['fretes', 'racha', 'carteira'].map((id) => phIcon(id)).join('') + '</div>' +
+        '<div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].map((id) => phIcon(id)).join('') + '</div>' +
         `<div class="ph-wname">${H(W.name)} · ${H(W.place)}</div>` +
         '<div class="ph-dock">' + ['mapa', 'msgs', 'pegaai', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
@@ -5267,6 +5312,17 @@ const Phone = {
       const open = rachaOpen();
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Racha</div>' + (open ? '<p class="ph-note">Madrugada liberada. Vá até o ponto e aperte E. Quem ganhar leva o dobro da aposta. Se uma viatura chegar perto, é multa e aposta perdida.</p>' : '<p class="ph-empty">Os rachas só rolam de madrugada, das 22h às 4h30. Agora são ' + clockStr() + '.</p>') +
         World.rachas.map((r, i) => `<button class="ph-row" data-racha="${i}"><b>${H(r.name)} · aposta R$ ${fmtMoney(r.bet)}</b><span>contra ${H(r.rival)} (${fmtTime(r.rivalTime)}) · toque para marcar no GPS</span></button>`).join('');
+    } else if (this.app === 'conquistas') {
+      const A = Profile.ach || {}, done = ACHIEVEMENTS.filter((a) => A[a.id]).length;
+      const fmtV = (a, v) => a.money ? 'R$ ' + fmtMoney(Math.floor(v)) : (a.unit === ' km' || a.unit === ' s' ? v.toFixed(1).replace('.', ',') : Math.floor(v)) + (a.unit || '');
+      html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Conquistas</div>' +
+        `<div class="ach-top"><b>${done}/${ACHIEVEMENTS.length}</b><span>desbloqueadas</span><div class="ach-bar"><i style="width:${(done / ACHIEVEMENTS.length * 100).toFixed(0)}%"></i></div></div>` +
+        ACHIEVEMENTS.slice().sort((x, y) => (!!A[y.id]) - (!!A[x.id])).map((a) => {
+          const g = Achievements.goal(a), v = Math.min(a.val(), g), ok = !!A[a.id];
+          const ico = ok ? '<svg viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '<svg viewBox="0 0 24 24"><rect x="6" y="11" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 11V8a3 3 0 0 1 6 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+          return `<div class="ach${ok ? ' ok' : ''}"><span class="ach-ico">${ico}</span><div class="ach-mid"><b>${H(a.name)}</b><small>${H(a.desc)}</small>` +
+            (ok ? `<em>Desbloqueada às ${H(A[a.id])} · +R$ ${fmtMoney(a.prize)}</em>` : `<div class="ach-bar sm"><i style="width:${(v / g * 100).toFixed(0)}%"></i></div><em>${fmtV(a, v)} de ${fmtV(a, g)} · prêmio R$ ${fmtMoney(a.prize)}</em>`) + '</div></div>';
+        }).join('');
     } else if (this.app === 'carteira') {
       html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div><div class="ph-card"><div class="ph-big">R$ ${fmtMoney(Profile.money)}</div><p>Total ganho: R$ ${fmtMoney(Profile.earned)}</p></div>` +
         `<div class="ph-row static"><b>Entregas e fretes</b><span>${Profile.deliveries} concluídos</span></div><div class="ph-row static"><b>Corridas no PegaAí</b><span>${Profile.rides || 0}</span></div><div class="ph-row static"><b>Veículo atual</b><span>${H(player.car.name)}</span></div>`;
@@ -7384,7 +7440,7 @@ function handleKeys() {
 function stepPlay(dt) {
   Game.time += dt;
   Profile.time += dt;
-  if (Profile.time >= NIGHT_END) { Profile.time = NIGHT_START; toast('Uma nova noite começa', 'O relógio volta para as 19:30. A cidade nunca dorme.', 'info'); }
+  if (Profile.time >= NIGHT_END) { Profile.nights = (Profile.nights || 0) + 1; Profile.time = NIGHT_START; toast('Uma nova noite começa', 'O relógio volta para as 19:30. A cidade nunca dorme.', 'info'); }
   const locked = Act.race && Act.race.count > 0;
   const inp = { thr: !locked && !!key.up(), brk: !!key.down(), steer: (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() };
   player.update(dt, inp);
@@ -7394,6 +7450,9 @@ function stepPlay(dt) {
   Particles.update(dt);
   updateActivities(dt);
   Socorro.update(dt);
+  Achievements.check(dt);
+  const kmh = player.speed * 0.3; if (kmh > (Profile.topSpeed || 0)) Profile.topSpeed = kmh;
+  if (player.drift > 0.45 && player.speed > 180) Profile.driftT = (Profile.driftT || 0) + dt;
 }
 function stepMenu(dt) {
   Game.time += dt;

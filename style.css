@@ -695,3 +695,18 @@ div.ph-wid { cursor: default; }
 .wa-mi { width: 13px; height: 13px; color: #8696a0; vertical-align: -1px; margin-left: 5px; }
 .wa-row.muted .wa-side i { background: #5b6870; color: #e9edef; }
 .wa-row.muted .wa-side small.new { color: #8696a0; }
+.ach-top { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; font-family: -apple-system, "Segoe UI", sans-serif; }
+.ach-top b { font-size: 28px; font-weight: 700; color: #ffd36b; }
+.ach-top span { color: #98989f; font-size: 13px; }
+.ach-bar { width: 100%; height: 6px; border-radius: 3px; background: #2c2c2e; overflow: hidden; }
+.ach-bar i { display: block; height: 100%; background: linear-gradient(90deg, #e0a21b, #ffd36b); border-radius: 3px; }
+.ach-bar.sm { height: 4px; margin: 6px 0 3px; }
+.ach { display: flex; gap: 11px; align-items: flex-start; background: #1c1c1e; border-radius: 14px; padding: 11px 12px; margin-bottom: 8px; font-family: -apple-system, "Segoe UI", sans-serif; }
+.ach-ico { width: 38px; height: 38px; border-radius: 50%; background: #2c2c2e; color: #6b6b70; display: grid; place-items: center; flex-shrink: 0; }
+.ach-ico svg { width: 21px; height: 21px; }
+.ach.ok .ach-ico { background: linear-gradient(160deg, #ffd36b, #e0a21b); color: #3a2600; }
+.ach-mid { flex: 1; min-width: 0; }
+.ach-mid b { display: block; font-size: 14px; font-weight: 600; }
+.ach-mid small { display: block; color: #98989f; font-size: 12px; line-height: 1.35; }
+.ach-mid em { display: block; font-style: normal; font-size: 11px; color: #8e8e93; margin-top: 2px; }
+.ach.ok .ach-mid em { color: #ffd36b; }
