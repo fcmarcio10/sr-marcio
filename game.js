@@ -1468,7 +1468,8 @@ function buildRoadProps() {
       }
     }
     // radar (pardal) nas avenidas e na rodovia
-    if ((T.id === 'avenue' || T.id === 'highway') && e.len > 450 && chance(0.32)) {
+    // 70% menos pardais: o sorteio original continua (não muda o resto do mapa), mas só ~30% deles ficam
+    if ((T.id === 'avenue' || T.id === 'highway') && e.len > 450 && chance(0.32) && hash2(e.id * 13 + 5, 77) < 0.3) {
       const s = e.len * 0.5, sd = 1, o = e.hw + (T.sw ? T.sw * 0.5 : 10);
       const px = e.a.x + e.dx * s + nx * o * sd, py = e.a.y + e.dy * s + ny * o * sd;
       if (!areaBlocked(px - 5, py - 5, px + 5, py + 5)) {
