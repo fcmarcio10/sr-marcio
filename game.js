@@ -591,6 +591,13 @@ function defineRoads() {
   V(6300, 1500, 6200, 'road', 'Estrada Velha de Guerra');
   V(7500, 880, 6200, 'dirt', 'Estrada do Sítio Bota Fé');
   V(8700, 880, 6200, 'road', 'Estrada Alta Pressão');
+  // litoral (Barra do Jucuzinho, Camburizinho e Porto de Tubarãozinho)
+  H(7500, 4600, 8700, 'avenue', 'Avenida Carapina');
+  H(8100, 4600, 8700, 'street', 'Rua da Maré Cheia');
+  H(8700, 4600, 8700, 'avenue', 'Avenida Dante Micheline e Meio');
+  V(6300, 6200, 8700, 'street', 'Rua do Sol Nascente');
+  V(7500, 6200, 8700, 'street', 'Rua dos Coqueiros');
+  V(8700, 6200, 8700, 'road', 'Estrada do Porto');
 }
 
 function getNode(x, y) {
@@ -666,10 +673,16 @@ const REGIONS = {
   feurosa: { name: 'Feu Rosa', dark: 0.74, city: 0.7, rural: 0.15 },
   carapina: { name: 'Jardim Carapina', dark: 0.74, city: 0.7, rural: 0.15 },
   mata: { name: 'Mata do Saci', dark: 0.80, city: 0, rural: 1 },
+  barra: { name: 'Barra do Jucuzinho', dark: 0.75, city: 0.45, rural: 0.2 },
+  camburi: { name: 'Jardim Camburizinho', dark: 0.73, city: 0.75, rural: 0 },
+  porto: { name: 'Porto de Tubarãozinho', dark: 0.74, city: 0.7, rural: 0 },
+  orla: { name: 'Orla de Camburizinho', dark: 0.72, city: 0.5, rural: 0 },
 };
 const SUBREG = [];
 function regionKeyAt(x, y) {
-  if (x < 230 || y < 230 || x > 8790 || y > WORLD_H - 240) return 'mata';
+  if (y > CALC_Y - 40) return 'orla';
+  if (x < 230 || y < 230 || x > 8790) return 'mata';
+  if (y > 6440 && x >= 4660) return x >= 7520 ? 'porto' : x >= 6300 ? 'camburi' : 'barra';
   for (const s of SUBREG) if (x > s[0] && x < s[2] && y > s[1] && y < s[3]) return s[4];
   if (y > 8030 && x < 4660) return x < 2700 ? 'novarosa' : 'flexal';
   if (y > 6440 && x < 4660) return x < 2100 ? 'feurosa' : 'carapina';
@@ -995,7 +1008,7 @@ function residentialBlock(R, o) {
   ];
   for (const sd of sides) {
     const L = sd.b - sd.a;
-    if (L < 60) continue;
+    if (L < 60 || (o.sides && !o.sides.includes(sd.s))) continue;
     const sp = o.special && o.special.side === sd.s ? o.special : null;
     let widths;
     if (sp) { const rest = L - sp.w; widths = [sp.w].concat(rest > 60 ? splitRun(rest, rich ? 115 : 86, rich ? 158 : 122) : []); if (rest <= 60) widths[0] = L; }
@@ -1586,7 +1599,7 @@ function forest(x0, y0, x1, y1, noCol) {
 }
 function buildRural() {
   // bordas do mundo
-  forest(0, 0, WORLD_W, 230); forest(0, 230, 230, WORLD_H); forest(8790, 230, WORLD_W, WORLD_H); forest(4700, 6440, 8790, WORLD_H); forest(230, WORLD_H - 240, 4700, WORLD_H);
+  forest(0, 0, WORLD_W, 230); forest(0, 230, 230, SEA_Y); forest(8790, 230, WORLD_W, SEA_Y);
   addRectCol(-200, -200, WORLD_W + 200, 20, 'world'); addRectCol(-200, WORLD_H - 20, WORLD_W + 200, WORLD_H + 200, 'world');
   addRectCol(-200, 0, 20, WORLD_H, 'world'); addRectCol(WORLD_W - 20, 0, WORLD_W + 200, WORLD_H, 'world');
   // faixa norte da cidade (entre a mata e a primeira rua)
@@ -1998,6 +2011,11 @@ function buildActivitiesData() {
   P('ponte3', 'Terceira Ponte e Meia', riverCX(1500), 1500, 'Concreto, vento forte e vista do Rio Jucu.');
   P('paneleiras', 'Galpão das Paneleiras', 4830, 3275, 'Panelas de barro feitas à mão, do jeitinho capixaba.');
   P('feira', 'Feira da Roça', 860, 5830, 'Pastel, caldo de cana e banana a preço de domingo.');
+  P('orlacamburi', 'Orla de Camburizinho', 3000, 8900, 'Calçadão de pedra portuguesa, quiosque aberto e o barulho do mar a noite inteira.');
+  P('barra', 'Barra do Jucuzinho', riverCX(8800), 8780, 'Onde o Rio Jucu encontra o mar. Os pescadores juram que o peixe era deste tamanho.');
+  P('pedra', 'Pedra da Cebolinha', World.pedra.x, World.pedra.y + 170, 'Pedra de granito no meio do parque. Dizem que é parente da Pedra da Cebola.');
+  P('feirarolo', 'Feira do Rolo da Madrugada', World.feiraRolo.x, World.feiraRolo.y, 'Tem de tudo e mais um pouco. Não pergunte de onde veio.');
+  P('porto', 'Porto de Tubarãozinho', World.porto.x, World.porto.y, 'Contêiner para todo lado e o navio Vitória Star atracado no píer.');
   P('batalhao', 'Batalhão da PM', World.batalhao.x, World.batalhao.y, 'Viaturas na garagem e plantão a noite inteira.');
   P('bagunca', 'Praça da Bagunça', World.pracaBagunca.x, World.pracaBagunca.y, 'Pagode de domingo, espetinho e pelada na quadra até tarde.');
   P('campao', 'Campão de Carapina', (serraRect(4, 2).x0 + serraRect(4, 2).x1) / 2, (serraRect(4, 2).y0 + serraRect(4, 2).y1) / 2, 'O terrão onde nasce craque toda semana.');
@@ -2051,6 +2069,164 @@ function buildRoadSurface() {
     gFill(n.x - hv, n.y - hh, n.x + hv, n.y + hh, asph ? SF.ROAD : SF.DIRT);
     bake(n.x - hv - sw - 6, n.y - hh - sw - 6, n.x + hv + sw + 6, n.y + hh + sw + 6, 4, (g) => drawNode(g, n, asph));
   }
+}
+
+/* ============================ LITORAL: BARRA DO JUCUZINHO, CAMBURIZINHO, PORTO DE TUBARÃOZINHO E A ORLA ============================ */
+const LIT_X = [4600, 6300, 7500, 8700], LIT_Y = [6200, 7500, 8100, 8700];
+const SEA_Y = 8960, SAND_Y = 8850, CALC_Y = 8816;
+function litHW(t) { return RT[t].w / 2 + (RT[t].sw || 0); }
+function litRect(c, r) {
+  const hv = (x) => (x === 8700 ? RT.road.w / 2 + 14 : RT.street.w / 2 + 22);
+  const hh = (y) => (y === 6200 ? RT.highway.w / 2 + 14 + 8 : y === 7500 || y === 8700 ? RT.avenue.w / 2 + 22 : RT.street.w / 2 + 22);
+  return { x0: LIT_X[c] + hv(LIT_X[c]), x1: LIT_X[c + 1] - hv(LIT_X[c + 1]), y0: LIT_Y[r] + hh(LIT_Y[r]), y1: LIT_Y[r + 1] - hh(LIT_Y[r + 1]) };
+}
+function litRoads(c, r) {
+  const nm = (y) => (ROADS.find((q) => q.h && q.y === y && q.x2 > 4700) || {}).name;
+  const nv = (x) => (ROADS.find((q) => !q.h && q.x === x && q.y2 >= 8700) || ROADS.find((q) => !q.h && q.x === x) || {}).name;
+  const hwH = (y) => (y === 6200 ? RT.highway.w / 2 : y === 7500 || y === 8700 ? RT.avenue.w / 2 : RT.street.w / 2);
+  const hwV = (x) => (x === 8700 ? RT.road.w / 2 : RT.street.w / 2);
+  const mk = (name, hw) => ({ name, hw, lane: hw > 60 ? RT.avenue.lanes[1] : RT.street.lanes[0] });
+  return { N: mk(nm(LIT_Y[r]), hwH(LIT_Y[r])), S: mk(nm(LIT_Y[r + 1]), hwH(LIT_Y[r + 1])), W: mk(nv(LIT_X[c]), hwV(LIT_X[c])), E: mk(nv(LIT_X[c + 1]), hwV(LIT_X[c + 1])) };
+}
+// pedra (Pedra da Cebolinha): morro de granito em camadas
+function addRock(x, y, r, h) { const o = { kind: 'rock', x, y, r, h, seed: rnd() }; addTall(o, x - r - 40, y - r - 40, x + r + 40, y + r + 40); addCircCol(x, y, r * 0.92, 'bld'); return o; }
+// guindaste do porto
+function addCrane(x, y, len, ang) { const o = { kind: 'crane', x, y, len, a: ang, h: 120, seed: rnd() }; addTall(o, x - len - 60, y - len - 60, x + len + 60, y + len + 60); for (const [dx, dy] of [[-16, -16], [16, -16], [-16, 16], [16, 16]]) addCircCol(x + dx, y + dy, 3, 'pole'); return o; }
+function buildLitoral() {
+  // ---- Barra do Jucuzinho: vila de pescadores dos dois lados do rio ----
+  for (let r = 0; r < 3; r++) {
+    const R = litRect(0, r), roads = litRoads(0, r);
+    let wl = 1e9, er = -1e9;
+    for (let y = R.y0; y <= R.y1; y += 20) { wl = Math.min(wl, riverCX(y) - riverHW(y) - 60); er = Math.max(er, riverCX(y) + riverHW(y) + 60); }
+    const W = { x0: R.x0, x1: wl, y0: R.y0, y1: R.y1 }, E = { x0: er, x1: R.x1, y0: R.y0, y1: R.y1 };
+    if (W.x1 - W.x0 > 160) residentialBlock(W, { rich: false, roads, region: 'barra', sides: ['N', 'S', 'W'] });
+    if (E.x1 - E.x0 > 160) {
+      if (r === 2) residentialBlock(E, { rich: false, roads, region: 'barra', sides: ['N', 'S', 'E'], special: { side: 'S', w: 170, build: shopLotBuilder({ kind: 'bar', name: 'Bar do Pescador Mentiroso', sign: 'PESCADOR MENTIROSO', color: '#59e0ff', h: 26, depth: 90, pickup: true, items: ['Moqueca pra viagem', 'Isca viva', 'Caldo de sururu'], tables: true }) } });
+      else residentialBlock(E, { rich: false, roads, region: 'barra', sides: ['N', 'S', 'E'] });
+    }
+    // barcos de pesca na margem
+    for (let k = 0; k < 3; k++) { const y = R.y0 + 60 + k * ((R.y1 - R.y0 - 120) / 2), x = riverCX(y) - riverHW(y) - 18; bake(x - 30, y - 12, x + 10, y + 12, 3.5, (g) => drawBoat(g, x - 10, y, 0.2 + k * 0.3, ['#2a6fd1', '#e8402a', '#2bb24c'][k])); }
+  }
+  // ---- Pedra da Cebolinha (parque) ----
+  { const R = litRect(1, 0); decal(R.x0, R.y0, R.x1, R.y1, 'lawn2'); const cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2;
+    decal(cx - 20, R.y0, cx + 20, R.y1, 'plaza'); decal(R.x0, cy - 18, R.x1, cy + 18, 'plaza');
+    addRock(cx - 230, cy - 230, 150, 120); addRock(cx + 210, cy - 250, 95, 70); addRock(cx + 230, cy + 230, 70, 50); addRock(cx - 210, cy + 240, 60, 40);
+    scatterTrees(R.x0 + 30, R.y0 + 30, R.x1 - 30, R.y1 - 30, 30, ['round', 'mango', 'ipeY', 'ipeP', 'palm']);
+    for (let i = 0; i < 6; i++) { const y = R.y0 + 80 + i * ((R.y1 - R.y0 - 160) / 5); addLamp(cx + 34, y, cx + 34, y, 'warm', { style: 'globe', h: 30, r: 110, i: 0.75 }); if (i % 2) addProp('bench', cx - 34, y, { a: Math.PI / 2, col: 'rect', w: 8, h: 26 }); }
+    World.animalsDef.push({ type: 'person', n: 6, rect: [cx - 14, R.y0 + 40, cx + 14, R.y1 - 40] });
+    World.pedra = { x: cx - 230, y: cy - 230 };
+  }
+  // ---- Feira do Rolo da Madrugada ----
+  { const R = litRect(1, 1); decal(R.x0, R.y0, R.x1, R.y1, 'urban');
+    const cols = ['#e63946', '#2a9d8f', '#f4c430', '#3a86ff', '#ff7f11', '#8338ec'];
+    for (let row = 0; row < 3; row++) for (let i = 0; i < 9; i++) {
+      const x = R.x0 + 60 + i * ((R.x1 - R.x0 - 120) / 8), y = R.y0 + 70 + row * ((R.y1 - R.y0 - 140) / 2), c = cols[(i + row * 2) % cols.length];
+      bake(x - 24, y - 20, x + 26, y + 22, 6, (g) => drawStall(g, x, y, c, (i * 7 + row) % 4));
+      addRectCol(x - 20, y - 15, x + 20, y + 15, 'prop');
+      if (i % 3 === 1) addLight(x, y + 26, 90, 0.85, row % 2 ? 'warm' : 'white', { shop: true });
+    }
+    World.animalsDef.push({ type: 'person', n: 18, rect: [R.x0 + 20, R.y0 + 100, R.x1 - 20, R.y1 - 100], look: { dance: false } });
+    World.feiraRolo = { x: (R.x0 + R.x1) / 2, y: (R.y0 + R.y1) / 2 };
+    addShop({ kind: 'mercado', name: 'Feira do Rolo da Madrugada', x: (R.x0 + R.x1) / 2, y: 7500 + RT.avenue.lanes[1], color: '#ffd23f', region: 'camburi', pickup: true, items: ['Caixa de laranja-lima', 'Saco de aipim', 'Rolo de fio de cobre (será?)', 'Engradado de banana'] });
+  }
+  // ---- Prédios de frente para o mar (Jardim Camburizinho) ----
+  downtownBlock(litRect(1, 2), { roads: litRoads(1, 2), region: 'camburi', cols: 2, rows: 2, noLots: true, shops: [null, { kind: 'mercado', name: 'Supermercado Preço Bão', sign: 'PREÇO BÃO', color: '#ff4d4d', h: 34, pickup: true, items: ['Compras do mês', 'Fardo de água', 'Carvão e cerveja'] }] });
+  // ---- Porto de Tubarãozinho: pátio de contêineres ----
+  for (let r = 0; r < 2; r++) {
+    const R = litRect(2, r); decal(R.x0, R.y0, R.x1, R.y1, 'concrete');
+    const cc = ['#c0392b', '#2e86de', '#27ae60', '#f39c12', '#8e44ad', '#16a085', '#d35400', '#7f8c8d'];
+    for (let x = R.x0 + 40; x < R.x1 - 60; x += 64) for (let y = R.y0 + 40; y < R.y1 - 140; y += 150) {
+      if (chance(0.15)) continue;
+      const c = pick(cc), h = pick([14, 14, 28, 28, 42]);
+      addBuilding(x, y, x + 34, y + 120, h, { style: 'container', roofType: 'container', roofColor: c, wall: c, lit: 0, noShadow: h < 20 });
+    }
+    addLight((R.x0 + R.x1) / 2, (R.y0 + R.y1) / 2, 320, 0.7, 'white', { flood: true });
+    if (r === 1) addCrane(R.x1 - 70, R.y1 - 80, 90, Math.PI / 2);
+  }
+  // ---- terminal do porto ----
+  { const R = litRect(2, 2); decal(R.x0, R.y0, R.x1, R.y1, 'concrete');
+    const b = addBuilding(R.x0 + 30, R.y0 + 30, R.x1 - 30, R.y0 + 200, 46, { style: 'warehouse', roofType: 'corrugated', roofColor: '#7d8a96', wall: '#c9d0d6', lit: 0.5, sign: 'PORTO DE TUBARÃOZINHO', signColor: '#59e0ff', front: 'S' });
+    for (let i = 0; i < 5; i++) addParkedCar(R.x0 + 60 + i * 80, R.y1 - 70, Math.PI / 2, pick(['truck', 'bau', 'tanker']), '#e8e8e8');
+    addShop({ kind: 'porto', name: 'Porto de Tubarãozinho', x: (R.x0 + R.x1) / 2, y: 8700 - RT.avenue.lanes[1], bld: b, color: '#59e0ff', region: 'porto', pickup: true, items: ['Contêiner de café capixaba', 'Pelotas de minério', 'Bloco de granito', 'Caixas de chocolate de Viana'] });
+    World.porto = { x: (R.x0 + R.x1) / 2, y: (R.y0 + R.y1) / 2 };
+  }
+  // ---- a orla: calçadão, areia e mar de ponta a ponta ----
+  // calçadão e areia dos dois lados da foz do rio (o rio continua desaguando no mar)
+  const rL = riverCX(8880) - riverHW(8880) - 30, rR = riverCX(8880) + riverHW(8880) + 30;
+  decal(230, 8772, 4600, CALC_Y, 'lawn');
+  for (const [a, b] of [[230, rL], [rR, 8790]]) { decal(a, CALC_Y, b, SAND_Y, 'plaza'); decal(a, SAND_Y, b, SEA_Y + 20, 'sand'); }
+  gFill(0, SEA_Y, WORLD_W, WORLD_H, SF.WATER);
+  for (let x = 0; x < WORLD_W; x += 512) bake(x, SEA_Y - 30, x + 512, WORLD_H, 2, (g) => drawSea(g, x, x + 512));
+  // píer do porto e o navio atracado
+  decal(7800, SAND_Y, 8160, 9140, 'concrete', { z: 2.2 }); gFill(7800, SAND_Y, 8160, 9140, SF.PAVED);
+  bake(7800, SEA_Y, 8160, 9150, 2.5, (g) => { g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 1; for (let y = SEA_Y; y < 9140; y += 14) { g.beginPath(); g.moveTo(7800, y); g.lineTo(8160, y); g.stroke(); } g.fillStyle = '#e0b83a'; g.fillRect(7800, 9130, 360, 6); });
+  bake(8180, 8990, 8790, 9180, 3, (g) => drawShip(g, 8190, 8995, 590, 170));
+  addRectCol(8190, 8995, 8780, 9165, 'bld');
+  addCrane(8130, 9020, 140, Math.PI * 0.5); addCrane(7830, 9020, 140, Math.PI * 0.5);
+  // postes, coqueiros e quiosques na beira-mar
+  for (let x = 400; x < 8700; x += 230) {
+    if (Math.abs(x - riverCX(8830)) < 220 || (x > 7760 && x < 8200)) continue;
+    addLamp(x, CALC_Y + 10, x, CALC_Y + 10, 'white', { style: 'globe', h: 32, r: 120, i: 0.75 });
+    if (chance(0.8)) addTree(x + 70 + rnd(-20, 20), SAND_Y + rnd(20, 70), 'palm', rnd(0.9, 1.25));
+  }
+  const KIOSKS = [['SIRI NA LATA', '#ff6b4a', 'Quiosque Siri na Lata'], ['ÁGUA DE COCO', '#3cff8f', 'Quiosque Água de Coco Gelada'], ['SOL E MOQUECA', '#ffd23f', 'Quiosque Sol e Moqueca'], ['CAMARÃO QUE DORME', '#ff9ed2', 'Quiosque Camarão que Dorme'], ['DO CAPIXABA', '#59e0ff', 'Quiosque do Capixaba'], ['PASTEL DE ARRAIA', '#ffb547', 'Quiosque Pastel de Arraia'], ['CHOPP DA MARÉ', '#f4f1e0', 'Quiosque Chopp da Maré']];
+  let ki = 0;
+  for (let x = 650; x < 7600; x += 980) {
+    if (Math.abs(x - riverCX(8900)) < 300) continue;
+    const [name, col, full] = KIOSKS[ki++ % KIOSKS.length], y0 = SAND_Y + 8;
+    const b = addBuilding(x - 32, y0, x + 32, y0 + 50, 22, { style: 'kiosk', roofType: 'hip', roofColor: '#7a5230', wall: '#c9a06a', lit: 0.95, sign: name, signColor: col, front: 'N' });
+    for (const dx of [-50, 50]) addProp('table', x + dx, y0 + 22, { col: 'circ', cr: 5, c: '#f4c430', R: 12 });
+    addLight(x, y0 - 6, 110, 0.9, col, { shop: true });
+    const yRoad = x < 4600 ? 8700 + RT.street.lanes[0] : 8700 + RT.avenue.lanes[1];
+    addShop({ kind: 'bar', name: full, x, y: yRoad, bld: b, color: col, region: 'orla', pickup: true, items: ['Porção de camarão', 'Água de coco', 'Moqueca na panela de barro', 'Isopor de gelo'] });
+  }
+  // posto de salva-vidas, rede de vôlei e barcos na areia
+  for (const x of [1500, 3600, 6600]) { addBuilding(x - 14, SAND_Y + 40, x + 14, SAND_Y + 68, 30, { style: 'kiosk', roofType: 'flat', roofColor: '#d62828', wall: '#f2f2ea', lit: 0.6, sign: 'SALVA-VIDAS', signColor: '#ff4d4d' }); }
+  for (const x of [2500, 5000, 7000]) bake(x - 50, SAND_Y + 30, x + 50, SAND_Y + 90, 6, (g) => drawNet(g, x, SAND_Y + 60));
+  for (const [x, c] of [[riverCX(8900) - 260, '#2a6fd1'], [riverCX(8900) + 240, '#e8402a'], [riverCX(8900) + 300, '#f4c430']]) bake(x - 30, SAND_Y + 40, x + 30, SAND_Y + 100, 6, (g) => drawBoat(g, x, SAND_Y + 70, 1.4, c));
+  World.animalsDef.push({ type: 'person', n: 22, rect: [500, CALC_Y + 6, 7600, SAND_Y - 6] });
+  World.animalsDef.push({ type: 'person', n: 10, rect: [500, SAND_Y + 20, 7600, SEA_Y - 30] });
+  World.animalsDef.push({ type: 'dog', n: 3, rect: [800, SAND_Y + 20, 7000, SEA_Y - 30] });
+}
+// desenhos do litoral (assados no chão)
+function drawSea(g, x0, x1) {
+  const gr = g.createLinearGradient(0, SEA_Y, 0, WORLD_H); gr.addColorStop(0, '#2c6c8e'); gr.addColorStop(0.3, '#1d4d6e'); gr.addColorStop(1, '#0f2c46');
+  g.fillStyle = gr; g.fillRect(x0, SEA_Y, x1 - x0, WORLD_H - SEA_Y);
+  // espuma da onda na beira e cristas
+  g.fillStyle = 'rgba(235,245,250,0.75)';
+  g.beginPath(); g.moveTo(x0, SEA_Y); for (let x = x0; x <= x1; x += 12) g.lineTo(x, SEA_Y + 4 + Math.sin(x * 0.02) * 4 + Math.sin(x * 0.053) * 2); g.lineTo(x1, SEA_Y - 6); g.lineTo(x0, SEA_Y - 6); g.closePath(); g.fill();
+  g.strokeStyle = 'rgba(220,235,245,0.35)'; g.lineWidth = 1.4;
+  for (let y = SEA_Y + 24; y < WORLD_H; y += 22) { g.beginPath(); for (let x = x0; x <= x1; x += 10) { const yy = y + Math.sin(x * 0.015 + y) * 4; if (x === x0) g.moveTo(x, yy); else g.lineTo(x, yy); } g.globalAlpha = Math.max(0.15, 1 - (y - SEA_Y) / 260); g.stroke(); }
+  g.globalAlpha = 1;
+}
+function drawBoat(g, x, y, a, col) {
+  g.save(); g.translate(x, y); g.rotate(a);
+  g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.ellipse(3, 4, 22, 8, 0, 0, TAU); g.fill();
+  g.fillStyle = col; g.beginPath(); g.moveTo(-22, -7); g.lineTo(14, -7); g.quadraticCurveTo(26, 0, 14, 7); g.lineTo(-22, 7); g.closePath(); g.fill();
+  g.fillStyle = '#f2efe6'; g.fillRect(-18, -4.5, 26, 9); g.fillStyle = '#7a5230'; g.fillRect(-10, -4.5, 3, 9); g.fillRect(2, -4.5, 3, 9);
+  g.restore();
+}
+function drawStall(g, x, y, col, v) {
+  g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x - 18, y - 12, 44, 32);
+  for (let i = 0; i < 5; i++) { g.fillStyle = i % 2 ? '#f2efe6' : col; g.fillRect(x - 21 + i * 8.4, y - 16, 8.4, 30); }
+  g.strokeStyle = 'rgba(0,0,0,0.3)'; g.lineWidth = 1; g.strokeRect(x - 21, y - 16, 42, 30);
+  const fr = [['#ff8a2a', '#f4c430', '#2bb24c'], ['#e63946', '#ff9ed2', '#c8302a'], ['#f4c430', '#7bd389', '#a0522d'], ['#8a5a3a', '#d8c08a', '#f2efe6']][v];
+  for (let k = 0; k < 6; k++) { g.fillStyle = '#8a6440'; g.fillRect(x - 18 + (k % 3) * 13, y + 16 + Math.floor(k / 3) * 7, 11, 6); g.fillStyle = fr[k % 3]; for (let j = 0; j < 3; j++) g.fillRect(x - 17 + (k % 3) * 13 + j * 3.5, y + 17 + Math.floor(k / 3) * 7, 2.6, 2.6); }
+}
+function drawNet(g, x, y) {
+  g.fillStyle = '#d8d0c0'; g.fillRect(x - 42, y - 1, 84, 2);
+  g.strokeStyle = 'rgba(240,240,235,0.6)'; g.lineWidth = 0.6; for (let i = -40; i <= 40; i += 4) { g.beginPath(); g.moveTo(x + i, y - 2); g.lineTo(x + i, y + 2); g.stroke(); }
+  g.fillStyle = '#5a5a5e'; g.fillRect(x - 44, y - 3, 3, 6); g.fillRect(x + 41, y - 3, 3, 6);
+  g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = 1; g.strokeRect(x - 40, y - 22, 80, 44);
+}
+function drawShip(g, x, y, w, h) {
+  g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.moveTo(x + 10, y + 14); g.lineTo(x + w - 50, y + 14); g.quadraticCurveTo(x + w + 6, y + h / 2 + 10, x + w - 50, y + h + 6); g.lineTo(x + 10, y + h + 6); g.closePath(); g.fill();
+  g.fillStyle = '#7a1f1f'; g.beginPath(); g.moveTo(x, y); g.lineTo(x + w - 60, y); g.quadraticCurveTo(x + w, y + h / 2, x + w - 60, y + h); g.lineTo(x, y + h); g.closePath(); g.fill();
+  g.fillStyle = '#2a3440'; g.fillRect(x + 6, y + 8, w - 80, h - 16);
+  const cc = ['#c0392b', '#2e86de', '#27ae60', '#f39c12', '#8e44ad', '#7f8c8d', '#16a085'];
+  for (let i = 0; i < 12; i++) for (let j = 0; j < 4; j++) { g.fillStyle = cc[(i * 3 + j * 5) % cc.length]; g.fillRect(x + 70 + i * 36, y + 14 + j * 36, 32, 32); g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(x + 70 + i * 36, y + 14 + j * 36 + 28, 32, 4); }
+  g.fillStyle = '#f2f2ea'; g.fillRect(x + 12, y + 20, 46, h - 40); g.fillStyle = '#1d4f9c'; g.fillRect(x + 18, y + 26, 34, 10);
+  g.fillStyle = 'rgba(255,255,255,0.8)'; g.font = 'bold 14px sans-serif'; g.save(); g.translate(x + w - 70, y + h / 2); g.rotate(Math.PI / 2); g.textAlign = 'center'; g.fillText('VITÓRIA STAR', 0, 0); g.restore();
 }
 /* ============================ TEXTURAS ============================ */
 const PSRC = {};
@@ -6472,6 +6648,39 @@ function drawTall(ctx, o) {
       ctx.font = '800 11px Arial'; ctx.textAlign = 'center'; ctx.fillStyle = '#3a6fa0'; ctx.fillText('ÁGUA', tx, ty + o.r * 0.7);
       break;
     }
+    case 'rock': {
+      // morro de granito em camadas, mais estreito e claro em cima
+      const N = 7;
+      for (let k = 0; k <= N; k++) {
+        const t = k / N, [ox, oy] = offAt(o.x, o.y, o.h * t), rr = o.r * (1 - t * 0.62);
+        const sh = 0.55 + t * 0.4;
+        const cxk = o.x + ox, cyk = o.y + oy;
+        const gr = ctx.createRadialGradient(cxk - rr * 0.35, cyk - rr * 0.35, rr * 0.1, cxk, cyk, rr * 1.1);
+        gr.addColorStop(0, `rgb(${Math.round(120 * sh + 40)},${Math.round(122 * sh + 40)},${Math.round(128 * sh + 42)})`); gr.addColorStop(1, `rgb(${Math.round(60 * sh + 20)},${Math.round(62 * sh + 20)},${Math.round(70 * sh + 22)})`);
+        ctx.fillStyle = gr; ctx.beginPath();
+        for (let q = 0; q <= 24; q++) { const an = q / 24 * TAU, wob = 1 + 0.09 * Math.sin(an * 3 + o.seed * 20 + k) + 0.05 * Math.sin(an * 7 + o.seed * 9); const px = cxk + Math.cos(an) * rr * 1.08 * wob, py = cyk + Math.sin(an) * rr * wob; if (q) ctx.lineTo(px, py); else ctx.moveTo(px, py); }
+        ctx.closePath(); ctx.fill();
+        if (k > 1 && k < N) { ctx.strokeStyle = 'rgba(40,44,52,0.35)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(o.x + ox, o.y + oy, rr * 0.92, o.seed * 6 + k, o.seed * 6 + k + 1.4); ctx.stroke(); }
+      }
+      const [tx, ty] = offAt(o.x, o.y, o.h);
+      ctx.fillStyle = 'rgba(70,110,50,0.55)'; ctx.beginPath(); ctx.ellipse(o.x + tx - o.r * 0.08, o.y + ty - o.r * 0.06, o.r * 0.22, o.r * 0.16, 0, 0, TAU); ctx.fill();
+      break;
+    }
+    case 'crane': {
+      // guindaste de porto: 4 pernas, pórtico no alto e a lança apontando para o mar
+      const [ox, oy] = offAt(o.x, o.y, o.h), legs = [[-16, -16], [16, -16], [16, 16], [-16, 16]];
+      ctx.strokeStyle = '#d98a1a'; ctx.lineWidth = 3;
+      ctx.beginPath(); for (const [dx, dy] of legs) { ctx.moveTo(o.x + dx, o.y + dy); ctx.lineTo(o.x + dx + ox, o.y + dy + oy); } ctx.stroke();
+      ctx.lineWidth = 1.4; ctx.beginPath(); for (const t of [0.35, 0.7]) { ctx.moveTo(o.x - 16 + ox * t, o.y - 16 + oy * t); ctx.lineTo(o.x + 16 + ox * t, o.y + 16 + oy * t); ctx.moveTo(o.x + 16 + ox * t, o.y - 16 + oy * t); ctx.lineTo(o.x - 16 + ox * t, o.y + 16 + oy * t); } ctx.stroke();
+      const ca = Math.cos(o.a), sa = Math.sin(o.a), tx = o.x + ox, ty = o.y + oy;
+      ctx.fillStyle = '#f0a020'; ctx.fillRect(tx - 22, ty - 22, 44, 44);
+      ctx.fillStyle = '#2a2d33'; ctx.fillRect(tx - 10, ty - 14, 20, 14);
+      ctx.strokeStyle = '#f0a020'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(tx - ca * 40, ty - sa * 40); ctx.lineTo(tx + ca * o.len, ty + sa * o.len); ctx.stroke();
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1; ctx.beginPath(); for (let t = 20; t < o.len; t += 14) { ctx.moveTo(tx + ca * t - sa * 3, ty + sa * t + ca * 3); ctx.lineTo(tx + ca * (t + 7) + sa * 3, ty + sa * (t + 7) - ca * 3); } ctx.stroke();
+      ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(tx + ca * o.len * 0.75, ty + sa * o.len * 0.75); ctx.lineTo(o.x + ca * o.len * 0.75, o.y + sa * o.len * 0.75); ctx.stroke();
+      o.lightAt = [tx + ca * o.len, ty + sa * o.len];
+      break;
+    }
     case 'silo': {
       const [ox, oy] = offAt(o.x, o.y, o.h);
       const tx = o.x + ox, ty = o.y + oy, r = o.r;
@@ -6535,6 +6744,7 @@ function billboardPanel(o) {
   return c;
 }
 function drawTallEmissive(ctx, o) {
+  if (o.kind === 'crane' && o.lightAt && (Game.time + o.seed * 3) % 1.4 < 0.5) { const g = glowSprite('#ff3b3b'); ctx.drawImage(g, o.lightAt[0] - 10, o.lightAt[1] - 10, 20, 20); return; }
   switch (o.kind) {
     case 'bld': drawBuildingEmissive(ctx, o); break;
     case 'lamp': {
@@ -7224,7 +7434,7 @@ function drawMinimap() {
   }
 }
 /* ---------- mapa estilo app de celular: arrastar, zoom e destinos ---------- */
-const MAP_LABELS = [['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JUCU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEU ROSA', 1150, 7350], ['JARDIM CARAPINA', 3300, 7350], ['NOVA ROSA DA PENHA', 1300, 8400], ['FLEXAL', 3600, 8400]];
+const MAP_LABELS = [['BARRA DO JUCUZINHO', 5450, 7300], ['JARDIM CAMBURIZINHO', 6900, 7800], ['PORTO DE TUBARÃOZINHO', 8100, 7300], ['ORLA DE CAMBURIZINHO', 3000, 8900], ['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JUCU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEU ROSA', 1150, 7350], ['JARDIM CARAPINA', 3300, 7350], ['NOVA ROSA DA PENHA', 1300, 8400], ['FLEXAL', 3600, 8400]];
 class MapView {
   constructor(canvas, st) {
     this.c = canvas; this.g = canvas.getContext('2d'); this.st = st; // st: {cx, cy, z} compartilhado
@@ -8092,7 +8302,7 @@ function frame(now) {
   else if (Screens.current === 'screen-phone' && phoneMap && Phone.app === 'mapa') phoneMap.draw();
   if (AudioSys.ok) {
     const R = REGIONS[regionKeyAt(Cam.x, Cam.y)];
-    const river = clamp(1 - (Math.abs(Cam.x - riverCX(Cam.y)) - 160) / 650, 0, 1);
+    const river = Math.max(clamp(1 - (Math.abs(Cam.x - riverCX(Cam.y)) - 160) / 650, 0, 1), clamp(1 - (SEA_Y - Cam.y) / 700, 0, 1) * 1.3); // rio e mar
     const p = player;
     AudioSys.update({
       active: Game.state === 'playing' && !!p, rpm: p ? p.rpm : 900, thr: p ? p.thr : 0, speed: p ? p.speed : 0, slip: p ? p.slip : 0,
@@ -8133,7 +8343,7 @@ async function boot() {
   RNG = mulberry32(20261108);
   const steps = [
     [buildRoadGraph, 'Traçando ruas…'], [buildRiver, 'Enchendo o Rio Jucu…'], [buildRoadSurface, 'Asfaltando as avenidas…'],
-    [buildCity, 'Erguendo bairros e comércios…'], [buildHighwayStrip, 'Abrindo a rodovia…'], [buildSerra, 'Subindo para Feu Rosa e Jardim Carapina…'], [buildRural, 'Plantando o interior…'],
+    [buildCity, 'Erguendo bairros e comércios…'], [buildHighwayStrip, 'Abrindo a rodovia…'], [buildSerra, 'Subindo para Feu Rosa e Jardim Carapina…'], [buildRural, 'Plantando o interior…'], [buildLitoral, 'Molhando os pés na Orla de Camburizinho…'],
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
