@@ -316,6 +316,24 @@ const AudioSys = {
     s.connect(f); f.connect(g); g.connect(this.bus[bus || 'engine']);
     s.start(t, Math.random()); s.stop(t + dur + 0.05);
   },
+  // sirene da perseguição: "uóóó-uóóó" contínuo, volume pela distância, lado e Doppler
+  sirenSet(k, pan, pitch) {
+    if (!this.ok) return;
+    const c = this.ctx, t = c.currentTime;
+    if (!this.sirO) {
+      this.sirG = this.gain(0, this.bus.ambient);
+      const sh = c.createWaveShaper(); const n = 256, a = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; a[i] = Math.tanh(x * 2.5); } sh.curve = a;
+      const bp = this.filt('bandpass', 1100, 0.8, null);
+      this.sirPan = c.createStereoPanner ? c.createStereoPanner() : null;
+      sh.connect(bp); if (this.sirPan) { bp.connect(this.sirPan); this.sirPan.connect(this.sirG); } else bp.connect(this.sirG);
+      this.sirO = c.createOscillator(); this.sirO.type = 'sawtooth'; this.sirO.frequency.value = 900;
+      const lfo = c.createOscillator(), lg = c.createGain(); lfo.type = 'triangle'; lfo.frequency.value = 0.55; lg.gain.value = 320;
+      lfo.connect(lg); lg.connect(this.sirO.frequency); this.sirO.connect(sh); this.sirO.start(); lfo.start();
+    }
+    this.sirG.gain.setTargetAtTime(k * 0.07, t, 0.15);
+    this.sirO.frequency.setTargetAtTime(900 * (pitch || 1), t, 0.1);
+    if (this.sirPan) this.sirPan.pan.setTargetAtTime(pan || 0, t, 0.1);
+  },
   // chuva (ruído filtrado em loop) e trovão
   rainSet(k) {
     if (!this.ok) return;
@@ -3607,6 +3625,7 @@ class Player {
             this.spin = clamp(this.spin + tau * 0.00015, -2.5, 2.5);
             if (-vn > impact) { impact = -vn; this.hitX = cx - nx * r; this.hitY = cy - ny * r; }
             ai.hit(-vn, -nx, -ny);
+            if (-vn > 70) { if (ai.model === 'police') Police.crime('Bateu na viatura', 2, ai.x, ai.y, true); else if (-vn > 110) Police.crime('Batida na frente da polícia', 1, ai.x, ai.y); }
           }
         }
       }
@@ -3879,6 +3898,7 @@ class AICar {
   }
   update(dt, now) {
     let target = this.cruise * (1 - 0.15 * Weather.wet); // na chuva todo mundo vai mais devagar
+    if (this.yieldT > 0) { this.yieldT -= dt; target *= 0.35; } // ouviu a sirene: encosta e deixa passar
     const gap = this.scanAhead();
     if (this.state === 'edge') {
       const remain = this.sEnd - this.s;
@@ -3919,7 +3939,7 @@ class AICar {
         if (Math.abs(l) < 34 && Math.abs(l) > 6) { const nd = clamp(-Math.sign(l) * (34 - Math.abs(l)) * 0.5, -room, room); if (this.e.T.lanes.length === 1 || this.laneClear(this.offT + nd, -40, 80)) this.nudge = nd; }
       }
     }
-    const dOff = this.offT + this.nudge - this.off;
+    const dOff = this.offT + this.nudge + (this.yieldT > 0 && this.e.T.lanes.length === 1 ? 9 : 0) - this.off;
     this.off += clamp(dOff, -42 * dt, 42 * dt);
     this.lcBlink = Math.abs(dOff) > 2 ? (dOff > 0 ? 1 : -1) : 0;
     if (this.hitT > 0) { this.hitT -= dt; target = 0; }
@@ -4525,7 +4545,7 @@ function refreshGroundArea(x0, y0, x1, y1) {
 }
 function breakObject(col, vx, vy, sp, hx, hy) {
   col.dead = true;
-  if (vx !== undefined) Profile.broken = (Profile.broken || 0) + 1;
+  if (vx !== undefined) { Profile.broken = (Profile.broken || 0) + 1; Police.crime('Vandalismo', 1, hx, hy); }
   const b = col.brk, o = b.obj, ang = Math.atan2(vy, vx) + rnd(-0.4, 0.4);
   if (b.kind === 'fence') {
     const long = (o.x1 - o.x0) > (o.y1 - o.y0), L = long ? o.x1 - o.x0 : o.y1 - o.y0;
@@ -4848,6 +4868,141 @@ function freeRoamHint() {
   if (cheapest && Profile.money >= cheapest.price) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
   return list[Act.hintI % list.length];
 }
+
+/* ============================ POLÍCIA: CRIMES, PERSEGUIÇÃO, PRISÃO E FUGA ============================ */
+const Police = { heat: 0, level: 0, units: [], spawnT: 0, lostT: 0, bustT: 0, seenT: 0, lastSeen: null, crimeCd: 0, sirenK: 0 };
+Police.patrolNear = function (x, y, r) {
+  for (const c of Traffic.cars) if (c.model === 'police' && Math.hypot(c.x - x, c.y - y) < r) return c;
+  for (const u of this.units) if (Math.hypot(u.x - x, u.y - y) < r) return u;
+  return null;
+};
+// a polícia só age se viu (viatura perto) — ou se o crime foi contra ela
+Police.crime = function (why, lvl, x, y, direct) {
+  if (Game.mode !== 'play' || !player) return;
+  if (!direct && !this.patrolNear(x, y, 460)) return;
+  if (this.crimeCd > 0 && lvl <= this.level) return;
+  this.crimeCd = 2;
+  const before = this.level;
+  // bater na polícia durante a perseguição sobe uma estrela; outros crimes só renovam a perseguição
+  this.level = Math.min(3, this.level >= lvl ? (direct && this.level > 0 ? this.level + 1 : this.level) : lvl);
+  this.lostT = 0; this.seenT = 0; this.lastSeen = { x: player.x, y: player.y };
+  if (this.level > before) {
+    toast(this.level === 1 ? 'A polícia te viu!' : 'Perseguição aumentou!', why + ' · ' + '★'.repeat(this.level) + ' · fuja ou pare o carro', 'bad');
+    AudioSys.siren();
+  }
+};
+Police.spawnUnit = function () {
+  const p = player, v = Cam.view;
+  let sx, sy;
+  const B = World.batalhao;
+  if (B && Math.hypot(B.x - p.x, B.y - p.y) < 1600 && !(B.x > v.x0 && B.x < v.x1 && B.y > v.y0 && B.y < v.y1)) { sx = B.x; sy = B.y; }
+  else {
+    for (let t = 0; t < 12; t++) {
+      const a = rnd(TAU), d = rnd(900, 1300);
+      const ne = nearestEdge(clamp(p.x + Math.cos(a) * d, 100, WORLD_W - 100), clamp(p.y + Math.sin(a) * d, 100, WORLD_H - 100));
+      if (!ne.e || ne.e.T.id === 'dirt' && chance(0.5)) continue;
+      const x = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x, y = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s;
+      if (x > v.x0 - 60 && x < v.x1 + 60 && y > v.y0 - 60 && y < v.y1 + 60) continue;
+      sx = x; sy = y; break;
+    }
+  }
+  if (sx === undefined) return;
+  this.units.push({ m: VMODELS.police, x: sx, y: sy, a: Math.atan2(p.y - sy, p.x - sx), v: 0, pts: null, ri: 1, rt: 0, mode: 'route', id: Math.random(), stuckT: 0 });
+};
+Police.unitDrive = function (u, dt) {
+  const p = player, d = Math.hypot(p.x - u.x, p.y - u.y);
+  const vmax = [0, 380, 440, 500][this.level] || 380;
+  u.rt -= dt;
+  // de perto vai direto em você (se não tiver parede no meio); de longe segue as ruas
+  let tx, ty;
+  const lead = 0.35;
+  const px = p.x + p.vx * lead, py = p.y + p.vy * lead;
+  if (d < 230) {
+    const nx = u.x + Math.cos(Math.atan2(py - u.y, px - u.x)) * 30, ny = u.y + Math.sin(Math.atan2(py - u.y, px - u.x)) * 30;
+    if (!areaBlocked(nx - 8, ny - 8, nx + 8, ny + 8)) { u.mode = 'direct'; tx = px; ty = py; }
+    else u.mode = 'route';
+  } else u.mode = 'route';
+  if (u.mode === 'route') {
+    const tgt = this.lostT > 0 && this.lastSeen ? this.lastSeen : p;
+    if (!u.pts || u.rt <= 0 || u.ri >= u.pts.length) { u.rt = 1.4; const r = gpsRoute(u.x, u.y, tgt.x, tgt.y); u.pts = r ? r.pts.slice() : [[tgt.x, tgt.y]]; u.ri = 1; }
+    while (u.ri < u.pts.length && Math.hypot(u.pts[u.ri][0] - u.x, u.pts[u.ri][1] - u.y) < 22) u.ri++;
+    const q = u.pts[Math.min(u.ri, u.pts.length - 1)]; tx = q[0]; ty = q[1];
+  }
+  const want = Math.atan2(ty - u.y, tx - u.x), da = angDiff(u.a, want);
+  u.a += clamp(da, -3.2 * dt, 3.2 * dt);
+  const turnSlow = 1 - Math.min(0.75, Math.abs(da) * 0.6);
+  let target = vmax * turnSlow;
+  if (u.mode === 'direct' && d < 60) target = Math.min(target, p.speed + 40);
+  u.v += clamp(target - u.v, -620 * dt, 300 * dt);
+  const ox = u.x, oy = u.y;
+  u.x += Math.cos(u.a) * u.v * dt; u.y += Math.sin(u.a) * u.v * dt;
+  // não atravessa prédio: se bater, volta e recalcula a rota
+  if (areaBlocked(u.x - 9, u.y - 9, u.x + 9, u.y + 9)) { u.x = ox; u.y = oy; u.v *= 0.3; u.rt = 0; u.mode = 'route'; u.stuckT += dt; } else u.stuckT = Math.max(0, u.stuckT - dt);
+  if (u.stuckT > 3) { const ne = nearestEdge(u.x, u.y); u.x = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x; u.y = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s; u.stuckT = 0; }
+  // trânsito abre caminho para a sirene
+  for (const c of Traffic.cars) {
+    const rx = c.x - u.x, ry = c.y - u.y, f = rx * Math.cos(u.a) + ry * Math.sin(u.a);
+    if (f > 0 && f < 260 && Math.abs(-rx * Math.sin(u.a) + ry * Math.cos(u.a)) < 40) c.yieldT = 1.2;
+  }
+  // encostou em você: empurra (e se vier rápido, amassa)
+  if (d < 34) {
+    const nx = (p.x - u.x) / (d || 1), ny = (p.y - u.y) / (d || 1), pen = 34 - d;
+    p.x += nx * pen * 0.7; p.y += ny * pen * 0.7; u.x -= nx * pen * 0.3; u.y -= ny * pen * 0.3;
+    const rel = (u.v * Math.cos(u.a) - p.vx) * nx + (u.v * Math.sin(u.a) - p.vy) * ny;
+    if (rel > 60) { p.vx += nx * rel * 0.6; p.vy += ny * rel * 0.6; p.spin = clamp(p.spin + rnd(-1, 1) * rel / 400, -2.5, 2.5); u.v *= 0.5; if (rel > 140 && p.impactCd <= 0) { p.hitX = u.x + nx * 14; p.hitY = u.y + ny * 14; onPlayerImpact(rel * 0.8); } }
+  }
+};
+Police.update = function (dt) {
+  const p = player; if (!p) return;
+  this.crimeCd -= dt;
+  // excesso de velocidade na frente de uma viatura de ronda
+  const kmh = p.speed * 0.3, lim = regionKeyAt(p.x, p.y) === 'rodovia' ? 110 : 80;
+  if (kmh > lim + 35 && this.level === 0) { const pc = this.patrolNear(p.x, p.y, 320); if (pc) this.crime('Excesso de velocidade: ' + Math.round(kmh) + ' km/h', 1, p.x, p.y, true); }
+  if (this.level === 0) { if (this.units.length) this.units.length = 0; this.sirenK = lerp(this.sirenK, 0, 1 - Math.exp(-2 * dt)); AudioSys.sirenSet && AudioSys.sirenSet(this.sirenK, 0, 1); return; }
+  // reforço conforme o nível
+  const want = this.level;
+  this.spawnT -= dt;
+  if (this.units.length < want && this.spawnT <= 0) { this.spawnT = 4; this.spawnUnit(); }
+  for (const u of this.units) this.unitDrive(u, dt);
+  // alguém está te vendo?
+  let nearest = 1e9, nu = null;
+  for (const u of this.units) { const d = Math.hypot(u.x - p.x, u.y - p.y); if (d < nearest) { nearest = d; nu = u; } }
+  const seen = nearest < 650;
+  if (seen) { this.lostT = 0; this.lastSeen = { x: p.x, y: p.y }; } else this.lostT += dt;
+  // fuga: some da vista por um tempo e as estrelas vão caindo
+  const need = 7 + this.level * 3;
+  if (this.lostT > need) {
+    this.level--; this.lostT = 0;
+    if (this.level <= 0) {
+      this.level = 0; Profile.escapes = (Profile.escapes || 0) + 1;
+      toast('Despistou a polícia!', 'As viaturas voltaram para a ronda.', 'good'); AudioSys.chime();
+      this.units.length = 0;
+    } else { toast('Perdendo você de vista…', '★'.repeat(this.level) + ' · continue sumido', 'info'); if (this.units.length > this.level) this.units.length = this.level; }
+  }
+  // prisão: parado (ou quase) com a viatura colada
+  if (nearest < 80 && p.speed < 40) this.bustT += dt; else this.bustT = Math.max(0, this.bustT - dt * 2);
+  if (this.bustT > 2.6) this.bust();
+  // sirene com efeito de aproximação (Doppler)
+  if (nu) {
+    const dx = p.x - nu.x, dy = p.y - nu.y, dd = Math.hypot(dx, dy) || 1;
+    const vrel = ((Math.cos(nu.a) * nu.v - p.vx) * dx + (Math.sin(nu.a) * nu.v - p.vy) * dy) / dd; // >0 aproximando
+    this.sirenK = lerp(this.sirenK, clamp(1 - nearest / 1400, 0.05, 1), 1 - Math.exp(-4 * dt));
+    AudioSys.sirenSet && AudioSys.sirenSet(this.sirenK, clamp((nu.x - p.x) / 500, -0.9, 0.9), clamp(1 + vrel / 1500, 0.8, 1.25));
+  }
+};
+Police.bust = function () {
+  const lvl = this.level, fine = 150 * lvl, tow = 150;
+  const total = Math.min(Math.max(0, Math.floor(Profile.money)), fine + tow);
+  Profile.busts = (Profile.busts || 0) + 1;
+  this.level = 0; this.units.length = 0; this.bustT = 0; this.lostT = 0;
+  if (total > 0) pay(-total, null);
+  Act.race = null;
+  // carro vai para o pátio do Batalhão
+  const B = World.shops.find((s) => s.kind === 'batalhao') || World.batalhao;
+  if (B) { const ne = nearestEdge(B.x, B.y); player.place(B.x, B.y, ne.e && ne.e.h ? 0 : Math.PI / 2); player.vx = player.vy = 0; Cam.x = B.x; Cam.y = B.y; Traffic.fill(B.x, B.y); }
+  Cam.flash = 0.8; AudioSys.error();
+  showDialog({ kind: 'POLÍCIA MILITAR', title: 'Você foi detido', text: 'Multa de R$ ' + fmtMoney(fine) + ' (' + '★'.repeat(lvl) + ') e R$ ' + fmtMoney(tow) + ' do guincho. Pago: R$ ' + fmtMoney(total) + '. Seu carro foi levado para o pátio do Batalhão da PM. "Na próxima, é cadeia, hein, cidadão!"', buttons: [['Entendi', () => closeDialog()]] });
+};
 /* ============================ CELULAR, PROFISSÕES, APP DE MOTORISTA E RACHA ============================ */
 const PASSAGEIROS = ['Dona Cida', 'Seu Jorge', 'Thaís', 'Juninho', 'Pastor Elias', 'Dona Penha', 'Marcão', 'Bia da Farmácia', 'Tio Zezinho', 'Kelly', 'Rafa do Bloco', 'Vó Lurdes', 'Diego Entregador', 'Professora Solange'];
 const FALAS_EMBARQUE = ['"Boa noite, moço! Pode ir pela avenida que é mais rápido."', '"Liga o ar aí, por favor?"', '"Tô atrasada pro plantão, vai com fé!"', '"Nossa, esse carro é raiz, hein?"', '"Me deixa na porta, que tá escuro."', '"Pode botar um pagodinho no rádio?"'];
@@ -5196,6 +5351,8 @@ const ACHIEVEMENTS = [
   { id: 'rico', name: 'Tá podendo, hein', desc: 'Ganhe R$ 10.000 no total.', goal: 10000, val: () => Profile.earned || 0, prize: 500, money: true },
   { id: 'vandalo', name: 'Prefeitura chora', desc: 'Derrube 25 objetos da cidade.', goal: 25, val: () => Profile.broken || 0, prize: 50 },
   { id: 'socorro', name: 'Seu Zé salvou', desc: 'Chame o socorro do Seu Zé.', goal: 1, val: () => Profile.sos || 0, prize: 30 },
+  { id: 'fuga', name: 'Sumiu na neblina', desc: 'Despiste uma perseguição da polícia.', goal: 1, val: () => Profile.escapes || 0, prize: 250 },
+  { id: 'fichado', name: 'Ficha corrida', desc: 'Seja detido pela polícia (não é motivo de orgulho).', goal: 1, val: () => Profile.busts || 0, prize: 10 },
   { id: 'noite', name: 'Varou a madrugada', desc: 'Jogue até o dia amanhecer.', goal: 1, val: () => Profile.nights || 0, prize: 200 },
 ];
 const Achievements = {
@@ -6555,6 +6712,7 @@ function lightPass(view, cx, cy) {
     if (c.x < view.x0 - 400 || c.x > view.x1 + 400 || c.y < view.y0 - 400 || c.y > view.y1 + 400) continue;
     cone(c, c.big ? 300 : 250, 0.85);
   }
+  for (const u of Police.units) { if (!inView(view, u.x, u.y, 400)) continue; cone(u, 280, 0.85); lctx.globalAlpha = 0.5; lctx.drawImage(LSPR, u.x - 120, u.y - 120, 240, 240); }
   if (player && Game.state !== 'menu') {
     // um facho saindo de cada farol, na posição real da lâmpada
     const I = carLightsInfo(player), base = player.highBeam ? 520 : 360;
@@ -6615,6 +6773,8 @@ function glowPass(view, cx, cy) {
     gctx.restore();
   };
   for (const c of Traffic.cars) if (inView(view, c.x, c.y, 300)) cone(c, c.big ? 300 : 250, 0.07);
+  // giroflex pintando a rua de azul e vermelho
+  for (const u of Police.units) { if (!inView(view, u.x, u.y, 260)) continue; const ph = Math.floor(T * 7 + u.id * 10) % 2; gctx.globalAlpha = 0.28; gctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 200, u.y - 200, 400, 400); }
   if (player && Game.state !== 'menu') {
     const I = carLightsInfo(player), base = player.highBeam ? 520 : 360;
     for (const s of [-1, 1]) {
@@ -6670,6 +6830,7 @@ function emissivePass(view, talls) {
     carGlow(c, c.braking || c.hitT > 0 || c.v < 3, false, c.lcBlink || (nearNode ? c.blink : 0), false);
   }
   if (player && Game.state !== 'menu') carGlow(player, player.braking || Keys.Space, player.rev, 0, true);
+  for (const u of Police.units) { const ph = Math.floor(T * 7 + u.id * 10) % 2; ctx.globalAlpha = 0.95; ctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 14, u.y - 14, 28, 28); ctx.globalAlpha = 0.3; ctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 70, u.y - 70, 140, 140); ctx.globalAlpha = 1; }
   if (Socorro.job && (Game.time * 2.2) % 1 < 0.5) { const J = Socorro.job; ctx.globalAlpha = 0.9; const s = glowSprite('#ffa520'); ctx.drawImage(s, J.x - 22, J.y - 22, 44, 44); ctx.globalAlpha = 1; }
   // animais (olhos de coruja)
   for (const an of Animals.list) {
@@ -6813,6 +6974,7 @@ function render() {
     if (!inView(view, c.x, c.y, 80)) continue;
     drawVehicle(ctx, c.m, c.color, c.x, c.y, c.a, { steer: c.steerVis, roll: c.roll, brake: c.braking || c.v < 3, box: c.box, zones: c.zones });
   }
+  for (const u of Police.units) if (inView(view, u.x, u.y, 80)) drawVehicle(ctx, VMODELS.police, '#f2f2ee', u.x, u.y, u.a, { roll: 0, brake: u.v < 30 });
   if (Socorro.job && inView(view, Socorro.job.x, Socorro.job.y, 120)) { const J = Socorro.job; ctx.globalAlpha = clamp(1 - (J.fade || 0), 0, 1); drawVehicle(ctx, VMODELS.guincho, '#c8302a', J.x, J.y, J.a, { roll: 0, brake: J.state === 'arrived' || (J.v || 0) < 20 }); ctx.globalAlpha = 1; }
   if (player && Game.state !== 'menu') {
     drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery, zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null });
@@ -6924,6 +7086,7 @@ function drawMinimap() {
   for (const c of Traffic.cars) { if (Math.abs(c.x - player.x) > R * 1.5 || Math.abs(c.y - player.y) > R * 1.5) continue; mm.fillStyle = 'rgba(255,255,255,0.55)'; mm.fillRect(c.x - 12, c.y - 12, 24, 24); }
   for (const s of World.shops) ic(s.x, s.y, shopIconKind(s));
   if (Socorro.job) ic(Socorro.job.x, Socorro.job.y, 'repair');
+  for (const u of Police.units) { mm.save(); mm.translate(u.x, u.y); mm.rotate(-rot); const s = 1 / scale * k; mm.fillStyle = Math.floor(Game.time * 6) % 2 ? '#ff3b30' : '#2a6aff'; mm.beginPath(); mm.arc(0, 0, 6 * s, 0, TAU); mm.fill(); mm.strokeStyle = '#fff'; mm.lineWidth = 1.5 * s; mm.stroke(); mm.restore(); }
   if (!Act.race) for (const r of World.races) ic(r.start[0], r.start[1], 'race');
   for (const s of World.parkSpots) if (!Profile.parks[s.id]) ic(s.x, s.y, 'park');
   for (const p of World.pois) if (Profile.discovered.includes(p.id)) ic(p.x, p.y, 'poi');
@@ -7579,6 +7742,13 @@ const Tutorial = {
     if (st.done() || (st.skipAfter && this.t > st.skipAfter)) { Profile.tut++; this.t = 0; AudioSys.checkpoint(); }
   },
 };
+function showDialog(o) {
+  $('dialog-kind').textContent = o.kind || ''; $('dialog-title').textContent = o.title || ''; $('dialog-text').textContent = o.text || '';
+  $('dialog-portrait').classList.add('hidden');
+  const box = $('dialog-buttons'); box.innerHTML = '';
+  for (const [label, fn] of o.buttons || [['OK', closeDialog]]) { const el = document.createElement('button'); el.className = 'mbtn'; el.textContent = label; el.addEventListener('click', () => { AudioSys.click(); fn(); }); box.appendChild(el); }
+  if (Screens.current === 'screen-dialog') Screens.onOpen('screen-dialog'); else { Screens.closeAll(); Screens.open('screen-dialog'); }
+}
 function closeDialog() { if (Screens.current === 'screen-dialog') Screens.closeAll(); }
 
 /* ---------- estatísticas da pausa ---------- */
@@ -7640,6 +7810,10 @@ function updateHUD(dt) {
   if (UI.last.objcls !== cls) { UI.last.objcls = cls; $('hud-objective').className = 'glass ' + cls; }
   // veículo
   UI.set('car-name', carFullName(player.car));
+  { const w = $('hud-wanted'), L = Police.level; w.classList.toggle('hidden', L <= 0);
+    if (L > 0) { w.querySelectorAll('.w-stars i').forEach((s, i) => s.classList.toggle('on', i < L)); const lost = Police.lostT / (7 + L * 3), bust = Police.bustT / 2.6;
+      w.querySelector('.w-label').textContent = bust > 0.05 ? 'PARE OU SERÁ PRESO' : lost > 0.02 ? 'DESPISTANDO…' : 'PROCURADO';
+      $('w-bar').style.width = (Math.max(lost, bust) * 100).toFixed(0) + '%'; $('w-bar').className = bust > 0.05 ? 'bust' : ''; w.classList.toggle('flash', lost < 0.02 && bust < 0.05); } }
   UI.set('fuel-bar', Math.round(Profile.fuel) + '%', 'width');
   UI.set('fuel-bar', Profile.fuel < 20 ? 'linear-gradient(90deg,#ff5a5a,#ff8a7a)' : '', 'bg');
   UI.set('cond-bar', Math.round(100 - Profile.damage) + '%', 'width');
@@ -7758,6 +7932,7 @@ function stepPlay(dt) {
   Socorro.update(dt);
   Achievements.check(dt);
   Weather.updatePlayer(dt, player);
+  Police.update(dt);
   const kmh = player.speed * 0.3; if (kmh > (Profile.topSpeed || 0)) Profile.topSpeed = kmh;
   if (player.drift > 0.45 && player.speed > 180) Profile.driftT = (Profile.driftT || 0) + dt;
 }

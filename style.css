@@ -726,3 +726,14 @@ div.ph-wid { cursor: default; }
 .bk-btns .ph-btn { margin: 0; font-size: 13px; padding: 11px 6px; }
 .ph-btn.alt { background: #2c2c2e; color: #fff; }
 .wid-sky.rain { background: linear-gradient(170deg, #2a3240, #3e4a5e 60%, #56657d); }
+/* procurado */
+#hud-wanted { position: absolute; top: 74px; right: 18px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; pointer-events: none; }
+.w-stars { display: flex; gap: 4px; }
+.w-stars i { width: 24px; height: 24px; background: rgba(255, 255, 255, 0.18); clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+.w-stars i.on { background: #ffd23f; filter: drop-shadow(0 0 6px rgba(255, 210, 63, 0.8)); }
+#hud-wanted.flash .w-stars i.on { animation: wflash 0.6s steps(2) infinite; }
+@keyframes wflash { 50% { background: #ff3b30; } }
+.w-label { font: italic 900 12px var(--font); letter-spacing: 0.12em; color: #ff6b6b; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8); }
+.w-bar { width: 96px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
+.w-bar b { display: block; height: 100%; width: 0; background: #59e0ff; }
+.w-bar b.bust { background: #ff3b30; }
