@@ -725,3 +725,4 @@ div.ph-wid { cursor: default; }
 .bk-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .bk-btns .ph-btn { margin: 0; font-size: 13px; padding: 11px 6px; }
 .ph-btn.alt { background: #2c2c2e; color: #fff; }
+.wid-sky.rain { background: linear-gradient(170deg, #2a3240, #3e4a5e 60%, #56657d); }

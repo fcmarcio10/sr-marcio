@@ -87,7 +87,7 @@ const HORNS = {
   musical: { f: [523], wave: 'square', band: 1300, len: 0.2, pat: [[0, 0.12, 1], [0.14, 0.12, 1.25], [0.28, 0.12, 1.5], [0.42, 0.28, 2], [0.74, 0.12, 1.5], [0.88, 0.32, 2]] },
   trator: { f: [180], wave: 'square', band: 700, len: 0.5, pat: [[0, 0.5]] },
 };
-const Settings = { master: 80, engine: 75, ambient: 65, ui: 60, quality: 'media', zoom: 100, showFps: false, minimapRotate: false };
+const Settings = { weather: 'auto', master: 80, engine: 75, ambient: 65, ui: 60, quality: 'media', zoom: 100, showFps: false, minimapRotate: false };
 function loadSettings() {
   try { const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null'); if (s && typeof s === 'object') Object.assign(Settings, s); } catch (e) { /* sem storage */ }
 }
@@ -315,6 +315,23 @@ const AudioSys = {
     const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     s.connect(f); f.connect(g); g.connect(this.bus[bus || 'engine']);
     s.start(t, Math.random()); s.stop(t + dur + 0.05);
+  },
+  // chuva (ruído filtrado em loop) e trovão
+  rainSet(k) {
+    if (!this.ok) return;
+    const c = this.ctx, t = c.currentTime;
+    if (!this.rainG) {
+      this.rainG = this.gain(0, this.bus.ambient);
+      const lp = this.filt('lowpass', 5200, 0.5, this.rainG), hp = this.filt('highpass', 900, 0.5, lp);
+      const s = c.createBufferSource(); s.buffer = this.white; s.loop = true; s.connect(hp); s.start();
+    }
+    this.rainG.gain.setTargetAtTime(k * 0.13, t, 0.6);
+  },
+  thunder(dist) {
+    if (!this.ok) return;
+    const v = clamp(0.32 - dist * 0.08, 0.08, 0.3);
+    this.noise(2.8, 140, 0.7, v, 'ambient', 'lowpass'); this.noise(0.5, 600, 0.6, v * 0.6, 'ambient', 'lowpass');
+    this.tone(48, 2.2, 'sine', v * 0.6, 'ambient', 32);
   },
   // forró ambiente dos bares: zabumba, triângulo e sanfona sintetizados
   music(vol) {
@@ -3365,7 +3382,10 @@ class Player {
     this.surface = groundAt(this.x, this.y);
     const surf = SURF[this.surface];
     const offK = this.car.offroad ? 0.4 : 1;
-    const drag = surf.drag * offK, gripS = this.car.offroad ? lerp(1, surf.grip, 0.45) : surf.grip;
+    const paved = this.surface === SF.ROAD || this.surface === SF.BRIDGE || this.surface === SF.PAVED || this.surface === SF.SIDEWALK;
+    const wetK = Weather.wet * (paved ? 0.28 : 0.12);
+    const drag = surf.drag * offK, gripS = (this.car.offroad ? lerp(1, surf.grip, 0.45) : surf.grip) * (1 - wetK);
+    const brkW = 1 - 0.22 * Weather.wet;
     let maxS = st.max * (1 - Profile.damage / 100 * 0.3), acc = st.acc;
     if (Profile.fuel <= 0) { maxS *= 0.3; acc *= 0.3; }
     this.braking = false;
@@ -3374,10 +3394,10 @@ class Player {
     if (!inp.thr || inp.brk) this.launchT = 0;
     if (this.launchT > 0) this.launchT -= dt;
     if (inp.thr && !inp.brk) {
-      if (vf < -8) { vf += st.brk * dt; this.braking = true; if (vf > 0) vf = 0; }
+      if (vf < -8) { vf += st.brk * brkW * dt; this.braking = true; if (vf > 0) vf = 0; }
       else { const k = clamp(vf / maxS, 0, 1); vf += acc * (1.08 - k * k) * (this.launchT > 0 ? 0.82 : 1) * dt; }
     } else if (inp.brk) {
-      if (vf > 8) { vf -= st.brk * dt; this.braking = true; if (vf < 0) vf = 0; }
+      if (vf > 8) { vf -= st.brk * brkW * dt; this.braking = true; if (vf < 0) vf = 0; }
       else { vf -= acc * 0.75 * dt; if (vf < -st.rev) vf = -st.rev; }
     } else {
       const eb = (38 + Math.abs(vf) * 0.22) * dt;
@@ -3456,6 +3476,8 @@ class Player {
       this.lastRear = [rx + ox, ry + oy, rx - ox, ry - oy];
       if (chance(0.35)) Particles.emit(this.surface === SF.ROAD || this.surface === SF.PAVED ? 'smoke' : 'dust', rx + (chance(0.5) ? ox : -ox), ry + (chance(0.5) ? oy : -oy), -this.vx * 0.1 + rnd(-10, 10), -this.vy * 0.1 + rnd(-10, 10), rnd(0.8, 1.4), 6);
     } else this.lastRear = null;
+    // spray de água atrás das rodas na pista molhada
+    if (Weather.wet > 0.25 && sp > 140 && paved && chance(0.35 * Weather.wet)) Particles.emit('water', this.x - c * this.m.L * 0.45 + rnd(-6, 6), this.y - s * this.m.L * 0.45 + rnd(-6, 6), -this.vx * 0.12 + rnd(-20, 20), -this.vy * 0.12 + rnd(-20, 20), rnd(0.3, 0.6), 3);
     if (sp > 120 && (this.surface === SF.DIRT || this.surface === SF.EARTH || this.surface === SF.FIELD || this.surface === SF.SAND) && chance(0.45)) {
       Particles.emit('dust', this.x - c * this.m.L * 0.5 + rnd(-6, 6), this.y - s * this.m.L * 0.5 + rnd(-6, 6), -this.vx * 0.15, -this.vy * 0.15, rnd(0.8, 1.6), 8);
     }
@@ -3834,7 +3856,7 @@ class AICar {
     return best;
   }
   update(dt, now) {
-    let target = this.cruise;
+    let target = this.cruise * (1 - 0.15 * Weather.wet); // na chuva todo mundo vai mais devagar
     const gap = this.scanAhead();
     if (this.state === 'edge') {
       const remain = this.sEnd - this.s;
@@ -5279,10 +5301,10 @@ const Phone = {
     const tog = (k, label) => `<button class="aj-row" data-tog="${k}"><span>${label}</span><i class="ios-tog${(k === 'autoWall' ? cfg.wall === 'auto' : cfg[k]) ? ' on' : ''}"></i></button>`;
     if (this.app === 'home') {
       const W = WALLS.find((w) => w.id === this.wall) || WALLS[0];
-      const hr = Math.floor(Profile.time / 60) % 24, temp = Math.round(27 - ((hr + 24 - 19) % 24) * 0.55);
+      const hr = Math.floor(Profile.time / 60) % 24, temp = Math.round(27 - ((hr + 24 - 19) % 24) * 0.55 - Weather.rain * 4), wl = Weather.label();
       const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
       html = `<div class="ph-lock"><div class="ph-date">São Gambiarra · ES</div><div class="ph-time">${clockStr()}</div></div>` +
-        `<div class="ph-widgets"><div class="ph-wid wid-sky"><small>São Gambiarra</small><b>${temp}°</b><span>${hr >= 19 || hr < 5 ? 'Noite abafada' : 'Céu limpo'}</span><span class="wid-sub">Máx. 31° Mín. 21°</span></div>` +
+        `<div class="ph-widgets"><div class="ph-wid wid-sky${Weather.rain > 0.15 ? ' rain' : ''}"><small>São Gambiarra</small><b>${temp}°</b><span>${wl || (hr >= 19 || hr < 5 ? 'Noite abafada' : 'Céu limpo')}</span><span class="wid-sub">Máx. 31° Mín. 21°</span></div>` +
         `<button class="ph-wid wid-money" data-app="carteira"><small>Carteira</small><b>R$ ${fmtMoney(Profile.money)}</b><span>${Profile.deliveries || 0} entregas · ${Profile.rides || 0} corridas</span><span class="wid-sub">${job ? H(job) : dest ? 'Destino: ' + H(dest) : 'Nenhum serviço ativo'}</span></button></div>` +
         '<div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].map((id) => phIcon(id)).join('') + '</div>' +
         `<div class="ph-wname">${H(W.name)} · ${H(W.place)}</div>` +
@@ -6283,6 +6305,60 @@ function drawTallEmissive(ctx, o) {
 
 /* ---------- iluminação ---------- */
 const _lq = [], _rq = [];
+/* ---------- clima: garoa, temporal e pista molhada ---------- */
+const Weather = { rain: 0, target: 0, wet: 0, timer: 45, drops: [], ripples: [], thunderT: 15 };
+Weather.label = function () { return this.rain > 0.6 ? 'Chuva forte' : this.rain > 0.15 ? 'Garoa' : this.wet > 0.2 ? 'Pista molhada' : ''; };
+Weather.update = function (dt) {
+  const m = Settings.weather || 'auto';
+  if (m === 'limpo') this.target = 0;
+  else if (m === 'chuva') this.target = 0.85;
+  else {
+    this.timer -= dt;
+    if (this.timer <= 0) {
+      const prev = this.target, r = Math.random();
+      this.target = r < 0.5 ? 0 : r < 0.78 ? 0.35 : 0.9;
+      this.timer = this.target ? rnd(70, 150) : rnd(90, 200);
+      if (Game.mode === 'play') {
+        if (this.target > 0.2 && prev < 0.2) toast(this.target > 0.6 ? 'Temporal chegando' : 'Começou a garoar', 'Pista molhada: o carro escorrega mais e demora mais para frear.', 'info');
+        else if (this.target < 0.1 && prev > 0.2) toast('A chuva parou', 'O asfalto ainda fica molhado por um tempo.', 'info');
+      }
+    }
+  }
+  this.rain += clamp(this.target - this.rain, -dt / 10, dt / 10);
+  this.wet = Math.max(this.rain, this.wet - dt / 70); // o asfalto demora a secar
+  // relâmpago e trovão no temporal
+  if (this.rain > 0.6) { this.thunderT -= dt; if (this.thunderT <= 0) { this.thunderT = rnd(14, 32); Cam.flash = Math.max(Cam.flash, 0.55); const d = rnd(0.4, 2); setTimeout(() => AudioSys.thunder(d), d * 1000); } }
+  // gotas na tela (espaço da tela)
+  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 90 : Settings.quality === 'alta' ? 420 : 240));
+  while (this.drops.length < want) this.drops.push({ x: Math.random() * (SCREEN_W + 200) - 100, y: Math.random() * SCREEN_H, v: rnd(900, 1300), l: rnd(10, 22) });
+  if (this.drops.length > want) this.drops.length = want;
+  for (const d of this.drops) { d.y += d.v * dt; d.x += d.v * 0.16 * dt; if (d.y > SCREEN_H + 30) { d.y = -30 - Math.random() * 60; d.x = Math.random() * (SCREEN_W + 200) - 200; } }
+  // respingos no chão (espaço do mundo)
+  if (Settings.quality !== 'baixa' && this.rain > 0.05) {
+    const v = Cam.view, n = this.rain * 60 * dt;
+    for (let i = 0; i < n || (Math.random() < n - Math.floor(n) && i < n + 1); i++) this.ripples.push({ x: rnd(v.x0, v.x1), y: rnd(v.y0, v.y1), t: 0 });
+  }
+  for (const r of this.ripples) r.t += dt;
+  if (this.ripples.length) this.ripples = this.ripples.filter((r) => r.t < 0.45);
+  if (this.ripples.length > 160) this.ripples.splice(0, this.ripples.length - 160);
+  AudioSys.rainSet && AudioSys.rainSet(this.rain);
+};
+Weather.drawRipples = function (ctx, view) {
+  if (!this.ripples.length) return;
+  ctx.strokeStyle = 'rgba(200,215,235,0.5)'; ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  for (const r of this.ripples) { if (!inView(view, r.x, r.y, 10)) continue; const k = r.t / 0.45, rr = 1 + k * 6; ctx.moveTo(r.x + rr, r.y); ctx.ellipse(r.x, r.y, rr, rr * 0.6, 0, 0, TAU); }
+  ctx.globalAlpha = 0.6; ctx.stroke(); ctx.globalAlpha = 1;
+};
+Weather.drawDrops = function (ctx) {
+  if (!this.drops.length) return;
+  ctx.setTransform(RS, 0, 0, RS, 0, 0);
+  ctx.strokeStyle = 'rgba(185,205,235,0.32)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (const d of this.drops) { ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - d.l * 0.16, d.y - d.l); }
+  ctx.stroke();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+};
 const Fireflies = { list: [] };
 function updateFireflies(dt) {
   const R = REGIONS[regionKeyAt(Cam.x, Cam.y)];
@@ -6386,6 +6462,14 @@ function glowPass(view, cx, cy) {
     const a = (L.shop ? 0.32 : L.canopy ? 0.12 : L.flood ? 0.1 : 0.17) * i;
     gctx.globalAlpha = a;
     gctx.drawImage(glowSprite(lightHex(L.col)), L.x - L.r * 0.85, L.y - L.r * 0.85, L.r * 1.7, L.r * 1.7);
+  }
+  // pista molhada: cada luz da rua reflete num risco comprido no asfalto
+  if (Weather.wet > 0.05) {
+    for (const L of _lq) {
+      if (L.refl || L.canopy || (L.dieAt && T > L.dieAt) || L.x < view.x0 - 40 || L.x > view.x1 + 40 || L.y < view.y0 - 120 || L.y > view.y1) continue;
+      gctx.globalAlpha = 0.22 * Weather.wet * L.i;
+      gctx.drawImage(glowSprite(lightHex(L.col)), L.x - 9 + Math.sin(T * 1.7 + L.seed * 9) * 1.5, L.y + 4, 18, 90);
+    }
   }
   // reflexos das luzes na água
   for (const L of _lq) {
@@ -6593,6 +6677,7 @@ function render() {
   ctx.imageSmoothingEnabled = true;
   drawGround(view, forceGround); forceGround = false;
   Skids.draw(ctx, view);
+  Weather.drawRipples(ctx, view);
   Debris.draw(ctx, view);
   // veículos e animais
   for (const an of Animals.list) if (an.type !== 'owl' && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
@@ -6624,6 +6709,7 @@ function render() {
   for (const o of _talls) drawTall(ctx, o);
   for (const an of Animals.list) if (an.type === 'owl' && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
   // escuridão + luzes
+  if (Weather.wet > 0.02) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = `rgba(18,30,52,${(0.2 * Weather.wet).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ); }
   lightPass(view, cx, cy);
   const lowQ = Settings.quality === 'baixa';
   if (!lowQ) glowPass(view, cx, cy); // na baixa: sem a camada de brilho colorido
@@ -6649,6 +6735,7 @@ function render() {
   }
   ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
   emissivePass(view, _talls);
+  Weather.drawDrops(ctx);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (Cam.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${(Cam.flash * 0.6).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
 }
@@ -7390,7 +7477,7 @@ function updateHUD(dt) {
     const bn = $('region-banner'); bn.textContent = REGIONS[rk].name; bn.classList.add('show');
     clearTimeout(UI._bn); UI._bn = setTimeout(() => bn.classList.remove('show'), 2600);
   }
-  { const rush = trafficRush().label; UI.set('clock', clockStr() + (rush ? ' · ' + rush : '')); if (rush !== UI.rush) { if (UI.rush !== undefined && rush === 'horário de pico') toast('Horário de pico', 'As ruas de São Gambiarra estão cheias. Paciência no trânsito!', 'info'); UI.rush = rush; } }
+  { const rush = trafficRush().label; UI.set('clock', clockStr() + (rush ? ' · ' + (Weather.rain > 0.15 ? 'pico' : rush) : '') + (Weather.rain > 0.6 ? ' · chuva' : Weather.rain > 0.15 ? ' · garoa' : '')); if (rush !== UI.rush) { if (UI.rush !== undefined && rush === 'horário de pico') toast('Horário de pico', 'As ruas de São Gambiarra estão cheias. Paciência no trânsito!', 'info'); UI.rush = rush; } }
   UI.set('money-value', fmtMoney(Profile.money));
   // objetivo
   let title, desc = '', meta = '', cls = '';
@@ -7569,6 +7656,7 @@ function frame(now) {
     if (n >= 12) accT = 0;
     updateCamera(dt);
     updateFireflies(dt);
+    Weather.update(dt);
   } else accT = 0;
   AudioSys.hornOn = Game.state === 'playing' && !!key.horn();
   render();
