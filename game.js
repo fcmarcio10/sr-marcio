@@ -3604,7 +3604,7 @@ class Player {
     const c = Math.cos(this.a), s = Math.sin(this.a);
     const ks = this.circleOffsets();
     let impact = 0;
-    for (const ai of Traffic.cars) {
+    for (const ai of Traffic.cars.concat(Police.units)) {
       const dx0 = ai.x - this.x, dy0 = ai.y - this.y;
       if (dx0 * dx0 + dy0 * dy0 > 160 * 160) continue;
       const ac = Math.cos(ai.a), as = Math.sin(ai.a), ar = ai.m.W / 2;
@@ -3626,7 +3626,7 @@ class Player {
             this.spin = clamp(this.spin + tau * 0.00015, -2.5, 2.5);
             if (-vn > impact) { impact = -vn; this.hitX = cx - nx * r; this.hitY = cy - ny * r; }
             ai.hit(-vn, -nx, -ny);
-            if (-vn > 70) { if (ai.model === 'police') Police.crime('Bateu na viatura', 2, ai.x, ai.y, true); else if (-vn > 110) Police.crime('Batida na frente da polícia', 1, ai.x, ai.y); }
+            if (-vn > 70 && !ai.isUnit) { if (ai.model === 'police') Police.crime('Bateu na viatura', 2, ai.x, ai.y, true); else if (-vn > 110) Police.crime('Batida na frente da polícia', 1, ai.x, ai.y); }
           }
         }
       }
@@ -4892,10 +4892,15 @@ Police.crime = function (why, lvl, x, y, direct) {
     AudioSys.siren();
   }
 };
+function makeUnit(x, y, a) {
+  const m = VMODELS.police, r = m.W / 2, span = m.L / 2 - r;
+  return { m, x, y, a, v: 0, pts: null, ri: 1, rt: 0, mode: 'route', id: Math.random(), stuckT: 0, isUnit: true, mass: 1.8, circles: [-span, 0, span], hitT: 0,
+    hit(imp, nx, ny) { this.v *= 0.45; this.x += nx * Math.min(8, imp * 0.02); this.y += ny * Math.min(8, imp * 0.02); this.hitT = Math.min(1.2, 0.3 + imp / 400); } };
+}
 Police.spawnUnit = function () {
   const p = player, v = Cam.view;
   let sx, sy;
-  const B = World.batalhao;
+  const B = World.shops.find((s) => s.kind === 'batalhao');
   if (B && Math.hypot(B.x - p.x, B.y - p.y) < 1600 && !(B.x > v.x0 && B.x < v.x1 && B.y > v.y0 && B.y < v.y1)) { sx = B.x; sy = B.y; }
   else {
     for (let t = 0; t < 12; t++) {
@@ -4908,7 +4913,18 @@ Police.spawnUnit = function () {
     }
   }
   if (sx === undefined) return;
-  this.units.push({ m: VMODELS.police, x: sx, y: sy, a: Math.atan2(p.y - sy, p.x - sx), v: 0, pts: null, ri: 1, rt: 0, mode: 'route', id: Math.random(), stuckT: 0 });
+  this.units.push(makeUnit(sx, sy, Math.atan2(p.y - sy, p.x - sx)));
+};
+function edgePt(e, s) { return e.h ? [e.a.x + s, e.a.y] : [e.a.x, e.a.y + s]; }
+Police.route = function (u, tx, ty) {
+  const ne = nearestEdge(u.x, u.y), e = ne.e;
+  const fwd = Math.cos(u.a) * e.dx + Math.sin(u.a) * e.dy >= 0, node = fwd ? e.b : e.a;
+  const T = nearestEdge(tx, ty);
+  let pts;
+  if (T.e === e && (fwd ? T.s >= ne.s : T.s <= ne.s)) pts = [[u.x, u.y], edgePt(e, ne.s), edgePt(e, T.s), [tx, ty]];
+  else { const r = gpsRoute(node.x, node.y, tx, ty); pts = [[u.x, u.y], edgePt(e, ne.s), [node.x, node.y]].concat(r ? r.pts.slice(1) : [[tx, ty]]); }
+  pts = laneShift(pts, 14); if (pts.length > 2) pts.pop();
+  return pts;
 };
 Police.unitDrive = function (u, dt) {
   const p = player, d = Math.hypot(p.x - u.x, p.y - u.y);
@@ -4916,11 +4932,11 @@ Police.unitDrive = function (u, dt) {
   this.pace = lerp(this.pace || p.speed, p.speed, 1 - Math.exp(-1.0 * dt));
   const pmax = Math.max(300, p.st.max);
   const capK = [0, 0.9, 0.98, 1.05][this.level] || 0.9;
-  const vmax = Math.max(110, Math.min(pmax * capK, this.pace * 1.12 + 55) * 0.3);
+  const vmax = Math.max(176, Math.min(pmax * capK, this.pace * 1.12 + 55) * 0.48); // (era 30%: +60%)
   // rota pelas ruas, na mão direita; recalcula com calma (não copia cada virada sua)
   u.rt -= dt;
   const tgt = this.lostT > 0 && this.lastSeen ? this.lastSeen : p;
-  if (!u.pts || u.rt <= 0 || u.ri >= u.pts.length) { u.rt = 2.5; const r = gpsRoute(u.x, u.y, tgt.x, tgt.y); u.pts = r ? laneShift(r.pts, 18) : [[u.x, u.y]]; u.ri = 1; if (u.pts.length > 1) u.pts.pop(); }
+  if (!u.pts || u.rt <= 0 || u.ri >= u.pts.length) { u.rt = 2.5; u.pts = Police.route(u, tgt.x, tgt.y); u.ri = 1; }
   // pula pontos da rota que já ficaram para trás (nunca dá ré para buscar um ponto)
   while (u.ri < u.pts.length - 1) { const P = u.pts[u.ri], Q = u.pts[u.ri + 1]; if ((Q[0] - P[0]) * (u.x - P[0]) + (Q[1] - P[1]) * (u.y - P[1]) > 0 || Math.hypot(P[0] - u.x, P[1] - u.y) < 10) u.ri++; else break; }
   // freia antes da esquina
@@ -4940,7 +4956,8 @@ Police.unitDrive = function (u, dt) {
     const rx = o.x - u.x, ry = o.y - u.y, f = rx * Math.cos(u.a) + ry * Math.sin(u.a);
     if (f > 0 && f < 75 && Math.abs(-rx * Math.sin(u.a) + ry * Math.cos(u.a)) < 26) target = Math.min(target, Math.max(0, o.v - 10 + (f - 55)));
   }
-  u.v += clamp(target - u.v, -420 * dt, 70 * dt);
+  if (u.hitT > 0) { u.hitT -= dt; target = Math.min(target, 40); }
+  u.v += clamp(target - u.v, -420 * dt, 112 * dt);
   // anda exatamente pela rota (como os outros carros), com o volante suave
   let step = Math.max(0, u.v) * dt;
   const ox = u.x, oy = u.y;
@@ -4959,22 +4976,17 @@ Police.unitDrive = function (u, dt) {
     const rx = c.x - u.x, ry = c.y - u.y, f = rx * Math.cos(u.a) + ry * Math.sin(u.a);
     if (f > 0 && f < 260 && Math.abs(-rx * Math.sin(u.a) + ry * Math.cos(u.a)) < 40) c.yieldT = 1.2;
   }
-  // colisão com o formato dos carros (3 círculos ao longo de cada um): nunca entra dentro do seu
-  if (d < 90) {
-    const ur = u.m.W / 2, us = u.m.L / 2 - ur, pr = p.m.W / 2, uc = Math.cos(u.a), usn = Math.sin(u.a), pc = Math.cos(p.a), ps = Math.sin(p.a);
-    let hit = 0, hx = 0, hy = 0, hnx = 0, hny = 0;
-    for (let iter = 0; iter < 2; iter++) for (const ko of [-us, 0, us]) for (const kp of p.circleOffsets()) {
-      const ax = u.x + uc * ko, ay = u.y + usn * ko, bx = p.x + pc * kp, by = p.y + ps * kp;
-      const dx = bx - ax, dy = by - ay, dd = Math.hypot(dx, dy), R = ur + pr;
-      if (dd >= R) continue;
-      const nx = dd > 0.01 ? dx / dd : Math.cos(p.a + 1.57), ny = dd > 0.01 ? dy / dd : Math.sin(p.a + 1.57), pen = R - dd;
-      p.x += nx * pen * 0.6; p.y += ny * pen * 0.6; u.x -= nx * pen * 0.4; u.y -= ny * pen * 0.4;
-      const rel = (uc * u.v - p.vx) * nx + (usn * u.v - p.vy) * ny;
-      if (rel > hit) { hit = rel; hx = ax + nx * ur; hy = ay + ny * ur; hnx = nx; hny = ny; }
-    }
-    if (hit > 40) {
-      p.vx += hnx * hit * 0.55; p.vy += hny * hit * 0.55; p.spin = clamp(p.spin + rnd(-1, 1) * hit / 500, -2.5, 2.5); u.v *= 0.55;
-      if (hit > 150 && p.impactCd <= 0) { p.hitX = hx; p.hitY = hy; onPlayerImpact(hit * 0.75); }
+  // bate nos carros do trânsito como um carro de verdade: empurra e perde velocidade, não atravessa
+  for (const c of Traffic.cars) {
+    const dx0 = c.x - u.x, dy0 = c.y - u.y; if (dx0 * dx0 + dy0 * dy0 > 90 * 90) continue;
+    const uc = Math.cos(u.a), us2 = Math.sin(u.a), cc = Math.cos(c.a), cs = Math.sin(c.a), R = u.m.W / 2 + c.m.W / 2;
+    for (const ka of u.circles) for (const kb of c.circles) {
+      const ax = u.x + uc * ka, ay = u.y + us2 * ka, bx = c.x + cc * kb, by = c.y + cs * kb, dx = bx - ax, dy = by - ay, dd = Math.hypot(dx, dy);
+      if (dd >= R || dd < 0.01) continue;
+      const pen = R - dd, nx = dx / dd, ny = dy / dd;
+      c.ox += nx * pen * 0.6; c.oy += ny * pen * 0.6; u.x -= nx * pen * 0.4; u.y -= ny * pen * 0.4;
+      const rel = (uc * u.v - Math.cos(c.a) * c.v) * nx + (us2 * u.v - Math.sin(c.a) * c.v) * ny;
+      if (rel > 50) { c.hit(rel, nx, ny); u.v *= 0.7; }
     }
   }
 };
