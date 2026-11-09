@@ -4871,6 +4871,8 @@ function freeRoamHint() {
 }
 
 /* ============================ POLÍCIA: CRIMES, PERSEGUIÇÃO, PRISÃO E FUGA ============================ */
+// sistema de perseguição DESLIGADO por enquanto (a pedido): troque para true para reativar
+const POLICE_ENABLED = false;
 const Police = { heat: 0, level: 0, units: [], spawnT: 0, lostT: 0, bustT: 0, seenT: 0, lastSeen: null, crimeCd: 0, sirenK: 0 };
 Police.patrolNear = function (x, y, r) {
   for (const c of Traffic.cars) if (c.model === 'police' && Math.hypot(c.x - x, c.y - y) < r) return c;
@@ -4879,6 +4881,7 @@ Police.patrolNear = function (x, y, r) {
 };
 // a polícia só age se viu (viatura perto) — ou se o crime foi contra ela
 Police.crime = function (why, lvl, x, y, direct) {
+  if (!POLICE_ENABLED) return;
   if (Game.mode !== 'play' || !player) return;
   if (!direct && !this.patrolNear(x, y, 460)) return;
   if (this.crimeCd > 0 && lvl <= this.level) return;
@@ -5017,6 +5020,7 @@ Police.unitDrive = function (u, dt) {
 };
 Police.update = function (dt) {
   const p = player; if (!p) return;
+  if (!POLICE_ENABLED) { if (this.level || this.units.length) { this.level = 0; this.units.length = 0; } if (this.sirenK > 0.001) { this.sirenK = 0; AudioSys.sirenSet && AudioSys.sirenSet(0, 0, 1); } return; }
   this.crimeCd -= dt;
   // excesso de velocidade na frente de uma viatura de ronda
   const kmh = p.speed * 0.3, lim = regionKeyAt(p.x, p.y) === 'rodovia' ? 110 : 80;
@@ -5436,7 +5440,7 @@ function cheatDo(k, v) {
 
 /* ---------- conquistas ---------- */
 const kmRodados = () => (Profile.distance || 0) * 0.09 / 1000;
-const ACHIEVEMENTS = [
+const ACHIEVEMENTS_ALL = [
   { id: 'entrega1', name: 'Primeira entrega', desc: 'Faça sua primeira entrega.', goal: 1, val: () => Profile.deliveries || 0, prize: 50 },
   { id: 'entrega10', name: 'Motoboy honorário', desc: 'Complete 10 entregas ou fretes.', goal: 10, val: () => Profile.deliveries || 0, prize: 250 },
   { id: 'corrida1', name: 'Bem-vindo ao PegaAí', desc: 'Faça sua primeira corrida no PegaAí.', goal: 1, val: () => Profile.rides || 0, prize: 50 },
@@ -5460,6 +5464,8 @@ const ACHIEVEMENTS = [
   { id: 'fichado', name: 'Ficha corrida', desc: 'Seja detido pela polícia (não é motivo de orgulho).', goal: 1, val: () => Profile.busts || 0, prize: 10 },
   { id: 'noite', name: 'Varou a madrugada', desc: 'Jogue até o dia amanhecer.', goal: 1, val: () => Profile.nights || 0, prize: 200 },
 ];
+// sem o sistema de polícia, as conquistas de perseguição ficam escondidas
+const ACHIEVEMENTS = ACHIEVEMENTS_ALL.filter((a) => POLICE_ENABLED || (a.id !== 'fuga' && a.id !== 'fichado'));
 const Achievements = {
   t: 0,
   goal(a) { return typeof a.goal === 'function' ? Math.max(1, a.goal()) : a.goal; },
@@ -5693,7 +5699,7 @@ const Phone = {
         '<div class="ch-sec">Dinheiro e carro</div><div class="ch-grid">' + btn('money', 0, '+R$ 10.000') + btn('fix', 0, 'Consertar e encher') + btn('cars', 0, 'Liberar veículos') + btn('pois', 0, 'Revelar pontos') + btn('god', 0, 'Indestrutível', Cheats.god) + btn('turbo', 0, 'Turbo', Cheats.turbo) + '</div>' +
         '<div class="ch-sec">Horário</div><div class="ch-grid">' + btn('time', 19 * 60 + 40, '19:40') + btn('time', 22 * 60 + 5, '22:05 (racha)') + btn('time', 26 * 60, '02:00') + btn('time', 28 * 60 + 40, '04:40') + '</div>' +
         '<div class="ch-sec">Clima</div><div class="ch-grid">' + btn('wx', 'limpo', 'Limpo', Settings.weather === 'limpo') + btn('wx', 'garoa', 'Garoa') + btn('wx', 'chuva', 'Temporal', Settings.weather === 'chuva') + btn('wx', 'auto', 'Dinâmico', Settings.weather === 'auto') + '</div>' +
-        '<div class="ch-sec">Polícia</div><div class="ch-grid">' + btn('police', 1, '★') + btn('police', 2, '★★') + btn('police', 3, '★★★') + btn('police', 0, 'Limpar') + '</div>' +
+        (POLICE_ENABLED ? '<div class="ch-sec">Polícia</div><div class="ch-grid">' + btn('police', 1, '★') + btn('police', 2, '★★') + btn('police', 3, '★★★') + btn('police', 0, 'Limpar') + '</div>' : '') +
         '<div class="ch-sec">Teleporte</div><div class="ch-grid">' + CHEAT_PLACES.map(([n], i) => btn('tp', i, H(n))).join('') + btn('tpgps', 0, 'Destino do GPS') + '</div>';
     } else if (this.app === 'conquistas') {
       const A = Profile.ach || {}, done = ACHIEVEMENTS.filter((a) => A[a.id]).length;
