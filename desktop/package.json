@@ -1,0 +1,30 @@
+{
+  "name": "br-night-drive",
+  "productName": "BR Night Drive",
+  "version": "1.0.0",
+  "description": "Jogo de direção noturna em São Gambiarra, ES",
+  "main": "main.js",
+  "author": "BR Night Drive",
+  "scripts": {
+    "prepare-game": "node copy-game.js",
+    "start": "npm run prepare-game && electron .",
+    "dist": "npm run prepare-game && electron-builder --publish never",
+    "dist:win": "npm run prepare-game && electron-builder --win --publish never",
+    "dist:linux": "npm run prepare-game && electron-builder --linux --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.brnightdrive.game",
+    "publish": null,
+    "productName": "BR Night Drive",
+    "files": ["main.js", "app/**/*"],
+    "directories": { "output": "release" },
+    "win": { "target": ["nsis", "portable"] },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "shortcutName": "BR Night Drive" },
+    "linux": { "target": ["AppImage"], "category": "Game" },
+    "mac": { "target": ["dmg"], "category": "public.app-category.racing-games" }
+  }
+}
