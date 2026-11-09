@@ -75,6 +75,18 @@ function rrect(ctx, x, y, w, h, r) {
 function fillRR(ctx, x, y, w, h, r, style) { ctx.beginPath(); rrect(ctx, x, y, w, h, r); if (style) ctx.fillStyle = style; ctx.fill(); }
 
 /* ============================ CONFIGURAÇÕES ============================ */
+// tipos de buzina: frequências, timbre e ritmo (início, duração, multiplicador de nota)
+const HORNS = {
+  dupla: { f: [392, 494], wave: 'square', band: 900, len: 0.3, pat: [[0, 0.16], [0.22, 0.32]] },
+  fina: { f: [610, 760], wave: 'square', band: 1500, len: 0.25, pat: [[0, 0.12], [0.18, 0.12]] },
+  fusquinha: { f: [430], wave: 'sawtooth', band: 1100, len: 0.3, vib: 18, pat: [[0, 0.35]] },
+  caminhao: { f: [155, 196, 233], wave: 'sawtooth', band: 520, len: 0.8, pat: [[0, 0.9]] },
+  onibus: { f: [220, 277], wave: 'sawtooth', band: 650, len: 0.6, pat: [[0, 0.25], [0.32, 0.55]] },
+  moto: { f: [820], wave: 'square', band: 2000, len: 0.18, pat: [[0, 0.1], [0.14, 0.1], [0.28, 0.1]] },
+  esportivo: { f: [523, 659], wave: 'square', band: 1200, len: 0.3, pat: [[0, 0.14], [0.16, 0.14], [0.32, 0.3]] },
+  musical: { f: [523], wave: 'square', band: 1300, len: 0.2, pat: [[0, 0.12, 1], [0.14, 0.12, 1.25], [0.28, 0.12, 1.5], [0.42, 0.28, 2], [0.74, 0.12, 1.5], [0.88, 0.32, 2]] },
+  trator: { f: [180], wave: 'square', band: 700, len: 0.5, pat: [[0, 0.5]] },
+};
 const Settings = { master: 80, engine: 75, ambient: 65, ui: 60, quality: 'media', zoom: 100, showFps: false, minimapRotate: false };
 function loadSettings() {
   try { const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null'); if (s && typeof s === 'object') Object.assign(Settings, s); } catch (e) { /* sem storage */ }
@@ -367,10 +379,28 @@ const AudioSys = {
   pump() { this.noise(0.9, 1200, 1, 0.08, 'ui', 'bandpass'); this.tone(240, 0.8, 'sawtooth', 0.02, 'ui'); },
   wash() { this.noise(1.4, 3000, 0.6, 0.1, 'ui', 'highpass'); },
   wrench() { [0, 0.18, 0.36].forEach((d) => this.tone(1900, 0.06, 'square', 0.04, 'ui', 1500, d)); },
-  aiHorn(dist) {
-    const v = clamp(1 - dist / 900, 0, 1) * 0.07;
-    if (v < 0.005) return;
-    this.tone(392, 0.32, 'square', v, 'ambient'); this.tone(494, 0.32, 'square', v * 0.8, 'ambient');
+  // buzina dos outros carros: cada carro tem a sua, com volume e lado (estéreo) pela posição
+  aiHorn(dist, type, pan, long) {
+    if (!this.ok) return;
+    const v = clamp(1 - dist / 950, 0, 1) * 0.085;
+    if (v < 0.004) return;
+    const H = HORNS[type] || HORNS.dupla, c = this.ctx, t0 = c.currentTime + 0.01;
+    const out = c.createGain(); out.gain.value = v;
+    let node = out;
+    if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = clamp(pan || 0, -0.9, 0.9); out.connect(p); p.connect(this.bus.ambient); } else out.connect(this.bus.ambient);
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = H.band; bp.Q.value = 0.9; bp.connect(node);
+    const sh = c.createWaveShaper(); sh.curve = this.hornCurve || (this.hornCurve = (() => { const n = 256, a = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; a[i] = Math.tanh(x * 3); } return a; })()); sh.connect(bp);
+    const pat = long ? [[0, H.len * 2.4]] : H.pat;
+    for (const [st, du, fm] of pat) {
+      for (const f of H.f) {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = H.wave; o.frequency.setValueAtTime(f * (fm || 1), t0 + st);
+        if (H.vib) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = H.vib; lg.gain.value = f * 0.012; l.connect(lg); lg.connect(o.frequency); l.start(t0 + st); l.stop(t0 + st + du + 0.05); }
+        g.gain.setValueAtTime(0.0001, t0 + st); g.gain.exponentialRampToValueAtTime(0.5 / H.f.length, t0 + st + 0.012);
+        g.gain.setValueAtTime(0.5 / H.f.length, t0 + st + du - 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t0 + st + du);
+        o.connect(g); g.connect(sh); o.start(t0 + st); o.stop(t0 + st + du + 0.05);
+      }
+    }
   },
   bark(dist) {
     const v = clamp(1 - dist / 1200, 0.05, 1) * 0.12;
@@ -3210,6 +3240,20 @@ const UPGRADES = [
   { id: 'freio', name: 'Freios', desc: 'Frenagem +12%/nível', base: [250, 550, 1100] },
   { id: 'pneu', name: 'Pneus', desc: 'Aderência e direção', base: [300, 650, 1300] },
 ];
+// marcas inventadas, na zoeira (nenhuma marca real)
+const BRANDS = {
+  rebimboca: { name: 'Rebimboca', color: '#ffb547', slogan: 'Com parafuseta de série.' },
+  jabuti: { name: 'Jabuti', color: '#7bd389', slogan: 'Devagar e sempre.' },
+  pedeboi: { name: 'Pé-de-Boi', color: '#c98a4a', slogan: 'Aguenta o tranco.' },
+  gambiarra: { name: 'Gambiarra Motors', color: '#59e0ff', slogan: 'Se funciona, tá certo.' },
+  possante: { name: 'Possante', color: '#ff5a5f', slogan: 'Ronca até parado.' },
+  lataveia: { name: 'Lata Véia', color: '#c9c2ad', slogan: 'De 0 a 100 em algum dia.' },
+  bruto: { name: 'Bruto Diesel', color: '#ffd23a', slogan: 'Fumaça é sinal de força.' },
+  cinquentinha: { name: 'Cinquentinha', color: '#ff8ad8', slogan: 'Cabe em qualquer vão.' },
+};
+const MODEL_BRAND = { quadrado: 'rebimboca', escada: 'rebimboca', besouro: 'jabuti', van: 'jabuti', pickup: 'pedeboi', tractor: 'pedeboi', santana: 'gambiarra', sedan: 'gambiarra', taxi: 'gambiarra', police: 'gambiarra', sport: 'possante', muscle: 'possante', hatch: 'lataveia', truck: 'bruto', bus: 'bruto', bau: 'bruto', gas: 'bruto', tanker: 'bruto', cacamba: 'bruto', guincho: 'bruto', moto: 'cinquentinha' };
+function brandOf(model) { return BRANDS[MODEL_BRAND[model] || 'gambiarra']; }
+function carFullName(c) { return brandOf(c.model).name + ' ' + c.name; }
 function carById(id) { return CARS.find((c) => c.id === id) || CARS[0]; }
 function carCfg(id) {
   if (!Profile.cars[id]) Profile.cars[id] = { color: PALETTE[CARS.findIndex((c) => c.id === id) % PALETTE.length], up: { motor: 0, cambio: 0, freio: 0, pneu: 0 } };
@@ -3344,7 +3388,7 @@ class Player {
     this.onBump = onB;
     // efeitos: fumaça do capô amassado, escapamento e estouro no escape
     const Zf = Profile.zones ? Profile.zones.f : 0;
-    if (Zf > 0.4 && !this.lampWarn) { this.lampWarn = true; toast('Farol avariado', 'A frente amassada deixou o farol fraco. Conserte na Oficina do Seu Zé.', 'bad'); }
+    if (Zf > 0.45 && !this.lampWarn) { this.lampWarn = true; toast('Farol avariado', 'A frente amassada deixou o farol fraco. Conserte na Oficina do Seu Zé.', 'bad'); }
     if (Zf < 0.2) this.lampWarn = false;
     for (const sd of [-1, 1]) {
       const off = playerLamp(sd) <= 0.01, key = sd < 0 ? 'lampOffL' : 'lampOffR';
@@ -3486,7 +3530,7 @@ function trafficRush() {
 // área rural: 60% menos movimento que na cidade
 function ruralFactor(x, y) { const R = REGIONS[regionKeyAt(x, y)]; return 1 - 0.6 * clamp((R.rural - 0.3) / 0.5, 0, 1); }
 function trafficMax() {
-  const base = Settings.quality === 'alta' ? 22 : Settings.quality === 'baixa' ? 11 : 17;
+  const base = Settings.quality === 'alta' ? 22 : Settings.quality === 'baixa' ? 10 : 17;
   const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
   return Math.max(k < 0.7 ? 3 : 5, Math.round(base * trafficRush().k * k));
 }
@@ -3514,6 +3558,7 @@ class AICar {
   constructor(e, dir, s, lane, model) {
     this.id = Traffic.idc++;
     this.m = VMODELS[model]; this.model = model;
+    this.horn = model === 'moto' ? 'moto' : model === 'tractor' ? 'trator' : model === 'bus' ? 'onibus' : VMODELS[model].kind === 'truck' ? 'caminhao' : model === 'besouro' || model === 'van' ? pick(['fusquinha', 'fusquinha', 'dupla']) : model === 'sport' || model === 'muscle' ? pick(['esportivo', 'musical']) : pick(['dupla', 'dupla', 'fina', 'fina', 'musical', 'esportivo']);
     this.big = this.m.kind === 'truck' || model === 'bus';
     this.color = model === 'taxi' || model === 'police' ? '#f2f2ee' : model === 'bus' ? pick(['#2a6fd1', '#d13a2a', '#1f9a5a', '#e0a020']) : model === 'tractor' ? pick(['#2e8b3a', '#c0392b', '#2e5fae']) : pick(CAR_COLORS);
     this.box = pick(['#d9d6cc', '#e8e8e8', '#c9c3b5', '#d07a2a', '#5a7aa0']);
@@ -3637,7 +3682,7 @@ class AICar {
       const L2 = 1 - this.lane, off2 = T.lanes[L2];
       if (this.laneClear(off2, -70, 120)) { this.lane = L2; this.offT = off2; this.lcT = 3.5; }
       else this.lcT = 0.6;
-    } else if (T.lanes.length === 1 && bl === player && this.wait > 3.5 && this.overtake <= 0) {
+    } else if (T.lanes.length === 1 && (bl === player || (bl instanceof AICar && bl.hitT > 0)) && this.wait > 1.8 && this.overtake <= 0 && bv < 25) {
       const off2 = -T.lanes[0];
       if (this.laneClear(off2, -40, 280)) { this.offT = off2; this.overtake = 4; this.lcT = 6; }
       else this.lcT = 1;
@@ -3703,7 +3748,8 @@ class AICar {
       if (this.state === 'turn' && o.state === 'edge' && o.e !== this.next.e && Math.abs(angDiff(o.a, this.a)) > 0.9) continue; // parado na faixa de retenção da outra rua
       check(o, o.x, o.y, o.m.L, o.m.W);
     }
-    if (player && Game.state !== 'menu') check(player, player.x, player.y, player.m.L, player.m.W);
+    // o jogador é visto de mais longe e com folga lateral maior: os carros mantêm distância de você
+    if (player && Game.state !== 'menu') { check(player, player.x, player.y, player.m.L + 26, player.m.W + 12); }
     if (this.ghost <= 0 && this.animalGhost <= 0) for (const an of Animals.list) if (an.onRoad) check(an, an.x, an.y, an.r * 2, an.r * 2);
     return best;
   }
@@ -3729,7 +3775,8 @@ class AICar {
       let bv = 0;
       if (bl === player) bv = Math.max(0, player.vx * Math.cos(this.a) + player.vy * Math.sin(this.a));
       else if (bl instanceof AICar) bv = Math.max(0, bl.v * Math.cos(bl.a - this.a));
-      target = Math.min(target, Math.max(0, bv + (gap - 14) * 1.1), Math.max(0, (gap - 6) * 3));
+      const keep = bl === player ? 34 : 14; // distância de segurança maior atrás de você
+      target = Math.min(target, Math.max(0, bv + (gap - keep) * 1.1), Math.max(0, (gap - keep * 0.5) * 3));
     }
     // ultrapassagem / troca de faixa
     this.lcT = (this.lcT || 0) - dt;
@@ -3739,7 +3786,16 @@ class AICar {
       const passed = player && ((player.x - this.x) * this.dx + (player.y - this.y) * this.dy) < -this.m.L - 10;
       if (this.overtake <= 0 || passed || this.sEnd - this.s < 120 || !this.laneClear(this.offT, 0, 140)) { this.overtake = 0; this.offT = this.e.T.lanes[this.lane]; }
     }
-    const dOff = this.offT - this.off;
+    // desvio leve: se você está meio dentro da faixa à frente, ele se afasta um pouco dentro da pista
+    this.nudge = (this.nudge || 0) * Math.exp(-2 * dt);
+    if (player && this.state === 'edge' && Game.state !== 'menu') {
+      const rx = player.x - this.x, ry = player.y - this.y, f = rx * this.dx + ry * this.dy;
+      if (f > 0 && f < 60 + this.v * 1.2) {
+        const l = -rx * this.dy + ry * this.dx, room = 8;
+        if (Math.abs(l) < 34 && Math.abs(l) > 6) this.nudge = clamp(-Math.sign(l) * (34 - Math.abs(l)) * 0.5, -room, room);
+      }
+    }
+    const dOff = this.offT + this.nudge - this.off;
     this.off += clamp(dOff, -42 * dt, 42 * dt);
     this.lcBlink = Math.abs(dOff) > 2 ? (dOff > 0 ? 1 : -1) : 0;
     if (this.hitT > 0) { this.hitT -= dt; target = 0; }
@@ -3757,9 +3813,10 @@ class AICar {
     this.honkT -= dt;
     if (this.honkT <= 0) {
       this.honkT = rnd(2.5, 4.5);
-      if (player && Game.state === 'playing' && ((this.blocker === player && this.wait > 2) || this.hitT > 0)) {
-        AudioSys.aiHorn(Math.hypot(this.x - player.x, this.y - player.y));
-        this.honking = 0.35;
+      if (player && Game.state === 'playing' && ((this.blocker === player && (this.wait > 2 || (gap < 26 && this.v > 70))) || this.hitT > 0)) {
+        const d = Math.hypot(this.x - player.x, this.y - player.y), pan = (this.x - player.x) / 500;
+        AudioSys.aiHorn(d, this.horn, pan, this.wait > 6);
+        this.honking = this.wait > 6 ? 0.9 : 0.4;
       }
     }
     if (this.honking > 0) this.honking -= dt;
@@ -3980,7 +4037,7 @@ Animals.update = function (dt, cx, cy) {
     const r = rnd();
     if (R.rural > 0.6) { if (r < 0.3) AudioSys.owl(); else if (r < 0.55) AudioSys.moo(); else if (r < 0.75) AudioSys.bark(900); }
     else if (rk === 'rio') { if (r < 0.6) AudioSys.frog(); else AudioSys.owl(); }
-    else { if (r < 0.35) AudioSys.bark(rnd(500, 1100)); else if (r < 0.5) AudioSys.siren(); else if (r < 0.7) AudioSys.aiHorn(rnd(500, 850)); }
+    else { if (r < 0.35) AudioSys.bark(rnd(500, 1100)); else if (r < 0.5) AudioSys.siren(); else if (r < 0.7) AudioSys.aiHorn(rnd(500, 850), pick(Object.keys(HORNS)), rnd(-0.8, 0.8)); }
   }
 };
 /* ---------- pelada nos campos de várzea ---------- */
@@ -4146,7 +4203,8 @@ function drawAnimal(ctx, an) {
 const Particles = {
   list: [],
   emit(type, x, y, vx, vy, life, size) {
-    const max = Settings.quality === 'baixa' ? 120 : 320;
+    if (Settings.quality === 'baixa') return; // gráfico baixo: sem partículas
+    const max = Settings.quality === 'alta' ? 560 : 320;
     if (this.list.length >= max) this.list.shift();
     this.list.push({ type, x, y, vx, vy, life, max: life, size });
   },
@@ -4280,7 +4338,7 @@ function addZoneDamage(Z, car, hx, hy, k) {
   if (Math.abs(lx) > car.m.L * 0.28) zone = lx > 0 ? 'f' : 'r'; else zone = ly < 0 ? 'l' : 'rt';
   Z[zone] = clamp(Z[zone] + 0.12 + k * 0.7, 0, 1);
   // batida na frente: guarda de que lado do para-choque foi (para o farol daquele lado)
-  if (zone === 'f') { const sk = ly < 0 ? 'fL' : 'fR'; Z[sk] = clamp((Z[sk] || 0) + (0.12 + k * 0.7) * (Math.abs(ly) > car.m.W * 0.15 ? 1 : 0.5), 0, 1); }
+  if (zone === 'f') { const sk = ly < 0 ? 'fL' : 'fR'; Z[sk] = clamp((Z[sk] || 0) + (0.1 + k * 0.6) * (Math.abs(ly) > car.m.W * 0.15 ? 0.8 : 0.4), 0, 1); }
   Z.seed = (Z.seed || 0) + 1;
   return zone;
 }
@@ -5066,9 +5124,9 @@ const TILT_H = 0;  // sem inclinação extra: só a paralaxe 2.5D a partir do ce
 function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
   const dpr = window.devicePixelRatio || 1;
-  RS = Settings.quality === 'alta' ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.8 : Math.min(dpr, 1.25);
+  RS = Settings.quality === 'alta' ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.7 : Math.min(dpr, 1.25);
   canvas.width = Math.round(SCREEN_W * RS); canvas.height = Math.round(SCREEN_H * RS);
-  LS = Settings.quality === 'alta' ? 0.6 : Settings.quality === 'baixa' ? 0.33 : 0.45;
+  LS = Settings.quality === 'alta' ? 0.8 : Settings.quality === 'baixa' ? 0.28 : 0.45;
   lightCanvas.width = Math.ceil(SCREEN_W * LS); lightCanvas.height = Math.ceil(SCREEN_H * LS);
   glowCanvas.width = lightCanvas.width; glowCanvas.height = lightCanvas.height;
 }
@@ -5112,7 +5170,7 @@ const CHUNK = 512;
 const chunks = new Map();
 let frameNo = 0;
 const _bq = [];
-function maxChunks() { return Settings.quality === 'baixa' ? 30 : 46; }
+function maxChunks() { return Settings.quality === 'baixa' ? 24 : Settings.quality === 'alta' ? 64 : 46; }
 function renderChunk(cx, cy) {
   const cv = makeCanvas(CHUNK, CHUNK), g = cv.getContext('2d');
   const X = cx * CHUNK, Y = cy * CHUNK;
@@ -5505,7 +5563,7 @@ function drawParty(ctx, b, X, Y) {
   ctx.fillStyle = (Game.time * 3) % 1 < 0.5 ? '#ff6a1a' : '#ff8a2a'; ctx.fillRect(gx - 5, gy - 2.5, 10, 5);
   ctx.strokeStyle = '#777'; ctx.lineWidth = 0.6; ctx.beginPath(); for (let i = -4; i <= 4; i += 2) { ctx.moveTo(gx + i, gy - 2.5); ctx.lineTo(gx + i, gy + 2.5); } ctx.stroke();
   ctx.fillStyle = '#f2f2ee'; ctx.fillRect(gx + (gx > 30 ? -16 : 9), gy - 3, 7, 5); ctx.fillStyle = '#3a86ff'; ctx.fillRect(gx + (gx > 30 ? -16 : 9), gy - 3, 7, 1.4);
-  for (const pp of P.people) drawAnimal(ctx, pp);
+  if (Settings.quality !== 'baixa') for (const pp of P.people) drawAnimal(ctx, pp);
   ctx.restore();
   if (chance(0.06)) Particles.emit('smoke', b.x0 + gx, b.y0 + gy, rnd(-6, 6), rnd(-14, -4), rnd(1.2, 2), 4);
 }
@@ -5911,7 +5969,7 @@ const _lq = [], _rq = [];
 const Fireflies = { list: [] };
 function updateFireflies(dt) {
   const R = REGIONS[regionKeyAt(Cam.x, Cam.y)];
-  const want = R.rural > 0.5 && Settings.quality !== 'baixa' ? 45 : 0;
+  const want = R.rural > 0.5 && Settings.quality !== 'baixa' ? (Settings.quality === 'alta' ? 85 : 45) : 0;
   while (Fireflies.list.length < want) Fireflies.list.push({ x: Cam.x + rnd(-900, 900), y: Cam.y + rnd(-600, 600), ph: rnd(TAU), vx: rnd(-8, 8), vy: rnd(-8, 8) });
   if (Fireflies.list.length > want) Fireflies.list.length = want;
   for (const f of Fireflies.list) {
@@ -5922,10 +5980,10 @@ function updateFireflies(dt) {
 // força do farol do jogador: frente amassada deixa o farol fraco e piscando
 function headlightK() {
   const zf = Profile.zones ? Profile.zones.f : 0;
-  if (zf < 0.25) return 1;
-  let k = 1 - (zf - 0.25) / 0.75 * 0.85;
-  if (zf > 0.55) { const T = Game.time, f = Math.sin(T * 17.3) + Math.sin(T * 5.1 + 1.7) + Math.sin(T * 41 + 0.4) * 0.6; if (f > 1.5) k *= 0.3; }
-  return clamp(k, 0.1, 1);
+  if (zf < 0.35) return 1;
+  let k = 1 - (zf - 0.35) / 0.65 * 0.75;
+  if (zf > 0.65) { const T = Game.time, f = Math.sin(T * 17.3) + Math.sin(T * 5.1 + 1.7) + Math.sin(T * 41 + 0.4) * 0.6; if (f > 1.5) k *= 0.3; }
+  return clamp(k, 0.2, 1);
 }
 // farol de cada lado (s = -1 esquerdo, 1 direito): lado muito amassado apaga aquele farol
 // nunca apagam os dois: no máximo um farol para, o outro fica fraquinho
@@ -5935,11 +5993,11 @@ function playerLamp(s) {
   const me = dmg(s), other = dmg(-s), f = Z.f || 0;
   // qual lado apagaria: o mais amassado (empate: o esquerdo)
   const worst = me > other || (me === other && s < 0);
-  const off = (me > 0.72 || f > 0.95) && worst;
+  const off = (me > 0.82 || f > 0.97) && worst;
   if (off) return 0;
-  let k = headlightK() * (me > 0.45 ? 0.6 : 1);
-  if (me > 0.72 || f > 0.95) k = Math.min(k, 0.3); // o farol que sobrou, também amassado, fica fraquinho
-  return Math.max(k, 0.12);
+  let k = headlightK() * (me > 0.55 ? 0.7 : 1);
+  if (me > 0.82 || f > 0.97) k = Math.min(k, 0.4); // o farol que sobrou, também amassado, fica fraquinho
+  return Math.max(k, 0.22);
 }
 function carLightsInfo(c, isPlayer) {
   const m = c.m, as = Math.atan2(Math.sin(c.a) * SQ, Math.cos(c.a)), ca = Math.cos(as), sa = Math.sin(as);
@@ -6220,7 +6278,7 @@ function render() {
   Debris.draw(ctx, view);
   // veículos e animais
   for (const an of Animals.list) if (an.type !== 'owl' && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
-  Peladas.draw(ctx, view);
+  if (Settings.quality !== 'baixa') Peladas.draw(ctx, view);
   for (const c of Traffic.cars) {
     if (!inView(view, c.x, c.y, 80)) continue;
     drawVehicle(ctx, c.m, c.color, c.x, c.y, c.a, { steer: c.steerVis, roll: c.roll, brake: c.braking || c.v < 3, box: c.box, zones: c.zones });
@@ -6248,12 +6306,18 @@ function render() {
   for (const an of Animals.list) if (an.type === 'owl' && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
   // escuridão + luzes
   lightPass(view, cx, cy);
-  glowPass(view, cx, cy);
+  const lowQ = Settings.quality === 'baixa';
+  if (!lowQ) glowPass(view, cx, cy); // na baixa: sem a camada de brilho colorido
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.imageSmoothingQuality = Settings.quality === 'alta' ? 'high' : 'low';
   ctx.drawImage(lightCanvas, 0, 0, W, Hh);
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.drawImage(glowCanvas, 0, 0, W, Hh);
-  ctx.globalCompositeOperation = 'source-over';
+  if (!lowQ) {
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(glowCanvas, 0, 0, W, Hh);
+    // na alta: um segundo brilho suave por cima (efeito bloom)
+    if (Settings.quality === 'alta') { ctx.globalAlpha = 0.35; ctx.drawImage(glowCanvas, -W * 0.01, -Hh * 0.01, W * 1.02, Hh * 1.02); ctx.globalAlpha = 1; }
+    ctx.globalCompositeOperation = 'source-over';
+  }
   ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
   emissivePass(view, _talls);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -6679,13 +6743,14 @@ const Garage = {
       const d = document.createElement('div');
       d.className = 'gcard' + (c.id === this.sel ? ' sel' : '');
       const st = Profile.current === c.id ? '<span class="cur">Em uso</span>' : Profile.owned[c.id] ? '<span class="own">Na garagem</span>' : 'R$ ' + fmtMoney(c.price);
-      d.innerHTML = `<div class="gname">${c.name}</div><div class="gsub"><span>${{ gas: 'Trabalho · gás', guincho: 'Trabalho · guincho', cacamba: 'Trabalho · caçamba', bau: 'Trabalho · baú', tanker: 'Trabalho · tanque', quadrado: 'Hatch quadrado', besouro: 'Clássico a ar', escada: 'Hatch caixote', hatch: 'Hatch', van: 'Furgão', pickup: 'Picape · trabalho', sedan: 'Sedã', santana: 'Sedã quadrado', sport: 'Esportivo', muscle: 'Clássico' }[c.model]}</span>${st}</div>`;
+      d.innerHTML = `<div class="gname"><small class="gbrand" style="color:${brandOf(c.model).color}">${escapeHtml(brandOf(c.model).name)}</small>${c.name}</div><div class="gsub"><span>${{ gas: 'Trabalho · gás', guincho: 'Trabalho · guincho', cacamba: 'Trabalho · caçamba', bau: 'Trabalho · baú', tanker: 'Trabalho · tanque', quadrado: 'Hatch quadrado', besouro: 'Clássico a ar', escada: 'Hatch caixote', hatch: 'Hatch', van: 'Furgão', pickup: 'Picape · trabalho', sedan: 'Sedã', santana: 'Sedã quadrado', sport: 'Esportivo', muscle: 'Clássico' }[c.model]}</span>${st}</div>`;
       d.addEventListener('click', () => { this.sel = c.id; this.previewColor = null; AudioSys.click(); this.render(); });
       d.addEventListener('mouseenter', () => AudioSys.hover());
       list.appendChild(d);
     }
-    $('garage-car-title').textContent = sel.name;
-    $('garage-car-desc').textContent = sel.desc;
+    const br = brandOf(sel.model);
+    $('garage-car-title').innerHTML = `<span class="brand-badge" style="--bc:${br.color}">${escapeHtml(br.name)}</span>${escapeHtml(sel.name)}`;
+    $('garage-car-desc').textContent = '"' + br.slogan + '" ' + sel.desc;
     // estatísticas
     const base = { max: sel.max, acc: sel.acc, brk: sel.brk, steer: sel.steer * sel.grip };
     const cur = owned ? carStats(sel.id) : { max: sel.max, acc: sel.acc, brk: sel.brk, grip: sel.grip, steer: sel.steer };
@@ -6728,6 +6793,7 @@ const Garage = {
   },
   main() {
     const sel = carById(this.sel);
+    const prev = Profile.current;
     if (!Profile.owned[sel.id]) {
       if (Profile.money < sel.price) { AudioSys.error(); return; }
       Profile.money -= sel.price;
@@ -6740,7 +6806,8 @@ const Garage = {
       if (sel.job) addMsg('Central de Fretes', 'Bem-vindo à frota', 'Recebemos o cadastro do seu ' + sel.name + '. Abra o app Fretes no celular (Q) para ver as cargas disponíveis perto de você. Quanto mais longe, mais paga. Cuidado com carga frágil e perigosa.');
       UI.moneyDelta(-sel.price);
     }
-    Profile.current = sel.id;
+    // cada carro guarda o próprio estado: trocar de carro não leva o amassado junto
+    if (prev !== sel.id) { stashCondition(prev); Profile.current = sel.id; loadCondition(sel.id); }
     if (player) { player.setCar(sel.id); }
     AudioSys.click();
     saveGame();
@@ -6764,10 +6831,19 @@ const Garage = {
     if (Profile.money < cost) { AudioSys.error(); return; }
     Profile.money -= cost; cfg.up[id] = lvl + 1; UI.moneyDelta(-cost);
     AudioSys.wrench();
+    // a melhoria passa pela oficina: o carro volta novinho
+    if (sel.id === Profile.current) { const had = Profile.damage > 1; Profile.damage = 0; Profile.zones = { f: 0, r: 0, l: 0, rt: 0, seed: ((Profile.zones && Profile.zones.seed) || 0) + 1 }; if (had) toast('Seu Zé', '"Aproveitei a melhoria e desamassei tudo. Tá novinho!"', 'good'); }
+    else cfg.cond = null;
     if (player && player.car.id === sel.id) player.recalc();
     saveGame(); this.render();
   },
 };
+function stashCondition(id) { if (!id) return; carCfg(id).cond = { damage: Profile.damage || 0, zones: Profile.zones ? Object.assign({}, Profile.zones) : null, dirt: Profile.dirt || 0 }; }
+function loadCondition(id) {
+  const c = carCfg(id).cond, seed = ((Profile.zones && Profile.zones.seed) || 0) + 1;
+  Profile.damage = c ? c.damage : 0; Profile.dirt = c ? c.dirt : 0;
+  Profile.zones = Object.assign({ f: 0, r: 0, l: 0, rt: 0 }, c && c.zones ? c.zones : {}); Profile.zones.seed = seed;
+}
 const gpCanvas = document.getElementById('garage-preview'), gpx = gpCanvas.getContext('2d');
 function drawGaragePreview(dt) {
   Garage.t += dt;
@@ -6847,7 +6923,8 @@ function openShopDialog(s) {
       const c = Math.ceil(fix * 4);
       const before = Profile.damage;
       Profile.damage -= fix; Profile.money -= c; UI.moneyDelta(-c); AudioSys.wrench();
-      if (Profile.zones) { const f = before > 0 ? Profile.damage / before : 0; for (const z of ['f', 'r', 'l', 'rt']) Profile.zones[z] *= f; Profile.zones.seed = (Profile.zones.seed || 0) + 1; }
+      if (Profile.zones) { const f = before > 0 && Profile.damage >= 1 ? Profile.damage / before : 0; for (const z of ['f', 'r', 'l', 'rt', 'fL', 'fR']) Profile.zones[z] = (Profile.zones[z] || 0) * f; Profile.zones.seed = (Profile.zones.seed || 0) + 1; }
+      if (Profile.damage < 1) Profile.damage = 0;
       toast('Seu Zé', Profile.damage < 1 ? '"Pronto! Tá novinho em folha. Vai com Deus e devagar."' : '"Fiz o que deu com o seu dinheiro, viu?"', 'good');
       saveGame(); openShopDialog(s);
     }, Profile.damage < 1 || Profile.money < 4);
@@ -6991,7 +7068,7 @@ function updateHUD(dt) {
   UI.set('obj-title', title); UI.set('obj-desc', desc); UI.set('obj-meta', meta);
   if (UI.last.objcls !== cls) { UI.last.objcls = cls; $('hud-objective').className = 'glass ' + cls; }
   // veículo
-  UI.set('car-name', player.car.name);
+  UI.set('car-name', carFullName(player.car));
   UI.set('fuel-bar', Math.round(Profile.fuel) + '%', 'width');
   UI.set('fuel-bar', Profile.fuel < 20 ? 'linear-gradient(90deg,#ff5a5a,#ff8a7a)' : '', 'bg');
   UI.set('cond-bar', Math.round(100 - Profile.damage) + '%', 'width');
@@ -7104,7 +7181,7 @@ function stepPlay(dt) {
   player.update(dt, inp);
   Traffic.update(dt, Game.time, player.x, player.y, Cam.view);
   Animals.update(dt, Cam.x, Cam.y);
-  Peladas.update(dt, Cam.x, Cam.y);
+  if (Settings.quality !== 'baixa') Peladas.update(dt, Cam.x, Cam.y);
   Particles.update(dt);
   updateActivities(dt);
 }
@@ -7112,7 +7189,7 @@ function stepMenu(dt) {
   Game.time += dt;
   Traffic.update(dt, Game.time, Cam.x, Cam.y, Cam.view);
   Animals.update(dt, Cam.x, Cam.y);
-  Peladas.update(dt, Cam.x, Cam.y);
+  if (Settings.quality !== 'baixa') Peladas.update(dt, Cam.x, Cam.y);
   Particles.update(dt);
 }
 const STEP = 1 / 120;
