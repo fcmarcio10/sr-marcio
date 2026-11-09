@@ -742,3 +742,17 @@ div.ph-wid { cursor: default; }
 .ch-btn { pointer-events: auto; cursor: pointer; border: 0; border-radius: 10px; padding: 9px 6px; background: #1c1c1e; color: #fff; font: 600 12px -apple-system, "Segoe UI", sans-serif; }
 .ch-btn:hover { background: #2c2c2e; }
 .ch-btn.on { background: #7d3cff; }
+/* tela inicial mais compacta (cabe sem rolar, mesmo com mais apps) */
+#phone-body.home .ph-lock { padding: 2px 0 10px; }
+#phone-body.home .ph-time { font-size: 46px; }
+#phone-body.home .ph-date { font-size: 12px; }
+#phone-body.home .ph-widgets { gap: 10px; margin-bottom: 12px; }
+#phone-body.home .ph-wid { min-height: 90px; padding: 10px; border-radius: 18px; }
+#phone-body.home .ph-wid b { font-size: 27px; }
+#phone-body.home .wid-money b { font-size: 18px; margin: 4px 0 2px; }
+#phone-body.home .ph-grid { gap: 12px 4px; }
+#phone-body.home .ph-ico { width: 48px; height: 48px; border-radius: 12px; }
+#phone-body.home .ph-ico svg { width: 26px; height: 26px; }
+#phone-body.home .ph-lbl { font-size: 10px; }
+#phone-body.home .ph-wname { padding: 8px 0 6px; }
+#phone-body.home .ph-dock { padding: 9px 8px; border-radius: 26px; }
