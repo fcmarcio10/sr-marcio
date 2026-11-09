@@ -3,6 +3,8 @@
    Jogo de exploração noturna top-down 2.5D — HTML5 Canvas + JS puro
    ===================================================================== */
 'use strict';
+const GAME_VERSION = '1.1.0';
+try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
 
 /* ============================ UTILIDADES ============================ */
 const TAU = Math.PI * 2;
@@ -580,19 +582,19 @@ function defineRoads() {
   V(3350, 300, 5300, 'street', 'Rua da Gambiarra');
   V(3950, 300, 8700, 'street', 'Rua do Comércio Fiado');
   V(4600, 300, 8700, 'street', 'Rua Beira-Rio Sem Peixe');
-  // Serra: Feu Rosa e Jardim Carapina
+  // Serra: Feio Rosa e Jardim Cara-Pintada
   V(850, 6200, 8700, 'street', 'Rua da Laje Batida');
   V(2700, 6200, 8700, 'street', 'Rua do Campinho');
   V(3350, 6200, 8700, 'street', 'Rua da Padaria do Morro');
-  H(6900, 300, 4600, 'street', 'Rua das Flores de Feu Rosa');
-  H(7500, 300, 4600, 'avenue', 'Avenida Carapina');
+  H(6900, 300, 4600, 'street', 'Rua das Flores de Feio Rosa');
+  H(7500, 300, 4600, 'avenue', 'Avenida Cara-Pintada');
   H(8100, 300, 4600, 'street', 'Rua do Baile');
   H(8700, 300, 4600, 'street', 'Rua da Esperança Que Sobe');
   V(6300, 1500, 6200, 'road', 'Estrada Velha de Guerra');
   V(7500, 880, 6200, 'dirt', 'Estrada do Sítio Bota Fé');
   V(8700, 880, 6200, 'road', 'Estrada Alta Pressão');
-  // litoral (Barra do Jucuzinho, Camburizinho e Porto de Tubarãozinho)
-  H(7500, 4600, 8700, 'avenue', 'Avenida Carapina');
+  // litoral (Barra do Jururuzinho, Camburiso e Porto do Tubarão Banguela)
+  H(7500, 4600, 8700, 'avenue', 'Avenida Cara-Pintada');
   H(8100, 4600, 8700, 'street', 'Rua da Maré Cheia');
   H(8700, 4600, 8700, 'avenue', 'Avenida Dante Micheline e Meio');
   V(6300, 6200, 8700, 'street', 'Rua do Sol Nascente');
@@ -662,21 +664,21 @@ const REGIONS = {
   industrial: { name: 'Distrito da Gambiarra', dark: 0.76, city: 0.6, rural: 0.1 },
   vila: { name: 'Vila Sem Pressa', dark: 0.75, city: 0.55, rural: 0.25 },
   jardim: { name: 'Alfavila', dark: 0.75, city: 0.45, rural: 0.3 },
-  rio: { name: 'Rio Jucu', dark: 0.76, city: 0.15, rural: 0.8 },
+  rio: { name: 'Rio Jururu', dark: 0.76, city: 0.15, rural: 0.8 },
   sitio: { name: 'Sítio Bota Fé', dark: 0.76, city: 0, rural: 1 },
   fazenda: { name: 'Fazenda Muuuito Longe', dark: 0.76, city: 0, rural: 1 },
   rodovia: { name: 'Rodovia BR-101 e Pouco', dark: 0.76, city: 0.2, rural: 0.7 },
-  novarosa: { name: 'Nova Rosa da Penha', dark: 0.74, city: 0.7, rural: 0.15 },
-  flexal: { name: 'Flexal', dark: 0.74, city: 0.7, rural: 0.15 },
-  saopedro: { name: 'Morro de São Pedro', dark: 0.75, city: 0.6, rural: 0.2 },
-  terravermelha: { name: 'Terra Vermelha', dark: 0.75, city: 0.6, rural: 0.2 },
-  feurosa: { name: 'Feu Rosa', dark: 0.74, city: 0.7, rural: 0.15 },
-  carapina: { name: 'Jardim Carapina', dark: 0.74, city: 0.7, rural: 0.15 },
+  novarosa: { name: 'Nova Prosa da Pena', dark: 0.74, city: 0.7, rural: 0.15 },
+  flexal: { name: 'Flexão', dark: 0.74, city: 0.7, rural: 0.15 },
+  saopedro: { name: 'Morro de São Pedreiro', dark: 0.75, city: 0.6, rural: 0.2 },
+  terravermelha: { name: 'Terra Amarelou', dark: 0.75, city: 0.6, rural: 0.2 },
+  feurosa: { name: 'Feio Rosa', dark: 0.74, city: 0.7, rural: 0.15 },
+  carapina: { name: 'Jardim Cara-Pintada', dark: 0.74, city: 0.7, rural: 0.15 },
   mata: { name: 'Mata do Saci', dark: 0.80, city: 0, rural: 1 },
-  barra: { name: 'Barra do Jucuzinho', dark: 0.75, city: 0.45, rural: 0.2 },
-  camburi: { name: 'Jardim Camburizinho', dark: 0.73, city: 0.75, rural: 0 },
-  porto: { name: 'Porto de Tubarãozinho', dark: 0.74, city: 0.7, rural: 0 },
-  orla: { name: 'Orla de Camburizinho', dark: 0.72, city: 0.5, rural: 0 },
+  barra: { name: 'Barra do Jururuzinho', dark: 0.75, city: 0.45, rural: 0.2 },
+  camburi: { name: 'Jardim Camburiso', dark: 0.73, city: 0.75, rural: 0 },
+  porto: { name: 'Porto do Tubarão Banguela', dark: 0.74, city: 0.7, rural: 0 },
+  orla: { name: 'Orla de Camburiso', dark: 0.72, city: 0.5, rural: 0 },
 };
 const SUBREG = [];
 function regionKeyAt(x, y) {
@@ -845,7 +847,7 @@ function addShop(def) {
 
 /* ============================ LOTES E QUARTEIRÕES ============================ */
 const MURO_FRASES = ['FÉ EM DEUS', 'DEUS É FIEL', 'JESUS TE AMA', 'NÃO JOGUE LIXO', 'ALUGA-SE', 'VENDE-SE', 'RESPEITA AS MINA', 'SAUDADE ETERNA', 'MAIS AMOR', 'PAZ NA QUEBRADA', 'FAVELA VIVE', 'CRIA DO MORRO', 'SÓ OS CRIA', 'VAI DAR CERTO', 'O MORRO É TALENTO', 'CAPIXABA COM ORGULHO', 'ESTUDA, MOLEQUE', 'FAZ O BEM', 'TÁ PAGO', 'SORRIA, VOCÊ ESTÁ NO 027'];
-const PIXOS = ['CREW 027', 'OS GAMBIARRA', 'NOIS', 'ZN 027', 'LOKOS', 'PIXO ES', 'LAJE CREW', '027 SKATE', 'MANOS DA SERRA', 'TINTA FRESCA'];
+const PIXOS = ['CREW 027', 'OS GAMBIARRA', 'NOIS', 'ZN 027', 'LOKOS', 'PIXO ES', 'LAJE CREW', '027 SKATE', 'MANOS DA SERRA ELÉTRICA', 'TINTA FRESCA'];
 function addGraffiti(b, kind) {
   return; // pichações removidas (custavam muito desempenho)
   kind = kind || (chance(0.45) ? 'frase' : chance(0.6) ? 'pixo' : 'mural');
@@ -1681,7 +1683,7 @@ function buildRural() {
   decal(6360, 5360, 7440, 6100, 'cane');
   decal(7560, 5360, 8640, 6100, 'cane');
   for (let x = 6360; x < 8660; x += 70) { addTree(x, 5340, 'pine', rnd(0.9, 1.1)); }
-  // (a margem sul da rodovia agora é o litoral: Barra do Jucuzinho, Camburizinho e o porto)
+  // (a margem sul da rodovia agora é o litoral: Barra do Jururuzinho, Camburiso e o porto)
   // capivaras do rio
   for (const y of [1000, 2300, 3300, 4300, 5200]) {
     const cx = riverCX(y) + riverHW(y) + 8;
@@ -1871,7 +1873,7 @@ function buildCapixaba() {
   for (let i = 0; i < 5; i++) addProp('pot', 4745, 3250 + i * 14, { col: 'circ', cr: 5, R: 10 });
   addShop({ kind: 'paneleiras', name: 'Galpão das Paneleiras', x: 4600 + RT.street.lanes[0], y: 3275, bld: pb, color: '#ff9a4a', region: 'rio', pickup: true, items: ['Panela de barro grande', 'Jogo de panelas de barro', 'Moquequeira de barro'] });
   // placas verdes de rodovia com cidades do ES
-  const signs = [[1180, 'VITÓRIA 25', 'VILA VELHA 31'], [3300, 'GUARAPARI 58', 'ANCHIETA 80'], [6900, 'PEDRA AZUL 92', 'DOMINGOS MARTINS 70'], [8200, 'CACHOEIRO 136', 'LINHARES 135']];
+  const signs = [[1180, 'VITORINHA 25', 'VILA VÉIA 31'], [3300, 'GUARAPARIU 58', 'ANCHIETA DE PERTO 80'], [6900, 'PEDRA AZULEJO 92', 'DOMINGOS MARTELO 70'], [8200, 'CACHOEIRO DE ITAPEMIRIM-MIRIM 136', 'LINHA RES 135']];
   for (const [x, a, b] of signs) {
     const y = HWY_Y - RT.highway.w / 2 - 14;
     if (areaBlocked(x - 30, y - 8, x + 30, y + 8)) continue;
@@ -1879,7 +1881,7 @@ function buildCapixaba() {
     addTall(g, x - 60, y - 60, x + 60, y + 60);
     addCircCol(x - 26, y, 3, 'pole'); addCircCol(x + 26, y, 3, 'pole');
   }
-  { const x = 5000, y = 1500 - RT.road.w / 2 - 14; const g = { kind: 'gsign', x, y, h: 50, lines: ['TERCEIRA PONTE E MEIA', 'SERRA 40 · ARACRUZ 70'], panel: null }; addTall(g, x - 60, y - 60, x + 60, y + 60); addCircCol(x - 26, y, 3, 'pole'); addCircCol(x + 26, y, 3, 'pole'); }
+  { const x = 5000, y = 1500 - RT.road.w / 2 - 14; const g = { kind: 'gsign', x, y, h: 50, lines: ['TERCEIRA PONTE E MEIA', 'SERRA ELÉTRICA 40 · ARACRUZ CREDO 70'], panel: null }; addTall(g, x - 60, y - 60, x + 60, y + 60); addCircCol(x - 26, y, 3, 'pole'); addCircCol(x + 26, y, 3, 'pole'); }
   // feira livre perto das chácaras
   const cols = ['#e63946', '#2a9d8f', '#f4c430', '#3a86ff', '#ff7f11'];
   let n = 0;
@@ -1891,7 +1893,7 @@ function buildCapixaba() {
   }
   if (n) { decal(450, 5790, 1270, 5870, 'yard', { z: 1.4 }); addLight(860, 5830, 260, 0.6, 'warm'); World.animalsDef.push({ type: 'person', n: 14, rect: [460, 5850, 1260, 5866] }); }
 }
-/* ---------- Serra: Feu Rosa e Jardim Carapina ---------- */
+/* ---------- Serra: Feio Rosa e Jardim Cara-Pintada ---------- */
 function serraRect(c, r) {
   const hv = (x) => (x === 2100 ? RT.avenue.w / 2 : RT.street.w / 2) + 22;
   const hh = (y) => y === 6200 ? RT.highway.w / 2 + 14 : (y === 7500 ? RT.avenue.w / 2 : RT.street.w / 2) + 22;
@@ -1983,7 +1985,7 @@ function buildRachas() {
   };
   const hy = HWY_Y + RT.highway.lanes[0], cy = 7500 + RT.avenue.lanes[0], ay = 1500 + RT.avenue.lanes[0];
   R('arrancada', 'Arrancada na BR-101', 'Zé do Canecão', 330, 300, [[1500, hy], [3900, hy]]);
-  R('carapina', 'Pega na Avenida Carapina', 'Juninho Rebaixado', 340, 600, [[400, cy], [4500, cy]]);
+  R('carapina', 'Pega na Avenida Cara-Pintada', 'Juninho Rebaixado', 340, 600, [[400, cy], [4500, cy]]);
   R('centrao', 'Racha do Centrão', 'Bia Turbo', 260, 1000, [[400, ay], [2100 - 25, ay], [2100 - 25, 3880 - 25], [400 + 25, 3880 - 25]]);
 }
 function buildActivitiesData() {
@@ -1995,7 +1997,7 @@ function buildActivitiesData() {
   const P = (id, name, x, y, desc) => World.pois.push({ id, name, x, y, r: 170, desc });
   P('praca', 'Praça da Matriz', 1756, 1260, 'O coração do Centrão, com a fonte, a igreja e o pipoqueiro.');
   P('campo', 'Campo do Várzea F.C.', 575, 3570, 'Onde o futebol de domingo vira lenda.');
-  P('ponte', 'Ponte Que Balança', riverCX(3880), 3880, 'Ponte de madeira centenária sobre o Rio Jucu.');
+  P('ponte', 'Ponte Que Balança', riverCX(3880), 3880, 'Ponte de madeira centenária sobre o Rio Jururu.');
   P('mirante', 'Mirante do Jucu', World.mirante.x, World.mirante.y, 'A melhor vista do rio à noite.');
   P('fazenda', 'Fazenda Muuuito Longe', 8075, 4380, 'Casarão antigo cercado de palmeiras.');
   P('sitio', 'Sítio Bota Fé', 7970, 1050, 'Galinhas, horta e café passado na hora.');
@@ -2007,17 +2009,17 @@ function buildActivitiesData() {
   P('milharal', 'Milharal do Espantalho', 6900, 900, 'Um espantalho vigia o milho no escuro.');
   P('escola', 'Escola Estadual', 2420, 4900, 'A quadra iluminada da escola do bairro.');
   P('convento', 'Convento da Pinha', 8100, 600, 'Lá do alto dá pra ver São Gambiarra inteira. Romaria em abril.');
-  P('ponte3', 'Terceira Ponte e Meia', riverCX(1500), 1500, 'Concreto, vento forte e vista do Rio Jucu.');
+  P('ponte3', 'Terceira Ponte e Meia', riverCX(1500), 1500, 'Concreto, vento forte e vista do Rio Jururu.');
   P('paneleiras', 'Galpão das Paneleiras', 4830, 3275, 'Panelas de barro feitas à mão, do jeitinho capixaba.');
   P('feira', 'Feira da Roça', 860, 5830, 'Pastel, caldo de cana e banana a preço de domingo.');
-  P('orlacamburi', 'Orla de Camburizinho', 3000, 8900, 'Calçadão de pedra portuguesa, quiosque aberto e o barulho do mar a noite inteira.');
-  P('barra', 'Barra do Jucuzinho', riverCX(8800), 8780, 'Onde o Rio Jucu encontra o mar. Os pescadores juram que o peixe era deste tamanho.');
+  P('orlacamburi', 'Orla de Camburiso', 3000, 8900, 'Calçadão de pedra portuguesa, quiosque aberto e o barulho do mar a noite inteira.');
+  P('barra', 'Barra do Jururuzinho', riverCX(8800), 8780, 'Onde o Rio Jururu encontra o mar. Os pescadores juram que o peixe era deste tamanho.');
   P('pedra', 'Pedra da Cebolinha', World.pedra.x, World.pedra.y + 170, 'Pedra de granito no meio do parque. Dizem que é parente da Pedra da Cebola.');
   P('feirarolo', 'Feira do Rolo da Madrugada', World.feiraRolo.x, World.feiraRolo.y, 'Tem de tudo e mais um pouco. Não pergunte de onde veio.');
-  P('porto', 'Porto de Tubarãozinho', World.porto.x, World.porto.y, 'Contêiner para todo lado e o navio Vitória Star atracado no píer.');
+  P('porto', 'Porto do Tubarão Banguela', World.porto.x, World.porto.y, 'Contêiner para todo lado e o navio Vitorinha Star atracado no píer.');
   P('batalhao', 'Batalhão da PM', World.batalhao.x, World.batalhao.y, 'Viaturas na garagem e plantão a noite inteira.');
   P('bagunca', 'Praça da Bagunça', World.pracaBagunca.x, World.pracaBagunca.y, 'Pagode de domingo, espetinho e pelada na quadra até tarde.');
-  P('campao', 'Campão de Carapina', (serraRect(4, 2).x0 + serraRect(4, 2).x1) / 2, (serraRect(4, 2).y0 + serraRect(4, 2).y1) / 2, 'O terrão onde nasce craque toda semana.');
+  P('campao', 'Campão da Cara-Pintada', (serraRect(4, 2).x0 + serraRect(4, 2).x1) / 2, (serraRect(4, 2).y0 + serraRect(4, 2).y1) / 2, 'O terrão onde nasce craque toda semana.');
   P('bloco', 'Quadra da Unidos da Gambiarra', (serraRect(5, 1).x0 + serraRect(5, 1).x1) / 2, serraRect(5, 1).y0 + 200, 'Ensaio da escola de samba às sextas.');
   P('rodeio', 'Churrascaria Boi na Brasa', 2840, 5900, 'Picanha na brasa até de madrugada.');
   const R = (id, name, desc, pts) => {
@@ -2027,7 +2029,7 @@ function buildActivitiesData() {
   };
   R('centro', 'Volta no Centrão', 'Ruas apertadas, semáforos e esquinas do Centro.', [[1720, 2080 + 19], [2700, 2099], [2719, 880], [850, 861], [831, 2080], [1450, 2099], [2081, 2099]]);
   R('fazenda', 'Rali da Vaca Atolada', 'Terra, poeira e curvas entre o cafezal e a fazenda.', [[6319, 2300], [6319, 3880], [7500, 3895], [7515, 1500], [8700, 1519], [8719, 3880], [8719, 4900]]);
-  R('rodovia', 'Corujão na BR-101', 'Reta longa, caminhões e a ponte sobre o Rio Jucu.', [[700, 6200 + 21], [2100, 6221], [4600, 6221], [6300, 6221], [8681, 6221], [8681, 4600]]);
+  R('rodovia', 'Corujão na BR-101', 'Reta longa, caminhões e a ponte sobre o Rio Jururu.', [[700, 6200 + 21], [2100, 6221], [4600, 6221], [6300, 6221], [8681, 6221], [8681, 4600]]);
 }
 
 /* ---------- superfícies de rua (raster físico + itens de bake) ---------- */
@@ -2070,7 +2072,7 @@ function buildRoadSurface() {
   }
 }
 
-/* ============================ LITORAL: BARRA DO JUCUZINHO, CAMBURIZINHO, PORTO DE TUBARÃOZINHO E A ORLA ============================ */
+/* ============================ LITORAL: BARRA DO JURURUZINHO, CAMBURISO, PORTO DO TUBARÃO BANGUELA E A ORLA ============================ */
 const LIT_X = [4600, 6300, 7500, 8700], LIT_Y = [6200, 7500, 8100, 8700];
 const SEA_Y = 8960, SAND_Y = 8850, CALC_Y = 8816;
 function litHW(t) { return RT[t].w / 2 + (RT[t].sw || 0); }
@@ -2092,7 +2094,7 @@ function addRock(x, y, r, h) { const o = { kind: 'rock', x, y, r, h, seed: rnd()
 // guindaste do porto
 function addCrane(x, y, len, ang) { const o = { kind: 'crane', x, y, len, a: ang, h: 120, seed: rnd() }; addTall(o, x - len - 60, y - len - 60, x + len + 60, y + len + 60); for (const [dx, dy] of [[-16, -16], [16, -16], [-16, 16], [16, 16]]) addCircCol(x + dx, y + dy, 3, 'pole'); return o; }
 function buildLitoral() {
-  // ---- Barra do Jucuzinho: vila de pescadores dos dois lados do rio ----
+  // ---- Barra do Jururuzinho: vila de pescadores dos dois lados do rio ----
   for (let r = 0; r < 3; r++) {
     const R = litRect(0, r), roads = litRoads(0, r);
     let wl = 1e9, er = -1e9;
@@ -2128,9 +2130,9 @@ function buildLitoral() {
     World.feiraRolo = { x: (R.x0 + R.x1) / 2, y: (R.y0 + R.y1) / 2 };
     addShop({ kind: 'mercado', name: 'Feira do Rolo da Madrugada', x: (R.x0 + R.x1) / 2, y: 7500 + RT.avenue.lanes[1], color: '#ffd23f', region: 'camburi', pickup: true, items: ['Caixa de laranja-lima', 'Saco de aipim', 'Rolo de fio de cobre (será?)', 'Engradado de banana'] });
   }
-  // ---- Prédios de frente para o mar (Jardim Camburizinho) ----
+  // ---- Prédios de frente para o mar (Jardim Camburiso) ----
   downtownBlock(litRect(1, 2), { roads: litRoads(1, 2), region: 'camburi', cols: 2, rows: 2, noLots: true, shops: [null, { kind: 'mercado', name: 'Supermercado Preço Bão', sign: 'PREÇO BÃO', color: '#ff4d4d', h: 34, pickup: true, items: ['Compras do mês', 'Fardo de água', 'Carvão e cerveja'] }] });
-  // ---- Porto de Tubarãozinho: pátio de contêineres ----
+  // ---- Porto do Tubarão Banguela: pátio de contêineres ----
   for (let r = 0; r < 2; r++) {
     const R = litRect(2, r); decal(R.x0, R.y0, R.x1, R.y1, 'concrete');
     const cc = ['#c0392b', '#2e86de', '#27ae60', '#f39c12', '#8e44ad', '#16a085', '#d35400', '#7f8c8d'];
@@ -2144,9 +2146,9 @@ function buildLitoral() {
   }
   // ---- terminal do porto ----
   { const R = litRect(2, 2); decal(R.x0, R.y0, R.x1, R.y1, 'concrete');
-    const b = addBuilding(R.x0 + 30, R.y0 + 30, R.x1 - 30, R.y0 + 200, 46, { style: 'warehouse', roofType: 'corrugated', roofColor: '#7d8a96', wall: '#c9d0d6', lit: 0.5, sign: 'PORTO DE TUBARÃOZINHO', signColor: '#59e0ff', front: 'S' });
+    const b = addBuilding(R.x0 + 30, R.y0 + 30, R.x1 - 30, R.y0 + 200, 46, { style: 'warehouse', roofType: 'corrugated', roofColor: '#7d8a96', wall: '#c9d0d6', lit: 0.5, sign: 'PORTO DO TUBARÃO BANGUELA', signColor: '#59e0ff', front: 'S' });
     for (let i = 0; i < 5; i++) addParkedCar(R.x0 + 60 + i * 80, R.y1 - 70, Math.PI / 2, pick(['truck', 'bau', 'tanker']), '#e8e8e8');
-    addShop({ kind: 'porto', name: 'Porto de Tubarãozinho', x: (R.x0 + R.x1) / 2, y: 8700 - RT.avenue.lanes[1], bld: b, color: '#59e0ff', region: 'porto', pickup: true, items: ['Contêiner de café capixaba', 'Pelotas de minério', 'Bloco de granito', 'Caixas de chocolate de Viana'] });
+    addShop({ kind: 'porto', name: 'Porto do Tubarão Banguela', x: (R.x0 + R.x1) / 2, y: 8700 - RT.avenue.lanes[1], bld: b, color: '#59e0ff', region: 'porto', pickup: true, items: ['Contêiner de café capixaba', 'Pelotas de minério', 'Bloco de granito', 'Caixas de chocolate de Vianinha'] });
     World.porto = { x: (R.x0 + R.x1) / 2, y: (R.y0 + R.y1) / 2 };
   }
   // ---- a orla: calçadão, areia e mar de ponta a ponta ----
@@ -2229,7 +2231,7 @@ function drawShip(g, x, y, w, h) {
   const cc = ['#c0392b', '#2e86de', '#27ae60', '#f39c12', '#8e44ad', '#7f8c8d', '#16a085'];
   for (let i = 0; i < 12; i++) for (let j = 0; j < 4; j++) { g.fillStyle = cc[(i * 3 + j * 5) % cc.length]; g.fillRect(x + 70 + i * 36, y + 14 + j * 36, 32, 32); g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(x + 70 + i * 36, y + 14 + j * 36 + 28, 32, 4); }
   g.fillStyle = '#f2f2ea'; g.fillRect(x + 12, y + 20, 46, h - 40); g.fillStyle = '#1d4f9c'; g.fillRect(x + 18, y + 26, 34, 10);
-  g.fillStyle = 'rgba(255,255,255,0.8)'; g.font = 'bold 14px sans-serif'; g.save(); g.translate(x + w - 70, y + h / 2); g.rotate(Math.PI / 2); g.textAlign = 'center'; g.fillText('VITÓRIA STAR', 0, 0); g.restore();
+  g.fillStyle = 'rgba(255,255,255,0.8)'; g.font = 'bold 14px sans-serif'; g.save(); g.translate(x + w - 70, y + h / 2); g.rotate(Math.PI / 2); g.textAlign = 'center'; g.fillText('VITORINHA STAR', 0, 0); g.restore();
 }
 /* ============================ TEXTURAS ============================ */
 const PSRC = {};
@@ -3511,19 +3513,19 @@ function glowSprite(hex) {
 }
 /* ============================ VEÍCULOS DO JOGADOR ============================ */
 const CARS = [
-  { id: 'pampeiro', name: 'Quadradão 1.6', model: 'quadrado', price: 0, max: 418, acc: 118, brk: 330, steer: 1.0, grip: 1.0, pitch: 1.0, cyl: 4, fuel: 1.0, desc: 'O hatch quadradinho dos anos 80 que todo brasileiro já teve, ou já empurrou. Faróis retangulares, grade de frisos e valentia de sobra.' },
-  { id: 'besouro', name: 'Besouro 1300', model: 'besouro', price: 2800, max: 392, acc: 104, brk: 300, steer: 1.05, grip: 0.96, pitch: 1.22, cyl: 4, fuel: 0.9, desc: 'Motor a ar lá atrás, para-lamas redondos e faróis de sapo. Não corre, mas sobe qualquer ladeira de Vila Velha.' },
-  { id: 'tropeiro', name: 'Pão de Forma', model: 'van', price: 4500, max: 352, acc: 92, brk: 285, steer: 0.9, grip: 0.93, pitch: 0.82, cyl: 4, fuel: 1.15, cargo: 1.25, desc: 'Furgão de motor traseiro, frente em V e duas cores. O xodó das feiras e das mudanças: entregas rendem 25% a mais.' },
-  { id: 'escada', name: 'Mil e Um com Escada', model: 'escada', price: 5500, max: 425, acc: 121, brk: 330, steer: 1.08, grip: 1.0, pitch: 1.06, cyl: 4, fuel: 0.85, cargo: 1.1, desc: 'Hatch caixote de teto alto com a famosa escada no teto. Pau pra toda obra: entregas rendem 10% a mais.' },
-  { id: 'sertaneja', name: 'Picape do Peão', model: 'pickup', price: 3500, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.9, cyl: 4, fuel: 1.1, offroad: true, job: 'pickup', desc: 'Picape de cabine simples: o veículo de trabalho mais barato. Faz fretes pelo app Fretes e quase não perde velocidade na terra.' },
-  { id: 'cometa', name: 'Santo Antão 2.0', model: 'santana', price: 12500, max: 508, acc: 146, brk: 370, steer: 1.0, grip: 1.05, pitch: 0.95, cyl: 4, fuel: 1.05, desc: 'Sedã quadradão de quatro portas, o carro do tio no domingo. Firme e confortável na BR-101.' },
-  { id: 'bravo', name: 'Xerão Turbo', model: 'sport', price: 19000, max: 575, acc: 186, brk: 420, steer: 1.12, grip: 1.13, pitch: 1.12, cyl: 4, fuel: 1.2, desc: 'Hatch esportivo dos anos 90 com faixas, aerofólio e escapamento que acorda a rua inteira.' },
-  { id: 'gas', name: 'Gás na Porta', model: 'gas', price: 7000, max: 330, acc: 86, brk: 270, steer: 0.84, grip: 0.92, pitch: 0.62, cyl: 6, fuel: 1.5, job: 'gas', desc: 'Caminhãozinho de gás com a musiquinha clássica. Entrega botijão de casa em casa pelo app Fretes.' },
-  { id: 'guincho', name: 'Guincho do Seu Zé', model: 'guincho', price: 10000, max: 360, acc: 92, brk: 285, steer: 0.82, grip: 0.95, pitch: 0.6, cyl: 6, fuel: 1.6, job: 'guincho', desc: 'Plataforma para rebocar carros quebrados até a oficina do Seu Zé.' },
-  { id: 'cacamba', name: 'Caçamba Entulho', model: 'cacamba', price: 12000, max: 320, acc: 80, brk: 260, steer: 0.78, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.8, offroad: true, job: 'cacamba', desc: 'Recolhe entulho das obras da cidade e leva para o aterro.' },
-  { id: 'bau', name: 'Baú Leva-e-Traz', model: 'bau', price: 16000, max: 350, acc: 84, brk: 270, steer: 0.76, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.9, job: 'bau', desc: 'Caminhão baú que abastece mercados, bares e restaurantes. Fretes longos e bem pagos.' },
-  { id: 'tanker', name: 'Tanque Cheio', model: 'tanker', price: 24000, max: 340, acc: 76, brk: 250, steer: 0.72, grip: 0.95, pitch: 0.5, cyl: 6, fuel: 2.1, job: 'tanker', desc: 'Caminhão-tanque que abastece os postos. O frete que mais paga, e o mais pesado de manobrar.' },
-  { id: 'brasa', name: 'Canecão 6C', model: 'muscle', price: 29000, max: 632, acc: 196, brk: 385, steer: 0.95, grip: 0.98, pitch: 0.78, cyl: 6, fuel: 1.4, desc: 'O sedã clássico de seis canecos, para-choques cromados e teto de vinil. Ronco grave e força de sobra.' },
+  { id: 'pampeiro', name: 'Gou Quadrado 1.6', model: 'quadrado', price: 0, max: 418, acc: 118, brk: 330, steer: 1.0, grip: 1.0, pitch: 1.0, cyl: 4, fuel: 1.0, desc: 'O hatch quadradinho dos anos 80 que todo brasileiro já teve, ou já empurrou. Faróis retangulares, grade de frisos e valentia de sobra.' },
+  { id: 'besouro', name: 'Fuska 1300', model: 'besouro', price: 2800, max: 392, acc: 104, brk: 300, steer: 1.05, grip: 0.96, pitch: 1.22, cyl: 4, fuel: 0.9, desc: 'Motor a ar lá atrás, para-lamas redondos e faróis de sapo. Não corre, mas sobe qualquer ladeira de Vila Velha.' },
+  { id: 'tropeiro', name: 'Kombo Corujinha', model: 'van', price: 4500, max: 352, acc: 92, brk: 285, steer: 0.9, grip: 0.93, pitch: 0.82, cyl: 4, fuel: 1.15, cargo: 1.25, desc: 'Furgão de motor traseiro, frente em V e duas cores. O xodó das feiras e das mudanças: entregas rendem 25% a mais.' },
+  { id: 'escada', name: 'Unho Mile com Escada', model: 'escada', price: 5500, max: 425, acc: 121, brk: 330, steer: 1.08, grip: 1.0, pitch: 1.06, cyl: 4, fuel: 0.85, cargo: 1.1, desc: 'Hatch caixote de teto alto com a famosa escada no teto. Pau pra toda obra: entregas rendem 10% a mais.' },
+  { id: 'sertaneja', name: 'Salvêro do Peão', model: 'pickup', price: 3500, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.9, cyl: 4, fuel: 1.1, offroad: true, job: 'pickup', desc: 'Picape de cabine simples: o veículo de trabalho mais barato. Faz fretes pelo app Fretes e quase não perde velocidade na terra.' },
+  { id: 'cometa', name: 'Santanão 2.0', model: 'santana', price: 12500, max: 508, acc: 146, brk: 370, steer: 1.0, grip: 1.05, pitch: 0.95, cyl: 4, fuel: 1.05, desc: 'Sedã quadradão de quatro portas, o carro do tio no domingo. Firme e confortável na BR-101.' },
+  { id: 'bravo', name: 'Escorte XR3 Turbo', model: 'sport', price: 19000, max: 575, acc: 186, brk: 420, steer: 1.12, grip: 1.13, pitch: 1.12, cyl: 4, fuel: 1.2, desc: 'Hatch esportivo dos anos 90 com faixas, aerofólio e escapamento que acorda a rua inteira.' },
+  { id: 'gas', name: '1113 do Gás', model: 'gas', price: 7000, max: 330, acc: 86, brk: 270, steer: 0.84, grip: 0.92, pitch: 0.62, cyl: 6, fuel: 1.5, job: 'gas', desc: 'Caminhãozinho de gás com a musiquinha clássica. Entrega botijão de casa em casa pelo app Fretes.' },
+  { id: 'guincho', name: 'Cargo Guincho', model: 'guincho', price: 10000, max: 360, acc: 92, brk: 285, steer: 0.82, grip: 0.95, pitch: 0.6, cyl: 6, fuel: 1.6, job: 'guincho', desc: 'Plataforma para rebocar carros quebrados até a oficina do Seu Zé.' },
+  { id: 'cacamba', name: 'Caçambona 113', model: 'cacamba', price: 12000, max: 320, acc: 80, brk: 260, steer: 0.78, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.8, offroad: true, job: 'cacamba', desc: 'Recolhe entulho das obras da cidade e leva para o aterro.' },
+  { id: 'bau', name: 'Acelerô Baú', model: 'bau', price: 16000, max: 350, acc: 84, brk: 270, steer: 0.76, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.9, job: 'bau', desc: 'Caminhão baú que abastece mercados, bares e restaurantes. Fretes longos e bem pagos.' },
+  { id: 'tanker', name: 'Tanquezão R440', model: 'tanker', price: 24000, max: 340, acc: 76, brk: 250, steer: 0.72, grip: 0.95, pitch: 0.5, cyl: 6, fuel: 2.1, job: 'tanker', desc: 'Caminhão-tanque que abastece os postos. O frete que mais paga, e o mais pesado de manobrar.' },
+  { id: 'brasa', name: 'Opalha 6C', model: 'muscle', price: 29000, max: 632, acc: 196, brk: 385, steer: 0.95, grip: 0.98, pitch: 0.78, cyl: 6, fuel: 1.4, desc: 'O sedã clássico de seis canecos, para-choques cromados e teto de vinil. Ronco grave e força de sobra.' },
 ];
 const PALETTE = ['#c0392b', '#e8e8e8', '#1f2a44', '#2e86de', '#f1c40f', '#27ae60', '#16181d', '#8e9aa6', '#e67e22', '#7d3c98', '#6d4c3a', '#ff6fa5'];
 const UPGRADES = [
@@ -3533,18 +3535,20 @@ const UPGRADES = [
   { id: 'pneu', name: 'Pneus', desc: 'Aderência e direção', base: [300, 650, 1300] },
 ];
 // marcas inventadas, na zoeira (nenhuma marca real)
+// marcas "quase" reais, na zoeira (paródias com trocadilho, sem logotipos)
 const BRANDS = {
-  rebimboca: { name: 'Rebimboca', color: '#ffb547', slogan: 'Com parafuseta de série.' },
-  jabuti: { name: 'Jabuti', color: '#7bd389', slogan: 'Devagar e sempre.' },
-  pedeboi: { name: 'Pé-de-Boi', color: '#c98a4a', slogan: 'Aguenta o tranco.' },
-  gambiarra: { name: 'Gambiarra Motors', color: '#59e0ff', slogan: 'Se funciona, tá certo.' },
-  possante: { name: 'Possante', color: '#ff5a5f', slogan: 'Ronca até parado.' },
-  lataveia: { name: 'Lata Véia', color: '#c9c2ad', slogan: 'De 0 a 100 em algum dia.' },
-  bruto: { name: 'Bruto Diesel', color: '#ffd23a', slogan: 'Fumaça é sinal de força.' },
-  cinquentinha: { name: 'Cinquentinha', color: '#ff8ad8', slogan: 'Cabe em qualquer vão.' },
+  volks: { name: 'Volks Vagão', color: '#59a8ff', slogan: 'Carro do povo, fiado em 60 vezes.' },
+  fia: { name: 'Fiá', color: '#ff4d4d', slogan: 'Compra fiado e paga quando der.' },
+  fort: { name: 'Fort', color: '#4f8cff', slogan: 'Forte que nem pão dormido.' },
+  chevrole: { name: 'Chevrolé', color: '#ffd23a', slogan: 'Encontre o seu (no ferro-velho).' },
+  toyoda: { name: 'Toyoda', color: '#ff6b6b', slogan: 'Dura mais que a sogra.' },
+  ronda: { name: 'Ronda', color: '#ff3b30', slogan: 'Cabe em qualquer vão do trânsito.' },
+  merces: { name: 'Mercês-Benz', color: '#c9ccd2', slogan: 'Caminhão de fé, abençoado pela Nossa Senhora das Mercês.' },
+  escania: { name: 'Escânia', color: '#ff9f1c', slogan: 'Bruto na subida, manso no posto.' },
+  varmete: { name: 'Varmete', color: '#3cb371', slogan: 'Puxa até mudança de sogra.' },
 };
-const MODEL_BRAND = { quadrado: 'rebimboca', escada: 'rebimboca', besouro: 'jabuti', van: 'jabuti', pickup: 'pedeboi', tractor: 'pedeboi', santana: 'gambiarra', sedan: 'gambiarra', taxi: 'gambiarra', police: 'gambiarra', sport: 'possante', muscle: 'possante', hatch: 'lataveia', truck: 'bruto', bus: 'bruto', bau: 'bruto', gas: 'bruto', tanker: 'bruto', cacamba: 'bruto', guincho: 'bruto', moto: 'cinquentinha' };
-function brandOf(model) { return BRANDS[MODEL_BRAND[model] || 'gambiarra']; }
+const MODEL_BRAND = { quadrado: 'volks', besouro: 'volks', van: 'volks', pickup: 'volks', santana: 'volks', escada: 'fia', hatch: 'chevrole', police: 'chevrole', muscle: 'chevrole', sedan: 'toyoda', taxi: 'toyoda', sport: 'fort', guincho: 'fort', moto: 'ronda', gas: 'merces', bau: 'merces', bus: 'merces', truck: 'escania', tanker: 'escania', cacamba: 'escania', tractor: 'varmete' };
+function brandOf(model) { return BRANDS[MODEL_BRAND[model] || 'volks']; }
 function carFullName(c) { return brandOf(c.model).name + ' ' + c.name; }
 function carById(id) { return CARS.find((c) => c.id === id) || CARS[0]; }
 function carCfg(id) {
@@ -5287,7 +5291,7 @@ function ensurePhoneData() {
   if (!Profile.msgs) {
     Profile.msgs = [];
     addMsg('Seu Zé (Oficina)', 'Bem-vindo a São Gambiarra!',
-      'Aqui é o Seu Zé, da oficina. Você chegou em São Gambiarra, no Espírito Santo, uma cidade que nunca dorme. Seu Quadradão tá na garagem da Vila Sem Pressa.\n\n' +
+      'Aqui é o Seu Zé, da oficina. Você chegou em São Gambiarra, no Espírito Santo, uma cidade que nunca dorme. Seu Gou Quadrado tá na garagem da Vila Sem Pressa.\n\n' +
       'Pra ganhar a vida por aqui:\n• Entregas: pare em frente aos comércios com marcador amarelo e aperte E.\n• App PegaAí: fique online e leve passageiros pela cidade.\n• App Fretes: com uma picape ou caminhão de trabalho (a picape é a mais barata), faça fretes de carga, gás, combustível, entulho e reboque.\n• Percursos: bandeiras azuis no mapa, com medalhas.\n• Racha: depois das 22h, os rachas da madrugada pagam a aposta em dobro. Só cuidado: se a viatura vir, é multa.\n\n' +
       'Abasteça no posto, conserte aqui comigo quando bater e cuidado com o pardal nas avenidas. Q abre o celular, e o mapa fica no app Mapa.\n\nBoa noite e vai com Deus!', true);
   }
@@ -5428,7 +5432,7 @@ function updateJobs(dt) {
     }
   }
   // convite do racha quando chega a madrugada
-  if (rachaOpen() && !Profile.rachaMsg) { Profile.rachaMsg = true; addMsg('Zé do Canecão', 'Racha hoje?', 'E aí, parceiro. Hoje tem racha: arrancada na BR-101, pega na Avenida Carapina e o racha do Centrão. Aposta na hora, quem ganhar leva o dobro. Abre o app Racha que eu te passo o ponto. Só fica esperto com a viatura, que se ela vir, é multa na certa.', false,
+  if (rachaOpen() && !Profile.rachaMsg) { Profile.rachaMsg = true; addMsg('Zé do Canecão', 'Racha hoje?', 'E aí, parceiro. Hoje tem racha: arrancada na BR-101, pega na Avenida Cara-Pintada e o racha do Centrão. Aposta na hora, quem ganhar leva o dobro. Abre o app Racha que eu te passo o ponto. Só fica esperto com a viatura, que se ela vir, é multa na certa.', false,
     [['Tô dentro!', 'Fechou! Abre o app Racha que o ponto tá lá. Chega quieto e sem farol alto.'], ['Hoje não, valeu', 'Tranquilo, parceiro. Até a madrugada acaba, se mudar de ideia é só chegar.']]); }
   if (!rachaOpen()) Profile.rachaMsg = false;
 }
@@ -5592,7 +5596,7 @@ const CHEATS_ENABLED = true;
 const Cheats = { god: false, turbo: false };
 const CHEAT_PLACES = [
   ['Garagem', () => World.home], ['Oficina do Seu Zé', () => World.shops.find((s) => s.kind === 'oficina')], ['Batalhão da PM', () => World.shops.find((s) => s.kind === 'batalhao')],
-  ['Centrão', () => ({ x: 1600, y: 1150 })], ['Feu Rosa', () => ({ x: 1150, y: 7350 })], ['Jardim Carapina', () => ({ x: 3300, y: 7350 })],
+  ['Centrão', () => ({ x: 1600, y: 1150 })], ['Feio Rosa', () => ({ x: 1150, y: 7350 })], ['Jardim Cara-Pintada', () => ({ x: 3300, y: 7350 })],
   ['BR-101', () => ({ x: 4200, y: 6221 })], ['Terceira Ponte e Meia', () => ({ x: 5000, y: 1500 })], ['Fazenda Muuuito Longe', () => ({ x: 7700, y: 5000 })],
 ];
 function cheatTeleport(t) {
@@ -5686,11 +5690,11 @@ function phIcon(id, badge) {
 }
 // papéis de parede: paisagens do Espírito Santo desenhadas em SVG
 const WALLS = [
-  { id: 'penha', name: 'Convento da Penha', place: 'Vila Velha' },
-  { id: 'ponte', name: 'Terceira Ponte', place: 'Vitória' },
-  { id: 'pedra', name: 'Pedra Azul', place: 'Domingos Martins' },
-  { id: 'camburi', name: 'Praia de Camburi', place: 'Vitória' },
-  { id: 'dunas', name: 'Dunas de Itaúnas', place: 'Conceição da Barra' },
+  { id: 'penha', name: 'Convento da Pena', place: 'Vila Véia' },
+  { id: 'ponte', name: 'Terceira Ponte e Meia', place: 'Vitorinha' },
+  { id: 'pedra', name: 'Pedra Azulejo', place: 'Domingos Martelo' },
+  { id: 'camburi', name: 'Praia de Camburiso', place: 'Vitorinha' },
+  { id: 'dunas', name: 'Dunas de Ita-Unhas', place: 'Conceição da Barraca' },
   { id: 'bandeira', name: 'Trabalha e Confia', place: 'Bandeira capixaba' },
 ];
 const _wallCache = {};
@@ -5819,7 +5823,7 @@ const Phone = {
     } else if (this.app === 'aj-sobre') {
       const free = 256 - 41 - Math.min(60, Math.floor((Profile.distance || 0) / 90000));
       html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Sobre</div><div class="aj-hero">' + PERA_LOGO + '<b>Pera 15 Pro</b></div>' +
-        '<div class="aj-group">' + row(null, 'Nome', 'Pera do Motorista') + row(null, 'Versão do PeraOS', PERA_OS) + row(null, 'Modelo', 'Pera 15 Pro') + row(null, 'Operadora', 'Moqueca Tel 5G') + '</div>' +
+        '<div class="aj-group">' + row(null, 'Nome', 'Pera do Motorista') + row(null, 'Versão do PeraOS', PERA_OS) + row(null, 'Modelo', 'Pera 15 Pro') + row(null, 'Operadora', 'Moqueca Tel 5G') + row(null, 'BR Night Drive', 'v' + GAME_VERSION) + '</div>' +
         '<div class="aj-group">' + row(null, 'Capacidade', '256 GB') + row(null, 'Disponível', free + ' GB') + row(null, 'Apps', '7') + row(null, 'Número de série', 'PR027ES' + (1000 + ((Profile.earned || 0) % 9000))) + '</div>';
     } else if (this.app === 'aj-update') {
       const chk = performance.now() - (this.updT || 0) < 1600;
@@ -5862,7 +5866,7 @@ const Phone = {
     } else if (this.app === 'fretes') {
       const job = player.car.job;
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Fretes</div>';
-      if (!job) html += '<p class="ph-empty">Seu veículo não faz fretes. Compre um veículo de trabalho na garagem: o mais barato é a Picape do Peão (R$ 3.500). Também tem caminhão de gás, guincho, caçamba, baú e tanque.</p>';
+      if (!job) html += '<p class="ph-empty">Seu veículo não faz fretes. Compre um veículo de trabalho na garagem: o mais barato é a Salvêro do Peão (R$ 3.500). Também tem caminhão de gás, guincho, caçamba, baú e tanque.</p>';
       else if (Act.delivery) html += `<div class="ph-card"><div class="ph-big">${H(Act.delivery.item)}</div><p>${Act.delivery.stage === 'pickup' ? 'Buscar em ' + H(Act.delivery.pick ? Act.delivery.pick.name : '') : 'Entregar em ' + H(Act.delivery.dest.name)}<br>R$ ${fmtMoney(Act.delivery.reward)}</p></div><button class="ph-btn off" data-act2="job-cancel">Cancelar frete</button>`;
       else {
         if (Game.time - this.fretesT > 60 || !this.fretes.length || this.fretes[0].type !== job) { this.fretes = [genJob(job), genJob(job), genJob(job)]; this.fretesT = Game.time; }
@@ -7437,7 +7441,7 @@ function drawMinimap() {
   }
 }
 /* ---------- mapa estilo app de celular: arrastar, zoom e destinos ---------- */
-const MAP_LABELS = [['BARRA DO JUCUZINHO', 5450, 7300], ['JARDIM CAMBURIZINHO', 6900, 7800], ['PORTO DE TUBARÃOZINHO', 8100, 7300], ['ORLA DE CAMBURIZINHO', 3000, 8900], ['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JUCU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEU ROSA', 1150, 7350], ['JARDIM CARAPINA', 3300, 7350], ['NOVA ROSA DA PENHA', 1300, 8400], ['FLEXAL', 3600, 8400]];
+const MAP_LABELS = [['BARRA DO JURURUZINHO', 5450, 7300], ['JARDIM CAMBURISO', 6900, 7800], ['PORTO DO TUBARÃO BANGUELA', 8100, 7300], ['ORLA DE CAMBURISO', 3000, 8900], ['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JURURU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEIO ROSA', 1150, 7350], ['JARDIM CARA-PINTADA', 3300, 7350], ['NOVA PROSA DA PENA', 1300, 8400], ['FLEXÃO', 3600, 8400]];
 class MapView {
   constructor(canvas, st) {
     this.c = canvas; this.g = canvas.getContext('2d'); this.st = st; // st: {cx, cy, z} compartilhado
@@ -8345,8 +8349,8 @@ async function boot() {
   buildPatterns(); buildLightSprites();
   RNG = mulberry32(20261108);
   const steps = [
-    [buildRoadGraph, 'Traçando ruas…'], [buildRiver, 'Enchendo o Rio Jucu…'], [buildRoadSurface, 'Asfaltando as avenidas…'],
-    [buildCity, 'Erguendo bairros e comércios…'], [buildHighwayStrip, 'Abrindo a rodovia…'], [buildSerra, 'Subindo para Feu Rosa e Jardim Carapina…'], [buildRural, 'Plantando o interior…'], [buildLitoral, 'Molhando os pés na Orla de Camburizinho…'],
+    [buildRoadGraph, 'Traçando ruas…'], [buildRiver, 'Enchendo o Rio Jururu…'], [buildRoadSurface, 'Asfaltando as avenidas…'],
+    [buildCity, 'Erguendo bairros e comércios…'], [buildHighwayStrip, 'Abrindo a rodovia…'], [buildSerra, 'Subindo para Feio Rosa e Jardim Cara-Pintada…'], [buildRural, 'Plantando o interior…'], [buildLitoral, 'Molhando os pés na Orla de Camburiso…'],
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }

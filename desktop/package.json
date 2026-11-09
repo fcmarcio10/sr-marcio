@@ -1,7 +1,7 @@
 {
   "name": "br-night-drive",
   "productName": "BR Night Drive",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Jogo de direção noturna em São Gambiarra, ES",
   "main": "main.js",
   "author": "BR Night Drive",
@@ -14,17 +14,54 @@
   },
   "devDependencies": {
     "electron": "^33.2.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "pe-library": "^0.4.1",
+    "resedit": "^1.7.2"
   },
   "build": {
     "appId": "com.brnightdrive.game",
     "publish": null,
     "productName": "BR Night Drive",
-    "files": ["main.js", "app/**/*"],
-    "directories": { "output": "release" },
-    "win": { "target": ["nsis", "portable"], "signAndEditExecutable": false },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "shortcutName": "BR Night Drive" },
-    "linux": { "target": ["AppImage"], "category": "Game" },
-    "mac": { "target": ["dmg"], "category": "public.app-category.racing-games" }
+    "files": [
+      "main.js",
+      "app/**/*",
+      "build/icon.png"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "BR Night Drive",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "artifactName": "BR-Night-Drive-Setup-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Game"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.racing-games"
+    },
+    "afterPack": "./after-pack.js",
+    "icon": "build/icon.png",
+    "portable": {
+      "artifactName": "BR-Night-Drive-${version}-portatil.${ext}"
+    }
   }
 }

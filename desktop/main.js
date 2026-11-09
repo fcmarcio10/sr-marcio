@@ -5,7 +5,7 @@ const path = require('path');
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280, height: 760, minWidth: 960, minHeight: 600,
-    title: 'BR Night Drive', backgroundColor: '#05070f', autoHideMenuBar: true,
+    title: 'BR Night Drive', icon: path.join(__dirname, 'build', 'icon.png'), backgroundColor: '#05070f', autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, nodeIntegration: false, backgroundThrottling: false },
   });
   Menu.setApplicationMenu(null);
