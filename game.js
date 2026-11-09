@@ -4932,7 +4932,7 @@ Police.unitDrive = function (u, dt) {
   this.pace = lerp(this.pace || p.speed, p.speed, 1 - Math.exp(-1.0 * dt));
   const pmax = Math.max(300, p.st.max);
   const capK = [0, 0.9, 0.98, 1.05][this.level] || 0.9;
-  const vmax = Math.max(176, Math.min(pmax * capK, this.pace * 1.12 + 55) * 0.48); // (era 30%: +60%)
+  const vmax = Math.max(246, Math.min(pmax * capK, this.pace * 1.12 + 55) * 0.672); // 0,48 + 40%
   // rota pelas ruas, na mão direita; recalcula com calma (não copia cada virada sua)
   u.rt -= dt;
   const tgt = this.lostT > 0 && this.lastSeen ? this.lastSeen : p;
@@ -4957,7 +4957,7 @@ Police.unitDrive = function (u, dt) {
     if (f > 0 && f < 75 && Math.abs(-rx * Math.sin(u.a) + ry * Math.cos(u.a)) < 26) target = Math.min(target, Math.max(0, o.v - 10 + (f - 55)));
   }
   if (u.hitT > 0) { u.hitT -= dt; target = Math.min(target, 40); }
-  u.v += clamp(target - u.v, -420 * dt, 112 * dt);
+  u.v += clamp(target - u.v, -420 * dt, 157 * dt);
   // anda exatamente pela rota (como os outros carros), com o volante suave
   let step = Math.max(0, u.v) * dt;
   const ox = u.x, oy = u.y;
