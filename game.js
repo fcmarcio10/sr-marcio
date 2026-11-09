@@ -4917,7 +4917,7 @@ Police.unitDrive = function (u, dt) {
   const pmax = Math.max(300, p.st.max);
   const capK = [0, 0.9, 0.98, 1.05][this.level] || 0.9;
   let vmax = Math.min(pmax * capK, Math.max(170, this.pace * 1.12 + 55));
-  if (d > 1100) vmax = pmax * 1.08; // muito longe: corre para não te perder
+  if (d > 1100 && this.level >= 2) vmax = pmax * 1.08; // muito longe (2+ estrelas): corre para não te perder
   u.rt -= dt;
   let tx, ty, cornerV = 1e9;
   // perto e com caminho livre: vai direto em você; senão segue as ruas pela mão direita
@@ -4948,7 +4948,7 @@ Police.unitDrive = function (u, dt) {
   let target = Math.min(vmax, cornerV) * (1 - Math.min(0.6, Math.abs(da) * 0.5));
   if (d < 220) target = Math.min(target, p.speed + 30 + d * 0.12); // de perto não passa voando por cima de você
   if (d < 70) target = Math.min(target, p.speed + 8);
-  u.v += clamp(target - u.v, -560 * dt, Math.max(90, p.st.acc * 1.05) * dt); // acelera como um carro comum
+  u.v += clamp(target - u.v, -560 * dt, Math.max(110, p.st.acc * (1 + 0.2 * this.level)) * dt); // acelera como um carro comum (um pouco mais com mais estrelas)
   const ox = u.x, oy = u.y;
   u.x += Math.cos(u.a) * u.v * dt; u.y += Math.sin(u.a) * u.v * dt;
   // não atravessa prédio: se bater, volta e recalcula a rota
