@@ -3820,8 +3820,11 @@ class AICar {
       const g = f - this.m.L / 2 - oL / 2;
       if (g < best) { best = g; this.blocker = o; }
     };
-    if (this.ghost <= 0) for (const o of Traffic.cars) {
+    for (const o of Traffic.cars) {
       if (o === this) continue;
+      // modo fantasma (para destravar ciclos no cruzamento) nunca atravessa a fila da própria faixa
+      const sameQueue = this.state === 'edge' && o.state === 'edge' && o.e === this.e && o.dir === this.dir && Math.abs(o.off - this.off) < 12;
+      if (this.ghost > 0 && !sameQueue) continue;
       if (this.state === 'turn' && o.state === 'edge' && o.e !== this.next.e && Math.abs(angDiff(o.a, this.a)) > 0.9) continue; // parado na faixa de retenção da outra rua
       check(o, o.x, o.y, o.m.L, o.m.W);
     }
@@ -3931,6 +3934,8 @@ class AICar {
     }
   }
   blockCycle() {
+    const b = this.blocker;
+    if (b instanceof AICar && b.state === 'edge' && this.state === 'edge' && b.e === this.e && b.dir === this.dir) return false; // fila normal, não é ciclo
     let o = this.blocker, k = 0;
     while (o && o !== player && o instanceof AICar && k < 5) { if (o === this) return true; o = o.blocker; k++; }
     return false;
@@ -5072,6 +5077,23 @@ function socorroBar(H) {
     btn('gas', 'Gasolina', qg, qg > 0) + btn('fix', 'Conserto', qf, qf > 0) + btn('both', 'Os dois', qg + qf, qg > 0 && qf > 0) + '</div></div>';
 }
 
+/* ---------- backup do save ---------- */
+function saveCode() { const j = JSON.stringify(Profile); return 'BRND1:' + btoa(unescape(encodeURIComponent(j))); }
+function restoreSave(txt) {
+  let p = null;
+  try {
+    txt = (txt || '').trim();
+    const json = txt.startsWith('BRND1:') ? decodeURIComponent(escape(atob(txt.slice(6).replace(/\s+/g, '')))) : txt;
+    p = JSON.parse(json);
+  } catch (e) { return false; }
+  if (!p || p.v !== 1 || !p.owned || !p.cars || typeof p.money !== 'number') return false;
+  try { localStorage.setItem('brnd_save', JSON.stringify(p)); } catch (e) { return false; }
+  Screens.closeAll();
+  continueGame();
+  setTimeout(() => toast('Save restaurado', 'R$ ' + fmtMoney(Profile.money) + ' · ' + Object.keys(Profile.owned).length + ' veículo(s)', 'good'), 900);
+  return true;
+}
+
 /* ---------- conquistas ---------- */
 const kmRodados = () => (Profile.distance || 0) * 0.09 / 1000;
 const ACHIEVEMENTS = [
@@ -5224,7 +5246,7 @@ const Phone = {
     if (cfg.wall === 'auto' || !WALLS.some((w) => w.id === cfg.wall)) { let w; do { w = pick(WALLS).id; } while (w === this.wall); this.wall = w; } else this.wall = cfg.wall;
     this.app = app || 'home'; if (Screens.current !== 'screen-phone') Screens.open('screen-phone'); this.render(); phoneTone(1200, 0.05, 0.05);
   },
-  go(app) { this.app = app; this.chat = null; if (app === 'aj-update') this.updT = performance.now(); this.render(); if (phoneCfg().sounds) AudioSys.click(); },
+  go(app) { this.app = app; this.chat = null; if (app === 'aj-backup') { this.bkCode = null; this.bkMsg = ''; } if (app === 'aj-update') this.updT = performance.now(); this.render(); if (phoneCfg().sounds) AudioSys.click(); },
   render() {
     const body = $('phone-body'); if (!body) return;
     $('phone-clock').textContent = clockStr();
@@ -5250,12 +5272,22 @@ const Phone = {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
         `<div class="aj-group"><div class="aj-prof"><span class="aj-ava">${PERA_LOGO}</span><div><b>Motorista de São Gambiarra</b><small>Pera ID · Nuvem Capixaba</small></div></div></div>` +
         '<div class="aj-group">' + row('aj-wall', 'Papel de parede', cfg.wall === 'auto' ? 'Variado' : (WALLS.find((w) => w.id === cfg.wall) || WALLS[0]).name) + tog('notif', 'Notificações') + tog('sounds', 'Sons do celular') + '</div>' +
-        '<div class="aj-group">' + row('aj-sobre', 'Sobre') + row('aj-update', 'Atualização de Software') + '</div>' +
+        '<div class="aj-group">' + row('aj-sobre', 'Sobre') + row('aj-update', 'Atualização de Software') + row('aj-backup', 'Backup do save') + '</div>' +
         `<div class="aj-group"><button class="aj-row aj-save" data-act2="save"><span>Salvar jogo</span></button></div><p class="aj-foot">${cfg.lastSave ? 'Último salvamento às ' + H(cfg.lastSave) + ' (horário do jogo).' : 'O jogo também salva sozinho a cada 30 segundos.'}</p>`;
     } else if (this.app === 'aj-wall') {
       html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Papel de parede</div>' +
         '<div class="aj-group">' + tog('autoWall', 'Variar a cada vez que abrir') + '</div>' +
         '<div class="aj-walls">' + WALLS.map((w) => `<button class="aj-wall${cfg.wall === w.id ? ' sel' : ''}" data-wall="${w.id}"><span style="background-image:${wallURL(w.id).replace(/"/g, "'")}"></span><b>${H(w.name)}</b><small>${H(w.place)}</small></button>`).join('') + '</div>';
+    } else if (this.app === 'aj-backup') {
+      if (!this.bkCode) { saveGame(); this.bkCode = saveCode(); }
+      html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Backup do save</div>' +
+        '<p class="ph-note">Seu progresso fica salvo só neste navegador. Guarde este código (ou o arquivo) para não perder nada e para continuar em outro aparelho.</p>' +
+        `<textarea class="bk-code" readonly id="bk-out">${H(this.bkCode)}</textarea>` +
+        '<div class="bk-btns"><button class="ph-btn" data-act2="bk-copy">Copiar código</button><button class="ph-btn alt" data-act2="bk-file">Baixar arquivo</button></div>' +
+        '<p class="ph-note" style="margin-top:12px">Restaurar: cole um código abaixo ou abra um arquivo de save.</p>' +
+        '<textarea class="bk-code" id="bk-in" placeholder="Cole aqui o código do save"></textarea>' +
+        '<div class="bk-btns"><button class="ph-btn" data-act2="bk-restore">Restaurar código</button><button class="ph-btn alt" data-act2="bk-open">Abrir arquivo</button></div>' +
+        `<p class="ph-note" id="bk-msg">${H(this.bkMsg || '')}</p>`;
     } else if (this.app === 'aj-sobre') {
       const free = 256 - 41 - Math.min(60, Math.floor((Profile.distance || 0) / 90000));
       html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Sobre</div><div class="aj-hero">' + PERA_LOGO + '<b>Pera 15 Pro</b></div>' +
@@ -5364,6 +5396,10 @@ const Phone = {
     if (t.dataset.wall) { phoneCfg().wall = this.wall = t.dataset.wall; phoneTone(1100, 0.05, 0.05); this.render(); return; }
     const a = t.dataset.act2;
     if (a === 'map-full') { Object.assign(MapState.full, MapState.phone); Screens.open('screen-map'); AudioSys.click(); return; }
+    if (a === 'bk-copy') { const ta = $('bk-out'); ta.select(); let ok = false; try { if (navigator.clipboard) { navigator.clipboard.writeText(ta.value); ok = true; } else ok = document.execCommand('copy'); } catch (e) { ok = false; } this.bkMsg = ok ? 'Código copiado.' : 'Selecione o texto acima e copie (Ctrl+C).'; this.render(); return; }
+    if (a === 'bk-file') { try { const blob = new Blob([JSON.stringify(Profile)], { type: 'application/json' }); const u = URL.createObjectURL(blob); const l = document.createElement('a'); l.href = u; l.download = 'br-night-drive-save.json'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 2000); this.bkMsg = 'Arquivo baixado.'; } catch (e) { this.bkMsg = 'Não deu para baixar aqui. Use "Copiar código".'; } this.render(); return; }
+    if (a === 'bk-restore') { const v = ($('bk-in').value || '').trim(); this.bkMsg = restoreSave(v) ? '' : 'Código inválido.'; if (this.bkMsg) this.render(); return; }
+    if (a === 'bk-open') { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json,text/plain'; inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { if (!restoreSave(String(rd.result))) { this.bkMsg = 'Arquivo inválido.'; this.render(); } }; rd.readAsText(f); }; inp.click(); return; }
     if (a === 'save') { saveGame(); phoneCfg().lastSave = clockStr(); writeProfile(); AudioSys.chime(); toast('Jogo salvo', 'Progresso, dinheiro e carros guardados neste navegador.', 'good'); this.render(); return; }
     if (a === 'ride-toggle') { Act.rideOnline = !Act.rideOnline; Act.rideT = rnd(3, 6); if (!Act.rideOnline) Act.ride = null; AudioSys.click(); this.render(); }
     if (a === 'job-cancel') { Act.delivery = null; toast('Frete cancelado', '', 'bad'); AudioSys.back(); this.render(); }
@@ -5387,7 +5423,7 @@ function resize() {
   const dpr = window.devicePixelRatio || 1;
   RS = Settings.quality === 'alta' ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.7 : Math.min(dpr, 1.25);
   canvas.width = Math.round(SCREEN_W * RS); canvas.height = Math.round(SCREEN_H * RS);
-  LS = Settings.quality === 'alta' ? 0.8 : Settings.quality === 'baixa' ? 0.28 : 0.45;
+  LS = Settings.quality === 'alta' ? 0.7 : Settings.quality === 'baixa' ? 0.28 : 0.45;
   lightCanvas.width = Math.ceil(SCREEN_W * LS); lightCanvas.height = Math.ceil(SCREEN_H * LS);
   glowCanvas.width = lightCanvas.width; glowCanvas.height = lightCanvas.height;
 }
@@ -6572,14 +6608,24 @@ function render() {
   lightPass(view, cx, cy);
   const lowQ = Settings.quality === 'baixa';
   if (!lowQ) glowPass(view, cx, cy); // na baixa: sem a camada de brilho colorido
+  if (Settings.quality === 'alta') {
+    // bloom: espalha o brilho na própria camada de baixa resolução (barato) antes de ir para a tela
+    const gw = glowCanvas.width, gh = glowCanvas.height;
+    if (!window._bloomC) { window._bloomC = document.createElement('canvas'); window._bloomX = window._bloomC.getContext('2d'); }
+    const bc = window._bloomC, bx = window._bloomX, bw = Math.ceil(gw / 4), bh = Math.ceil(gh / 4);
+    if (bc.width !== bw || bc.height !== bh) { bc.width = bw; bc.height = bh; }
+    bx.clearRect(0, 0, bw, bh); bx.drawImage(glowCanvas, 0, 0, bw, bh); // reduzir = desfocar
+    gctx.setTransform(1, 0, 0, 1, 0, 0); gctx.globalCompositeOperation = 'lighter'; gctx.globalAlpha = 0.45;
+    gctx.drawImage(bc, -gw * 0.02, -gh * 0.02, gw * 1.04, gh * 1.04);
+    gctx.globalAlpha = 1; gctx.globalCompositeOperation = 'source-over';
+  }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.imageSmoothingQuality = Settings.quality === 'alta' ? 'high' : 'low';
+  ctx.imageSmoothingQuality = 'low';
   ctx.drawImage(lightCanvas, 0, 0, W, Hh);
   if (!lowQ) {
     ctx.globalCompositeOperation = 'lighter';
     ctx.drawImage(glowCanvas, 0, 0, W, Hh);
-    // na alta: um segundo brilho suave por cima (efeito bloom)
-    if (Settings.quality === 'alta') { ctx.globalAlpha = 0.35; ctx.drawImage(glowCanvas, -W * 0.01, -Hh * 0.01, W * 1.02, Hh * 1.02); ctx.globalAlpha = 1; }
+
     ctx.globalCompositeOperation = 'source-over';
   }
   ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
@@ -7273,6 +7319,33 @@ function renderMapDests() {
     if (Act.waypoint) { const b = document.createElement('button'); b.className = 'off'; b.textContent = 'Remover destino'; b.addEventListener('click', () => { Act.waypoint = null; Act.gps = null; AudioSys.back(); renderMapDests(); drawBigMap(); }); box.appendChild(b); }
   }
 }
+/* ---------- tutorial curto do primeiro jogo ---------- */
+const TUT_STEPS = [
+  { html: 'Acelere com <kbd>W</kbd> ou <kbd>↑</kbd> e vire com <kbd>A</kbd> <kbd>D</kbd>. <kbd>S</kbd> freia e dá ré.', done: () => (Profile.distance || 0) - Tutorial.d0 > 220 },
+  { html: 'Numa curva, segure <kbd>Espaço</kbd> para puxar o freio de mão e fazer a traseira escorregar.', done: () => Keys.Space && player.speed > 90, skipAfter: 25 },
+  { html: 'Aperte <kbd>Q</kbd> para abrir o celular.', done: () => Screens.current === 'screen-phone' },
+  { html: 'No celular: <b>Mapa</b> marca destinos, <b>PegaAí</b> dá corridas e <b>Mensagens</b> fala com o Seu Zé. Aperte <kbd>Q</kbd> de novo para guardar.', done: () => !Screens.current, inPhone: true },
+  { html: 'Pare em frente a um comércio com marcador <b style="color:#ffd24a">amarelo</b> e aperte <kbd>E</kbd> para pegar uma entrega.', done: () => !!Act.delivery || !!Act.ride, skipAfter: 45 },
+  { html: 'Bateu? A <b>Oficina do Seu Zé</b> conserta. Sem gasolina? Chame o Seu Zé pelas Mensagens que ele vai até você. Boa noite!', done: () => Tutorial.t > 9 },
+];
+const Tutorial = {
+  t: 0, d0: 0, shown: -1,
+  update(dt) {
+    const el = $('tutorial');
+    const vis = Game.mode === 'play' && (!Screens.current || Screens.current === 'screen-phone');
+    if (!el || !vis || Profile.tut === undefined || Profile.tut >= TUT_STEPS.length) { if (el && this.shown !== -2) { el.classList.add('hidden'); this.shown = -2; } return; }
+    const st = TUT_STEPS[Profile.tut];
+    this.t += dt;
+    if (this.shown !== Profile.tut) {
+      this.shown = Profile.tut;
+      el.innerHTML = `<div class="tut-step">${Profile.tut + 1}/${TUT_STEPS.length}</div><div class="tut-text">${st.html}</div><button class="tut-skip" id="tut-skip">Pular tutorial</button>`;
+      $('tut-skip').addEventListener('click', () => { Profile.tut = TUT_STEPS.length; AudioSys.back(); saveGame(); });
+      el.classList.remove('hidden'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    }
+    el.classList.toggle('in-phone', !!st.inPhone);
+    if (st.done() || (st.skipAfter && this.t > st.skipAfter)) { Profile.tut++; this.t = 0; AudioSys.checkpoint(); }
+  },
+};
 function closeDialog() { if (Screens.current === 'screen-dialog') Screens.closeAll(); }
 
 /* ---------- estatísticas da pausa ---------- */
@@ -7381,7 +7454,7 @@ function newGame() {
   startPlay();
   saveGame();
   setTimeout(() => toast('Bem-vindo a São Gambiarra, ES', 'A noite é sua. Explore à vontade — pare nos comércios e aperte E para pegar entregas.', 'info'), 600);
-  setTimeout(() => toast('Dica', 'W/S aceleram e freiam, A/D viram, Espaço é o freio de mão. M abre o mapa.', 'info'), 4200);
+  Profile.tut = 0; Tutorial.t = 0; Tutorial.d0 = Profile.distance || 0;
 }
 function continueGame() {
   const p = loadProfileFromStorage();
@@ -7481,6 +7554,7 @@ function frame(now) {
   AudioSys.hornOn = Game.state === 'playing' && !!key.horn();
   render();
   updateHUD(dt);
+  Tutorial.update(dt);
   if (Screens.current === 'screen-garage') drawGaragePreview(dt);
   if (Screens.current === 'screen-map' && bigMap) bigMap.draw();
   else if (Screens.current === 'screen-phone' && phoneMap && Phone.app === 'mapa') phoneMap.draw();

@@ -710,3 +710,18 @@ div.ph-wid { cursor: default; }
 .ach-mid small { display: block; color: #98989f; font-size: 12px; line-height: 1.35; }
 .ach-mid em { display: block; font-style: normal; font-size: 11px; color: #8e8e93; margin-top: 2px; }
 .ach.ok .ach-mid em { color: #ffd36b; }
+/* tutorial */
+#tutorial { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); max-width: min(560px, calc(100vw - 32px)); display: flex; align-items: center; gap: 12px; padding: 12px 14px; pointer-events: auto; border: 1px solid rgba(255, 210, 63, 0.45); z-index: 40; }
+#tutorial.pop { animation: tutpop 0.35s ease-out; }
+@keyframes tutpop { from { transform: translate(-50%, 14px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+#tutorial.in-phone { bottom: auto; top: 18px; }
+.tut-step { flex-shrink: 0; font: italic 900 13px var(--font); color: #ffd23f; background: rgba(255, 210, 63, 0.12); border-radius: 8px; padding: 6px 8px; }
+.tut-text { font: 600 14px/1.45 var(--font); color: #eef1f8; }
+.tut-text kbd { margin: 0 1px; }
+.tut-skip { flex-shrink: 0; pointer-events: auto; cursor: pointer; border: 0; background: none; color: #9aa3b5; font: 600 12px var(--font); text-decoration: underline; }
+.tut-skip:hover { color: #fff; }
+.bk-code { width: 100%; box-sizing: border-box; height: 74px; resize: none; border: 0; border-radius: 12px; background: #1c1c1e; color: #c7c7cc; font: 10.5px/1.35 ui-monospace, Menlo, Consolas, monospace; padding: 9px 10px; margin: 6px 0 8px; pointer-events: auto; word-break: break-all; }
+.bk-code:focus { outline: 1px solid #0a84ff; }
+.bk-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.bk-btns .ph-btn { margin: 0; font-size: 13px; padding: 11px 6px; }
+.ph-btn.alt { background: #2c2c2e; color: #fff; }
