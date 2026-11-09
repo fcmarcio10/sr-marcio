@@ -737,3 +737,8 @@ div.ph-wid { cursor: default; }
 .w-bar { width: 96px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
 .w-bar b { display: block; height: 100%; width: 0; background: #59e0ff; }
 .w-bar b.bust { background: #ff3b30; }
+.ch-sec { font: 700 11px -apple-system, "Segoe UI", sans-serif; color: #98989f; text-transform: uppercase; letter-spacing: 0.06em; margin: 12px 2px 6px; }
+.ch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ch-btn { pointer-events: auto; cursor: pointer; border: 0; border-radius: 10px; padding: 9px 6px; background: #1c1c1e; color: #fff; font: 600 12px -apple-system, "Segoe UI", sans-serif; }
+.ch-btn:hover { background: #2c2c2e; }
+.ch-btn.on { background: #7d3cff; }

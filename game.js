@@ -3392,7 +3392,7 @@ class Player {
     this.setCar(id);
   }
   setCar(id) { this.car = carById(id); this.m = VMODELS[this.car.model]; this.recalc(); }
-  recalc() { this.st = carStats(this.car.id); this.color = carCfg(this.car.id).color; }
+  recalc() { this.st = carStats(this.car.id); if (typeof Cheats !== 'undefined' && Cheats.turbo) this.st = Object.assign({}, this.st, { max: this.st.max * 1.5, acc: this.st.acc * 1.6, brk: this.st.brk * 1.3 }); this.color = carCfg(this.car.id).color; }
   get speed() { return Math.hypot(this.vx, this.vy); }
   place(x, y, a) { this.x = this.px = x; this.y = this.py = y; this.a = a; this.vx = this.vy = 0; this.steer = 0; this.spin = 0; this.lastRear = null; }
   update(dt, inp) {
@@ -5330,6 +5330,37 @@ async function saveFileDownload() {
   } catch (e) { done('Não deu para baixar aqui. Use "Copiar código".'); }
 }
 
+/* ---------- APP TEMPORÁRIO DE TRAPAÇAS (para testes) ----------
+   Para remover: troque CHEATS_ENABLED para false (o ícone some e nada disso roda). */
+const CHEATS_ENABLED = true;
+const Cheats = { god: false, turbo: false };
+const CHEAT_PLACES = [
+  ['Garagem', () => World.home], ['Oficina do Seu Zé', () => World.shops.find((s) => s.kind === 'oficina')], ['Batalhão da PM', () => World.shops.find((s) => s.kind === 'batalhao')],
+  ['Centrão', () => ({ x: 1600, y: 1150 })], ['Feu Rosa', () => ({ x: 1150, y: 7350 })], ['Jardim Carapina', () => ({ x: 3300, y: 7350 })],
+  ['BR-101', () => ({ x: 4200, y: 6221 })], ['Terceira Ponte e Meia', () => ({ x: 5000, y: 1500 })], ['Fazenda Muuuito Longe', () => ({ x: 7700, y: 5000 })],
+];
+function cheatTeleport(t) {
+  if (!t) return;
+  const ne = nearestEdge(t.x, t.y), e = ne.e;
+  const x = e.h ? e.a.x + ne.s : e.a.x + e.T.lanes[0], y = e.h ? e.a.y + e.T.lanes[0] : e.a.y + ne.s;
+  player.place(x, y, e.h ? 0 : Math.PI / 2); Cam.x = x; Cam.y = y; Traffic.fill(x, y); Police.units.length = 0; Police.level = 0;
+}
+function cheatDo(k, v) {
+  const ok = (t) => { toast('Trapaça', t, 'info'); AudioSys.tone(1500, 0.06, 'square', 0.05, 'ui'); };
+  if (k === 'money') { pay(10000, null); ok('+R$ 10.000'); }
+  if (k === 'fix') { Profile.damage = 0; Profile.zones = { f: 0, r: 0, l: 0, rt: 0, seed: ((Profile.zones && Profile.zones.seed) || 0) + 1 }; Profile.fuel = 100; Profile.dirt = 0; ok('Carro novo e tanque cheio'); }
+  if (k === 'cars') { for (const c of CARS) Profile.owned[c.id] = true; ok('Todos os veículos liberados na garagem'); }
+  if (k === 'pois') { for (const q of World.pois) if (!Profile.discovered.includes(q.id)) Profile.discovered.push(q.id); ok('Todos os pontos de interesse revelados'); }
+  if (k === 'time') { Profile.time = +v; ok('Relógio: ' + clockStr()); }
+  if (k === 'wx') { Settings.weather = v; if (v === 'auto') { Weather.timer = 0; } else { Weather.target = v === 'chuva' ? 0.9 : v === 'garoa' ? 0.35 : 0; if (v === 'garoa') Settings.weather = 'auto', Weather.target = 0.35, Weather.timer = 120; } saveSettings(); ok('Clima: ' + v); }
+  if (k === 'police') { const n = +v; if (n === 0) { Police.level = 0; Police.units.length = 0; ok('Polícia liberada'); } else { Police.crime('Trapaça', n, player.x, player.y, true); Police.level = n; ok(n + ' estrela(s)'); } }
+  if (k === 'god') { Cheats.god = !Cheats.god; ok('Modo indestrutível ' + (Cheats.god ? 'ligado' : 'desligado')); }
+  if (k === 'turbo') { Cheats.turbo = !Cheats.turbo; player.recalc(); ok('Turbo ' + (Cheats.turbo ? 'ligado' : 'desligado')); }
+  if (k === 'tp') { const pl = CHEAT_PLACES[+v]; cheatTeleport(pl && pl[1]()); Screens.closeAll(); ok('Teleporte: ' + (pl ? pl[0] : '')); return; }
+  if (k === 'tpgps') { if (Act.waypoint) { cheatTeleport(Act.waypoint); Screens.closeAll(); ok('Teleporte para o destino do GPS'); } else ok('Marque um destino no Mapa antes'); return; }
+  saveGame(); Phone.render();
+}
+
 /* ---------- conquistas ---------- */
 const kmRodados = () => (Profile.distance || 0) * 0.09 / 1000;
 const ACHIEVEMENTS = [
@@ -5386,10 +5417,11 @@ const PH_ICONS = {
   fretes: ['#f08a24', _ln('<path d="M12 3.5 19.5 7.5v9L12 20.5 4.5 16.5v-9z"/><path d="M4.5 7.5 12 11.5l7.5-4M12 11.5v9"/>')],
   racha: ['#e0353b', _ln('<path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/>')],
   carteira: ['#2f6fdf', _ln('<rect x="3.5" y="6" width="17" height="13" rx="2.5"/><path d="M3.5 10h17"/><circle cx="16.5" cy="14.5" r="1" fill="#fff"/>')],
+  trapaca: ['#7d3cff', _ln('<path d="M4 20 14 10"/><path d="M15 3l1 2.5L18.5 6.5 16 7.5 15 10l-1-2.5L11.5 6.5 14 5.5z"/><path d="M19 12l.6 1.4 1.4.6-1.4.6L19 16l-.6-1.4-1.4-.6 1.4-.6z"/>')],
   conquistas: ['#e0a21b', _ln('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>')],
   ajustes: ['#7b808a', _ln('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>')],
 };
-const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', ajustes: 'Ajustes' };
+const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
   return `<button class="ph-app" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge ? `<i class="ph-badge">${badge}</i>` : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
@@ -5503,7 +5535,7 @@ const Phone = {
       html = `<div class="ph-lock"><div class="ph-date">São Gambiarra · ES</div><div class="ph-time">${clockStr()}</div></div>` +
         `<div class="ph-widgets"><div class="ph-wid wid-sky${Weather.rain > 0.15 ? ' rain' : ''}"><small>São Gambiarra</small><b>${temp}°</b><span>${wl || (hr >= 19 || hr < 5 ? 'Noite abafada' : 'Céu limpo')}</span><span class="wid-sub">Máx. 31° Mín. 21°</span></div>` +
         `<button class="ph-wid wid-money" data-app="carteira"><small>Carteira</small><b>R$ ${fmtMoney(Profile.money)}</b><span>${Profile.deliveries || 0} entregas · ${Profile.rides || 0} corridas</span><span class="wid-sub">${job ? H(job) : dest ? 'Destino: ' + H(dest) : 'Nenhum serviço ativo'}</span></button></div>` +
-        '<div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].map((id) => phIcon(id)).join('') + '</div>' +
+        '<div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id)).join('') + '</div>' +
         `<div class="ph-wname">${H(W.name)} · ${H(W.place)}</div>` +
         '<div class="ph-dock">' + ['mapa', 'msgs', 'pegaai', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
@@ -5582,6 +5614,14 @@ const Phone = {
       const open = rachaOpen();
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Racha</div>' + (open ? '<p class="ph-note">Madrugada liberada. Vá até o ponto e aperte E. Quem ganhar leva o dobro da aposta. Se uma viatura chegar perto, é multa e aposta perdida.</p>' : '<p class="ph-empty">Os rachas só rolam de madrugada, das 22h às 4h30. Agora são ' + clockStr() + '.</p>') +
         World.rachas.map((r, i) => `<button class="ph-row" data-racha="${i}"><b>${H(r.name)} · aposta R$ ${fmtMoney(r.bet)}</b><span>contra ${H(r.rival)} (${fmtTime(r.rivalTime)}) · toque para marcar no GPS</span></button>`).join('');
+    } else if (this.app === 'trapaca' && CHEATS_ENABLED) {
+      const btn = (k, v, label, on) => `<button class="ch-btn${on ? ' on' : ''}" data-cheat="${k}" data-cv="${v}">${label}</button>`;
+      html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Trapaças</div><p class="ph-note">App temporário de testes.</p>' +
+        '<div class="ch-sec">Dinheiro e carro</div><div class="ch-grid">' + btn('money', 0, '+R$ 10.000') + btn('fix', 0, 'Consertar e encher') + btn('cars', 0, 'Liberar veículos') + btn('pois', 0, 'Revelar pontos') + btn('god', 0, 'Indestrutível', Cheats.god) + btn('turbo', 0, 'Turbo', Cheats.turbo) + '</div>' +
+        '<div class="ch-sec">Horário</div><div class="ch-grid">' + btn('time', 19 * 60 + 40, '19:40') + btn('time', 22 * 60 + 5, '22:05 (racha)') + btn('time', 26 * 60, '02:00') + btn('time', 28 * 60 + 40, '04:40') + '</div>' +
+        '<div class="ch-sec">Clima</div><div class="ch-grid">' + btn('wx', 'limpo', 'Limpo', Settings.weather === 'limpo') + btn('wx', 'garoa', 'Garoa') + btn('wx', 'chuva', 'Temporal', Settings.weather === 'chuva') + btn('wx', 'auto', 'Dinâmico', Settings.weather === 'auto') + '</div>' +
+        '<div class="ch-sec">Polícia</div><div class="ch-grid">' + btn('police', 1, '★') + btn('police', 2, '★★') + btn('police', 3, '★★★') + btn('police', 0, 'Limpar') + '</div>' +
+        '<div class="ch-sec">Teleporte</div><div class="ch-grid">' + CHEAT_PLACES.map(([n], i) => btn('tp', i, H(n))).join('') + btn('tpgps', 0, 'Destino do GPS') + '</div>';
     } else if (this.app === 'conquistas') {
       const A = Profile.ach || {}, done = ACHIEVEMENTS.filter((a) => A[a.id]).length;
       const fmtV = (a, v) => a.money ? 'R$ ' + fmtMoney(Math.floor(v)) : (a.unit === ' km' || a.unit === ' s' ? v.toFixed(1).replace('.', ',') : Math.floor(v)) + (a.unit || '');
@@ -5633,6 +5673,7 @@ const Phone = {
     }
     if (t.dataset.wall) { phoneCfg().wall = this.wall = t.dataset.wall; phoneTone(1100, 0.05, 0.05); this.render(); return; }
     const a = t.dataset.act2;
+    if (t.dataset.cheat && CHEATS_ENABLED) { cheatDo(t.dataset.cheat, t.dataset.cv); return; }
     if (a === 'map-full') { Object.assign(MapState.full, MapState.phone); Screens.open('screen-map'); AudioSys.click(); return; }
     if (a === 'bk-copy') { const ta = $('bk-out'); ta.select(); let ok = false; try { if (navigator.clipboard) { navigator.clipboard.writeText(ta.value); ok = true; } else ok = document.execCommand('copy'); } catch (e) { ok = false; } this.bkMsg = ok ? 'Código copiado.' : 'Selecione o texto acima e copie (Ctrl+C).'; this.render(); return; }
     if (a === 'bk-file') { saveFileDownload(); return; }
@@ -7934,6 +7975,7 @@ function stepPlay(dt) {
   Achievements.check(dt);
   Weather.updatePlayer(dt, player);
   Police.update(dt);
+  if (CHEATS_ENABLED && Cheats.god && (Profile.damage > 0 || (Profile.zones && (Profile.zones.f || Profile.zones.r || Profile.zones.l || Profile.zones.rt)))) { Profile.damage = 0; Profile.zones = { f: 0, r: 0, l: 0, rt: 0, seed: ((Profile.zones && Profile.zones.seed) || 0) + 1 }; }
   const kmh = player.speed * 0.3; if (kmh > (Profile.topSpeed || 0)) Profile.topSpeed = kmh;
   if (player.drift > 0.45 && player.speed > 180) Profile.driftT = (Profile.driftT || 0) + dt;
 }
