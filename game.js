@@ -1472,12 +1472,14 @@ function buildRoadProps() {
       const rk = regionKeyAt(mx, my);
       const per = rk === 'centro' ? 120 : rk === 'vila' ? 170 : 230;
       const s0 = e.perpA + 8, s1 = e.len - e.perpB - 8;
-      if (s1 - s0 > 60) for (const sd of [1, -1]) {
+      // nas pontes não tem calçada: os pedestres andam só até a cabeceira
+      const spans = e.bridge ? [[s0, e.bridge.x0 - e.a.x - 20], [e.bridge.x1 - e.a.x + 20, s1]] : [[s0, s1]];
+      for (const [q0, q1] of spans) if (q1 - q0 > 60) for (const sd of [1, -1]) {
         const o = e.hw + T.sw * 0.5;
-        const ax = e.a.x + e.dx * s0 + nx * o * sd, ay = e.a.y + e.dy * s0 + ny * o * sd;
-        const bx = e.a.x + e.dx * s1 + nx * o * sd, by = e.a.y + e.dy * s1 + ny * o * sd;
+        const ax = e.a.x + e.dx * q0 + nx * o * sd, ay = e.a.y + e.dy * q0 + ny * o * sd;
+        const bx = e.a.x + e.dx * q1 + nx * o * sd, by = e.a.y + e.dy * q1 + ny * o * sd;
         const rect = [Math.min(ax, bx) - (e.h ? 0 : 5), Math.min(ay, by) - (e.h ? 5 : 0), Math.max(ax, bx) + (e.h ? 0 : 5), Math.max(ay, by) + (e.h ? 5 : 0)];
-        World.animalsDef.push({ type: 'person', n: Math.max(1, Math.round((s1 - s0) / per * rnd(0.6, 1.3))), rect });
+        World.animalsDef.push({ type: 'person', n: Math.max(1, Math.round((q1 - q0) / per * rnd(0.6, 1.3))), rect });
       }
     }
     // radar (pardal) nas avenidas e na rodovia
@@ -1679,10 +1681,7 @@ function buildRural() {
   decal(6360, 5360, 7440, 6100, 'cane');
   decal(7560, 5360, 8640, 6100, 'cane');
   for (let x = 6360; x < 8660; x += 70) { addTree(x, 5340, 'pine', rnd(0.9, 1.1)); }
-  // margem sul da rodovia
-  decal(4700, 6300, 8760, 6420, 'pasture');
-  for (let x = 4800; x < 8700; x += 600) fenceRect(x, 6310, x + 560, 6410, [], 'wood');
-  scatterTrees(4700, 6290, 8760, 6430, 24, ['round', 'pine', 'mango', 'bush']);
+  // (a margem sul da rodovia agora é o litoral: Barra do Jucuzinho, Camburizinho e o porto)
   // capivaras do rio
   for (const y of [1000, 2300, 3300, 4300, 5200]) {
     const cx = riverCX(y) + riverHW(y) + 8;
@@ -2184,9 +2183,13 @@ function buildLitoral() {
   for (const x of [1500, 3600, 6600]) { addBuilding(x - 14, SAND_Y + 40, x + 14, SAND_Y + 68, 30, { style: 'kiosk', roofType: 'flat', roofColor: '#d62828', wall: '#f2f2ea', lit: 0.6, sign: 'SALVA-VIDAS', signColor: '#ff4d4d' }); }
   for (const x of [2500, 5000, 7000]) bake(x - 50, SAND_Y + 30, x + 50, SAND_Y + 90, 6, (g) => drawNet(g, x, SAND_Y + 60));
   for (const [x, c] of [[riverCX(8900) - 260, '#2a6fd1'], [riverCX(8900) + 240, '#e8402a'], [riverCX(8900) + 300, '#f4c430']]) bake(x - 30, SAND_Y + 40, x + 30, SAND_Y + 100, 6, (g) => drawBoat(g, x, SAND_Y + 70, 1.4, c));
-  World.animalsDef.push({ type: 'person', n: 22, rect: [500, CALC_Y + 6, 7600, SAND_Y - 6] });
-  World.animalsDef.push({ type: 'person', n: 10, rect: [500, SAND_Y + 20, 7600, SEA_Y - 30] });
-  World.animalsDef.push({ type: 'dog', n: 3, rect: [800, SAND_Y + 20, 7000, SEA_Y - 30] });
+  // gente no calçadão e na areia, dos dois lados da foz (ninguém anda dentro do rio)
+  for (const [a, b] of [[500, rL - 20], [rR + 20, 7600]]) {
+    const k = (b - a) / 7100;
+    World.animalsDef.push({ type: 'person', n: Math.round(22 * k), rect: [a, CALC_Y + 6, b, SAND_Y - 6] });
+    World.animalsDef.push({ type: 'person', n: Math.round(10 * k), rect: [a, SAND_Y + 20, b, SEA_Y - 30] });
+    World.animalsDef.push({ type: 'dog', n: Math.max(1, Math.round(3 * k)), rect: [a + 200, SAND_Y + 20, b - 200, SEA_Y - 30] });
+  }
 }
 // desenhos do litoral (assados no chão)
 function drawSea(g, x0, x1) {
