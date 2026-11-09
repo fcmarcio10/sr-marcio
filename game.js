@@ -4912,33 +4912,43 @@ Police.spawnUnit = function () {
 };
 Police.unitDrive = function (u, dt) {
   const p = player, d = Math.hypot(p.x - u.x, p.y - u.y);
-  // velocidade equilibrada com o SEU carro: um pouco abaixo/igual/acima conforme as estrelas
+  // ritmo: acompanha o quanto VOCÊ está correndo agora (um pouco mais rápido), nunca muito acima do seu carro
+  this.pace = lerp(this.pace || p.speed, p.speed, 1 - Math.exp(-1.5 * dt));
   const pmax = Math.max(300, p.st.max);
-  let vmax = pmax * ([0, 0.9, 0.98, 1.05][this.level] || 0.9);
-  if (d > 900) vmax = Math.max(vmax, pmax * 1.12); // longe: corre um pouco mais para te alcançar
+  const capK = [0, 0.9, 0.98, 1.05][this.level] || 0.9;
+  let vmax = Math.min(pmax * capK, Math.max(170, this.pace * 1.12 + 55));
+  if (d > 1100) vmax = pmax * 1.08; // muito longe: corre para não te perder
   u.rt -= dt;
-  // de perto vai direto em você (se não tiver parede no meio); de longe segue as ruas
-  let tx, ty;
-  const lead = 0.35;
-  const px = p.x + p.vx * lead, py = p.y + p.vy * lead;
-  if (d < 230) {
-    const nx = u.x + Math.cos(Math.atan2(py - u.y, px - u.x)) * 30, ny = u.y + Math.sin(Math.atan2(py - u.y, px - u.x)) * 30;
-    if (!areaBlocked(nx - 8, ny - 8, nx + 8, ny + 8)) { u.mode = 'direct'; tx = px; ty = py; }
-    else u.mode = 'route';
-  } else u.mode = 'route';
-  if (u.mode === 'route') {
+  let tx, ty, cornerV = 1e9;
+  // perto e com caminho livre: vai direto em você; senão segue as ruas pela mão direita
+  const px = p.x + p.vx * 0.3, py = p.y + p.vy * 0.3;
+  let clear = d < 170;
+  if (clear) for (const k of [0.33, 0.66, 1]) { const x = u.x + (px - u.x) * k, y = u.y + (py - u.y) * k; if (areaBlocked(x - 7, y - 7, x + 7, y + 7)) { clear = false; break; } }
+  u.mode = clear ? 'direct' : 'route';
+  if (clear) { tx = px; ty = py; }
+  else {
     const tgt = this.lostT > 0 && this.lastSeen ? this.lastSeen : p;
-    if (!u.pts || u.rt <= 0 || u.ri >= u.pts.length) { u.rt = 1.4; const r = gpsRoute(u.x, u.y, tgt.x, tgt.y); u.pts = r ? r.pts.slice() : [[tgt.x, tgt.y]]; u.ri = 1; }
-    while (u.ri < u.pts.length && Math.hypot(u.pts[u.ri][0] - u.x, u.pts[u.ri][1] - u.y) < 22) u.ri++;
-    const q = u.pts[Math.min(u.ri, u.pts.length - 1)]; tx = q[0]; ty = q[1];
+    if (!u.pts || u.rt <= 0 || u.ri >= u.pts.length) { u.rt = 1.6; const r = gpsRoute(u.x, u.y, tgt.x, tgt.y); u.pts = r ? laneShift(r.pts, 18) : [[tgt.x, tgt.y]]; u.ri = 1; }
+    while (u.ri < u.pts.length - 1 && Math.hypot(u.pts[u.ri][0] - u.x, u.pts[u.ri][1] - u.y) < 28) u.ri++;
+    // olha um ponto à frente na rota (direção suave, sem zigue-zague)
+    let look = 45 + u.v * 0.22, cx = u.x, cy = u.y, i = u.ri;
+    tx = u.pts[Math.min(i, u.pts.length - 1)][0]; ty = u.pts[Math.min(i, u.pts.length - 1)][1];
+    while (i < u.pts.length) { const q = u.pts[i], sl = Math.hypot(q[0] - cx, q[1] - cy); if (sl >= look) { tx = cx + (q[0] - cx) / sl * look; ty = cy + (q[1] - cy) / sl * look; break; } look -= sl; cx = q[0]; cy = q[1]; tx = cx; ty = cy; i++; }
+    // freia antes da esquina conforme o tamanho da curva
+    if (u.ri < u.pts.length - 1) {
+      const A = u.ri > 0 ? u.pts[u.ri - 1] : [u.x, u.y], B = u.pts[u.ri], C = u.pts[u.ri + 1];
+      const turn = Math.abs(angDiff(Math.atan2(B[1] - A[1], B[0] - A[0]), Math.atan2(C[1] - B[1], C[0] - B[0])));
+      const dB = Math.hypot(B[0] - u.x, B[1] - u.y);
+      if (turn > 0.3 && dB < 60 + u.v * 0.7) cornerV = 130 + (1 - turn / Math.PI) * 200 + dB * 0.8;
+    }
   }
   const want = Math.atan2(ty - u.y, tx - u.x), da = angDiff(u.a, want);
-  u.a += clamp(da, -3.2 * dt, 3.2 * dt);
-  const turnSlow = 1 - Math.min(0.75, Math.abs(da) * 0.6);
-  let target = vmax * turnSlow;
-  if (d < 220) target = Math.min(target, p.speed + 35 + d * 0.15); // de perto não passa voando por cima de você
-  if (d < 70) target = Math.min(target, p.speed + 10);
-  u.v += clamp(target - u.v, -520 * dt, Math.max(90, p.st.acc * 1.1) * dt); // acelera parecido com um carro comum
+  const maxTurn = clamp(5 - u.v / 140, 1.6, 4.5); // quanto mais rápido, menos esterça
+  u.a += clamp(da, -maxTurn * dt, maxTurn * dt);
+  let target = Math.min(vmax, cornerV) * (1 - Math.min(0.6, Math.abs(da) * 0.5));
+  if (d < 220) target = Math.min(target, p.speed + 30 + d * 0.12); // de perto não passa voando por cima de você
+  if (d < 70) target = Math.min(target, p.speed + 8);
+  u.v += clamp(target - u.v, -560 * dt, Math.max(90, p.st.acc * 1.05) * dt); // acelera como um carro comum
   const ox = u.x, oy = u.y;
   u.x += Math.cos(u.a) * u.v * dt; u.y += Math.sin(u.a) * u.v * dt;
   // não atravessa prédio: se bater, volta e recalcula a rota
