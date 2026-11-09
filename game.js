@@ -1758,7 +1758,7 @@ function pruneRoadTrees() {
     const gt = groundAt(t.x, t.y);
     let onRoad = gt === SF.ROAD || gt === SF.BRIDGE || gt === SF.DIRT;
     if (!onRoad) { const ne = nearestEdge(t.x, t.y); if (ne && ne.d !== undefined && ne.d < ne.e.hw + 4) onRoad = true; }
-    if (onRoad) { t.removed = true; if (t.col) { t.col.r = -999; t.col.tag = 'none'; } n++; }
+    if (onRoad) { t.removed = true; if (t.col) { t.col.x = t.col.y = -1e6; t.col.r = 0; t.col.tag = 'none'; t.col.brk = null; } n++; }
   }
   World.tall = World.tall.filter((t) => !t.removed);
   return n;
@@ -3826,7 +3826,7 @@ class AICar {
       check(o, o.x, o.y, o.m.L, o.m.W);
     }
     // o jogador é visto de mais longe e com folga lateral maior: os carros mantêm distância de você
-    if (player && Game.state !== 'menu') { check(player, player.x, player.y, player.m.L + 26, player.m.W + 12); }
+    if (player && Game.state !== 'menu') { const m = this.state === 'edge' ? 1 : 0; check(player, player.x, player.y, player.m.L + 26 * m, player.m.W + 12 * m); }
     if (this.ghost <= 0 && this.animalGhost <= 0) for (const an of Animals.list) if (an.onRoad) check(an, an.x, an.y, an.r * 2, an.r * 2);
     return best;
   }
@@ -3869,7 +3869,7 @@ class AICar {
       const rx = player.x - this.x, ry = player.y - this.y, f = rx * this.dx + ry * this.dy;
       if (f > 0 && f < 60 + this.v * 1.2) {
         const l = -rx * this.dy + ry * this.dx, room = 8;
-        if (Math.abs(l) < 34 && Math.abs(l) > 6) this.nudge = clamp(-Math.sign(l) * (34 - Math.abs(l)) * 0.5, -room, room);
+        if (Math.abs(l) < 34 && Math.abs(l) > 6) { const nd = clamp(-Math.sign(l) * (34 - Math.abs(l)) * 0.5, -room, room); if (this.e.T.lanes.length === 1 || this.laneClear(this.offT + nd, -40, 80)) this.nudge = nd; }
       }
     }
     const dOff = this.offT + this.nudge - this.off;
@@ -4810,6 +4810,7 @@ function ensurePhoneData() {
       'Abasteça no posto, conserte aqui comigo quando bater e cuidado com o pardal nas avenidas. Q abre o celular, e o mapa fica no app Mapa.\n\nBoa noite e vai com Deus!', true);
   }
   if (Profile.rides === undefined) { Profile.rides = 0; Profile.ratingSum = 0; Profile.jobs = 0; }
+  if (!Profile.sosMsg) { Profile.sosMsg = true; addMsg(ZE, 'Socorro 24h', 'Ficou sem gasolina ou bateu feio no meio do caminho? Me chama aqui no zap que eu vou até você com o guincho. Levo gasolina e ferramenta. Cobro 15% a mais que na oficina, por causa do deslocamento.', true); }
 }
 function randomHome(nx, ny, dmin, dmax) {
   const pool = World.homes.filter((h) => { const d = Math.hypot(h.x - nx, h.y - ny); return d > dmin && d < dmax; });
@@ -4948,6 +4949,93 @@ function updateJobs(dt) {
   if (rachaOpen() && !Profile.rachaMsg) { Profile.rachaMsg = true; addMsg('Zé do Canecão', 'Racha hoje?', 'E aí, parceiro. Hoje tem racha: arrancada na BR-101, pega na Avenida Carapina e o racha do Centrão. Aposta na hora, quem ganhar leva o dobro. Abre o app Racha que eu te passo o ponto. Só fica esperto com a viatura, que se ela vir, é multa na certa.', false,
     [['Tô dentro!', 'Fechou! Abre o app Racha que o ponto tá lá. Chega quieto e sem farol alto.'], ['Hoje não, valeu', 'Tranquilo, parceiro. Até a madrugada acaba, se mudar de ideia é só chegar.']]); }
   if (!rachaOpen()) Profile.rachaMsg = false;
+}
+
+/* ---------- socorro do Seu Zé: chama pelo zap e ele vem de guincho (15% mais caro que a oficina) ---------- */
+const ZE = 'Seu Zé (Oficina)';
+const Socorro = { job: null };
+function socorroQuote(kind) {
+  const fuel = Math.ceil(Math.max(0, 100 - Profile.fuel) * 1.8 * 1.15), fix = Math.ceil(Profile.damage * 4 * 1.15);
+  return kind === 'gas' ? fuel : kind === 'fix' ? fix : fuel + fix;
+}
+function socorroCall(kind) {
+  if (Socorro.job || !player) return;
+  // sai da oficina se ela estiver perto; senão aparece numa rua a uns 1,2 km de você
+  const of = World.shops.find((s) => s.kind === 'oficina');
+  let sx, sy;
+  if (of && Math.hypot(of.x - player.x, of.y - player.y) < 2600) { sx = of.x; sy = of.y; }
+  else { const a = rnd(TAU); const ne = nearestEdge(clamp(player.x + Math.cos(a) * 1300, 100, WORLD_W - 100), clamp(player.y + Math.sin(a) * 1300, 100, WORLD_H - 100)); sx = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x; sy = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s; }
+  const route = gpsRoute(sx, sy, player.x, player.y);
+  const pts = route ? route.pts.slice() : [[sx, sy], [player.x, player.y]];
+  const J = { kind, x: sx, y: sy, a: 0, pts, ri: 1, state: 'coming', t: 0, rt: 3, quote: socorroQuote(kind) };
+  Socorro.job = J;
+  const len = route ? route.len : Math.hypot(sx - player.x, sy - player.y), eta = Math.max(1, Math.round(len / 280 / 20));
+  const what = kind === 'gas' ? 'gasolina' : kind === 'fix' ? 'conserto' : 'gasolina e conserto';
+  Profile.msgs.unshift({ from: ZE, title: '', body: 'Seu Zé, preciso de ' + what + '. Me socorre aí!', read: true, me: true, t: Math.floor(Profile.time) });
+  setTimeout(() => {
+    addMsg(ZE, '', 'Tô indo aí com o guincho! Fica parado num lugar seguro, com o pisca ligado. Chego em uns ' + eta + ' min. Fica uns R$ ' + fmtMoney(J.quote) + ' (15% a mais que na oficina, por causa do deslocamento).', true);
+    if (Screens.current === 'screen-phone' && Phone.chat === ZE) Phone.render();
+    phoneTone(1320, 0.06, 0.05);
+  }, 1200);
+  Act.waypoint = null; Act.gps = null;
+}
+function socorroCancel() {
+  if (!Socorro.job) return;
+  Socorro.job = null;
+  Profile.msgs.unshift({ from: ZE, title: '', body: 'Seu Zé, pode cancelar, já me virei.', read: true, me: true, t: Math.floor(Profile.time) });
+  setTimeout(() => { addMsg(ZE, '', 'Beleza, dei meia-volta. Qualquer coisa me chama!', true); if (Screens.current === 'screen-phone' && Phone.chat === ZE) Phone.render(); }, 900);
+}
+Socorro.update = function (dt) {
+  const J = this.job; if (!J || !player) return;
+  J.t += dt;
+  if (J.state === 'coming') {
+    // recalcula a rota se você saiu do lugar
+    J.rt -= dt;
+    const end = J.pts[J.pts.length - 1];
+    if (J.rt <= 0) { J.rt = 3; if (Math.hypot(end[0] - player.x, end[1] - player.y) > 150) { const r = gpsRoute(J.x, J.y, player.x, player.y); if (r) { J.pts = r.pts.slice(); J.ri = 1; } } }
+    let step = 300 * dt;
+    while (step > 0 && J.ri < J.pts.length) {
+      const p = J.pts[J.ri], dx = p[0] - J.x, dy = p[1] - J.y, d = Math.hypot(dx, dy);
+      if (d < 0.5) { J.ri++; continue; }
+      const m = Math.min(d, step); J.x += dx / d * m; J.y += dy / d * m; step -= m;
+      J.a += angDiff(J.a, Math.atan2(dy, dx)) * Math.min(1, dt * 8);
+      if (m >= d) J.ri++;
+    }
+    if (J.ri >= J.pts.length) { const dx = player.x - J.x, dy = player.y - J.y, d = Math.hypot(dx, dy); if (d > 40) { const m = Math.min(d - 40, 200 * dt); J.x += dx / d * m; J.y += dy / d * m; J.a = Math.atan2(dy, dx); } }
+    if (Math.hypot(player.x - J.x, player.y - J.y) < 75) { J.state = 'arrived'; J.t = 0; toast('Seu Zé chegou!', 'Fica parado aí que ele já resolve.', 'info'); AudioSys.aiHorn(60, 'caminhao', 0); }
+  } else if (J.state === 'arrived') {
+    if (player.speed > 30) { J.t = 0; if (Math.hypot(player.x - J.x, player.y - J.y) > 160) { J.state = 'coming'; J.rt = 0; } return; }
+    if (J.t > 0.4 && Math.floor(J.t * 2.5) !== Math.floor((J.t - dt) * 2.5)) AudioSys.wrench();
+    if (J.t > 3) {
+      // serviço feito: cobra o que der com o dinheiro que você tem
+      const fuelNeed = J.kind !== 'fix' ? Math.max(0, 100 - Profile.fuel) : 0, dmg = J.kind !== 'gas' ? Profile.damage : 0;
+      const pf = 1.8 * 1.15, pd = 4 * 1.15;
+      let money = Math.max(0, Profile.money), paid = 0;
+      const f = Math.min(fuelNeed, money / pf); Profile.fuel = Math.min(100, Profile.fuel + f); paid += f * pf; money -= f * pf;
+      const r = Math.min(dmg, money / pd); paid += r * pd;
+      if (r > 0) { const before = Profile.damage; Profile.damage = Math.max(0, Profile.damage - r); if (Profile.zones) { const k = before > 0 && Profile.damage >= 1 ? Profile.damage / before : 0; for (const z of ['f', 'r', 'l', 'rt', 'fL', 'fR']) Profile.zones[z] = (Profile.zones[z] || 0) * k; Profile.zones.seed = (Profile.zones.seed || 0) + 1; } if (Profile.damage < 1) Profile.damage = 0; }
+      paid = Math.ceil(paid);
+      Profile.money -= paid; UI.moneyDelta(-paid); AudioSys.chime();
+      const full = (fuelNeed - f) < 1 && (dmg - r) < 1;
+      toast('Socorro do Seu Zé', (full ? 'Tudo resolvido' : 'Fez o que deu com o seu dinheiro') + ' — R$ ' + fmtMoney(paid), 'good');
+      addMsg(ZE, '', full ? 'Prontinho, R$ ' + fmtMoney(paid) + '. Tá rodando de novo! Vai com Deus e devagar.' : 'Fiz o que deu com os R$ ' + fmtMoney(paid) + ' que você tinha. Passa na oficina depois pra terminar.', true);
+      J.state = 'leaving'; J.t = 0; saveGame();
+    }
+  } else if (J.state === 'leaving') {
+    J.x += Math.cos(J.a) * 160 * dt; J.y += Math.sin(J.a) * 160 * dt;
+    if (J.t > 6) this.job = null;
+  }
+};
+function socorroBar(H) {
+  const J = Socorro.job;
+  if (J) {
+    const d = Math.round(Math.hypot(J.x - player.x, J.y - player.y) * 0.09);
+    return `<div class="wa-sos"><b>${J.state === 'coming' ? 'Seu Zé está a caminho · ' + (d > 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : d + ' m') : J.state === 'arrived' ? 'Seu Zé chegou! Fique parado.' : 'Serviço concluído'}</b>${J.state === 'coming' ? '<button data-sos="cancel" class="off">Cancelar</button>' : ''}</div>`;
+  }
+  const qg = socorroQuote('gas'), qf = socorroQuote('fix');
+  const btn = (k, label, q, need) => `<button data-sos="${k}" ${need ? '' : 'disabled'}>${label}<small>${need ? 'R$ ' + fmtMoney(q) : 'não precisa'}</small></button>`;
+  return '<div class="wa-sos"><b>Pedir socorro (15% mais caro que a oficina)</b><div class="wa-sos-btns">' +
+    btn('gas', 'Gasolina', qg, qg > 0) + btn('fix', 'Conserto', qf, qf > 0) + btn('both', 'Os dois', qg + qf, qg > 0 && qf > 0) + '</div></div>';
 }
 
 /* ---------- interface do celular ---------- */
@@ -5117,7 +5205,8 @@ const Phone = {
           '</div>';
         // só dá para responder a última mensagem do contato, se ela pedir resposta e ainda não foi respondida
         const lastIn = M.find((m) => m.from === this.chat);
-        if (lastIn && !lastIn.me && lastIn.rep && !lastIn.answered) html += '<div class="wa-quick">' + lastIn.rep.map(([q], i) => `<button data-reply="${i}">${H(q)}</button>`).join('') + '</div>';
+        if (this.chat === ZE && Game.mode === 'play') html += socorroBar(H);
+        else if (lastIn && !lastIn.me && lastIn.rep && !lastIn.answered) html += '<div class="wa-quick">' + lastIn.rep.map(([q], i) => `<button data-reply="${i}">${H(q)}</button>`).join('') + '</div>';
         else html += '<div class="wa-bar">' + (conv.some((m) => m.me || m.answered) ? 'Você já respondeu esta conversa' : 'Mensagem informativa · não precisa responder') + '</div>';
       } else {
         const order = [], last = {}, unread = {};
@@ -5157,6 +5246,7 @@ const Phone = {
     const t = e.target.closest('button'); if (!t) return;
     if (t.dataset.app) { this.go(t.dataset.app); return; }
     if (t.dataset.mz) { if (phoneMap) mapCtrl(phoneMap, t.dataset.mz); return; }
+    if (t.dataset.sos) { if (t.dataset.sos === 'cancel') socorroCancel(); else socorroCall(t.dataset.sos); phoneTone(1760, 0.05, 0.04); this.render(); return; }
     if (t.dataset.chat) { this.chat = t.dataset.chat; this.render(); if (phoneCfg().sounds) AudioSys.click(); return; }
     if (t.dataset.reply && this.chat) {
       const who = this.chat, src = Profile.msgs.find((m) => m.from === who);
@@ -6221,6 +6311,7 @@ function emissivePass(view, talls) {
     carGlow(c, c.braking || c.hitT > 0 || c.v < 3, false, c.lcBlink || (nearNode ? c.blink : 0), false);
   }
   if (player && Game.state !== 'menu') carGlow(player, player.braking || Keys.Space, player.rev, 0, true);
+  if (Socorro.job && (Game.time * 2.2) % 1 < 0.5) { const J = Socorro.job; ctx.globalAlpha = 0.9; const s = glowSprite('#ffa520'); ctx.drawImage(s, J.x - 22, J.y - 22, 44, 44); ctx.globalAlpha = 1; }
   // animais (olhos de coruja)
   for (const an of Animals.list) {
     if (an.type !== 'owl' || an.blinkT < 0) continue;
@@ -6361,6 +6452,7 @@ function render() {
     if (!inView(view, c.x, c.y, 80)) continue;
     drawVehicle(ctx, c.m, c.color, c.x, c.y, c.a, { steer: c.steerVis, roll: c.roll, brake: c.braking || c.v < 3, box: c.box, zones: c.zones });
   }
+  if (Socorro.job && inView(view, Socorro.job.x, Socorro.job.y, 120)) drawVehicle(ctx, VMODELS.guincho, '#c8302a', Socorro.job.x, Socorro.job.y, Socorro.job.a, { roll: 0, brake: Socorro.job.state === 'arrived' });
   if (player && Game.state !== 'menu') {
     drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery, zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null });
   }
@@ -6458,6 +6550,7 @@ function drawMinimap() {
   const ic = (x, y, kind) => { mm.save(); mm.translate(x, y); mm.rotate(-rot); mm.scale(1 / scale * k * 1.05, 1 / scale * k * 1.05); mapIcon(mm, 0, 0, kind, 1.1); mm.restore(); };
   for (const c of Traffic.cars) { if (Math.abs(c.x - player.x) > R * 1.5 || Math.abs(c.y - player.y) > R * 1.5) continue; mm.fillStyle = 'rgba(255,255,255,0.55)'; mm.fillRect(c.x - 12, c.y - 12, 24, 24); }
   for (const s of World.shops) ic(s.x, s.y, shopIconKind(s));
+  if (Socorro.job) ic(Socorro.job.x, Socorro.job.y, 'repair');
   if (!Act.race) for (const r of World.races) ic(r.start[0], r.start[1], 'race');
   for (const s of World.parkSpots) if (!Profile.parks[s.id]) ic(s.x, s.y, 'park');
   for (const p of World.pois) if (Profile.discovered.includes(p.id)) ic(p.x, p.y, 'poi');
@@ -7262,6 +7355,7 @@ function stepPlay(dt) {
   if (Settings.quality !== 'baixa') Peladas.update(dt, Cam.x, Cam.y);
   Particles.update(dt);
   updateActivities(dt);
+  Socorro.update(dt);
 }
 function stepMenu(dt) {
   Game.time += dt;
