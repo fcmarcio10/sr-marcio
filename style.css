@@ -992,3 +992,34 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 #transit-text { font-family: var(--f-cond); font-weight: 700; font-size: 15px; letter-spacing: 0.18em; text-transform: uppercase; color: #c4cad8; }
 .load-tip, #load-tip { font-family: var(--f-body); font-size: 15px; color: #9aa2b6; max-width: 560px; text-align: center; line-height: 1.5; margin-top: 18px; }
 .load-tip b, #load-tip b { font-family: var(--f-cond); font-weight: 800; letter-spacing: 0.16em; color: var(--ouro); margin-right: 8px; }
+
+/* ---------- MAPA GRANDE v6 ---------- */
+#screen-map { background: radial-gradient(ellipse at 50% 40%, rgba(10, 20, 34, 0.96), rgba(3, 5, 10, 0.98) 75%); }
+.map-wrap { width: 97vw; height: 95vh; }
+.map-head { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 18px; margin-bottom: 10px; }
+.map-back { font-family: var(--f-cond); font-weight: 800; font-size: 16px; letter-spacing: 0.08em; text-transform: uppercase; color: #e9edf5; background: rgba(255, 255, 255, 0.06); border-radius: 3px; padding: 7px 14px 7px 8px; display: inline-flex; align-items: center; gap: 2px; }
+.map-back:hover { background: var(--ouro); color: #0b0d12; }
+.map-back kbd { margin-right: 8px; }
+.map-title h2 { margin: 0 !important; font-size: 46px !important; line-height: 0.95; }
+.map-sub { font-family: var(--f-cond); font-weight: 700; font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: #9aa2b6; margin-top: 2px; }
+.map-sub b { color: var(--ouro); margin-left: 8px; letter-spacing: 0.12em; }
+.map-sub b:not(:empty)::before { content: '· '; color: #5a6276; }
+.map-legend { justify-content: flex-end; gap: 4px 12px; font-family: var(--f-cond); font-weight: 700; font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; color: #c9cfdd; }
+.map-legend span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.map-legend canvas { width: 18px; height: 18px; }
+.map-stage { border: 1px solid rgba(255, 255, 255, 0.07); border-top: 3px solid var(--ouro); border-radius: 3px; overflow: hidden; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55); }
+#bigmap { border: 0; border-radius: 0; }
+.map-ctrls { border-radius: 3px; background: rgba(7, 9, 15, 0.92); border: 1px solid rgba(255, 255, 255, 0.08); }
+.map-ctrls button { font-family: var(--f-cond); font-weight: 800; font-size: 24px; }
+.map-ctrls button:hover { background: var(--ouro); color: #0b0d12; }
+.map-ctrls svg { color: var(--ouro); }
+.map-ctrls button:hover svg { color: #0b0d12; }
+.map-dests { gap: 6px; margin-top: 10px; }
+.map-dests .dest-now { font-family: var(--f-cond); font-weight: 800; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ouro); }
+.map-dests button { border: 0; border-left: 4px solid var(--ouro); background: rgba(7, 9, 15, 0.92); color: #eef1f8; border-radius: 2px; padding: 8px 14px 7px 12px; font-size: 15px; letter-spacing: 0.04em; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); }
+.map-dests button:hover, .map-dests button:focus-visible { background: var(--ouro); color: #0b0d12; }
+.map-dests button.off { border-left-color: #ff4a4a; background: rgba(40, 10, 12, 0.92); color: #ffd6d6; }
+.map-foot { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 16px; font-family: var(--f-cond); font-weight: 700; font-size: 12.5px; letter-spacing: 0.06em; text-transform: uppercase; color: #8f97ad; margin-top: 10px; }
+.map-foot kbd { font-size: 11.5px; padding: 1px 6px; margin-right: 6px; }
+/* destinos no mapa do celular (mantém o estilo do app) */
+.ph-dests button { font-family: -apple-system, "Segoe UI", sans-serif; }

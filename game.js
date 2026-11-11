@@ -8435,17 +8435,19 @@ const MAP_S = 0.1;
 function buildMapImage() {
   const c = makeCanvas(GW, GH), g = c.getContext('2d');
   const img = g.createImageData(GW, GH), d = img.data;
-  const COLS = [[34, 52, 30], [92, 96, 104], [70, 72, 76], [150, 98, 64], [24, 64, 96], [140, 112, 80], [74, 76, 80], [62, 80, 40], [96, 78, 56], [150, 136, 100]];
+  // estilo noturno: chão escuro, água azul forte, ruas claras por cima
+  const COLS = [[26, 36, 30], [42, 48, 59], [52, 58, 70], [74, 58, 42], [20, 70, 110], [58, 63, 74], [44, 50, 64], [34, 48, 28], [62, 50, 36], [122, 106, 72]];
   for (let i = 0; i < GW * GH; i++) { const col = COLS[ground[i]] || COLS[0]; d[i * 4] = col[0]; d[i * 4 + 1] = col[1]; d[i * 4 + 2] = col[2]; d[i * 4 + 3] = 255; }
   g.putImageData(img, 0, 0);
-  g.fillStyle = 'rgba(14,30,14,0.9)';
+  g.fillStyle = 'rgba(16,40,24,0.92)';
   colGrid.query(0, 0, WORLD_W, WORLD_H, _q);
   for (const o of _q) if (o.tag === 'forest') g.fillRect(o.x0 * MAP_S - 1.4, o.y0 * MAP_S - 1.4, (o.x1 - o.x0) * MAP_S + 2.8, (o.y1 - o.y0) * MAP_S + 2.8);
-  for (const b of World.buildings) { g.fillStyle = b.h > 60 ? '#a8a49a' : '#8a7f72'; g.fillRect(b.x0 * MAP_S, b.y0 * MAP_S, (b.x1 - b.x0) * MAP_S, (b.y1 - b.y0) * MAP_S); }
-  g.strokeStyle = 'rgba(210,214,220,0.9)'; g.lineCap = 'round';
-  for (const e of World.edges) {
-    g.lineWidth = e.T.id === 'avenue' || e.T.id === 'highway' ? 3.2 : e.T.id === 'dirt' ? 1.6 : 2.2;
-    g.strokeStyle = e.T.id === 'dirt' ? 'rgba(190,150,100,0.95)' : e.T.id === 'highway' ? 'rgba(255,200,110,0.95)' : 'rgba(215,218,224,0.9)';
+  for (const b of World.buildings) { g.fillStyle = b.h > 60 ? '#4f5a70' : '#3b4456'; g.fillRect(b.x0 * MAP_S, b.y0 * MAP_S, (b.x1 - b.x0) * MAP_S, (b.y1 - b.y0) * MAP_S); }
+  g.lineCap = 'round';
+  for (const pass of [0, 1]) for (const e of World.edges) {
+    const w = e.T.id === 'avenue' || e.T.id === 'highway' ? 3.4 : e.T.id === 'dirt' ? 1.6 : 2.3;
+    g.lineWidth = pass ? w : w + 1.4;
+    g.strokeStyle = pass ? (e.T.id === 'dirt' ? '#a8804e' : e.T.id === 'highway' ? '#ffb52e' : e.T.id === 'avenue' ? '#ffe7a0' : '#d6dbe4') : 'rgba(5,7,11,0.8)';
     g.beginPath(); g.moveTo(e.a.x * MAP_S, e.a.y * MAP_S); g.lineTo(e.b.x * MAP_S, e.b.y * MAP_S); g.stroke();
   }
   MAPIMG = c;
@@ -8492,7 +8494,7 @@ function drawMinimap() {
   mm.imageSmoothingEnabled = true;
   mm.drawImage(MAPIMG, 0, 0, WORLD_W, WORLD_H);
   if (Act.gps) {
-    mm.strokeStyle = '#2f8bff'; mm.lineWidth = 5 / scale * k * 0.5; mm.lineJoin = 'round';
+    mm.strokeStyle = '#ffcc2e'; mm.lineWidth = 5 / scale * k * 0.5; mm.lineJoin = 'round';
     mm.beginPath(); Act.gps.pts.forEach((p, i) => (i ? mm.lineTo(p[0], p[1]) : mm.moveTo(p[0], p[1]))); mm.stroke();
   }
   const ic = (x, y, kind) => { mm.save(); mm.translate(x, y); mm.rotate(-rot); mm.scale(1 / scale * k * 1.05, 1 / scale * k * 1.05); mapIcon(mm, 0, 0, kind, 1.1); mm.restore(); };
@@ -8517,7 +8519,7 @@ function drawMinimap() {
   }
 }
 /* ---------- mapa estilo app de celular: arrastar, zoom e destinos ---------- */
-const MAP_LABELS = [['BARRA DO JURURUZINHO', 5450, 7300], ['JARDIM CAMBURISO', 6900, 7800], ['PORTO DO TUBARÃO BANGUELA', 8100, 7300], ['ORLA DE CAMBURISO', 3000, 8900], ['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JURURU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEIO ROSA', 1150, 7350], ['JARDIM CARA-PINTADA', 3300, 7350], ['NOVA PROSA DA PENA', 1300, 8400], ['FLEXÃO', 3600, 8400]];
+const MAP_LABELS = [['BARRA DO JURURUZINHO', 5450, 7300], ['JARDIM CAMBURISO', 6900, 7800], ['PORTO DO TUBARÃO BANGUELA', 8150, 6900], ['ORLA DE CAMBURISO', 3000, 8900], ['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JURURU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEIO ROSA', 1150, 7350], ['JARDIM CARA-PINTADA', 3300, 7350], ['NOVA PROSA DA PENA', 1300, 8400], ['FLEXÃO', 3600, 8400]];
 class MapView {
   constructor(canvas, st) {
     this.c = canvas; this.g = canvas.getContext('2d'); this.st = st; // st: {cx, cy, z} compartilhado
@@ -8568,7 +8570,7 @@ class MapView {
     if (this.st.follow && player) { this.st.cx = player.x; this.st.cy = player.y; }
     const z = this.st.z, s = z * dpr, k = 1 / z; // k: unidades do mundo por px de tela
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.fillStyle = '#16231a'; g.fillRect(0, 0, Wp, Hp);
+    g.fillStyle = '#0b1a2a'; g.fillRect(0, 0, Wp, Hp);
     g.setTransform(s, 0, 0, s, Wp / 2 - this.st.cx * s, Hp / 2 - this.st.cy * s);
     g.imageSmoothingEnabled = true;
     g.drawImage(MAPIMG, 0, 0, WORLD_W, WORLD_H);
@@ -8576,18 +8578,18 @@ class MapView {
     const x0 = this.st.cx - r.width / 2 * k - 200, x1 = this.st.cx + r.width / 2 * k + 200, y0 = this.st.cy - r.height / 2 * k - 200, y1 = this.st.cy + r.height / 2 * k + 200;
     const vis = (e) => Math.max(e.a.x, e.b.x) > x0 && Math.min(e.a.x, e.b.x) < x1 && Math.max(e.a.y, e.b.y) > y0 && Math.min(e.a.y, e.b.y) < y1;
     const RW = { highway: 1, avenue: 0.9, street: 0.75, road: 0.75, dirt: 0.55 };
-    const RC = { highway: '#ffc65a', avenue: '#fff2b8', street: '#e9ecf2', road: '#e9ecf2', dirt: '#c9a46a' };
+    const RC = { highway: '#ffb52e', avenue: '#ffe7a0', street: '#d6dbe4', road: '#d6dbe4', dirt: '#a8804e' };
     g.lineCap = 'round'; g.lineJoin = 'round';
     for (const pass of [0, 1]) for (const e of World.edges) {
       if (!vis(e)) continue;
       const id = e.T.id, w = Math.max((RW[id] || 0.7) * 3.2 * k, e.T.w * 0.62);
       g.lineWidth = pass ? w : w + 2.4 * k;
-      g.strokeStyle = pass ? (RC[id] || '#e9ecf2') : 'rgba(10,14,20,0.75)';
+      g.strokeStyle = pass ? (RC[id] || '#d6dbe4') : 'rgba(5,7,11,0.85)';
       g.beginPath(); g.moveTo(e.a.x, e.a.y); g.lineTo(e.b.x, e.b.y); g.stroke();
     }
     // nomes de rua de perto
     if (z > 0.11) {
-      g.font = `600 ${10.5 * k}px -apple-system, "Segoe UI", Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = `700 ${11 * k}px "BRND Cond", Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
       const seen = new Set();
       for (const e of World.edges) {
         if (!e.name || !vis(e) || e.len < 260 || seen.has(e.name + (e.h ? 'h' : 'v') + Math.round((e.h ? e.a.y : e.a.x) / 50))) continue;
@@ -8595,20 +8597,31 @@ class MapView {
         if (mx < x0 + 200 || mx > x1 - 200 || my < y0 + 200 || my > y1 - 200) continue;
         seen.add(e.name + (e.h ? 'h' : 'v') + Math.round((e.h ? e.a.y : e.a.x) / 50));
         g.save(); g.translate(mx, my); if (!e.h) g.rotate(Math.PI / 2);
-        g.lineWidth = 3 * k; g.strokeStyle = 'rgba(255,255,255,0.85)'; g.strokeText(e.name, 0, 0); g.fillStyle = '#3a4250'; g.fillText(e.name, 0, 0);
+        g.lineWidth = 3 * k; g.strokeStyle = 'rgba(5,7,11,0.85)'; g.strokeText(e.name.toUpperCase(), 0, 0); g.fillStyle = '#e9edf5'; g.fillText(e.name.toUpperCase(), 0, 0);
         g.restore();
       }
     }
     // bairros
     g.textAlign = 'center'; g.textBaseline = 'middle';
-    const ls = clamp(14 * k, 60, 260);
-    g.font = `800 ${ls}px -apple-system, "Segoe UI", Arial`;
-    for (const [t, x, y] of MAP_LABELS) { g.lineWidth = ls * 0.22; g.strokeStyle = 'rgba(8,12,18,0.8)'; g.strokeText(t, x, y); g.fillStyle = 'rgba(255,255,255,0.88)'; g.fillText(t, x, y); }
+    const ls = clamp(19 * k, 62, 300);
+    g.font = `${ls}px "BRND Anton", Impact, sans-serif`; g.lineJoin = 'round';
+    g.globalAlpha = z > 0.12 ? 0.45 : 0.95;
+    const boxes = [];
+    for (const [t, x, y] of MAP_LABELS) {
+      const words = t.split(' '), lines = [];
+      if (t.length > 13 && words.length > 1) { let best = 1, bd = 1e9; for (let i = 1; i < words.length; i++) { const d = Math.abs(words.slice(0, i).join(' ').length - words.slice(i).join(' ').length); if (d < bd) { bd = d; best = i; } } lines.push(words.slice(0, best).join(' '), words.slice(best).join(' ')); } else lines.push(t);
+      const lh = ls * 1.02, w = Math.max(...lines.map((l) => g.measureText(l).width)), h = lh * lines.length;
+      const bx = { x0: x - w / 2, x1: x + w / 2, y0: y - h / 2, y1: y + h / 2 };
+      if (boxes.some((o) => bx.x0 < o.x1 && bx.x1 > o.x0 && bx.y0 < o.y1 && bx.y1 > o.y0)) continue;
+      boxes.push(bx);
+      lines.forEach((l, i) => { const ly = y - h / 2 + lh * (i + 0.5); g.lineWidth = ls * 0.2; g.strokeStyle = 'rgba(5,7,11,0.9)'; g.strokeText(l, x, ly); g.fillStyle = '#f4f1e6'; g.fillText(l, x, ly); });
+    }
+    g.globalAlpha = 1;
     // rota do GPS (azul, como app de mapa)
     if (Act.gps) {
       g.lineCap = 'round'; g.lineJoin = 'round';
       g.beginPath(); Act.gps.pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
-      g.strokeStyle = '#0b4fae'; g.lineWidth = 8 * k; g.stroke(); g.strokeStyle = '#2f8bff'; g.lineWidth = 5 * k; g.stroke();
+      g.strokeStyle = 'rgba(5,7,11,0.9)'; g.lineWidth = 9 * k; g.stroke(); g.strokeStyle = '#ffcc2e'; g.lineWidth = 5.5 * k; g.stroke();
     }
     const ic = (x, y, kind) => { if (x < x0 || x > x1 || y < y0 || y > y1) return; g.save(); g.translate(x, y); g.scale(k * 1.35, k * 1.35); mapIcon(g, 0, 0, kind, 1.2); g.restore(); };
     for (const p of World.pois) ic(p.x, p.y, Profile.discovered.includes(p.id) ? 'poi' : 'unknown');
@@ -8617,7 +8630,7 @@ class MapView {
     for (const s2 of World.shops) ic(s2.x, s2.y, shopIconKind(s2));
     { const ep = Events.mapPoint(); if (ep) ic(ep[0], ep[1], 'event'); }
     if (z > 0.09) {
-      g.font = `600 ${10 * k}px -apple-system, "Segoe UI", Arial`; g.textBaseline = 'alphabetic';
+      g.font = `700 ${11 * k}px "BRND Cond", Arial`; g.textBaseline = 'alphabetic';
       for (const s2 of World.shops) if (s2.x > x0 && s2.x < x1 && s2.y > y0 && s2.y < y1) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(s2.name, s2.x, s2.y - 12 * k); g.fillStyle = '#ffe2c4'; g.fillText(s2.name, s2.x, s2.y - 12 * k); }
       for (const p of World.pois) if (Profile.discovered.includes(p.id)) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(p.name, p.x, p.y - 12 * k); g.fillStyle = '#ecd6ff'; g.fillText(p.name, p.x, p.y - 12 * k); }
     }
@@ -8626,30 +8639,28 @@ class MapView {
       const w = Act.waypoint;
       g.save(); g.translate(w.x, w.y); g.scale(k, k);
       g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(0, 1, 6, 2.5, 0, 0, TAU); g.fill();
-      g.fillStyle = '#ff3b30'; g.strokeStyle = '#fff'; g.lineWidth = 2;
+      g.fillStyle = '#ff3b4a'; g.strokeStyle = '#05070b'; g.lineWidth = 2.4;
       g.beginPath(); g.moveTo(0, 0); g.bezierCurveTo(-11, -13, -11, -28, 0, -28); g.bezierCurveTo(11, -28, 11, -13, 0, 0); g.fill(); g.stroke();
       g.fillStyle = '#fff'; g.beginPath(); g.arc(0, -19, 4, 0, TAU); g.fill();
       g.restore();
     }
-    // você: ponto azul com cone de direção
+    // você: seta branca com contorno e brilho pulsando
     if (player) {
       const t = performance.now() / 1000;
       g.save(); g.translate(player.x, player.y); g.scale(k, k);
-      g.fillStyle = 'rgba(47,139,255,0.18)'; g.beginPath(); g.arc(0, 0, 16 + Math.sin(t * 3) * 3, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(255,204,46,0.22)'; g.beginPath(); g.arc(0, 0, 15 + Math.sin(t * 3) * 3, 0, TAU); g.fill();
       g.rotate(player.a);
-      const cg = g.createRadialGradient(0, 0, 4, 0, 0, 34); cg.addColorStop(0, 'rgba(47,139,255,0.55)'); cg.addColorStop(1, 'rgba(47,139,255,0)');
-      g.fillStyle = cg; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, 34, -0.55, 0.55); g.closePath(); g.fill();
-      g.fillStyle = '#fff'; g.beginPath(); g.arc(0, 0, 8.5, 0, TAU); g.fill();
-      g.fillStyle = '#2f8bff'; g.beginPath(); g.arc(0, 0, 6, 0, TAU); g.fill();
+      g.beginPath(); g.moveTo(13, 0); g.lineTo(-9, -9); g.lineTo(-4, 0); g.lineTo(-9, 9); g.closePath();
+      g.lineJoin = 'round'; g.lineWidth = 4; g.strokeStyle = '#05070b'; g.stroke(); g.fillStyle = '#ffffff'; g.fill();
       g.restore();
     }
     // escala
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     const m = 100 * k * 0.09; // metros em 100 px
     const nice = [10, 20, 50, 100, 200, 500, 1000, 2000].find((v) => v >= m * 0.6) || 2000, px = nice / (k * 0.09);
-    g.fillStyle = 'rgba(0,0,0,0.5)'; g.fillRect(10, r.height - 24, px + 12, 16);
-    g.fillStyle = '#fff'; g.fillRect(16, r.height - 13, px, 2);
-    g.font = '600 10px -apple-system, "Segoe UI", Arial'; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillText(nice >= 1000 ? nice / 1000 + ' km' : nice + ' m', 16, r.height - 15);
+    g.fillStyle = 'rgba(5,7,11,0.75)'; g.fillRect(10, r.height - 26, px + 12, 18);
+    g.fillStyle = '#ffcc2e'; g.fillRect(16, r.height - 13, px, 3);
+    g.font = '700 11px "BRND Cond", Arial'; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillText(nice >= 1000 ? nice / 1000 + ' km' : nice + ' m', 16, r.height - 15);
   }
 }
 function mapSetWaypoint(x, y, label) {
@@ -8660,6 +8671,20 @@ function mapSetWaypoint(x, y, label) {
   Act.waypoint = { x: px, y: py, label }; Act.gpsT = 0; Act.gps = player ? gpsRoute(player.x, player.y, px, py) : null;
   AudioSys.click(); renderMapDests(); drawBigMap();
 }
+function buildMapLegend() {
+  const box = document.getElementById('map-legend'); if (!box || box.dataset.ok) return;
+  const items = [['you', 'Você'], ['home', 'Garagem'], ['job', 'Entregas'], ['shop', 'Comércios'], ['fuel', 'Posto'], ['repair', 'Oficina'], ['race', 'Percursos'], ['park', 'Vagas'], ['poi', 'Pontos'], ['event', 'Eventos'], ['route', 'Rota'], ['dest', 'Destino']];
+  box.innerHTML = '';
+  for (const [kind, label] of items) {
+    const sp = document.createElement('span'), c = document.createElement('canvas'); c.width = c.height = 36; const g = c.getContext('2d'); g.scale(2, 2);
+    if (kind === 'you') { g.translate(9, 9); g.beginPath(); g.moveTo(7, 0); g.lineTo(-5, -5); g.lineTo(-2, 0); g.lineTo(-5, 5); g.closePath(); g.lineWidth = 2.4; g.strokeStyle = '#05070b'; g.lineJoin = 'round'; g.stroke(); g.fillStyle = '#fff'; g.fill(); }
+    else if (kind === 'route') { g.lineCap = 'round'; g.strokeStyle = '#05070b'; g.lineWidth = 6; g.beginPath(); g.moveTo(3, 13); g.lineTo(15, 5); g.stroke(); g.strokeStyle = '#ffcc2e'; g.lineWidth = 3.5; g.stroke(); }
+    else if (kind === 'dest') { g.translate(9, 16); g.scale(0.5, 0.5); g.fillStyle = '#ff3b4a'; g.strokeStyle = '#05070b'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(0, 0); g.bezierCurveTo(-11, -13, -11, -28, 0, -28); g.bezierCurveTo(11, -28, 11, -13, 0, 0); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(0, -19, 4, 0, TAU); g.fill(); }
+    else mapIcon(g, 9, 9, kind, 1.45);
+    sp.appendChild(c); sp.appendChild(document.createTextNode(label)); box.appendChild(sp);
+  }
+  box.dataset.ok = '1';
+}
 const MAP_CTRLS = '<div class="map-ctrls"><button data-mz="in" title="Aproximar">+</button><button data-mz="out" title="Afastar">−</button><button data-mz="me" title="Centralizar em você"><svg viewBox="0 0 24 24"><path d="M20 4L4 11l7 2 2 7z" fill="currentColor"/></svg></button></div>';
 function mapCtrl(v, k) { if (k === 'in') v.zoomBy(1.5); else if (k === 'out') v.zoomBy(1 / 1.5); else v.center(); AudioSys.tone(1100, 0.03, 'sine', 0.04, 'ui'); }
 const MapState = { full: { cx: 0, cy: 0, z: 0, follow: true }, phone: { cx: 0, cy: 0, z: 0.055, follow: true } };
@@ -8667,6 +8692,8 @@ const bigCanvas = document.getElementById('bigmap');
 let bigMap = null, phoneMap = null;
 function drawBigMap() {
   if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full);
+  buildMapLegend();
+  { const el = document.getElementById('map-region'); if (el && player) el.textContent = (REGIONS[regionKeyAt(player.x, player.y)] || {}).name || ''; }
   if (Screens.current === 'screen-map') bigMap.draw();
   if (phoneMap && Screens.current === 'screen-phone') phoneMap.draw();
 }

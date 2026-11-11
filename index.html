@@ -190,25 +190,16 @@
 <div id="screen-map" class="screen hidden">
   <div class="map-wrap">
     <div class="map-head">
-      <button class="map-back" id="map-back" title="Voltar ao mapa do celular (ESC)">‹ Voltar</button>
-      <h2>MAPA</h2>
-      <div class="map-legend">
-        <span><i class="lg lg-you"></i>Você</span>
-        <span><i class="lg lg-job"></i>Entregas</span>
-        <span><i class="lg lg-shop"></i>Estabelecimentos</span>
-        <span><i class="lg lg-race"></i>Percursos</span>
-        <span><i class="lg lg-park"></i>Vagas</span>
-        <span><i class="lg lg-poi"></i>Pontos de interesse</span>
-        <span><i class="lg lg-gps"></i>Rota do GPS</span>
-        <span><i class="lg lg-dest"></i>Destino</span>
-      </div>
+      <button class="map-back" id="map-back" title="Voltar ao mapa do celular (ESC)"><kbd>ESC</kbd>Voltar</button>
+      <div class="map-title"><h2>MAPA</h2><div class="map-sub">São Gambiarra · ES <b id="map-region"></b></div></div>
+      <div class="map-legend" id="map-legend"></div>
     </div>
     <div class="map-stage">
       <canvas id="bigmap"></canvas>
       <div class="map-ctrls" id="map-ctrls-full"><button data-mz="in" title="Aproximar">+</button><button data-mz="out" title="Afastar">−</button><button data-mz="me" title="Centralizar em você"><svg viewBox="0 0 24 24"><path d="M20 4L4 11l7 2 2 7z" fill="currentColor"/></svg></button></div>
     </div>
     <div id="map-dests" class="map-dests"></div>
-    <div class="map-foot">Arraste para mover · role a roda do mouse para zoom · clique para marcar destino · botão direito remove · ESC volta ao celular · Q fecha tudo</div>
+    <div class="map-foot"><span><kbd>Arrastar</kbd>Mover</span><span><kbd>Roda</kbd>Zoom</span><span><kbd>Clique</kbd>Marcar destino</span><span><kbd>Botão direito</kbd>Remover</span><span><kbd>ESC</kbd>Voltar ao celular</span><span><kbd>Q</kbd>Fechar</span></div>
   </div>
 </div>
 
