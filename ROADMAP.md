@@ -12,7 +12,7 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
   - Festa junina fechando a rua
   - Alguém pedindo carona na BR
   - Cada um dura de 1 a 3 minutos e paga um bônus.
-  - Um evento por vez, a cada 1h30–2h40 de jogo (no relógio real, uns 2 a 3 minutos entre eles). 7 conquistas novas.
+  - Um evento por vez; o próximo aparece de 1,5 a 2,5 minutos (tempo real) depois que o anterior termina. 7 conquistas novas.
 
 ## Próximos
 
