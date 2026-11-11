@@ -2,6 +2,10 @@
 const { app, BrowserWindow, Menu, globalShortcut } = require('electron');
 const path = require('path');
 
+// Nome próprio do app (sem "Electron" em lugar nenhum: barra de tarefas, Gerenciador de Tarefas, notificações)
+app.setName('BR Night Drive');
+if (process.platform === 'win32') app.setAppUserModelId('com.brnightdrive.game');
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280, height: 760, minWidth: 960, minHeight: 600,

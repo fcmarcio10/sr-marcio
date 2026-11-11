@@ -41,4 +41,12 @@ exports.default = async function afterPack(ctx) {
   res.outputResource(nt);
   fs.writeFileSync(exe, Buffer.from(nt.generate()));
   console.log('  • ícone e versão gravados em', path.basename(exe));
+
+  // Licenças das bibliotecas (obrigatórias) vão para uma pasta "licencas", para não poluir a pasta do jogo
+  const lic = path.join(ctx.appOutDir, 'licencas');
+  fs.mkdirSync(lic, { recursive: true });
+  for (const [from, to] of [['LICENSE.electron.txt', 'licenca-motor-do-app.txt'], ['LICENSES.chromium.html', 'licencas-navegador.html']]) {
+    const f = path.join(ctx.appOutDir, from);
+    if (fs.existsSync(f)) fs.renameSync(f, path.join(lic, to));
+  }
 };

@@ -3,7 +3,7 @@
    Jogo de exploração noturna top-down 2.5D — HTML5 Canvas + JS puro
    ===================================================================== */
 'use strict';
-const GAME_VERSION = '1.1.0';
+const GAME_VERSION = '1.1.1';
 try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
 
 /* ============================ UTILIDADES ============================ */
@@ -3514,7 +3514,7 @@ function glowSprite(hex) {
 /* ============================ VEÍCULOS DO JOGADOR ============================ */
 const CARS = [
   { id: 'pampeiro', name: 'Gou Quadrado 1.6', model: 'quadrado', price: 0, max: 418, acc: 118, brk: 330, steer: 1.0, grip: 1.0, pitch: 1.0, cyl: 4, fuel: 1.0, desc: 'O hatch quadradinho dos anos 80 que todo brasileiro já teve, ou já empurrou. Faróis retangulares, grade de frisos e valentia de sobra.' },
-  { id: 'besouro', name: 'Fuska 1300', model: 'besouro', price: 2800, max: 392, acc: 104, brk: 300, steer: 1.05, grip: 0.96, pitch: 1.22, cyl: 4, fuel: 0.9, desc: 'Motor a ar lá atrás, para-lamas redondos e faróis de sapo. Não corre, mas sobe qualquer ladeira de Vila Velha.' },
+  { id: 'besouro', name: 'Fuska 1300', model: 'besouro', price: 2800, max: 392, acc: 104, brk: 300, steer: 1.05, grip: 0.96, pitch: 1.22, cyl: 4, fuel: 0.9, desc: 'Motor a ar lá atrás, para-lamas redondos e faróis de sapo. Não corre, mas sobe qualquer ladeira de Vila Véia.' },
   { id: 'tropeiro', name: 'Kombo Corujinha', model: 'van', price: 4500, max: 352, acc: 92, brk: 285, steer: 0.9, grip: 0.93, pitch: 0.82, cyl: 4, fuel: 1.15, cargo: 1.25, desc: 'Furgão de motor traseiro, frente em V e duas cores. O xodó das feiras e das mudanças: entregas rendem 25% a mais.' },
   { id: 'escada', name: 'Unho Mile com Escada', model: 'escada', price: 5500, max: 425, acc: 121, brk: 330, steer: 1.08, grip: 1.0, pitch: 1.06, cyl: 4, fuel: 0.85, cargo: 1.1, desc: 'Hatch caixote de teto alto com a famosa escada no teto. Pau pra toda obra: entregas rendem 10% a mais.' },
   { id: 'sertaneja', name: 'Salvêro do Peão', model: 'pickup', price: 3500, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.9, cyl: 4, fuel: 1.1, offroad: true, job: 'pickup', desc: 'Picape de cabine simples: o veículo de trabalho mais barato. Faz fretes pelo app Fretes e quase não perde velocidade na terra.' },

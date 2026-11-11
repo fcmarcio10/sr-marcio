@@ -15,8 +15,8 @@ Abra o terminal nesta pasta (`desktop`) e rode:
     npm run dist:win
 
 O resultado sai em `desktop/release/`:
-- `BR-Night-Drive-Setup-1.1.0.exe` — instalador
-- `BR-Night-Drive-1.1.0-portatil.exe` — versão portátil (abre direto, sem instalar)
+- `BR-Night-Drive-Setup-1.1.1.exe` — instalador
+- `BR-Night-Drive-1.1.1-portatil.exe` — versão portátil (abre direto, sem instalar)
 
 ## Observações
 - F11 alterna tela cheia.
