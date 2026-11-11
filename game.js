@@ -9325,7 +9325,7 @@ function handleKeys() {
     switch (k) {
       case 'KeyE': if (Act.prompt) Act.prompt.act(); break;
       case 'KeyQ': Phone.open('home'); break;
-      case 'KeyH': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', player.lightsOff ? 'Parado com farol aceso gasta bateria. H liga de novo.' : '', 'info'); break;
+      case 'KeyH': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
       case 'KeyL': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
       case 'KeyC': Cam.quick = Cam.quick === 1 ? 0.72 : 1; break;
       case 'KeyR': if (player.speed < 120) resetVehicle(); break;
