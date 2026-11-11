@@ -12,7 +12,13 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
   - Festa junina fechando a rua
   - Alguém pedindo carona na BR
   - Cada um dura de 1 a 3 minutos e paga um bônus.
-  - Um evento por vez; o próximo aparece de 1,5 a 2,5 minutos (tempo real) depois que o anterior termina. 7 conquistas novas.
+  - Um evento por vez. Na 1.3.0 a chance caiu 60%: a cada 1,5 a 2,5 minutos (tempo real) depois do anterior, só 40% de chance de rolar um. 7 conquistas novas.
+  - Carreta do Seu Biu chega como mensagem no WhatsApp: aceitar manda a localização (toque marca a rota); recusar rende resposta de zoeira.
+- [x] **Vida do carro** (versão 1.3.0)
+  - Pneus (60 km, gastam mais derrapando), óleo (45 km, gasta mais no talo) e bateria por carro.
+  - Bateria só descarrega com farol aceso e carro parado depois de 2,5 min; andando, recarrega. H liga/desliga o farol.
+  - Troca na oficina (tudo), no posto (óleo) e na borracharia (pneus); Seu Zé faz chupeta e troca pneu pelo zap.
+- [x] **Chuva 10% mais longa**, com pedestres de guarda-chuva e de capa de chuva.
 
 ## Próximos
 

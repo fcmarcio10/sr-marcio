@@ -134,6 +134,20 @@ html, body {
 .bar-row span { width: 78px; }
 .bar { flex: 1; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 4px; overflow: hidden; }
 .bar > div { height: 100%; width: 100%; border-radius: 4px; transition: width 0.25s, background 0.4s; }
+.life-row { display: flex; gap: 8px; margin-top: 6px; }
+.life-row > div { flex: 1; display: flex; flex-direction: column; gap: 3px; font-size: 10px; color: var(--dim); }
+.life-row .bar { height: 4px; flex: none; }
+#tire-bar { background: linear-gradient(90deg, #9aa4b5, #cfd6e2); }
+#oil-bar { background: linear-gradient(90deg, #c99a2e, #f2c14e); }
+#bat-bar { background: linear-gradient(90deg, #3fb5ff, #8fd8ff); }
+#hud-dash.lights-off #car-name::after { content: ' · farol off'; color: #ffb547; font-size: 0.7em; }
+.wa-locmsg { padding: 4px 4px 18px; max-width: 80%; }
+.wa-loc { display: block; width: 100%; border: 0; padding: 0; margin: 0; background: none; color: inherit; text-align: left; cursor: pointer; pointer-events: auto; border-radius: 8px; overflow: hidden; }
+.wa-loc svg { display: block; width: 100%; height: 96px; border-radius: 8px 8px 0 0; }
+.wa-loc span { display: block; padding: 6px 6px 0; font: 12px/1.35 -apple-system, "Segoe UI", sans-serif; color: #e9edef; }
+.wa-loc span b { display: block; color: #e9edef; font-size: 13px; }
+.wa-loc span em { display: block; font-style: normal; color: #53bdeb; margin-top: 2px; }
+.wa-loc:hover svg { filter: brightness(1.05); }
 #fuel-bar { background: linear-gradient(90deg, #ffb547, #ffd27a); }
 #cond-bar { background: linear-gradient(90deg, #4fd88a, #8af0b5); }
 
@@ -686,6 +700,7 @@ div.ph-wid { cursor: default; }
 .wa-sos { margin: 8px 0 4px; padding: 10px; border-radius: 12px; background: #1f2c34; font: 12px -apple-system, "Segoe UI", sans-serif; color: #e9edef; display: flex; flex-direction: column; gap: 8px; }
 .wa-sos b { font-weight: 600; color: #53bdeb; }
 .wa-sos-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.wa-sos-btns + .wa-sos-btns { margin-top: 6px; }
 .wa-sos button { pointer-events: auto; cursor: pointer; border: 0; border-radius: 10px; padding: 8px 4px; background: #005c4b; color: #fff; font: 600 12px -apple-system, "Segoe UI", sans-serif; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .wa-sos button small { font-size: 10.5px; font-weight: 500; opacity: 0.85; }
 .wa-sos button:disabled { background: #2a3942; color: #8696a0; cursor: default; }

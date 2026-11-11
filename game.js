@@ -3,7 +3,7 @@
    Jogo de exploração noturna top-down 2.5D — HTML5 Canvas + JS puro
    ===================================================================== */
 'use strict';
-const GAME_VERSION = '1.2.0';
+const GAME_VERSION = '1.3.0';
 try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
 
 /* ============================ UTILIDADES ============================ */
@@ -3587,13 +3587,14 @@ class Player {
     const paved = this.surface === SF.ROAD || this.surface === SF.BRIDGE || this.surface === SF.PAVED || this.surface === SF.SIDEWALK;
     const muddyS = this.surface === SF.DIRT || this.surface === SF.EARTH;
     const wetK = Math.min(0.85, Weather.wet * (paved ? 0.28 : muddyS ? 0.3 : 0.12) + (Events.cur ? Events.slipAt(this.x, this.y) : 0)); // barro escorrega mais que asfalto molhado; casca de banana mais ainda
-    const drag = surf.drag * offK * (1 + (muddyS ? Weather.wet * 0.6 : 0)), gripS = (this.car.offroad ? lerp(1, surf.grip, 0.45) : surf.grip) * (1 - wetK);
+    const drag = surf.drag * offK * (1 + (muddyS ? Weather.wet * 0.6 : 0)), gripS = (this.car.offroad ? lerp(1, surf.grip, 0.45) : surf.grip) * (1 - wetK) * CarLife.gripK();
     const brkW = 1 - 0.22 * Weather.wet;
     let maxS = st.max * (1 - Profile.damage / 100 * 0.3), acc = st.acc;
     // barro molhado: patina na saída, a traseira escorrega fácil e o carro “nada” de lado
     const mudS = muddyS ? Weather.wet : 0;
     acc *= 1 - 0.35 * mudS;
     if (Profile.fuel <= 0) { maxS *= 0.3; acc *= 0.3; }
+    { const LM = CarLife.mod(); maxS *= LM.max; acc *= LM.acc; } // pneus, óleo e bateria
     this.braking = false;
     // arrancada: pneu patina ao sair forte com o carro parado
     if (inp.thr && !this.prevThr && !inp.brk && Math.abs(vf) < 60 && (surf.grip > 0.75 || mudS > 0.3)) this.launchT = 0.5 + st.acc / 650 + mudS * 0.7;
@@ -4474,10 +4475,24 @@ function drawAnimal(ctx, an) {
       ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(1.5, 2, 4, 5, 0, 0, TAU); ctx.fill();
       ctx.fillStyle = an.pants; ctx.fillRect(-1 + sw * 0.5, -2.6, 2.6, 1.8); ctx.fillRect(-1 - sw * 0.5, 0.8, 2.6, 1.8);
       ctx.fillStyle = an.skin; ctx.beginPath(); ctx.arc(sw, -4.6, 1.2, 0, TAU); ctx.arc(-sw, 4.6, 1.2, 0, TAU); ctx.fill();
-      ctx.fillStyle = an.col; ctx.beginPath(); ctx.ellipse(0, 0, 2.6, 4.4, 0, 0, TAU); ctx.fill();
-      if (an.col === '#f7d000') { ctx.fillStyle = '#1f9a48'; ctx.fillRect(-2.2, -0.6, 4.4, 1.2); }
+      // na chuva: uns de guarda-chuva, outros de capa de chuva com capuz (os boleiros da pelada não ligam)
+      const rk = ((an.seed || 0.37) * 7.31) % 1, wetP = Weather.rain > 0.12 && an.team === undefined && !an.seuze;
+      const umb = wetP && rk < 0.55, coat = wetP && rk >= 0.55 && rk < 0.88;
+      const coatCol = coat ? ['#f4d03f', '#9ccfe0', '#d64541', '#2c3e70', '#3e9b5a'][Math.floor(rk * 97) % 5] : null;
+      ctx.fillStyle = coat ? coatCol : an.col; ctx.beginPath(); ctx.ellipse(0, 0, coat ? 3 : 2.6, coat ? 4.9 : 4.4, 0, 0, TAU); ctx.fill();
+      if (an.col === '#f7d000' && !coat) { ctx.fillStyle = '#1f9a48'; ctx.fillRect(-2.2, -0.6, 4.4, 1.2); }
       ctx.fillStyle = an.skin; ctx.beginPath(); ctx.arc(0.5, 0, 2.2, 0, TAU); ctx.fill();
-      ctx.fillStyle = an.hair; ctx.beginPath(); ctx.arc(0, 0, 2.3, Math.PI * 0.5, Math.PI * 1.5); ctx.fill();
+      if (coat) { ctx.fillStyle = shade(coatCol, -0.12); ctx.beginPath(); ctx.arc(-0.3, 0, 2.6, Math.PI * 0.35, Math.PI * 1.65); ctx.fill(); }
+      else { ctx.fillStyle = an.hair; ctx.beginPath(); ctx.arc(0, 0, 2.3, Math.PI * 0.5, Math.PI * 1.5); ctx.fill(); }
+      if (umb) {
+        const uc = ['#1a1a1e', '#c0392b', '#2e86de', '#f1c40f', '#8e44ad', '#16a085', '#ff6fa5', '#e67e22'][Math.floor(rk * 131) % 8];
+        ctx.save(); ctx.translate(1.2, 0.4); ctx.rotate(Game.time * 0.3 * (an.v > 0 ? 1 : 0.2) + rk * 6);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.arc(1.2, 1.2, 7.2, 0, TAU); ctx.fill();
+        ctx.fillStyle = uc; ctx.beginPath(); for (let i = 0; i <= 8; i++) { const a = i / 8 * TAU, r = i % 2 ? 6.4 : 7.2; i ? ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r) : ctx.moveTo(r, 0); } ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = shade(uc, -0.35); ctx.lineWidth = 0.5; ctx.beginPath(); for (let i = 0; i < 8; i += 2) { const a = i / 8 * TAU; ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * 7.2, Math.sin(a) * 7.2); } ctx.stroke();
+        ctx.fillStyle = shade(uc, 0.4); ctx.beginPath(); ctx.arc(0, 0, 0.9, 0, TAU); ctx.fill();
+        ctx.restore();
+      }
       if (an.seuze) { ctx.fillStyle = '#c8302a'; ctx.beginPath(); ctx.arc(0.2, 0, 2.4, -Math.PI * 0.5, Math.PI * 0.5); ctx.fill(); ctx.fillStyle = '#f0f0ea'; ctx.fillRect(2.1, -1, 0.9, 2); }
       break;
     }
@@ -5062,6 +5077,8 @@ function freeRoamHint() {
     ['Exploração livre', 'Abra o mapa no celular (Q) e clique para traçar uma rota no GPS até qualquer lugar.'],
     ['Exploração livre', 'Cuidado com o pardal: radares nas avenidas (80 km/h) e na BR-101 (110 km/h) multam na hora.'],
     ['Exploração livre', 'Tem churrasquinho na esquina do boteco e forró tocando. São Gambiarra nunca dorme.'],
+    ['Cuide do carro', 'Pneus, óleo e bateria gastam. Troque na oficina, no posto (óleo) ou na borracharia (pneus).'],
+    ['Farol (H)', 'Parado por muito tempo com o farol aceso, a bateria arria. Aperte H para desligar.'],
   ];
   if (cheapest && Profile.money >= cheapest.price) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
   return list[Act.hintI % list.length];
@@ -5299,8 +5316,11 @@ function addMsg(from, title, body, silent, rep) {
   const m = { from, title, body, read: false, t: Math.floor(Profile.time) };
   if (rep) m.rep = rep;
   Profile.msgs.unshift(m);
-  if (!silent && !isMuted(from)) { const cfg = phoneCfg(); if (cfg.notif) toast('Nova mensagem: ' + from, title + ' — aperte Q para abrir o celular.', 'info'); if (cfg.sounds) { AudioSys.tone(1568, 0.08, 'sine', 0.08, 'ui'); AudioSys.tone(2093, 0.12, 'sine', 0.08, 'ui', null, 0.1); } }
+  if (!silent && !isMuted(from)) { const cfg = phoneCfg(); if (cfg.notif) toast('Nova mensagem: ' + from, (title || body.slice(0, 40)) + ' — aperte Q para abrir o celular.', 'info'); if (cfg.sounds) { AudioSys.tone(1568, 0.08, 'sine', 0.08, 'ui'); AudioSys.tone(2093, 0.12, 'sine', 0.08, 'ui', null, 0.1); } }
+  return m;
 }
+// prévia de localização estilo WhatsApp (mapinha desenhado, sem imagem externa)
+const WA_LOC_SVG = '<svg viewBox="0 0 240 110" preserveAspectRatio="xMidYMid slice"><rect width="240" height="110" fill="#e6e1d3"/><path d="M0 70 C60 60 90 85 140 72 S210 50 240 58 L240 110 L0 110Z" fill="#b9d6e6"/><g stroke="#fff" stroke-width="7" fill="none"><path d="M-5 38 H245"/><path d="M70 -5 V115"/><path d="M175 -5 V115"/></g><g stroke="#ffd36b" stroke-width="9" fill="none"><path d="M-5 20 L245 92"/></g><g stroke="#fff" stroke-width="3" fill="none"><path d="M120 -5 V40"/><path d="M20 -5 V40"/></g><rect x="88" y="44" width="22" height="14" fill="#cfd8b8"/><rect x="186" y="12" width="30" height="18" fill="#cfd8b8"/><g transform="translate(120 52)"><ellipse cx="0" cy="14" rx="7" ry="2.5" fill="rgba(0,0,0,0.25)"/><path d="M0 14 C-4 6 -12 0 -12 -8 A12 12 0 0 1 12 -8 C12 0 4 6 0 14Z" fill="#e2412f"/><circle cx="0" cy="-8" r="4.5" fill="#7a1a10"/></g></svg>';
 function ensurePhoneData() {
   if (!Profile.msgs) {
     Profile.msgs = [];
@@ -5455,6 +5475,8 @@ function updateJobs(dt) {
 const ZE = 'Seu Zé (Oficina)';
 const Socorro = { job: null };
 function socorroQuote(kind) {
+  if (kind === 'bat') return Math.ceil(lifePrice('bat') * 1.15);
+  if (kind === 'pneu') return Math.ceil(lifePrice('tires') * 1.15);
   const fuel = Math.ceil(Math.max(0, 100 - Profile.fuel) * 1.8 * 1.15), fix = Math.ceil(Profile.damage * 4 * 1.15);
   return kind === 'gas' ? fuel : kind === 'fix' ? fix : fuel + fix;
 }
@@ -5499,7 +5521,7 @@ function socorroCall(kind) {
   Profile.sos = (Profile.sos || 0) + 1;
   Socorro.job = J;
   const len = route ? route.len : Math.hypot(sx - player.x, sy - player.y), eta = Math.max(1, Math.round(len / 280 / 20));
-  const what = kind === 'gas' ? 'gasolina' : kind === 'fix' ? 'conserto' : 'gasolina e conserto';
+  const what = kind === 'gas' ? 'gasolina' : kind === 'fix' ? 'conserto' : kind === 'bat' ? 'uma chupeta, a bateria arriou' : kind === 'pneu' ? 'pneus novos, tô no aro' : 'gasolina e conserto';
   Profile.msgs.unshift({ from: ZE, title: '', body: 'Seu Zé, preciso de ' + what + '. Me socorre aí!', read: true, me: true, t: Math.floor(Profile.time) });
   setTimeout(() => {
     addMsg(ZE, '', 'Tô indo aí com o guincho! Fica parado num lugar seguro, com o pisca ligado. Chego em uns ' + eta + ' min. Fica uns R$ ' + fmtMoney(J.quote) + ' (15% a mais que na oficina, por causa do deslocamento).', true);
@@ -5528,7 +5550,24 @@ Socorro.update = function (dt) {
   } else if (J.state === 'arrived') {
     if (player.speed > 30) { J.t = 0; if (Math.hypot(player.x - J.x, player.y - J.y) > 160) { J.state = 'coming'; J.rt = 0; } return; }
     if (J.t > 0.4 && Math.floor(J.t * 2.5) !== Math.floor((J.t - dt) * 2.5)) AudioSys.wrench();
-    if (J.t > 3) {
+    if (J.t > 3 && (J.kind === 'bat' || J.kind === 'pneu')) {
+      // chupeta ou troca de pneu: Seu Zé faz e cobra o que você tiver (o resto fica no fiado)
+      const L = carLife(), paid = Math.min(J.quote, Math.max(0, Math.floor(Profile.money)));
+      if (J.kind === 'bat') { L.bat = 100; CarLife.stalled = false; } else L.tires = 100;
+      Profile.money -= paid; UI.moneyDelta(-paid); AudioSys.chime();
+      toast('Socorro do Seu Zé', (J.kind === 'bat' ? 'Chupeta feita, o motor pegou!' : 'Pneus novos no lugar!') + ' — R$ ' + fmtMoney(paid), 'good');
+      addMsg(ZE, '', J.kind === 'bat' ? 'Pegou de primeira! Agora não fica parado com o farol aceso não, hein. Bateria não é poste.' : 'Pneu novo, sapato novo! Agora para de cantar pneu em toda esquina, que borracha não nasce em árvore. Quer dizer, nasce, mas demora.', true);
+      J.kind = 'done';
+      J.t = 3.01;
+    }
+    if (J.t > 3 && J.kind === 'done') {
+      J.state = 'leaving'; J.t = 0; J.v = 0; saveGame();
+      const of = World.shops.find((s) => s.kind === 'oficina');
+      const rb = of ? gpsRoute(J.x, J.y, of.x, of.y) : null;
+      J.pts = rb ? laneShift(rb.pts, 20) : [[J.x, J.y]]; J.ri = 1;
+      if (of && of.bld) { const b = of.bld; J.pts.push([clamp(of.x, b.x0 + 20, b.x1 - 20), clamp(of.y, b.y0, b.y1)]); }
+      J.home = !!of;
+    } else if (J.t > 3) {
       // serviço feito: cobra o que der com o dinheiro que você tem
       const fuelNeed = J.kind !== 'fix' ? Math.max(0, 100 - Profile.fuel) : 0, dmg = J.kind !== 'gas' ? Profile.damage : 0;
       const pf = 1.8 * 1.15, pd = 4 * 1.15;
@@ -5564,8 +5603,10 @@ function socorroBar(H) {
   }
   const qg = socorroQuote('gas'), qf = socorroQuote('fix');
   const btn = (k, label, q, need) => `<button data-sos="${k}" ${need ? '' : 'disabled'}>${label}<small>${need ? 'R$ ' + fmtMoney(q) : 'não precisa'}</small></button>`;
+  const L = carLife(), qb = socorroQuote('bat'), qp = socorroQuote('pneu');
   return '<div class="wa-sos"><b>Pedir socorro (15% mais caro que a oficina)</b><div class="wa-sos-btns">' +
-    btn('gas', 'Gasolina', qg, qg > 0) + btn('fix', 'Conserto', qf, qf > 0) + btn('both', 'Os dois', qg + qf, qg > 0 && qf > 0) + '</div></div>';
+    btn('gas', 'Gasolina', qg, qg > 0) + btn('fix', 'Conserto', qf, qf > 0) + btn('both', 'Os dois', qg + qf, qg > 0 && qf > 0) + '</div><div class="wa-sos-btns">' +
+    btn('bat', 'Chupeta', qb, L.bat < 30) + btn('pneu', 'Pneus', qp, L.tires < 15) + '</div></div>';
 }
 
 /* ---------- backup do save ---------- */
@@ -5622,12 +5663,14 @@ function cheatTeleport(t) {
 function cheatDo(k, v) {
   const ok = (t) => { toast('Trapaça', t, 'info'); AudioSys.tone(1500, 0.06, 'square', 0.05, 'ui'); };
   if (k === 'money') { pay(10000, null); ok('+R$ 10.000'); }
-  if (k === 'fix') { Profile.damage = 0; Profile.zones = { f: 0, r: 0, l: 0, rt: 0, seed: ((Profile.zones && Profile.zones.seed) || 0) + 1 }; Profile.fuel = 100; Profile.dirt = 0; ok('Carro novo e tanque cheio'); }
+  if (k === 'fix') { const L = carLife(); L.tires = L.oil = L.bat = 100; CarLife.stalled = false; Profile.damage = 0; Profile.zones = { f: 0, r: 0, l: 0, rt: 0, seed: ((Profile.zones && Profile.zones.seed) || 0) + 1 }; Profile.fuel = 100; Profile.dirt = 0; ok('Carro novo e tanque cheio'); }
   if (k === 'cars') { for (const c of CARS) Profile.owned[c.id] = true; ok('Todos os veículos liberados na garagem'); }
   if (k === 'pois') { for (const q of World.pois) if (!Profile.discovered.includes(q.id)) Profile.discovered.push(q.id); ok('Todos os pontos de interesse revelados'); }
   if (k === 'time') { Profile.time = +v; ok('Relógio: ' + clockStr()); }
   if (k === 'wx') { Settings.weather = v; if (v === 'auto') { Weather.timer = 0; } else { Weather.target = v === 'chuva' ? 0.9 : v === 'garoa' ? 0.35 : 0; if (v === 'garoa') Settings.weather = 'auto', Weather.target = 0.35, Weather.timer = 120; } saveSettings(); ok('Clima: ' + v); }
   if (k === 'police') { const n = +v; if (n === 0) { Police.level = 0; Police.units.length = 0; ok('Polícia liberada'); } else { Police.crime('Trapaça', n, player.x, player.y, true); Police.level = n; ok(n + ' estrela(s)'); } }
+  if (k === 'ev') { Events.clear(); let okv = false; for (let i = 0; i < 12 && !okv; i++) okv = Events.spawn(v); Screens.closeAll(); ok(okv ? 'Evento: ' + EV_NAMES[v] : 'Não achei lugar pra esse evento aqui; tente em outra região'); return; }
+  if (k === 'wear') { const L = carLife(), n = +v; L.tires = L.oil = L.bat = n; CarLife.warned = {}; if (n > 5) CarLife.stalled = false; ok('Pneus, óleo e bateria em ' + n + '%'); }
   if (k === 'god') { Cheats.god = !Cheats.god; ok('Modo indestrutível ' + (Cheats.god ? 'ligado' : 'desligado')); }
   if (k === 'turbo') { Cheats.turbo = !Cheats.turbo; player.recalc(); ok('Turbo ' + (Cheats.turbo ? 'ligado' : 'desligado')); }
   if (k === 'tp') { const pl = CHEAT_PLACES[+v]; cheatTeleport(pl && pl[1]()); Screens.closeAll(); ok('Teleporte: ' + (pl ? pl[0] : '')); return; }
@@ -5864,7 +5907,7 @@ const Phone = {
         conv.forEach((m) => { m.read = true; });
         const muted = isMuted(this.chat);
         html = `<div class="wa-top"><button class="ph-back" data-go="msgs">‹</button>${ava(this.chat)}<div class="wa-who"><b>${H(this.chat)}</b><small>${muted ? 'silenciada' : 'online'}</small></div><button class="wa-mute${muted ? ' on' : ''}" data-mute="${H(this.chat)}" title="${muted ? 'Reativar notificações' : 'Silenciar conversa'}"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z M10 20.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>${muted ? '<path d="M4 4l16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' : ''}</svg></button></div><div class="wa-chat"><div class="wa-day">HOJE</div>` +
-          conv.map((m) => `<div class="wa-msg ${m.me ? 'me' : ''}">${m.title && !m.me ? `<b>${H(m.title)}</b>` : ''}${H(m.body).replace(/\n/g, '<br>')}<i>${fmtT(m.t)}${m.me ? ' <span class="wa-ok">✓✓</span>' : ''}</i></div>`).join('') +
+          conv.map((m) => m.loc ? `<div class="wa-msg wa-locmsg"><button class="wa-loc" data-loc="${m.loc.ev}">${WA_LOC_SVG}<span><b>Localização em tempo real</b>${H(m.loc.label)}<em>Toque para marcar a rota</em></span></button><i>${fmtT(m.t)}</i></div>` : `<div class="wa-msg ${m.me ? 'me' : ''}">${m.title && !m.me ? `<b>${H(m.title)}</b>` : ''}${H(m.body).replace(/\n/g, '<br>')}<i>${fmtT(m.t)}${m.me ? ' <span class="wa-ok">✓✓</span>' : ''}</i></div>`).join('') +
           '</div>';
         // só dá para responder a última mensagem do contato, se ela pedir resposta e ainda não foi respondida
         const lastIn = M.find((m) => m.from === this.chat);
@@ -5904,6 +5947,8 @@ const Phone = {
         '<div class="ch-sec">Horário</div><div class="ch-grid">' + btn('time', 19 * 60 + 40, '19:40') + btn('time', 22 * 60 + 5, '22:05 (racha)') + btn('time', 26 * 60, '02:00') + btn('time', 28 * 60 + 40, '04:40') + '</div>' +
         '<div class="ch-sec">Clima</div><div class="ch-grid">' + btn('wx', 'limpo', 'Limpo', Settings.weather === 'limpo') + btn('wx', 'garoa', 'Garoa') + btn('wx', 'chuva', 'Temporal', Settings.weather === 'chuva') + btn('wx', 'auto', 'Dinâmico', Settings.weather === 'auto') + '</div>' +
         (POLICE_ENABLED ? '<div class="ch-sec">Polícia</div><div class="ch-grid">' + btn('police', 1, '★') + btn('police', 2, '★★') + btn('police', 3, '★★★') + btn('police', 0, 'Limpar') + '</div>' : '') +
+        '<div class="ch-sec">Eventos</div><div class="ch-grid">' + Object.keys(EV_NAMES).map((k) => btn('ev', k, H(EV_NAMES[k]))).join('') + '</div>' +
+        '<div class="ch-sec">Vida do carro</div><div class="ch-grid">' + btn('wear', 15, 'Gastar tudo (15%)') + btn('wear', 0, 'Zerar tudo') + btn('wear', 100, 'Tudo novo') + '</div>' +
         '<div class="ch-sec">Teleporte</div><div class="ch-grid">' + CHEAT_PLACES.map(([n], i) => btn('tp', i, H(n))).join('') + btn('tpgps', 0, 'Destino do GPS') + '</div>';
     } else if (this.app === 'conquistas') {
       const A = Profile.ach || {}, done = ACHIEVEMENTS.filter((a) => A[a.id]).length;
@@ -5934,6 +5979,7 @@ const Phone = {
       if (Profile.muted[n]) delete Profile.muted[n]; else Profile.muted[n] = true;
       toast(Profile.muted[n] ? 'Conversa silenciada' : 'Notificações reativadas', n, 'info'); phoneTone(900, 0.04, 0.05); this.render(); return;
     }
+    if (t.dataset.loc) { Events.acceptLoc(+t.dataset.loc); return; }
     if (t.dataset.chat) { this.chat = t.dataset.chat; this.render(); if (phoneCfg().sounds) AudioSys.click(); return; }
     if (t.dataset.reply && this.chat) {
       const who = this.chat, src = Profile.msgs.find((m) => m.from === who);
@@ -5943,6 +5989,7 @@ const Phone = {
       src.answered = true;
       Profile.msgs.unshift({ from: who, title: '', body: q, read: true, me: true, t: Math.floor(Profile.time) });
       phoneTone(1760, 0.05, 0.04); this.render();
+      if (src.act) Events.onReply(src.act, +t.dataset.reply);
       if (ans) setTimeout(() => { addMsg(who, '', ans, true); if (Screens.current === 'screen-phone' && Phone.chat === who) { phoneTone(1320, 0.06, 0.05); Phone.render(); } }, 1800);
       return;
     }
@@ -5987,6 +6034,19 @@ const EV_CARONAS = [
   { name: 'Vó Cotinha', col: '#c46bb0', pants: '#4a3a5a', lines: ['"Meu filho, tô atrasada pro bingo da paróquia!"', '"No meu tempo isso aqui era tudo mato, sabia?"', '"Você é casado? Tenho uma neta solteira, viu?"'], bye: '"Brigada, meu querido. Toma aqui uma bala de coco."' },
 ];
 const EV_NOIVO_FALAS = ['"Ela vai me matar! Acelera, pelo amor de Deus!"', '"Tô suando nesse terno. Liga o ar, por favor!"', '"Se eu chegar atrasado, a sogra nunca mais me perdoa."', '"O padre já mandou três mensagens. TRÊS!"', '"Cuidado com o buraco, que a aliança tá no bolso!"'];
+const BIU = 'Seu Biu (Bananas)';
+const BIU_NAO = [
+  'Tudo bem, eu entendo. Vou ficar aqui sozinho, no escuro, abraçado num cacho de banana. Se o macaco do zoológico fugir, já sabe onde me achar.',
+  'Beleza. Vou ligar pro meu cunhado então. Ele tem uma Brasília sem freio e zero noção da vida. Se ele tombar também, a culpa é sua.',
+  'Tá bom. Vou fazer vitamina de banana pra cidade inteira então. Dois mil litros. E você não vai ganhar nem um copinho.',
+  'Sem problema. Vou chamar o pessoal da igreja. Se o pastor perguntar, eu falo que você tava "ocupado". Com aspas, viu?',
+];
+const BIU_DEPOIS = [
+  'Atualização: o guincho chegou, pisou numa casca e TOMBOU TAMBÉM. Agora são dois veículos deitados na pista. Obrigado por nada, viu? kkkkkk',
+  'Atualização: o povo do bairro levou tudo. Fizeram bolo de banana, banana frita, doce de banana... e não sobrou nem a casca pra mim.',
+  'Notícia boa: um caminhão de açaí parou pra ajudar. Notícia ruim: bateu na minha carreta. A BR virou a maior tigela de açaí com banana do Brasil.',
+  'Meu cunhado veio. Tombou. Agora eu tenho uma carreta de banana e uma Brasília de cabeça pra baixo. Tô montando uma barraca aqui mesmo, passa pra comprar.',
+];
 const EV_FESTA_ITENS = [['milho verde', 'mercado'], ['gelo pro quentão', 'mercado'], ['fubá da canjica', 'padaria'], ['rojão', 'mercado']];
 
 const Events = {
@@ -6069,7 +6129,9 @@ Events.spawn = function (type) {
   const E = builders[type]();
   if (!E) return false;
   E.type = type; E.t = 0; E.stage = E.stage || 'wait'; E.life = E.life || rnd(120, 170);
+  E.id = this.idc = (this.idc || 0) + 1;
   this.cur = E;
+  if (E.invite) { E.invite(); return true; }
   AudioSys.tone(784, 0.09, 'triangle', 0.07, 'ui'); AudioSys.tone(1175, 0.14, 'triangle', 0.07, 'ui', null, 0.11);
   toast('Evento: ' + EV_NAMES[type], E.intro, 'info');
   return true;
@@ -6101,7 +6163,7 @@ function evMakeNoivo() {
   return E;
 }
 function evMakeBanana() {
-  const P = evFindSpot((e) => (e.T.id === 'highway' || e.T.id === 'road' || e.T.id === 'avenue') && e.len > 520, 700, 1500, 200); if (!P) return null;
+  const P = evFindSpot((e) => (e.T.id === 'highway' || e.T.id === 'road' || e.T.id === 'avenue') && e.len > 520, 800, 2400, 200); if (!P) return null;
   const e = P.e, side = chance(0.5) ? 1 : -1, ra = Math.atan2(e.dy, e.dx);
   const center = evPos(e, P.s, e.T.lanes.length > 1 ? 44 * side : 0);
   const a = ra + side * rnd(0.45, 0.75) + (chance(0.5) ? Math.PI : 0);
@@ -6114,6 +6176,12 @@ function evMakeBanana() {
   const cw = evPos(e, P.s - 70, evWalkOff(e));
   const E = { x: center[0], y: center[1], a, edge: e, crates, peels, got: 0, npc: evPerson('#f1c40f', '#3a3a2e', Math.random(), { x: cw[0], y: cw[1], dance: true, hair: '#6b6b6b' }), life: rnd(150, 180) };
   E.intro = 'A carreta de banana do Seu Biu tombou em ' + evPlaceName(e, center[0], center[1]) + '. Cuidado com as cascas, escorrega!';
+  E.stage = 'invite'; E.passive = true; E.place = evPlaceName(e, center[0], center[1]);
+  E.invite = () => {
+    const m = addMsg(BIU, 'SOCORRO, PELO AMOR DE DEUS', 'Ô meu patrão, aqui é o Biu, das bananas! Minha carreta TOMBOU na ' + E.place + '. Tá banana pra todo lado, parece feira depois de terremoto. Dá uma força pra recolher as caixas? Pago cada uma, e ainda dou um agrado no final!', false,
+      [['Tô indo aí, Biu!', 'Deus te pague, meu filho! Tô aqui sentado em cima de três toneladas de nanica, igual rei da selva. Vou mandar a localização: clica nela que aparece o caminho.'], ['Hoje não, Biu', pick(BIU_NAO)]]);
+    m.act = 'biu:' + E.id;
+  };
   return E;
 }
 function evMakeBlitz() {
@@ -6181,6 +6249,32 @@ Events.gpsTarget = function () {
   if (E.target) return { x: E.target.x, y: E.target.y, kind: 'event' };
   return null;
 };
+Events.onReply = function (act, idx) {
+  const [kind, id] = String(act).split(':'), E = this.cur;
+  if (kind !== 'biu') return;
+  const alive = E && E.id === +id && !E.over;
+  if (idx === 0) {
+    if (!alive) { setTimeout(() => addMsg(BIU, '', 'Ih, já resolveram aqui, meu filho. Mas valeu a intenção!', true), 2600); return; }
+    E.stage = 'accepted'; E.life = Math.max(E.life, E.t + 120);
+    setTimeout(() => {
+      const C = this.cur; if (!C || C.id !== +id || C.over) return;
+      const m = addMsg(BIU, '', 'Localização em tempo real', false);
+      m.loc = { ev: +id, label: 'Carreta do Biu · ' + C.place };
+      if (Screens.current === 'screen-phone' && Phone.chat === BIU) Phone.render();
+    }, 4200);
+  } else {
+    if (alive) { E.refused = true; E.over = true; E.endT = 0; E.ok = false; }
+    setTimeout(() => addMsg(BIU, '', pick(BIU_DEPOIS), false), rnd(35000, 60000));
+  }
+};
+Events.acceptLoc = function (id) {
+  const E = this.cur;
+  if (!E || E.id !== id || E.over) { toast('Localização expirada', 'Essa carreta já foi resolvida.', 'info'); AudioSys.error(); return; }
+  if (E.stage === 'collect') { Screens.closeAll(); return; }
+  E.stage = 'go'; E.passive = false; E.target = { x: E.x, y: E.y, name: 'Carreta do Seu Biu' }; E.life = Math.max(E.life, E.t + 240);
+  Act.gpsT = 0; Screens.closeAll(); AudioSys.chime();
+  toast('Rota marcada', 'Siga o GPS até a carreta do Seu Biu.', 'good');
+};
 Events.onImpact = function (imp) {
   const E = this.cur; if (!E || imp < 110) return;
   if (E.type === 'noivo' && E.stage === 'drive') { E.hits++; evSay(E.nome, pick(['"O TERNO! Amassou o terno!"', '"Pelo amor de Deus, a aliança!"', '"Se eu chegar com olho roxo, a noiva desiste!"'])); }
@@ -6215,6 +6309,8 @@ Events.update = function (dt) {
     const tutOn = Profile.tut !== undefined && Profile.tut < TUT_STEPS.length;
     if (!Act.race && !Socorro.job && !tutOn) this.spawnT -= dt;
     if (this.spawnT <= 0) {
+      // só 40% das vezes rola um evento (60% menos que antes)
+      if (!chance(0.4)) { this.spawnT = rnd(90, 160); return; }
       const types = busy ? ['blitz', 'banana', 'festa'] : ['quebrado', 'noivo', 'banana', 'blitz', 'festa', 'carona'];
       const last = this.lastType;
       const opts = types.filter((t) => t !== last);
@@ -6238,8 +6334,12 @@ Events.update = function (dt) {
     return;
   }
   // ignorou: expira
-  const engaged = E.stage !== 'wait';
-  if (!engaged && (E.t > E.life || (dP > 3800 && E.t > 25))) {
+  const engaged = !['wait', 'invite', 'accepted'].includes(E.stage);
+  if ((!engaged && (E.t > E.life || (dP > 3800 && E.t > 25 && E.type !== 'banana'))) || (E.type === 'banana' && E.t > E.life)) {
+    if (E.type === 'banana' && !E.got) {
+      const m = (Profile.msgs || []).find((x) => x.from === BIU);
+      addMsg(BIU, '', m && m.read && !m.answered ? 'Visualizou e não respondeu, né? Tá bom. O guincho já veio. Mas fiquei magoado, viu? Magoado igual banana que caiu do cacho.' : 'Já resolveram aqui, o guincho veio. Se cuida aí, meu filho!', true);
+    }
     toast('Evento encerrado', EV_NAMES[E.type] + ': ' + (E.type === 'blitz' ? 'a blitz foi desmontada.' : E.type === 'festa' ? 'o arraiá acabou.' : E.type === 'banana' ? 'o guincho levou a carreta.' : 'outra pessoa ajudou.'), 'info');
     E.over = true; E.endT = 0; E.ok = false; Act.gpsT = 0;
     if (E.type === 'quebrado') { E.leave = { v: 0 }; }
@@ -6341,19 +6441,18 @@ function evNoivo(E, dt, prompt, busy, busyMsg) {
 }
 function evBanana(E, dt) {
   const p = player, sp = p.speed;
-  if (E.stage === 'wait' && Math.hypot(E.x - p.x, E.y - p.y) < 300) { E.stage = 'collect'; evSay('Seu Biu', '"Me ajuda a recolher as caixas de banana? Passa devagar por cima delas que eu pago cada uma!"'); }
-  if (E.stage === 'collect' || E.stage === 'wait') {
+  if (E.stage !== 'collect' && Math.hypot(E.x - p.x, E.y - p.y) < 300) { E.stage = 'collect'; E.target = null; E.life = Math.max(E.life, E.t + 150); evSay('Seu Biu', '"Ó você aí! Passa devagar por cima das caixas que eu pago cada uma!"'); }
+  if (E.stage === 'collect') {
     for (const c of E.crates) {
       if (c.got || Math.abs(c.x - p.x) > 24 || Math.abs(c.y - p.y) > 24) continue;
       if (Math.hypot(c.x - p.x, c.y - p.y) < 20) {
         if (sp > 140) { if (!c.warn) { c.warn = 1; toast('Devagar!', 'Passe mais devagar por cima da caixa pra pegar.', 'info'); } continue; }
         c.got = true; E.got++; E.stage = 'collect';
         AudioSys.tone(880 + E.got * 60, 0.08, 'triangle', 0.08, 'ui'); pay(15, null);
-        if (E.got === E.crates.length) { E.passive = true; evFinish(E, true, 'Bananas recolhidas!', 'Seu Biu: "Valeu demais! Leva esse cacho pra casa, é da boa!"', 120); return; }
+        if (E.got === E.crates.length) { E.passive = true; evFinish(E, true, 'Bananas recolhidas!', 'Seu Biu: "Valeu demais! Leva esse cacho pra casa, é da boa!"', 120); setTimeout(() => addMsg(BIU, '', 'Chegou tudo inteiro no Ceasa! Só faltou uma caixa que o guarda comeu. Você é meu herói, patrão. Qualquer coisa que precisar de banana, é só falar.', false), 20000); return; }
         toast('Caixa de banana ' + E.got + '/' + E.crates.length, '+ R$ 15', 'good');
       }
     }
-    if (E.stage === 'collect') E.target = null;
   }
 }
 function evBlitz(E, dt) {
@@ -6458,6 +6557,9 @@ Events.hud = function () {
   const p = player, dist = (q) => { const d = Math.round((Act.gps && Act.gpsTarget && Act.gpsTarget.kind === 'event' ? Act.gps.len : Math.hypot(q.x - p.x, q.y - p.y)) * 0.09); return d > 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : d + ' m'; };
   const left = Math.max(0, Math.ceil(E.life - E.t));
   const t = EV_NAMES[E.type];
+  if (E.type === 'banana' && E.stage === 'invite') return [t, 'O Seu Biu mandou mensagem no zap. Abra o celular (Q).', 'some em ' + fmtTime(left).replace(/\.\d$/, '')];
+  if (E.type === 'banana' && E.stage === 'accepted') return [t, 'Toque na localização que o Seu Biu mandou no zap.', 'Q · Mensagens'];
+  if (E.type === 'banana' && E.stage === 'go') return [t, 'Ir até a carreta do Seu Biu', dist(E)];
   if (E.stage === 'wait') {
     const where = { x: E.pick ? E.pick.x : E.x, y: E.pick ? E.pick.y : E.y };
     const desc = E.type === 'quebrado' ? E.who + ' precisa de ajuda. Pare ao lado e aperte E.' : E.type === 'noivo' ? 'O noivo ' + E.nome + ' precisa chegar na igreja. Pare ao lado dele.' : E.type === 'banana' ? 'Recolha as caixas de banana espalhadas. Cuidado com as cascas!' : E.type === 'blitz' ? 'Se passar por lá, pare ao lado do guarda.' : E.type === 'festa' ? 'Fale com a organizadora na entrada do arraiá.' : E.C.name + ' pede carona no acostamento.';
@@ -6622,9 +6724,136 @@ Events.drawGlow = function (ctx, view) {
 Events.mapPoint = function () {
   const E = this.cur; if (!E || E.over) return null;
   if (E.target) return [E.target.x, E.target.y];
-  if (E.stage === 'wait' || E.type === 'banana' || E.type === 'blitz') { const q = E.pick || E; return [q.x, q.y]; }
+  if (E.type === 'banana') return E.stage === 'collect' ? [E.x, E.y] : null;
+  if (E.stage === 'wait' || E.type === 'blitz') { const q = E.pick || E; return [q.x, q.y]; }
   return null;
 };
+
+/* ============================ VIDA DO CARRO: PNEUS, ÓLEO E BATERIA ============================
+   Cada carro da garagem tem os seus. Pneus gastam rodando (e muito mais derrapando), o óleo vence
+   com a quilometragem e a bateria só descarrega com o farol ligado e o carro parado por uns minutos.
+   Andando, o alternador recarrega. Farol liga/desliga no H. */
+const LIFE_IDLE_GRACE = 150;   // segundos parado com farol aceso antes de começar a gastar bateria
+const LIFE_BAT_DRAIN = 240;    // depois disso, segundos para ir de 100% a 0% (farol alto gasta o dobro)
+const LIFE_TIRE_KM = 60, LIFE_OIL_KM = 45;
+const CarLife = { idleT: 0, stalled: false, warned: {}, smokeT: 0 };
+function carLife(id) {
+  const cfg = carCfg(id || (player ? player.car.id : Profile.current));
+  if (!cfg.life) cfg.life = { tires: 100, oil: 100, bat: 100 };
+  return cfg.life;
+}
+function lifePrice(kind, carId) {
+  const c = carById(carId || player.car.id), big = VMODELS[c.model].kind === 'truck';
+  if (kind === 'tires') return Math.round((180 + c.price * 0.02) * (big ? 1.6 : 1) / 10) * 10;
+  if (kind === 'oil') return big ? 160 : 90;
+  return 50; // carga da bateria
+}
+CarLife.lightsOn = function () { return player && !player.lightsOff && carLife().bat > 0; };
+// fatores que o carro usa na física
+CarLife.mod = function () {
+  const L = carLife();
+  let max = 1, acc = 1;
+  if (L.oil < 20) { acc *= 0.85; }
+  if (L.oil <= 0) { acc *= 0.55; max *= 0.62; }
+  if (L.tires <= 0) { max *= 0.6; }
+  if (this.stalled) { acc = 0; }
+  return { max, acc };
+};
+CarLife.gripK = function () {
+  const L = carLife(), w = 1 - L.tires / 100;
+  return L.tires <= 0 ? 0.55 : 1 - 0.28 * Math.pow(w, 1.6);
+};
+// farol mais fraco com bateria baixa
+CarLife.lampK = function () {
+  if (!this.lightsOn()) return 0;
+  const b = carLife().bat;
+  return b >= 30 ? 1 : 0.35 + 0.65 * b / 30;
+};
+function lifeWarn(key, title, text, kind) {
+  if (CarLife.warned[key]) return;
+  CarLife.warned[key] = true;
+  toast(title, text, kind || 'bad');
+  AudioSys.tone(660, 0.12, 'square', 0.05, 'ui'); AudioSys.tone(520, 0.16, 'square', 0.05, 'ui', null, 0.14);
+}
+CarLife.update = function (dt) {
+  if (!player) return;
+  const L = carLife(), p = player, sp = p.speed;
+  if (CHEATS_ENABLED && Cheats.god) { L.tires = L.oil = L.bat = 100; this.stalled = false; return; }
+  const km = sp * dt * 0.09 / 1000;
+  // pneus: gastam rodando, muito mais de lado ou cantando pneu na arrancada
+  const slide = (p.drift || 0) > 0.3 ? 1 + p.drift * 4 : 1, burn = p.launchT > 0 ? 3 : 1;
+  const offr = p.surface === SF.DIRT || p.surface === SF.EARTH || p.surface === SF.GRASS ? 1.4 : 1;
+  const tBefore = L.tires;
+  L.tires = Math.max(0, L.tires - km * (100 / LIFE_TIRE_KM) * slide * burn * offr);
+  // óleo: vence com a quilometragem, mais rápido no talo
+  const hot = sp > p.st.max * 0.85 ? 1.6 : 1;
+  L.oil = Math.max(0, L.oil - km * (100 / LIFE_OIL_KM) * hot);
+  // bateria: farol aceso com o carro parado
+  const lit = !p.lightsOff && L.bat > 0;
+  if (sp < 5 && lit) {
+    this.idleT += dt;
+    if (this.idleT > LIFE_IDLE_GRACE) {
+      if (!this.warned.idle) lifeWarn('idle', 'Farol ligado com o carro parado', 'Isso descarrega a bateria. Aperte H para desligar o farol.', 'info');
+      L.bat = Math.max(0, L.bat - dt * 100 / LIFE_BAT_DRAIN * (p.highBeam ? 2 : 1));
+    }
+  } else {
+    if (sp > 20) this.idleT = 0; else if (!lit) this.idleT = Math.max(0, this.idleT - dt * 2);
+    if (sp > 30 && !this.stalled) L.bat = Math.min(100, L.bat + dt * 0.55); // alternador
+  }
+  // bateria arriada: com o carro parado ou quase, o motor morre e não pega mais
+  if (L.bat <= 0 && sp < 25 && !this.stalled) {
+    this.stalled = true;
+    AudioSys.tone(140, 0.4, 'sawtooth', 0.06, 'engine', 60);
+    toast('A bateria arriou!', 'O motor morreu. Chame o Seu Zé no zap (Q > Mensagens) pra fazer uma chupeta.', 'bad');
+  }
+  if (this.stalled && L.bat > 5) this.stalled = false;
+  // avisos
+  if (L.tires < 25) lifeWarn('t25', 'Pneus carecas', 'O carro escorrega mais. Troque na borracharia ou na oficina.');
+  if (L.tires < 10) lifeWarn('t10', 'Pneus no arame!', 'Mais um pouco e estoura. Borracharia ou oficina, urgente.');
+  if (L.tires <= 0 && tBefore > 0) {
+    AudioSys.noise(0.25, 900, 0.6, 0.35, 'engine'); Cam.shake = Math.max(Cam.shake, 6);
+    toast('Pneu estourou!', 'Andando no aro: pouca aderência e devagar. Chame o Seu Zé ou vá até a borracharia.', 'bad');
+  }
+  if (L.oil < 25) lifeWarn('o25', 'Luz do óleo acendeu', 'Hora de trocar o óleo: oficina ou posto.', 'info');
+  if (L.oil < 8) lifeWarn('o8', 'Óleo no fim!', 'O motor vai esquentar e perder força. Troque logo.');
+  if (L.bat < 30 && !this.warned.b30) lifeWarn('b30', 'Bateria fraca', 'Os faróis ficaram mais fracos. Rode um pouco pra carregar ou desligue o farol (H) quando parar.');
+  // motor sem óleo: fumaça e estrago
+  if (L.oil <= 0 && sp > 20) {
+    Profile.damage = Math.min(100, Profile.damage + dt * 0.35);
+    this.smokeT -= dt;
+    if (this.smokeT <= 0) { this.smokeT = 0.12; const c = Math.cos(p.a), s = Math.sin(p.a); Particles.emit('smoke', p.x + c * p.m.L * 0.4, p.y + s * p.m.L * 0.4, rnd(-10, 10), rnd(-25, -10), rnd(0.8, 1.6), 7); }
+    lifeWarn('o0', 'Motor esquentando!', 'Sem óleo o motor está fundindo. Troque o óleo agora!');
+  }
+  // libera os avisos quando o item foi trocado
+  if (L.tires > 40) { this.warned.t25 = this.warned.t10 = false; }
+  if (L.oil > 40) { this.warned.o25 = this.warned.o8 = this.warned.o0 = false; }
+  if (L.bat > 45) this.warned.b30 = false;
+  if (this.idleT === 0) this.warned.idle = false;
+};
+CarLife.reset = function () { this.idleT = 0; this.stalled = false; this.warned = {}; };
+// serviços (oficina, borracharia, posto e Seu Zé)
+function lifeService(kind, priceMul) {
+  const L = carLife(), price = Math.ceil(lifePrice(kind) * (priceMul || 1));
+  if (Profile.money < price) { AudioSys.error(); toast('Sem dinheiro', 'Custa R$ ' + fmtMoney(price) + '.', 'bad'); return false; }
+  Profile.money -= price; UI.moneyDelta(-price);
+  if (kind === 'tires') { L.tires = 100; AudioSys.wrench(); toast('Pneus novos', 'Agarrando no asfalto de novo. R$ ' + fmtMoney(price), 'good'); }
+  else if (kind === 'oil') { L.oil = 100; AudioSys.pump(); toast('Óleo trocado', 'Motor macio que nem manteiga. R$ ' + fmtMoney(price), 'good'); }
+  else { L.bat = 100; CarLife.stalled = false; AudioSys.wrench(); toast('Bateria carregada', 'Farol forte de novo. R$ ' + fmtMoney(price), 'good'); }
+  saveGame(); return true;
+}
+function lifeButtons(B, s, kinds) {
+  const L = carLife(), pct = (v) => Math.round(v) + '%';
+  if (kinds.includes('tires')) B(L.tires > 97 ? 'Pneus novos (' + pct(L.tires) + ')' : `Trocar os 4 pneus (${pct(L.tires)}) — R$ ${fmtMoney(lifePrice('tires'))}`, () => { lifeService('tires'); openShopDialog(s); }, L.tires > 97 || Profile.money < lifePrice('tires'));
+  if (kinds.includes('oil')) B(L.oil > 97 ? 'Óleo em dia (' + pct(L.oil) + ')' : `Trocar o óleo (${pct(L.oil)}) — R$ ${fmtMoney(lifePrice('oil'))}`, () => { lifeService('oil'); openShopDialog(s); }, L.oil > 97 || Profile.money < lifePrice('oil'));
+  if (kinds.includes('bat')) B(L.bat > 97 ? 'Bateria carregada (' + pct(L.bat) + ')' : `Carregar a bateria (${pct(L.bat)}) — R$ ${fmtMoney(lifePrice('bat'))}`, () => { lifeService('bat'); openShopDialog(s); }, L.bat > 97 || Profile.money < lifePrice('bat'));
+}
+function lifeZeFala() {
+  const L = carLife(), out = [];
+  if (L.oil < 30) out.push('esse óleo tá parecendo café de rodoviária');
+  if (L.tires < 30) out.push('os pneus tão mais lisos que sabonete');
+  if (L.bat < 30) out.push('a bateria tá pedindo arrego');
+  return out.length ? ' E olha: ' + out.join(', ') + '.' : '';
+}
 /* ============================ RENDERIZAÇÃO ============================ */
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -7530,7 +7759,7 @@ Weather.update = function (dt) {
     if (this.timer <= 0) {
       const prev = this.target, r = Math.random();
       this.target = r < 0.5 ? 0 : r < 0.78 ? 0.35 : 0.9;
-      this.timer = this.target ? rnd(70, 150) : rnd(90, 200);
+      this.timer = this.target ? rnd(77, 165) : rnd(90, 200); // chuva 10% mais longa
       if (Game.mode === 'play') {
         if (this.target > 0.2 && prev < 0.2) toast(this.target > 0.6 ? 'Temporal chegando' : 'Começou a garoar', 'Pista molhada: o carro escorrega mais e demora mais para frear.', 'info');
         else if (this.target < 0.1 && prev > 0.2) toast('A chuva parou', 'O asfalto ainda fica molhado por um tempo.', 'info');
@@ -7681,6 +7910,10 @@ function headlightK() {
 // farol de cada lado (s = -1 esquerdo, 1 direito): lado muito amassado apaga aquele farol
 // nunca apagam os dois: no máximo um farol para, o outro fica fraquinho
 function playerLamp(s) {
+  const LK = CarLife.lampK(); if (LK <= 0) return 0; // farol desligado (H) ou bateria arriada
+  return playerLampBase(s) * LK;
+}
+function playerLampBase(s) {
   const Z = Profile.zones || {};
   const dmg = (q) => Math.max(q < 0 ? Z.l || 0 : Z.rt || 0, q < 0 ? Z.fL || 0 : Z.fR || 0);
   const me = dmg(s), other = dmg(-s), f = Z.f || 0;
@@ -7741,7 +7974,7 @@ function lightPass(view, cx, cy) {
       lctx.drawImage(CONE, -2, -len * 0.21, len, len * 0.42);
       lctx.restore();
     }
-    lctx.globalAlpha = 0.22; lctx.drawImage(LSPR, player.x - 105, player.y - 105, 210, 210); // brilho em volta do carro (60% mais fraco)
+    lctx.globalAlpha = CarLife.lightsOn() ? 0.22 : 0.1; lctx.drawImage(LSPR, player.x - 105, player.y - 105, 210, 210); // brilho em volta do carro (60% mais fraco)
   }
   lctx.globalAlpha = 1;
   lctx.globalCompositeOperation = 'source-over';
@@ -8628,7 +8861,7 @@ function openShopDialog(s) {
       : dm < 25 ? '"Uns arranhãozinho à toa. Isso eu resolvo enquanto o café passa."'
       : dm < 60 ? '"Rapaz… que pancada foi essa? Beijou o poste, foi? Deixa com o Seu Zé."'
       : '"Nossa Senhora da Penha! Isso aqui tá pocado, menino! Quarenta anos de oficina e nunca vi um estrago desse."';
-    $('dialog-text').textContent = 'Seu Zé limpa as mãos na estopa e olha o carro por cima dos óculos. ' + fala + (zl.length ? ' Orçamento: ' + zl.join(', ') + '.' : '');
+    $('dialog-text').textContent = 'Seu Zé limpa as mãos na estopa e olha o carro por cima dos óculos. ' + fala + lifeZeFala() + (zl.length ? ' Orçamento: ' + zl.join(', ') + '.' : '');
   }
   const btns = [];
   const B = (label, fn, disabled) => btns.push({ label, fn, disabled });
@@ -8644,6 +8877,7 @@ function openShopDialog(s) {
       saveGame(); openShopDialog(s);
     }, need < 1 || Profile.money < price);
     if (s.wash) B(Profile.dirt < 0.05 ? 'Carro já está limpo' : 'Lavar o carro — R$ 30', () => { Profile.dirt = 0; Profile.money -= 30; UI.moneyDelta(-30); AudioSys.wash(); toast('Lava-jato', 'Brilhando como novo.', 'good'); saveGame(); openShopDialog(s); }, Profile.dirt < 0.05 || Profile.money < 30);
+    lifeButtons(B, s, ['oil']);
     B('Tomar um café na conveniência — R$ 4', () => { Profile.money -= 4; UI.moneyDelta(-4); toast('Café passado', 'Quentinho. Bora rodar mais um pouco.', 'info'); closeDialog(); }, Profile.money < 4);
   }
   if (s.kind === 'oficina') {
@@ -8658,9 +8892,10 @@ function openShopDialog(s) {
       toast('Seu Zé', Profile.damage < 1 ? '"Pronto! Tá novinho em folha. Vai com Deus e devagar."' : '"Fiz o que deu com o seu dinheiro, viu?"', 'good');
       saveGame(); openShopDialog(s);
     }, Profile.damage < 1 || Profile.money < 4);
+    lifeButtons(B, s, ['oil', 'tires', 'bat']);
     B('Melhorias e pintura', () => { Garage.sel = Profile.current; Screens.replace('screen-garage'); });
   }
-  if (s.kind === 'borracharia') B('Calibrar os pneus (grátis)', () => { Profile.damage = Math.max(0, Profile.damage - 3); AudioSys.pump(); toast('Borracharia', 'Pneus calibrados. Valeu, chefe!', 'info'); closeDialog(); });
+  if (s.kind === 'borracharia') { lifeButtons(B, s, ['tires']); B('Calibrar os pneus (grátis)', () => { Profile.damage = Math.max(0, Profile.damage - 3); AudioSys.pump(); toast('Borracharia', 'Pneus calibrados. Valeu, chefe!', 'info'); closeDialog(); }); }
   if (s.kind === 'bar') B('Pedir um guaraná — R$ 6', () => { Profile.money -= 6; UI.moneyDelta(-6); toast('Boteco Saideira do Toninho', 'Guaraná trincando de gelado.', 'info'); closeDialog(); }, Profile.money < 6);
   if (s.kind === 'lanchonete') B('Comer um pastel — R$ 8', () => { Profile.money -= 8; UI.moneyDelta(-8); toast('Lanchonete X-Tudo do Bigode', 'Pastel de carne com caldo de cana. Perfeito.', 'info'); closeDialog(); }, Profile.money < 8);
   if (s.kind === 'hotel') B('Pedir uma dica de passeio ao porteiro', () => {
@@ -8844,6 +9079,11 @@ function updateHUD(dt) {
   UI.set('fuel-bar', Profile.fuel < 20 ? 'linear-gradient(90deg,#ff5a5a,#ff8a7a)' : '', 'bg');
   UI.set('cond-bar', Math.round(100 - Profile.damage) + '%', 'width');
   UI.set('cond-bar', Profile.damage > 60 ? 'linear-gradient(90deg,#ff8a3d,#ffb547)' : '', 'bg');
+  { const L = carLife(), low = (v) => v < 25 ? 'linear-gradient(90deg,#ff5a5a,#ff8a7a)' : '';
+    UI.set('tire-bar', Math.round(L.tires) + '%', 'width'); UI.set('tire-bar', low(L.tires), 'bg');
+    UI.set('oil-bar', Math.round(L.oil) + '%', 'width'); UI.set('oil-bar', low(L.oil), 'bg');
+    UI.set('bat-bar', Math.round(L.bat) + '%', 'width'); UI.set('bat-bar', low(L.bat), 'bg');
+    const lo = !!player.lightsOff; if (UI.last.lo !== lo) { UI.last.lo = lo; $('hud-dash').classList.toggle('lights-off', lo); } }
   // prompt
   const pr = Act.prompt && !Screens.current ? '<kbd>E</kbd>' + escapeHtml(Act.prompt.text) : '';
   if (UI.last.prompt !== pr) { UI.last.prompt = pr; const el = $('prompt'); el.innerHTML = pr; el.classList.toggle('hidden', !pr); }
@@ -8866,7 +9106,7 @@ const NIGHT_START = 19 * 60 + 30, NIGHT_END = 29 * 60;
 
 function startPlay() {
   AudioSys.init();
-  Act.reset(); Events.reset();
+  Act.reset(); Events.reset(); CarLife.reset();
   player = new Player(Profile.current);
   let pos = World.home;
   const sp = Profile.pos;
@@ -8903,7 +9143,7 @@ function saveGame() {
 function toMenu() {
   Game.mode = 'menu';
   player = null;
-  Act.reset(); Events.reset();
+  Act.reset(); Events.reset(); CarLife.reset();
   Screens.closeAll();
   Screens.open('screen-main');
   AudioSys.hornOn = false;
@@ -8937,6 +9177,7 @@ function handleKeys() {
     switch (k) {
       case 'KeyE': if (Act.prompt) Act.prompt.act(); break;
       case 'KeyQ': Phone.open('home'); break;
+      case 'KeyH': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', player.lightsOff ? 'Parado com farol aceso gasta bateria. H liga de novo.' : '', 'info'); break;
       case 'KeyL': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
       case 'KeyC': Cam.quick = Cam.quick === 1 ? 0.72 : 1; break;
       case 'KeyR': if (player.speed < 120) resetVehicle(); break;
@@ -8956,6 +9197,7 @@ function stepPlay(dt) {
   Particles.update(dt);
   updateActivities(dt);
   Events.update(dt);
+  CarLife.update(dt);
   Socorro.update(dt);
   Achievements.check(dt);
   Weather.updatePlayer(dt, player);
