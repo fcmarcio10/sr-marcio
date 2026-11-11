@@ -3,8 +3,13 @@
    Jogo de exploração noturna top-down 2.5D — HTML5 Canvas + JS puro
    ===================================================================== */
 'use strict';
-const GAME_VERSION = '1.4.0';
+const GAME_VERSION = '1.5.0';
 try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
+// dica na tela de carregamento
+try {
+  const TIPS = ['Parado com o farol aceso por muito tempo, a bateria arria. Aperte H.', 'Sem dinheiro? O Seu Zé faz fiado. Só não some, que ele cobra.', 'De ré na vaga azul vale mais dinheiro.', 'Casca de banana na pista escorrega de verdade.', 'Na blitz da Lei Seca, pare ao lado do guarda de colete.', 'Depois das 22h tem racha. Cuidado com a viatura.', 'Pneus gastam mais quando você derrapa.', 'O Banestresse empresta, mas desconta toda virada de noite.', 'Q abre o celular. O mapa fica no app Mapa.'];
+  const el = document.getElementById('load-tip'); if (el) el.innerHTML = '<b>DICA</b>' + TIPS[Math.floor(Math.random() * TIPS.length)];
+} catch (e) {}
 
 /* ============================ UTILIDADES ============================ */
 const TAU = Math.PI * 2;
@@ -8446,13 +8451,26 @@ function buildMapImage() {
 }
 function mapIcon(g, x, y, kind, s) {
   s = s || 1;
-  const col = { job: '#ffd24a', shop: '#ff8a3d', race: '#59e0ff', park: '#5b8cff', poi: '#c56bff', gps: '#5be38f', home: '#5be38f', fuel: '#ffb000', repair: '#59e0ff', event: '#ff5ad1', unknown: 'rgba(197,107,255,0.55)' }[kind];
-  g.fillStyle = 'rgba(0,0,0,0.6)'; g.beginPath(); g.arc(x, y, 5.5 * s, 0, TAU); g.fill();
-  g.fillStyle = col; g.beginPath(); g.arc(x, y, 4 * s, 0, TAU); g.fill();
-  if (kind === 'unknown' || kind === 'home' || kind === 'fuel' || kind === 'repair' || kind === 'event') {
-    g.fillStyle = '#0a0a0a'; g.font = `800 ${Math.round(6 * s)}px Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText(kind === 'unknown' ? '?' : kind === 'home' ? 'G' : kind === 'fuel' ? 'P' : kind === 'event' ? '!' : 'O', x, y + 0.5);
+  const col = { job: '#ffcc2e', shop: '#ff8a3d', race: '#59e0ff', park: '#5b8cff', poi: '#c56bff', gps: '#22d17a', home: '#22d17a', fuel: '#ff9a1f', repair: '#59e0ff', unknown: 'rgba(197,107,255,0.55)', event: '#ff5ad1' }[kind] || '#fff';
+  // marcador redondo com aro escuro e um símbolo desenhado dentro
+  g.fillStyle = 'rgba(5,7,11,0.85)'; g.beginPath(); g.arc(x, y, 5.8 * s, 0, TAU); g.fill();
+  g.fillStyle = col; g.beginPath(); g.arc(x, y, 4.5 * s, 0, TAU); g.fill();
+  const u = 0.62 * s; g.save(); g.translate(x, y); g.scale(u, u);
+  g.fillStyle = '#0b0d12'; g.strokeStyle = '#0b0d12'; g.lineWidth = 1.3; g.lineCap = 'round'; g.lineJoin = 'round';
+  switch (kind) {
+    case 'home': g.beginPath(); g.moveTo(-4, 0); g.lineTo(0, -4); g.lineTo(4, 0); g.lineTo(2.8, 0); g.lineTo(2.8, 3.6); g.lineTo(-2.8, 3.6); g.lineTo(-2.8, 0); g.closePath(); g.fill(); break;
+    case 'fuel': g.fillRect(-3.4, -3.6, 4.2, 7.4); g.fillStyle = col; g.fillRect(-2.6, -2.8, 2.6, 2); g.strokeStyle = '#0b0d12'; g.beginPath(); g.moveTo(0.8, -1); g.lineTo(2.6, -1); g.lineTo(2.6, 2.4); g.lineTo(3.6, 2.4); g.lineTo(3.6, -2.4); g.stroke(); break;
+    case 'repair': g.lineWidth = 1.8; g.beginPath(); g.moveTo(-3, 3); g.lineTo(1.2, -1.2); g.stroke(); g.beginPath(); g.arc(2, -2, 2, 0.6, 5.2); g.stroke(); break;
+    case 'job': g.fillRect(-3.5, -2.6, 7, 6); g.fillStyle = col; g.fillRect(-0.6, -2.6, 1.2, 2.6); break;
+    case 'shop': g.fillRect(-3.2, -1.4, 6.4, 5); g.lineWidth = 1.2; g.beginPath(); g.arc(0, -1.4, 1.9, Math.PI, 0); g.stroke(); break;
+    case 'race': g.fillRect(-3, -4, 1, 8); for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) if ((i + j) % 2 === 0) g.fillRect(-2 + i * 1.8, -4 + j * 1.8, 1.8, 1.8); g.strokeRect(-2, -4, 5.4, 3.6); break;
+    case 'park': g.font = '900 8px "BRND Cond", Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('P', 0, 0.6); break;
+    case 'poi': g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 1.8 : 4.2; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); break;
+    case 'event': g.fillRect(-0.9, -3.8, 1.8, 5); g.beginPath(); g.arc(0, 3.1, 1, 0, TAU); g.fill(); break;
+    case 'unknown': g.font = '900 8px "BRND Cond", Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('?', 0, 0.6); break;
+    case 'gps': g.beginPath(); g.arc(0, 0, 1.8, 0, TAU); g.fill(); break;
   }
+  g.restore();
 }
 function shopIconKind(s) { return s.kind === 'garagem' ? 'home' : s.kind === 'posto' ? 'fuel' : s.kind === 'oficina' ? 'repair' : s.pickup && !Act.delivery ? 'job' : 'shop'; }
 const mmCanvas = document.getElementById('minimap'), mm = mmCanvas.getContext('2d');
@@ -8494,7 +8512,7 @@ function drawMinimap() {
   mm.beginPath(); mm.moveTo(9 * k, 0); mm.lineTo(-6 * k, -6 * k); mm.lineTo(-3 * k, 0); mm.lineTo(-6 * k, 6 * k); mm.closePath(); mm.stroke(); mm.fill();
   mm.restore();
   if (!Settings.minimapRotate) {
-    mm.fillStyle = 'rgba(255,255,255,0.8)'; mm.font = `700 ${11 * k}px Arial`; mm.textAlign = 'center'; mm.fillText('N', S / 2, 16 * k);
+    mm.fillStyle = '#ffcc2e'; mm.font = `800 ${13 * k}px "BRND Cond", Arial`; mm.textAlign = 'center'; mm.fillText('N', S / 2, 17 * k);
   }
 }
 /* ---------- mapa estilo app de celular: arrastar, zoom e destinos ---------- */
@@ -8667,7 +8685,7 @@ function drawSpeedo() {
   spx.strokeStyle = 'rgba(255,255,255,0.08)'; spx.lineWidth = 9;
   spx.beginPath(); spx.arc(cx, cy, R, a0, a1); spx.stroke();
   const f = clamp(kmh / maxK, 0, 1);
-  const gr = spx.createLinearGradient(30, 0, 190, 0); gr.addColorStop(0, '#59e0ff'); gr.addColorStop(0.6, '#ffb547'); gr.addColorStop(1, '#ff5f7a');
+  const gr = spx.createLinearGradient(30, 0, 190, 0); gr.addColorStop(0, '#22d17a'); gr.addColorStop(0.55, '#ffcc2e'); gr.addColorStop(1, '#ff4a3a');
   spx.strokeStyle = gr; spx.lineWidth = 9;
   if (f > 0.002) { spx.beginPath(); spx.arc(cx, cy, R, a0, a0 + (a1 - a0) * f); spx.stroke(); }
   spx.lineCap = 'butt';
@@ -8680,12 +8698,12 @@ function drawSpeedo() {
   spx.strokeStyle = rf > 0.85 ? '#ff5f7a' : 'rgba(255,255,255,0.45)'; spx.lineWidth = 3;
   spx.beginPath(); spx.arc(cx, cy, R - 30, a0 + 0.5, a0 + 0.5 + (a1 - a0 - 1) * rf); spx.stroke();
   spx.fillStyle = '#ffffff'; spx.textAlign = 'center'; spx.textBaseline = 'middle';
-  spx.font = '800 40px "Segoe UI", Roboto, Arial, sans-serif'; spx.fillText(Math.round(kmh), cx, cy - 2);
-  spx.font = '600 11px "Segoe UI", Arial'; spx.fillStyle = 'rgba(255,255,255,0.55)'; spx.fillText('km/h', cx, cy + 22);
+  spx.font = '48px "BRND Anton", Impact, sans-serif'; spx.fillStyle = '#05070b'; spx.fillText(Math.round(kmh), cx + 2, cy - 3); spx.fillStyle = '#ffffff'; spx.fillText(Math.round(kmh), cx, cy - 5);
+  spx.font = '700 12px "BRND Cond", Arial'; spx.fillStyle = 'rgba(255,255,255,0.6)'; spx.fillText('KM/H', cx, cy + 19);
   const gear = player.gear === -1 ? 'R' : player.speed < 4 && !Keys.KeyW && !Keys.ArrowUp ? 'N' : String(player.gear);
-  spx.font = '800 18px "Segoe UI", Arial'; spx.fillStyle = gear === 'R' ? '#ff5f7a' : '#ffb547'; spx.fillText(gear, cx, cy + 40);
-  spx.font = '600 9px "Segoe UI", Arial'; spx.fillStyle = 'rgba(255,255,255,0.4)'; spx.fillText('MARCHA', cx, cy + 54);
-  if (player.highBeam) { spx.fillStyle = '#59e0ff'; spx.font = '700 10px Arial'; spx.fillText('FAROL ALTO', cx, 12); }
+  spx.font = '22px "BRND Anton", Impact, sans-serif'; spx.fillStyle = gear === 'R' ? '#ff5f7a' : '#ffcc2e'; spx.fillText(gear, cx, cy + 43);
+  spx.font = '700 10px "BRND Cond", Arial'; spx.fillStyle = 'rgba(255,255,255,0.45)'; spx.fillText('MARCHA', cx, cy + 60);
+  if (player.highBeam) { spx.fillStyle = '#59e0ff'; spx.font = '800 12px "BRND Cond", Arial'; spx.fillText('FAROL ALTO', cx, 12); }
 }
 /* ============================ INTERFACE ============================ */
 const $ = (id) => document.getElementById(id);
