@@ -24,6 +24,7 @@
     "productName": "BR Night Drive",
     "files": [
       "main.js",
+      "preload.js",
       "app/**/*",
       "build/icon.png"
     ],

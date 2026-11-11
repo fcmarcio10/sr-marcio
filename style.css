@@ -983,3 +983,12 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 #speedo { margin: 0 auto; }
 #car-name { font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #car-name { margin: 4px 0 8px; }
+
+/* tela de carregamento entre o menu e o jogo */
+#transit { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  background: radial-gradient(ellipse at 50% 60%, #121a2c 0%, #03040a 70%); transition: opacity 0.45s; }
+#transit.fade { opacity: 0; pointer-events: none; }
+#transit-fill { height: 100%; width: 0; background: repeating-linear-gradient(-45deg, #ffcc2e 0 10px, #ff9a1f 10px 20px); }
+#transit-text { font-family: var(--f-cond); font-weight: 700; font-size: 15px; letter-spacing: 0.18em; text-transform: uppercase; color: #c4cad8; }
+.load-tip, #load-tip { font-family: var(--f-body); font-size: 15px; color: #9aa2b6; max-width: 560px; text-align: center; line-height: 1.5; margin-top: 18px; }
+.load-tip b, #load-tip b { font-family: var(--f-cond); font-weight: 800; letter-spacing: 0.16em; color: var(--ouro); margin-right: 8px; }

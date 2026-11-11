@@ -68,6 +68,7 @@
       <button class="mbtn" data-act="garage">GARAGEM</button>
       <button class="mbtn" data-act="settings">CONFIGURAÇÕES</button>
       <button class="mbtn" data-act="credits">CRÉDITOS</button>
+      <button class="mbtn desk-only hidden" data-act="quit">SAIR DO JOGO</button>
     </nav>
     <div class="main-foot"><span><kbd>W A S D</kbd>Dirigir</span><span><kbd>Espaço</kbd>Freio de mão</span><span><kbd>E</kbd>Interagir</span><span><kbd>Q</kbd>Celular</span><span><kbd>H</kbd>Farol</span><span><kbd>ESC</kbd>Pausa</span></div>
     <div class="main-ver">v<span class="game-ver">1.5.0</span></div>
@@ -83,7 +84,8 @@
       <button class="mbtn" data-act="abandon" id="btn-abandon">ABANDONAR ATIVIDADE</button>
       <button class="mbtn" data-act="reset">REPOSICIONAR VEÍCULO</button>
       <button class="mbtn" data-act="settings">CONFIGURAÇÕES</button>
-      <button class="mbtn" data-act="save-quit">SALVAR E SAIR</button>
+      <button class="mbtn" data-act="save-quit">SALVAR E VOLTAR AO MENU</button>
+      <button class="mbtn desk-only hidden" data-act="quit">SALVAR E SAIR DO JOGO</button>
     </nav>
     <div id="pause-stats" class="stats-grid"></div>
   </div>
@@ -245,6 +247,7 @@
   </div>
 </div>
 
+<div id="transit" class="hidden"><div class="load-title">NIGHT DRIVE</div><div class="load-bar"><div id="transit-fill"></div></div><div id="transit-text">Carregando…</div><div id="transit-tip" class="load-tip"></div></div>
 <div id="loading"><div class="load-title">NIGHT DRIVE</div><div class="load-bar"><div id="load-fill"></div></div><div id="load-text">Construindo a cidade…</div><div id="load-tip"></div></div>
 
 <script src="game.js"></script>

@@ -6,10 +6,11 @@
 const GAME_VERSION = '1.5.0';
 try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
 // dica na tela de carregamento
-try {
-  const TIPS = ['Parado com o farol aceso por muito tempo, a bateria arria. Aperte H.', 'Sem dinheiro? O Seu Zé faz fiado. Só não some, que ele cobra.', 'De ré na vaga azul vale mais dinheiro.', 'Casca de banana na pista escorrega de verdade.', 'Na blitz da Lei Seca, pare ao lado do guarda de colete.', 'Depois das 22h tem racha. Cuidado com a viatura.', 'Pneus gastam mais quando você derrapa.', 'O Banestresse empresta, mas desconta toda virada de noite.', 'Q abre o celular. O mapa fica no app Mapa.'];
-  const el = document.getElementById('load-tip'); if (el) el.innerHTML = '<b>DICA</b>' + TIPS[Math.floor(Math.random() * TIPS.length)];
-} catch (e) {}
+const LOAD_TIPS = ['Parado com o farol aceso por muito tempo, a bateria arria. Aperte H.', 'Sem dinheiro? O Seu Zé faz fiado. Só não some, que ele cobra.', 'De ré na vaga azul vale mais dinheiro.', 'Casca de banana na pista escorrega de verdade.', 'Na blitz da Lei Seca, pare ao lado do guarda de colete.', 'Depois das 22h tem racha. Cuidado com a viatura.', 'Pneus gastam mais quando você derrapa.', 'O Banestresse empresta, mas desconta toda virada de noite.', 'Q abre o celular. O mapa fica no app Mapa.', 'Óleo vencido faz o motor soltar fumaça e perder força.', 'Carona na BR rende gorjeta se você não bater.', 'Na chuva o carro escorrega mais, e no barro mais ainda.', 'F11 deixa o jogo em tela cheia.'];
+function loadTipHTML() { return '<b>DICA</b>' + LOAD_TIPS[Math.floor(Math.random() * LOAD_TIPS.length)]; }
+try { const el = document.getElementById('load-tip'); if (el) el.innerHTML = loadTipHTML(); } catch (e) {}
+// no app do computador (Windows) aparece o botão SAIR DO JOGO
+try { if (window.brnd && window.brnd.desktop) document.querySelectorAll('.desk-only').forEach((e) => e.classList.remove('hidden')); } catch (e) {}
 
 /* ============================ UTILIDADES ============================ */
 const TAU = Math.PI * 2;
@@ -8791,6 +8792,7 @@ function bindMenus() {
     switch (act) {
       case 'play': if (hasSave) confirmBox('Novo jogo', 'Começar do zero? Seu progresso salvo (dinheiro, carros e descobertas) será apagado.', () => newGame()); else newGame(); break;
       case 'continue': continueGame(); break;
+      case 'quit': confirmBox('Sair do jogo', 'Fechar o BR Night Drive? Seu progresso fica salvo.', () => { if (player && Game.mode === 'play') saveGame(); setTimeout(() => window.brnd && window.brnd.quit(), 120); }); break;
       case 'garage': Garage.sel = Profile.current; Screens.open('screen-garage'); break;
       case 'settings': Screens.open('screen-settings'); break;
       case 'credits': Screens.open('screen-credits'); break;
@@ -9288,7 +9290,27 @@ function startPlay() {
   Game.autosaveT = 30;
   updateHudVisibility();
 }
-function newGame() {
+// tela de carregamento entre o menu e o jogo, com dica
+function withTransit(fn) {
+  const el = $('transit'), fill = $('transit-fill'), txt = $('transit-text');
+  if (!el) { fn(); return; }
+  const MSG = ['Ligando o motor…', 'Esquentando o óleo…', 'Acordando a cidade…', 'Ajustando o retrovisor…', 'Procurando a chave…'];
+  $('transit-tip').innerHTML = loadTipHTML();
+  txt.textContent = MSG[0]; fill.style.width = '0%';
+  el.classList.remove('hidden', 'fade');
+  const t0 = performance.now(), D = 2400;
+  setTimeout(fn, 40); // monta o jogo por trás da tela de carregamento
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / D);
+    fill.style.width = (k * 100).toFixed(1) + '%';
+    txt.textContent = MSG[Math.min(MSG.length - 1, Math.floor(k * MSG.length))];
+    if (k < 1) requestAnimationFrame(step);
+    else { el.classList.add('fade'); setTimeout(() => el.classList.add('hidden'), 460); }
+  };
+  requestAnimationFrame(step);
+}
+function newGame() { withTransit(newGameNow); }
+function newGameNow() {
   Profile = newProfile();
   startPlay();
   saveGame();
@@ -9298,6 +9320,9 @@ function newGame() {
 function continueGame() {
   const p = loadProfileFromStorage();
   if (!p) { AudioSys.error(); return; }
+  withTransit(() => continueGameNow(p));
+}
+function continueGameNow(p) {
   Profile = p;
   startPlay();
   setTimeout(() => toast('Bem-vindo de volta', 'R$ ' + fmtMoney(Profile.money) + ' na carteira · ' + carById(Profile.current).name, 'info'), 500);
