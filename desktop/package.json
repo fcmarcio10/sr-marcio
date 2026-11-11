@@ -1,7 +1,7 @@
 {
   "name": "br-night-drive",
   "productName": "BR Night Drive",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Jogo de direção noturna em São Gambiarra, ES",
   "main": "main.js",
   "author": "BR Night Drive",

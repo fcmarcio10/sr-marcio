@@ -1023,3 +1023,61 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 .map-foot kbd { font-size: 11.5px; padding: 1px 6px; margin-right: 6px; }
 /* destinos no mapa do celular (mantém o estilo do app) */
 .ph-dests button { font-family: -apple-system, "Segoe UI", sans-serif; }
+
+/* ---------- GARAGEM v2 (fácil de entender) ---------- */
+#screen-garage { background: radial-gradient(ellipse at 50% 35%, rgba(26, 30, 44, 0.95), rgba(3, 4, 10, 0.98) 72%); }
+.garage { width: min(1360px, 97vw); height: min(820px, 95vh); }
+.garage-head { align-items: flex-end; margin-bottom: 12px; }
+.garage-head h2 { margin-bottom: 4px !important; }
+.g-steps { display: flex; gap: 16px; flex-wrap: wrap; font-family: var(--f-cond); font-weight: 700; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; color: #aeb5c6; }
+.g-steps b { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 7px; background: var(--ouro); color: #0b0d12; border-radius: 2px; font-weight: 800; transform: skewX(-10deg); }
+.garage-body { grid-template-columns: 270px 1fr 340px; gap: 18px; }
+.g-sec { font-family: var(--f-cond); font-weight: 800; font-size: 13px; letter-spacing: 0.22em; color: var(--ouro); margin: 8px 0 2px; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 204, 46, 0.25); }
+.g-sec:first-child { margin-top: 0; }
+.gcard { padding: 9px 12px; }
+.gcard .gbrand { font-family: var(--f-cond); font-weight: 800; font-style: normal; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 0; }
+.gcard .gname { font-size: 19px; line-height: 1.05; }
+.gcard .gsub .price { color: #ff8a7a; font-weight: 800; }
+.gcard .gsub .price.ok { color: var(--verde); }
+.gcard .gsub .own { color: var(--verde); font-weight: 800; }
+.gcard .gsub .cur { color: var(--ouro); font-weight: 800; }
+#garage-preview { aspect-ratio: 760 / 460; max-width: 720px; }
+.g-brand { margin-top: 10px; text-align: center; line-height: 1.1; }
+.g-brand b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 26px; letter-spacing: 0.06em; text-transform: uppercase; text-shadow: 2px 2px 0 #05070b; }
+.g-brand i { display: block; font-family: var(--f-cond); font-weight: 700; font-style: italic; font-size: 16px; letter-spacing: 0.02em; opacity: 0.9; margin-top: 2px; }
+#garage-car-title { margin-top: 2px; font-size: 44px; line-height: 1; }
+.g-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
+.g-tags span { font-family: var(--f-cond); font-weight: 800; font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 9px 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); color: #dfe3ec; }
+.g-tags .gt-g { background: rgba(34, 209, 122, 0.16); color: #6ff0ad; }
+.g-tags .gt-y { background: rgba(255, 204, 46, 0.16); color: var(--ouro); }
+.g-tags .gt-r { background: rgba(255, 74, 74, 0.16); color: #ff9a8a; }
+#garage-car-desc { font-family: var(--f-body); font-size: 14px; color: #b9c0cf; margin-top: 8px; max-width: 560px; }
+.garage-actions { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 12px; }
+#garage-main-btn { font-size: 22px !important; min-width: 340px; padding: 11px 24px 9px; }
+#garage-main-btn:disabled { opacity: 0.55; }
+.g-note { font-family: var(--f-body); font-size: 13px; color: #8f97ad; }
+.g-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 12px; }
+.g-tabs button { pointer-events: auto; cursor: pointer; border: 0; padding: 10px 6px 8px; border-radius: 2px; background: rgba(255, 255, 255, 0.06); color: #aeb5c6; font-family: var(--f-cond); font-weight: 800; font-size: 17px; letter-spacing: 0.08em; }
+.g-tabs button.on { background: var(--ouro); color: #0b0d12; }
+.g-tabs button:hover:not(.on) { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.side-title small { font-family: var(--f-body); font-weight: 500; letter-spacing: 0; text-transform: none; color: #6ff0ad; }
+.upg .un small { font-family: var(--f-body); font-size: 12px; color: #9aa2b6; }
+.kit-cats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 12px; }
+.kit-cats button { pointer-events: auto; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.07); background: rgba(255, 255, 255, 0.04); color: #c9cfdd; border-radius: 3px; padding: 7px 2px 5px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-family: var(--f-cond); font-weight: 700; font-size: 11.5px; letter-spacing: 0.02em; text-transform: uppercase; }
+.kit-cats button.on { background: rgba(255, 204, 46, 0.14); border-color: var(--ouro); color: var(--ouro); }
+.kit-cats button:hover { background: rgba(255, 255, 255, 0.1); }
+.kit-ico { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.kit-desc { font-family: var(--f-body); font-size: 13px; color: #aeb5c6; line-height: 1.4; margin: -4px 0 10px; }
+.kit-opts { display: flex; flex-direction: column; gap: 4px; }
+.kit-opts button { pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: 8px; text-align: left; border: 1px solid transparent; background: rgba(255, 255, 255, 0.05); color: #eef1f8; border-radius: 2px; padding: 8px 10px; font-family: var(--f-cond); font-weight: 700; font-size: 16px; }
+.kit-opts button span { flex: 1; }
+.kit-opts button em { font-style: normal; font-size: 13px; color: var(--ouro); letter-spacing: 0.04em; }
+.kit-opts button.inst em { color: var(--verde); }
+.kit-opts button.prev { border-color: var(--ouro); background: rgba(255, 204, 46, 0.1); }
+.kit-opts button:hover { background: rgba(255, 255, 255, 0.1); }
+.kit-sw { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.25); flex: none; }
+.kit-buy { pointer-events: auto; cursor: pointer; width: 100%; margin-top: 10px; border: 0; border-radius: 2px; padding: 11px 10px 9px; background: var(--verde); color: #04170c; font-family: var(--f-cond); font-weight: 800; font-size: 18px; letter-spacing: 0.05em; box-shadow: 4px 4px 0 #05070b; }
+.kit-buy:disabled { opacity: 0.45; cursor: default; }
+.kit-buy:hover:not(:disabled) { background: #4cf0a0; }
+.swatches .sw { border-radius: 3px; }
+#hud-dash.som-on #car-name::before { content: 'SOM · '; color: #ff5ad1; }

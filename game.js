@@ -3,7 +3,7 @@
    Jogo de exploração noturna top-down 2.5D — HTML5 Canvas + JS puro
    ===================================================================== */
 'use strict';
-const GAME_VERSION = '1.5.0';
+const GAME_VERSION = '1.6.0';
 try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
 // dica na tela de carregamento
 const LOAD_TIPS = ['Parado com o farol aceso por muito tempo, a bateria arria. Aperte H.', 'Sem dinheiro? O Seu Zé faz fiado. Só não some, que ele cobra.', 'De ré na vaga azul vale mais dinheiro.', 'Casca de banana na pista escorrega de verdade.', 'Na blitz da Lei Seca, pare ao lado do guarda de colete.', 'Depois das 22h tem racha. Cuidado com a viatura.', 'Pneus gastam mais quando você derrapa.', 'O Banestresse empresta, mas desconta toda virada de noite.', 'Q abre o celular. O mapa fica no app Mapa.', 'Óleo vencido faz o motor soltar fumaça e perder força.', 'Carona na BR rende gorjeta se você não bater.', 'Na chuva o carro escorrega mais, e no barro mais ainda.', 'F11 deixa o jogo em tela cheia.'];
@@ -3094,12 +3094,13 @@ function glassGrad(ctx) {
   }
   return _glassGrad;
 }
-function drawWheel(ctx, x, y, len, wid, steer, roll) {
+function drawWheel(ctx, x, y, len, wid, steer, roll, rim) {
   ctx.save(); ctx.translate(x, y); if (steer) ctx.rotate(steer);
   ctx.fillStyle = '#0d0d0f'; ctx.beginPath(); rrect(ctx, -len / 2, -wid / 2, len, wid, 1.6); ctx.fill();
   ctx.fillStyle = '#2c2c31';
   const ph = ((roll || 0) % 3 + 3) % 3;
   for (let s = -len / 2 + ph; s < len / 2; s += 3) ctx.fillRect(s, -wid / 2, 1, wid);
+  if (rim) { ctx.fillStyle = rim; ctx.beginPath(); rrect(ctx, -len * 0.3, -wid * 0.3, len * 0.6, wid * 0.6, 1); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(-len * 0.3, -wid * 0.3, len * 0.6, wid * 0.15); }
   ctx.restore();
 }
 function drawVehicle(ctx, m, color, x, y, a, o) {
@@ -3174,15 +3175,18 @@ function drawLightsFR(ctx, hl, hw, o, m) {
 function drawCar(ctx, m, color, o) {
   const L = m.L, W = m.W, hl = L / 2, hw = W / 2;
   const wl = L * 0.2, xf = hl - L * 0.215, xr = -hl + L * 0.2;
-  drawWheel(ctx, xf, -hw + 1.6, wl, 5, o.steer, o.roll); drawWheel(ctx, xf, hw - 1.6, wl, 5, o.steer, o.roll);
-  drawWheel(ctx, xr, -hw + 1.6, wl, 5, 0, o.roll); drawWheel(ctx, xr, hw - 1.6, wl, 5, 0, o.roll);
+  const K = o.kit, rim = K && K.wheels !== 'serie' ? RIMS[K.wheels] : null;
+  const tw = K && K.wheels === 'tala' ? 6.6 : 5, wy = K && K.low ? 2.4 : 1.6, tww = K && K.low ? tw * 0.82 : tw;
+  drawWheel(ctx, xf, -hw + wy, wl, tww, o.steer, o.roll, rim); drawWheel(ctx, xf, hw - wy, wl, tww, o.steer, o.roll, rim);
+  drawWheel(ctx, xr, -hw + wy, wl, tww, 0, o.roll, rim); drawWheel(ctx, xr, hw - wy, wl, tww, 0, o.roll, rim);
   const bp = bodyPath(m);
   if (m.beetle) {
     // para-lamas redondos do besouro
     ctx.fillStyle = shade(color, -0.12);
     for (const x of [xf, xr]) for (const sy of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x, sy * (hw - 1.2), 6.4, 3.4, 0, 0, TAU); ctx.fill(); }
   }
-  ctx.fillStyle = bodyGrad(ctx, color, hw); ctx.fill(bp);
+  ctx.fillStyle = K && K.finish === 'fosco' ? shade(color, -0.1) : bodyGrad(ctx, color, hw); ctx.fill(bp);
+  if (K && K.finish === 'metal') { ctx.save(); ctx.clip(bp); ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(-L / 2, -hw * 0.18, L, hw * 0.36); ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(-L / 2, -hw * 0.6, L, hw * 0.12); ctx.restore(); }
   ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.stroke(bp);
   const lean = clamp(o.lean || 0, -1, 1) * 1.3;
   const ws = L * m.ws, rf = L * m.rf, rr = L * m.rr, rw = L * m.rw;
@@ -3223,6 +3227,7 @@ function drawCar(ctx, m, color, o) {
   // vidros laterais
   ctx.fillStyle = '#121a26';
   ctx.fillRect(rw + 1, -hw + 1.6 + lean * 0.5, ws - rw - 2, 1.8); ctx.fillRect(rw + 1, hw - 3.4 + lean * 0.5, ws - rw - 2, 1.8);
+  kitTint(ctx, K, m, hw, ws, rf, rr, rw, lean);
   // teto
   ctx.fillStyle = m.van ? bodyGrad(ctx, '#efe9da', hw - 4) : (m.chrome ? '#1a1a1c' : bodyGrad(ctx, color, hw - 4, 0.06));
   if (m.beetle) { ctx.beginPath(); ctx.ellipse((rr + rf) / 2, lean, (rf - rr) / 2, hw - 4, 0, 0, TAU); ctx.fill(); }
@@ -3261,6 +3266,7 @@ function drawCar(ctx, m, color, o) {
     ctx.fillStyle = '#f2c230'; ctx.fillRect((rr + rf) / 2 - 3, -5 + lean, 6, 10);
     ctx.fillStyle = '#2a2a2a'; ctx.fillRect((rr + rf) / 2 - 1, -4 + lean, 2, 8);
   }
+  kitOver(ctx, K, m, color, L, W, hl, hw, ws, rf, rr, rw, lean);
   // espelhos
   ctx.fillStyle = shade(color, -0.3);
   ctx.fillRect(ws - 2, -hw - 1.8, 3, 2); ctx.fillRect(ws - 2, hw - 0.2, 3, 2);
@@ -3567,7 +3573,8 @@ function upgradeCost(carId, upId, lvl) {
 }
 function carStats(id) {
   const c = carById(id), u = carCfg(id).up;
-  return { max: c.max * (1 + 0.05 * u.cambio), acc: c.acc * (1 + 0.1 * u.motor), brk: c.brk * (1 + 0.12 * u.freio), grip: c.grip * (1 + 0.07 * u.pneu), steer: c.steer * (1 + 0.04 * u.pneu), rev: 135 };
+  const low = carCfg(id).kit && carCfg(id).kit.low ? 1.04 : 1;
+  return { max: c.max * (1 + 0.05 * u.cambio), acc: c.acc * (1 + 0.1 * u.motor), brk: c.brk * (1 + 0.12 * u.freio), grip: c.grip * (1 + 0.07 * u.pneu) * low, steer: c.steer * (1 + 0.04 * u.pneu), rev: 135 };
 }
 
 let player = null;
@@ -3717,7 +3724,11 @@ class Player {
     }
     let onB = false;
     for (const b of World.bumps) if (this.x > b.x0 && this.x < b.x1 && this.y > b.y0 && this.y < b.y1) { onB = true; break; }
-    if (onB && !this.onBump && sp > 80) { Cam.shake = Math.max(Cam.shake, Math.min(9, sp / 45)); AudioSys.thud(); if (sp > 260) { Profile.damage = Math.min(100, Profile.damage + 0.6); } }
+    if (onB && !this.onBump && sp > 80) {
+      Cam.shake = Math.max(Cam.shake, Math.min(9, sp / 45)); AudioSys.thud(); if (sp > 260) { Profile.damage = Math.min(100, Profile.damage + 0.6); }
+      // rebaixado raspa o fundo na lombada
+      if (carKit(this.car.id).low) { for (let i = 0; i < 14; i++) Particles.emit('spark', this.x + rnd(-8, 8), this.y + rnd(-8, 8), -this.vx * 0.3 + rnd(-90, 90), -this.vy * 0.3 + rnd(-90, 90), rnd(0.2, 0.45), 2); AudioSys.noise(0.25, 3200, 2, 0.08, 'engine', 'bandpass'); Profile.damage = Math.min(100, Profile.damage + 0.3); }
+    }
     this.onBump = onB;
     // efeitos: fumaça do capô amassado, escapamento e estouro no escape
     const Zf = Profile.zones ? Profile.zones.f : 0;
@@ -4478,7 +4489,7 @@ function drawAnimal(ctx, an) {
   const graze = an.state === 'graze';
   switch (an.type) {
     case 'person': {
-      const dancing = an.dance && an.v === 0;
+      const dancing = (an.dance && an.v === 0) || an.danceUntil > Game.time;
       const sw = an.v > 0 ? Math.sin(an.phase) * 2.4 : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
       if (dancing) ctx.rotate(Math.sin(Game.time * 4.5 + an.seed * 9) * 0.35);
       ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(1.5, 2, 4, 5, 0, 0, TAU); ctx.fill();
@@ -6792,7 +6803,7 @@ CarLife.update = function (dt) {
   const hot = sp > p.st.max * 0.85 ? 1.6 : 1;
   L.oil = Math.max(0, L.oil - km * (100 / LIFE_OIL_KM) * hot);
   // bateria: farol aceso com o carro parado
-  const lit = !p.lightsOff && L.bat > 0;
+  const lit = (!p.lightsOff && L.bat > 0) || Som.on;
   if (sp < 5 && lit) {
     this.idleT += dt;
     if (this.idleT > LIFE_IDLE_GRACE) {
@@ -7000,6 +7011,113 @@ function walletHTML(tab) {
     (F ? `<p class="ph-note">Dica: o fiado do Seu Zé (${brl(F.amount)}) é cobrado sozinho na virada da noite.</p>` : '');
   return h;
 }
+
+/* ============================ PERSONALIZAÇÃO DO CARRO ============================
+   Cada carro da garagem guarda o seu "kit": acabamento, rodas, insulfilm, adesivo no vidro,
+   desenho no capô, neon, suspensão rebaixada, som automotivo e aerofólio. */
+const KIT_CATS = [
+  { id: 'paint', name: 'Pintura', car: false },
+  { id: 'finish', name: 'Acabamento', car: true, opts: [['normal', 'Brilho de fábrica', 0], ['metal', 'Metálico', 350], ['fosco', 'Fosco', 400]] },
+  { id: 'wheels', name: 'Rodas', car: true, opts: [['serie', 'De série', 0], ['cromada', 'Cromada', 450], ['esportiva', 'Esportiva vermelha', 550], ['preta', 'Preta fosca', 500], ['dourada', 'Dourada ostentação', 900], ['tala', 'Tala larga', 750]] },
+  { id: 'tint', name: 'Insulfilm', car: true, opts: [[0, 'Sem insulfilm', 0], [1, 'Claro', 150], [2, 'Médio', 220], [3, 'Limousine', 300]] },
+  { id: 'sticker', name: 'Adesivo', car: true, opts: [['', 'Nenhum', 0], ['DEUS É FIEL', 'Deus é fiel', 50], ['NÃO SOU DE VITORINHA', 'Não sou de Vitorinha', 50], ['FILHO FEIO NÃO TEM PAI', 'Filho feio não tem pai', 50], ['100% CAPIXABA', '100% capixaba', 50], ['SE BEBER, CHAME O SEU ZÉ', 'Se beber, chame o Seu Zé', 50]] },
+  { id: 'hood', name: 'Desenho', car: true, opts: [['', 'Nenhum', 0], ['chamas', 'Chamas no capô', 300], ['faixas', 'Faixas de rally', 250], ['n27', 'Número 27 no teto', 200]] },
+  { id: 'neon', name: 'Neon', car: false, opts: [['', 'Sem neon', 0], ['#22d1ff', 'Azul', 600], ['#ff2bd6', 'Rosa', 600], ['#39ff6a', 'Verde', 600], ['#b84dff', 'Roxo', 600], ['#ffcc2e', 'Amarelo', 600]] },
+  { id: 'low', name: 'Suspensão', car: true, opts: [[false, 'Original', 0], [true, 'Rebaixada', 800]] },
+  { id: 'sound', name: 'Som', car: false, opts: [[false, 'Rádio de fábrica', 0], [true, 'Paredão (tecla B)', 1200]] },
+  { id: 'spoiler', name: 'Aerofólio', car: true, opts: [[false, 'Sem aerofólio', 0], [true, 'Aerofólio', 500]] },
+];
+const KIT_DESC = {
+  paint: 'Troca a cor da lataria. R$ 150 por pintura.',
+  finish: 'Metálico brilha mais; fosco fica com cara de carro de filme.',
+  wheels: 'Só visual. A tala larga é a mais larga de todas.',
+  tint: 'Escurece os vidros. Quanto mais escuro, mais caro.',
+  sticker: 'Adesivo no vidro de trás, do jeito que todo brasileiro gosta.',
+  hood: 'Desenho pintado em cima do carro.',
+  neon: 'Luz colorida embaixo do carro. Brilha bonito à noite.',
+  low: 'Carro mais baixo: segura um pouco mais nas curvas (+4% aderência), mas raspa e solta faísca nas lombadas.',
+  sound: 'Paredão no porta-malas. Aperte B para ligar e desligar. O povo dança. Parado com o som ligado gasta bateria.',
+  spoiler: 'Aerofólio na traseira. Só visual (mas parece mais rápido).',
+};
+const KIT_DEFAULT = { finish: 'normal', wheels: 'serie', tint: 0, sticker: '', hood: '', neon: '', low: false, sound: false, spoiler: false };
+function carKit(id) {
+  const cfg = carCfg(id);
+  if (!cfg.kit) cfg.kit = Object.assign({}, KIT_DEFAULT);
+  return cfg.kit;
+}
+function kitCatsFor(carId) { const car = VMODELS[carById(carId).model].kind === 'car'; return KIT_CATS.filter((c) => car || !c.car); }
+function kitPrice(cat, val) { const C = KIT_CATS.find((c) => c.id === cat); const o = C && C.opts ? C.opts.find((x) => x[0] === val) : null; return o ? o[2] : 0; }
+function colorLum(hex) { const n = parseInt(String(hex).replace('#', ''), 16); if (!isFinite(n)) return 0.5; return (((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114) / 255; }
+const RIMS = { cromada: '#d9dde4', esportiva: '#e0302a', preta: '#26272b', dourada: '#e6b43a', tala: '#b8bec8', serie: '#585c66' };
+
+// --- desenho (chamado dentro de drawCar) ---
+function kitTint(ctx, k, m, hw, ws, rf, rr, rw, lean) {
+  if (!k || !k.tint) return;
+  ctx.fillStyle = `rgba(2,4,8,${[0, 0.35, 0.55, 0.78][k.tint]})`;
+  ctx.beginPath(); ctx.moveTo(ws, -hw + 2.4 + lean * 0.4); ctx.lineTo(rf, -hw + 4 + lean); ctx.lineTo(rf, hw - 4 + lean); ctx.lineTo(ws, hw - 2.4 + lean * 0.4); ctx.closePath(); ctx.fill();
+  if (m.bed === undefined) { ctx.beginPath(); ctx.moveTo(rr, -hw + 4 + lean); ctx.lineTo(rw, -hw + 2.8 + lean * 0.4); ctx.lineTo(rw, hw - 2.8 + lean * 0.4); ctx.lineTo(rr, hw - 4 + lean); ctx.closePath(); ctx.fill(); }
+}
+function kitOver(ctx, k, m, color, L, W, hl, hw, ws, rf, rr, rw, lean) {
+  if (!k) return;
+  // desenho no capô / teto
+  if (k.hood === 'chamas') {
+    ctx.save(); ctx.beginPath(); ctx.rect(ws + 1, -hw + 2, hl - ws - 3, W - 4); ctx.clip();
+    for (const [c, s] of [['#ff4a1a', 1], ['#ffb21a', 0.68], ['#fff07a', 0.38]]) {
+      ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(hl - 2, -hw * 0.8 * s);
+      for (let i = 0; i <= 6; i++) { const x = hl - 2 - (hl - ws) * (0.35 + 0.65 * (i % 2 ? 0.55 : 1)) * s, y = -hw * 0.8 * s + (hw * 1.6 * s) * i / 6; ctx.lineTo(x, y); }
+      ctx.lineTo(hl - 2, hw * 0.8 * s); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  } else if (k.hood === 'faixas') {
+    ctx.fillStyle = colorLum(color) > 0.6 ? 'rgba(20,20,24,0.85)' : 'rgba(245,245,245,0.88)';
+    ctx.fillRect(-hl + 1, -3.4 + lean * 0.5, L - 2, 2.2); ctx.fillRect(-hl + 1, 1.2 + lean * 0.5, L - 2, 2.2);
+  } else if (k.hood === 'n27') {
+    const mx = (rr + rf) / 2;
+    ctx.fillStyle = '#f4f4f0'; ctx.beginPath(); ctx.arc(mx, lean, Math.min(5, hw - 5), 0, TAU); ctx.fill();
+    ctx.save(); ctx.translate(mx, lean); ctx.rotate(Math.PI / 2); ctx.fillStyle = '#0b0d12'; ctx.font = '5.5px "BRND Anton", Impact, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('27', 0, 0.3); ctx.restore();
+  }
+  // adesivo no vidro traseiro
+  if (k.sticker && m.bed === undefined) {
+    const mx = (rr + rw) / 2, h = Math.abs(rr - rw);
+    ctx.save(); ctx.translate(mx, lean); ctx.rotate(Math.PI / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.font = `800 ${Math.min(2.1, h * 0.55)}px "BRND Cond", Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(k.sticker, 0, 0, W - 10);
+    ctx.restore();
+  }
+  // aerofólio
+  if (k.spoiler) {
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(-hl - 0.5, -hw + 0.5, 4, W - 1);
+    ctx.fillStyle = shade(color, -0.35); ctx.fillRect(-hl - 1.2, -hw + 0.4, 3.4, W - 0.8);
+    ctx.fillStyle = shade(color, 0.15); ctx.fillRect(-hl - 1.2, -hw + 0.4, 1, W - 0.8);
+    ctx.fillStyle = '#18181b'; ctx.fillRect(-hl + 2, -hw + 4, 2.2, 1.6); ctx.fillRect(-hl + 2, hw - 5.6, 2.2, 1.6);
+  }
+}
+
+// --- som automotivo (paredão): batida original sintetizada, 130 BPM ---
+const Som = { on: false, step: 0, t: 0 };
+Som.toggle = function () {
+  if (!player || !carKit(player.car.id).sound) { toast('Sem paredão', 'Instale o som na garagem (Personalizar > Som).', 'info'); return; }
+  if (carLife().bat <= 0) { toast('Bateria arriada', 'Sem bateria, sem som.', 'bad'); return; }
+  this.on = !this.on; this.step = 0; this.t = 0;
+  toast(this.on ? 'Som ligado' : 'Som desligado', '', 'info');
+};
+Som.update = function (dt) {
+  if (!this.on) return;
+  if (!player || !carKit(player.car.id).sound || carLife().bat <= 0) { this.on = false; return; }
+  this.t -= dt; if (this.t > 0) return;
+  this.t += 60 / 130 / 4;
+  const s = this.step = (this.step + 1) % 16, sp = player.speed;
+  const v = AudioSys.ok ? (sp < 30 ? 0.16 : 0.09) : 0;
+  if (v) {
+    if ([0, 3, 7, 10].includes(s)) { AudioSys.tone(70, 0.22, 'sine', v, 'engine', 38); if (sp < 30) Cam.shake = Math.max(Cam.shake, 0.8); }
+    if (s === 4 || s === 12) AudioSys.noise(0.08, 1500, 0.9, v * 0.55, 'engine', 'bandpass');
+    if (s % 2 === 0) AudioSys.noise(0.025, 7500, 1, v * 0.18, 'engine', 'highpass');
+    const bass = { 0: 55, 6: 65.4, 8: 49, 14: 58.3 }[s]; if (bass) AudioSys.tone(bass, 0.2, 'square', v * 0.22, 'engine');
+    if (s === 2 || s === 10) AudioSys.tone(s === 2 ? 880 : 784, 0.06, 'triangle', v * 0.12, 'engine');
+  }
+  // quem estiver perto dança
+  if (sp < 40 && s % 4 === 0) for (const an of Animals.list) if (an.type === 'person' && Math.abs(an.x - player.x) < 170 && Math.abs(an.y - player.y) < 170) an.danceUntil = Game.time + 0.8;
+};
 /* ============================ RENDERIZAÇÃO ============================ */
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -8120,7 +8238,7 @@ function lightPass(view, cx, cy) {
       lctx.drawImage(CONE, -2, -len * 0.21, len, len * 0.42);
       lctx.restore();
     }
-    lctx.globalAlpha = CarLife.lightsOn() ? 0.22 : 0.1; lctx.drawImage(LSPR, player.x - 105, player.y - 105, 210, 210); // brilho em volta do carro (60% mais fraco)
+    lctx.globalAlpha = (CarLife.lightsOn() ? 0.22 : 0.1) + (carKit(player.car.id).neon ? 0.18 : 0); lctx.drawImage(LSPR, player.x - 105, player.y - 105, 210, 210); // brilho em volta do carro (60% mais fraco)
   }
   lctx.globalAlpha = 1;
   lctx.globalCompositeOperation = 'source-over';
@@ -8226,7 +8344,11 @@ function emissivePass(view, talls) {
     const nearNode = c.state === 'turn' || (c.sEnd - c.s) < 150;
     carGlow(c, c.braking || c.hitT > 0 || c.v < 3, false, c.lcBlink || (nearNode ? c.blink : 0), false);
   }
-  if (player && Game.state !== 'menu') carGlow(player, player.braking || Keys.Space, player.rev, 0, true);
+  if (player && Game.state !== 'menu') {
+    const nk = carKit(player.car.id).neon;
+    if (nk) { const f = 0.8 + 0.12 * Math.sin(T * 9); ctx.globalAlpha = 0.95 * f; const gs = glowSprite(nk), R = player.m.L * 1.55; ctx.save(); ctx.translate(player.x, player.y); ctx.rotate(player.a); ctx.drawImage(gs, -R, -R * 0.62, R * 2, R * 1.24); ctx.restore(); ctx.globalAlpha = 1; }
+    carGlow(player, player.braking || Keys.Space, player.rev, 0, true);
+  }
   for (const u of Police.units) { const ph = Math.floor(T * 7 + u.id * 10) % 2; ctx.globalAlpha = 0.95; ctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 14, u.y - 14, 28, 28); ctx.globalAlpha = 0.3; ctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 70, u.y - 70, 140, 140); ctx.globalAlpha = 1; }
   Events.drawGlow(ctx, view);
   if (Socorro.job && (Game.time * 2.2) % 1 < 0.5) { const J = Socorro.job; ctx.globalAlpha = 0.9; const s = glowSprite('#ffa520'); ctx.drawImage(s, J.x - 22, J.y - 22, 44, 44); ctx.globalAlpha = 1; }
@@ -8376,7 +8498,7 @@ function render() {
   for (const u of Police.units) if (inView(view, u.x, u.y, 80)) drawVehicle(ctx, VMODELS.police, '#f2f2ee', u.x, u.y, u.a, { roll: 0, brake: u.v < 30 });
   if (Socorro.job && inView(view, Socorro.job.x, Socorro.job.y, 120)) { const J = Socorro.job; ctx.globalAlpha = clamp(1 - (J.fade || 0), 0, 1); drawVehicle(ctx, VMODELS.guincho, '#c8302a', J.x, J.y, J.a, { roll: 0, brake: J.state === 'arrived' || (J.v || 0) < 20 }); ctx.globalAlpha = 1; }
   if (player && Game.state !== 'menu') {
-    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery, zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null });
+    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery, zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null, kit: carKit(player.car.id) });
   }
   if (player && Game.state !== 'menu') {
     const D = Act.delivery;
@@ -8881,65 +9003,119 @@ function bindSettings() {
 }
 
 /* ---------- garagem ---------- */
+const CAR_KIND_TXT = { gas: 'Caminhão de gás', guincho: 'Guincho', cacamba: 'Caçamba', bau: 'Caminhão baú', tanker: 'Caminhão-tanque', quadrado: 'Hatch quadrado', besouro: 'Clássico a ar', escada: 'Hatch caixote', hatch: 'Hatch', van: 'Furgão', pickup: 'Picape', sedan: 'Sedã', santana: 'Sedã quadrado', sport: 'Esportivo', muscle: 'Clássico V6' };
+const JOB_TXT = { pickup: 'fretes de picape', gas: 'entrega de gás', guincho: 'reboque de carros', cacamba: 'retirada de entulho', bau: 'cargas de baú', tanker: 'abastecer postos' };
+function carTags(c) {
+  const t = [];
+  if (c.price === 0) t.push(['Carro inicial', 'g']);
+  if (c.job) t.push(['Trabalho: ' + JOB_TXT[c.job], 'y']);
+  if (c.cargo) t.push(['Entregas +' + Math.round((c.cargo - 1) * 100) + '%', 'y']);
+  if (c.offroad) t.push(['Bom na terra', 'g']);
+  if (c.max >= 560) t.push(['Muito rápido', 'r']); else if (c.max >= 500) t.push(['Rápido', 'r']);
+  if (c.fuel <= 0.9) t.push(['Econômico', 'g']); else if (c.fuel >= 1.6) t.push(['Bebe muito', 'r']);
+  if (VMODELS[c.model].kind === 'truck') t.push(['Não faz PegaAí', 'n']);
+  return t;
+}
 const Garage = {
-  sel: 'pampeiro', previewColor: null, t: 0,
+  sel: 'pampeiro', previewColor: null, t: 0, tab: 'perf', cat: 'paint', preview: {},
+  previewKit() { const own = !!Profile.owned[this.sel]; return Object.assign({}, own ? carKit(this.sel) : KIT_DEFAULT, this.preview); },
+  select(id) { this.sel = id; this.previewColor = null; this.preview = {}; if (!kitCatsFor(id).some((c) => c.id === this.cat)) this.cat = 'paint'; AudioSys.click(); this.render(); },
   render() {
-    const sel = carById(this.sel);
-    const owned = !!Profile.owned[sel.id];
+    const sel = carById(this.sel), owned = !!Profile.owned[sel.id], br = brandOf(sel.model);
     $('garage-money').textContent = fmtMoney(Profile.money);
-    const list = $('garage-list');
-    list.innerHTML = '';
-    for (const c of CARS) {
-      const d = document.createElement('div');
-      d.className = 'gcard' + (c.id === this.sel ? ' sel' : '');
-      const st = Profile.current === c.id ? '<span class="cur">Em uso</span>' : Profile.owned[c.id] ? '<span class="own">Na garagem</span>' : 'R$ ' + fmtMoney(c.price);
-      d.innerHTML = `<div class="gname"><small class="gbrand" style="color:${brandOf(c.model).color}">${escapeHtml(brandOf(c.model).name)}</small>${c.name}</div><div class="gsub"><span>${{ gas: 'Trabalho · gás', guincho: 'Trabalho · guincho', cacamba: 'Trabalho · caçamba', bau: 'Trabalho · baú', tanker: 'Trabalho · tanque', quadrado: 'Hatch quadrado', besouro: 'Clássico a ar', escada: 'Hatch caixote', hatch: 'Hatch', van: 'Furgão', pickup: 'Picape · trabalho', sedan: 'Sedã', santana: 'Sedã quadrado', sport: 'Esportivo', muscle: 'Clássico' }[c.model]}</span>${st}</div>`;
-      d.addEventListener('click', () => { this.sel = c.id; this.previewColor = null; AudioSys.click(); this.render(); });
-      d.addEventListener('mouseenter', () => AudioSys.hover());
-      list.appendChild(d);
+    // lista: meus carros / à venda
+    const list = $('garage-list'); list.innerHTML = '';
+    const mine = CARS.filter((c) => Profile.owned[c.id]), shop = CARS.filter((c) => !Profile.owned[c.id]);
+    for (const [title, arr] of [['MEUS CARROS', mine], ['À VENDA', shop]]) {
+      if (!arr.length) continue;
+      const h = document.createElement('div'); h.className = 'g-sec'; h.textContent = title + ' · ' + arr.length; list.appendChild(h);
+      for (const c of arr) {
+        const b = brandOf(c.model), d = document.createElement('div');
+        d.className = 'gcard' + (c.id === this.sel ? ' sel' : '');
+        const st = Profile.current === c.id ? '<span class="cur">EM USO</span>' : Profile.owned[c.id] ? '<span class="own">NA GARAGEM</span>' : '<span class="price' + (Profile.money >= c.price ? ' ok' : '') + '">R$ ' + fmtMoney(c.price) + '</span>';
+        d.innerHTML = `<div class="gbrand" style="color:${b.color}">${escapeHtml(b.name)}</div><div class="gname">${escapeHtml(c.name)}</div><div class="gsub"><span>${CAR_KIND_TXT[c.model] || ''}</span>${st}</div>`;
+        d.addEventListener('click', () => this.select(c.id));
+        d.addEventListener('mouseenter', () => AudioSys.hover());
+        list.appendChild(d);
+      }
     }
-    const br = brandOf(sel.model);
-    $('garage-car-title').innerHTML = `<span class="brand-badge" style="--bc:${br.color}">${escapeHtml(br.name)}</span>${escapeHtml(sel.name)}`;
-    $('garage-car-desc').textContent = '"' + br.slogan + '" ' + sel.desc;
-    // estatísticas
-    const base = { max: sel.max, acc: sel.acc, brk: sel.brk, steer: sel.steer * sel.grip };
+    // centro: marca na cor dela, com o slogan logo abaixo
+    $('garage-brand').innerHTML = `<b style="color:${br.color}">${escapeHtml(br.name)}</b><i style="color:${br.color}">"${escapeHtml(br.slogan)}"</i>`;
+    $('garage-car-title').textContent = sel.name;
+    $('garage-tags').innerHTML = carTags(sel).map(([t, k]) => `<span class="gt-${k}">${escapeHtml(t)}</span>`).join('');
+    $('garage-car-desc').textContent = sel.desc;
+    const mb = $('garage-main-btn'), note = $('garage-main-note');
+    if (!owned) { mb.textContent = 'COMPRAR POR R$ ' + fmtMoney(sel.price); mb.disabled = Profile.money < sel.price; note.textContent = Profile.money < sel.price ? 'Faltam R$ ' + fmtMoney(sel.price - Profile.money) + '. Faça entregas, corridas e eventos para juntar.' : 'Depois de comprar, ele fica na sua garagem para sempre.'; }
+    else if (Profile.current === sel.id) { mb.textContent = 'ESTE É O SEU CARRO ATUAL'; mb.disabled = true; note.textContent = 'Melhore e personalize na direita.'; }
+    else { mb.textContent = 'USAR ESTE CARRO'; mb.disabled = false; note.textContent = 'Troque de carro quando quiser, de graça.'; }
+    document.querySelectorAll('[data-gtab]').forEach((b) => b.classList.toggle('on', b.dataset.gtab === this.tab));
+    $('garage-tab').innerHTML = this.tab === 'kit' ? this.kitHTML(sel, owned) : this.perfHTML(sel, owned);
+  },
+  perfHTML(sel, owned) {
     const cur = owned ? carStats(sel.id) : { max: sel.max, acc: sel.acc, brk: sel.brk, grip: sel.grip, steer: sel.steer };
-    const rows = [['Velocidade máx.', base.max, cur.max, 720, Math.round(cur.max * 0.3) + ' km/h'], ['Aceleração', base.acc, cur.acc, 230], ['Frenagem', base.brk, cur.brk, 520], ['Direção', base.steer, cur.steer * cur.grip, 1.45]];
-    $('garage-stats').innerHTML = rows.map(([n, b, c, mx, lab]) => {
+    const word = (f) => f < 0.35 ? 'fraca' : f < 0.55 ? 'média' : f < 0.75 ? 'boa' : 'ótima';
+    const rows = [['Velocidade máxima', sel.max, cur.max, 720, Math.round(cur.max * 0.3) + ' km/h'], ['Aceleração', sel.acc, cur.acc, 230], ['Freio', sel.brk, cur.brk, 520], ['Direção', sel.steer * sel.grip, cur.steer * cur.grip, 1.45]];
+    let h = '<div class="side-title">COMO ELE ANDA</div><div id="garage-stats">' + rows.map(([n, b, c, mx, lab]) => {
       const pb = clamp(b / mx, 0, 1) * 100, pc = clamp(c / mx, 0, 1) * 100;
-      return `<div class="stat"><div class="st-top"><span>${n}</span><span>${lab || Math.round(pc)}</span></div><div class="st-bar"><i class="up" style="width:${pc}%"></i><i style="width:${pb}%"></i></div></div>`;
-    }).join('');
-    // cores
+      return `<div class="stat"><div class="st-top"><span>${n}</span><span>${lab || word(pc / 100)}</span></div><div class="st-bar"><i class="up" style="width:${pc}%"></i><i style="width:${pb}%"></i></div></div>`;
+    }).join('') + '</div><div class="side-title">MELHORIAS <small>verde = ganho das melhorias</small></div><div id="garage-upgrades">';
     const cfg = owned ? carCfg(sel.id) : null;
-    const curColor = this.previewColor || (cfg ? cfg.color : PALETTE[CARS.indexOf(sel) % PALETTE.length]);
-    const sw = $('garage-colors'); sw.innerHTML = '';
-    for (const col of PALETTE) {
-      const d = document.createElement('div');
-      d.className = 'sw' + (col === curColor ? ' on' : '');
-      d.style.background = col;
-      d.title = owned ? 'Pintar (R$ 150)' : 'Ver cor';
-      d.addEventListener('click', () => this.paint(col));
-      sw.appendChild(d);
-    }
-    // melhorias
-    const up = $('garage-upgrades'); up.innerHTML = '';
+    const plain = { motor: 'Arranca mais rápido', cambio: 'Chega mais longe na velocidade', freio: 'Para em menos espaço', pneu: 'Segura melhor nas curvas' };
     for (const u of UPGRADES) {
-      const lvl = owned ? cfg.up[u.id] : 0;
-      const row = document.createElement('div'); row.className = 'upg';
-      const cost = lvl < 3 ? upgradeCost(sel.id, u.id, lvl) : 0;
-      row.innerHTML = `<div class="un">${u.name}<small>${u.desc}</small></div><div class="pips">${[0, 1, 2].map((i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</div>`;
-      const b = document.createElement('button');
-      b.textContent = !owned ? '—' : lvl >= 3 ? 'MÁX' : 'R$ ' + fmtMoney(cost);
-      b.disabled = !owned || lvl >= 3 || Profile.money < cost;
-      b.addEventListener('click', () => this.upgrade(u.id));
-      row.appendChild(b); up.appendChild(row);
+      const lvl = owned ? cfg.up[u.id] : 0, cost = lvl < 3 ? upgradeCost(sel.id, u.id, lvl) : 0;
+      h += `<div class="upg"><div class="un">${u.name}<small>${plain[u.id]} · nível ${lvl} de 3</small></div><div class="pips">${[0, 1, 2].map((i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</div><button data-gup="${u.id}" ${!owned || lvl >= 3 || Profile.money < cost ? 'disabled' : ''}>${!owned ? '—' : lvl >= 3 ? 'MÁXIMO' : 'R$ ' + fmtMoney(cost)}</button></div>`;
     }
-    if (!owned) { const n = document.createElement('div'); n.className = 'garage-note'; n.textContent = 'Compre o veículo para instalar melhorias e pintar.'; up.appendChild(n); }
-    // botão principal
-    const mb = $('garage-main-btn');
-    if (!owned) { mb.textContent = 'COMPRAR — R$ ' + fmtMoney(sel.price); mb.disabled = Profile.money < sel.price; }
-    else if (Profile.current === sel.id) { mb.textContent = 'EM USO'; mb.disabled = true; }
-    else { mb.textContent = 'USAR ESTE CARRO'; mb.disabled = false; }
+    h += '</div>' + (!owned ? '<div class="garage-note">Compre o carro para instalar melhorias.</div>' : '<div class="garage-note">Toda melhoria passa pela oficina: o carro volta desamassado.</div>');
+    return h;
+  },
+  kitHTML(sel, owned) {
+    const cats = kitCatsFor(sel.id), k = this.previewKit(), real = owned ? carKit(sel.id) : KIT_DEFAULT;
+    let h = '<div class="kit-cats">' + cats.map((c) => `<button data-kcat="${c.id}" class="${c.id === this.cat ? 'on' : ''}">${KIT_ICONS[c.id] || ''}<span>${c.name}</span></button>`).join('') + '</div>';
+    const C = KIT_CATS.find((c) => c.id === this.cat);
+    h += `<div class="side-title">${C.name.toUpperCase()}</div><p class="kit-desc">${KIT_DESC[C.id]}</p>`;
+    if (C.id === 'paint') {
+      const curColor = this.previewColor || (owned ? carCfg(sel.id).color : PALETTE[CARS.indexOf(sel) % PALETTE.length]);
+      h += '<div id="garage-colors" class="swatches">' + PALETTE.map((col) => `<div class="sw${col === curColor ? ' on' : ''}" data-kcol="${col}" style="background:${col}" title="${owned ? 'Pintar (R$ 150)' : 'Ver cor'}"></div>`).join('') + '</div>';
+      const pend = owned && this.previewColor && this.previewColor !== carCfg(sel.id).color;
+      h += pend ? `<button class="kit-buy" data-kpaint="1" ${Profile.money < 150 ? 'disabled' : ''}>PINTAR DESTA COR — R$ 150</button>` : '';
+    } else {
+      h += '<div class="kit-opts">' + C.opts.map(([v, label, price]) => {
+        const isReal = real[C.id] === v, isPrev = k[C.id] === v;
+        const sw = C.id === 'neon' && v ? `<i class="kit-sw" style="background:${v};box-shadow:0 0 10px ${v}"></i>` : C.id === 'wheels' && v !== 'serie' ? `<i class="kit-sw" style="background:${RIMS[v]}"></i>` : '';
+        return `<button data-kopt="${C.id}" data-kv="${String(v)}" class="${isPrev ? 'prev' : ''}${isReal ? ' inst' : ''}">${sw}<span>${escapeHtml(label)}</span><em>${isReal ? 'INSTALADO' : price ? 'R$ ' + fmtMoney(price) : 'GRÁTIS'}</em></button>`;
+      }).join('') + '</div>';
+      const pv = this.preview[C.id];
+      if (pv !== undefined && pv !== real[C.id]) {
+        const price = kitPrice(C.id, pv);
+        h += owned ? `<button class="kit-buy" data-kbuy="${C.id}" ${Profile.money < price ? 'disabled' : ''}>${price ? 'INSTALAR — R$ ' + fmtMoney(price) : 'VOLTAR AO ORIGINAL (GRÁTIS)'}</button>` : '<div class="garage-note">Isso é só uma prévia. Compre o carro para instalar.</div>';
+      }
+    }
+    h += '<div class="garage-note">Clique numa opção para ver no carro antes de pagar.</div>';
+    return h;
+  },
+  click(e) {
+    const t = e.target.closest('[data-gtab],[data-kcat],[data-kcol],[data-kopt],[data-kbuy],[data-kpaint],[data-gup]'); if (!t) return;
+    const sel = carById(this.sel), owned = !!Profile.owned[sel.id];
+    if (t.dataset.gtab) { this.tab = t.dataset.gtab; AudioSys.click(); this.render(); return; }
+    if (t.dataset.kcat) { this.cat = t.dataset.kcat; AudioSys.click(); this.render(); return; }
+    if (t.dataset.kcol) { this.previewColor = t.dataset.kcol; AudioSys.click(); if (!owned) { this.render(); return; } this.render(); return; }
+    if (t.dataset.kpaint) { this.paint(this.previewColor); return; }
+    if (t.dataset.gup) { this.upgrade(t.dataset.gup); return; }
+    if (t.dataset.kopt) {
+      const C = KIT_CATS.find((c) => c.id === t.dataset.kopt), raw = t.dataset.kv, v = C.opts.map((o) => o[0]).find((x) => String(x) === raw);
+      this.preview[C.id] = v; AudioSys.click(); this.render(); return;
+    }
+    if (t.dataset.kbuy) {
+      const cat = t.dataset.kbuy, v = this.preview[cat], price = kitPrice(cat, v);
+      if (!owned) return;
+      if (Profile.money < price) { AudioSys.error(); return; }
+      Profile.money -= price; if (price) UI.moneyDelta(-price);
+      carKit(sel.id)[cat] = v; delete this.preview[cat];
+      if (cat === 'low' && player && player.car.id === sel.id) player.recalc();
+      if (cat === 'sound' && !v) Som.on = false;
+      AudioSys.wrench(); toast('Instalado!', KIT_CATS.find((c) => c.id === cat).name + ': ' + KIT_CATS.find((c) => c.id === cat).opts.find((o) => o[0] === v)[1], 'good');
+      saveGame(); this.render();
+    }
   },
   main() {
     const sel = carById(this.sel);
@@ -8952,12 +9128,12 @@ const Garage = {
       if (this.previewColor) cfg.color = this.previewColor;
       this.previewColor = null;
       AudioSys.money();
-      toast('Novo veículo!', sel.name + ' agora é seu.', 'good');
+      toast('Novo veículo!', carFullName(sel) + ' agora é seu.', 'good');
       if (sel.job) addMsg('Central de Fretes', 'Bem-vindo à frota', 'Recebemos o cadastro do seu ' + sel.name + '. Abra o app Fretes no celular (Q) para ver as cargas disponíveis perto de você. Quanto mais longe, mais paga. Cuidado com carga frágil e perigosa.');
       UI.moneyDelta(-sel.price);
     }
     // cada carro guarda o próprio estado: trocar de carro não leva o amassado junto
-    if (prev !== sel.id) { stashCondition(prev); Profile.current = sel.id; loadCondition(sel.id); }
+    if (prev !== sel.id) { stashCondition(prev); Profile.current = sel.id; loadCondition(sel.id); Som.on = false; }
     if (player) { player.setCar(sel.id); }
     AudioSys.click();
     saveGame();
@@ -8967,10 +9143,10 @@ const Garage = {
     const sel = carById(this.sel);
     if (!Profile.owned[sel.id]) { this.previewColor = col; AudioSys.click(); this.render(); return; }
     const cfg = carCfg(sel.id);
-    if (cfg.color === col) return;
+    if (!col || cfg.color === col) return;
     if (Profile.money < 150) { AudioSys.error(); toast('Dinheiro insuficiente', 'A pintura custa R$ 150.', 'bad'); return; }
-    Profile.money -= 150; cfg.color = col; UI.moneyDelta(-150);
-    AudioSys.wash();
+    Profile.money -= 150; cfg.color = col; UI.moneyDelta(-150); this.previewColor = null;
+    AudioSys.wash(); toast('Pintado!', 'Cor nova na lataria.', 'good');
     if (player && player.car.id === sel.id) player.recalc();
     saveGame(); this.render();
   },
@@ -8987,6 +9163,19 @@ const Garage = {
     if (player && player.car.id === sel.id) player.recalc();
     saveGame(); this.render();
   },
+};
+const _ki = (d) => `<svg viewBox="0 0 24 24" class="kit-ico">${d}</svg>`;
+const KIT_ICONS = {
+  paint: _ki('<path d="M4 15l7-7 5 5-7 7H4z"/><path d="M14 6l4 4M16 4l4 4"/>'),
+  finish: _ki('<path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>'),
+  wheels: _ki('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5V9M12 15v5.5M3.5 12H9M15 12h5.5"/>'),
+  tint: _ki('<path d="M4 7h16l-2 11H6z"/><path d="M8 7l1-3h6l1 3"/>'),
+  sticker: _ki('<path d="M5 4h14v10l-6 6H5z"/><path d="M13 20v-6h6"/>'),
+  hood: _ki('<path d="M12 21c-4 0-6-3-6-6 0-4 4-5 3-10 3 2 4 4 4 6 1-1 1.5-2 1.5-3 2 2 3.5 4.5 3.5 7 0 3-2 6-6 6z"/>'),
+  neon: _ki('<path d="M4 15h16"/><path d="M6 19h12" opacity=".6"/><path d="M6 15l2-6h8l2 6"/>'),
+  low: _ki('<path d="M3 15h18M6 15l2-5h8l2 5"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M12 3v4M10 5l2 2 2-2"/>'),
+  sound: _ki('<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="14" r="3.5"/><circle cx="12" cy="7" r="1.5"/>'),
+  spoiler: _ki('<path d="M3 8h18v3H3z"/><path d="M7 11l1 6M17 11l-1 6"/>'),
 };
 function stashCondition(id) { if (!id) return; carCfg(id).cond = { damage: Profile.damage || 0, zones: Profile.zones ? Object.assign({}, Profile.zones) : null, dirt: Profile.dirt || 0 }; }
 function loadCondition(id) {
@@ -9010,14 +9199,16 @@ function drawGaragePreview(dt) {
   const owned = !!Profile.owned[sel.id];
   const col = Garage.previewColor || (owned ? carCfg(sel.id).color : PALETTE[CARS.indexOf(sel) % PALETTE.length]);
   const m = VMODELS[sel.model];
-  const sc = 340 / Math.max(m.L, 50) * 1.15;
+  const sc = 300 / Math.max(m.L, 50) * 1.15;
   gpx.save();
   gpx.translate(W / 2, H * 0.55); gpx.scale(sc, sc);
   const a = Garage.t * 0.45;
   gpx.globalCompositeOperation = 'lighter';
   gpx.save(); gpx.rotate(a); gpx.globalAlpha = 0.18; gpx.drawImage(CONE, m.L / 2 - 2, -40, 160, 80); gpx.restore();
   gpx.globalCompositeOperation = 'source-over'; gpx.globalAlpha = 1;
-  drawVehicle(gpx, m, col, 0, 0, a, { steer: Math.sin(Garage.t * 0.9) * 0.3, roll: Garage.t * 10, dirt: 0, noSq: true, noLift: true });
+  const pk = Garage.previewKit();
+  if (pk.neon) { gpx.globalCompositeOperation = 'lighter'; gpx.save(); gpx.rotate(a); gpx.globalAlpha = 0.7 + 0.1 * Math.sin(Garage.t * 8); const R = m.L * 1.3; gpx.drawImage(glowSprite(pk.neon), -R, -R * 0.65, R * 2, R * 1.3); gpx.restore(); gpx.globalCompositeOperation = 'source-over'; gpx.globalAlpha = 1; }
+  drawVehicle(gpx, m, col, 0, 0, a, { steer: Math.sin(Garage.t * 0.9) * 0.3, roll: Garage.t * 10, dirt: 0, noSq: true, noLift: true, kit: pk });
   gpx.globalCompositeOperation = 'lighter';
   const ca = Math.cos(a), sa = Math.sin(a), hl = m.L / 2, hw = m.W / 2 - 4;
   for (const s of [1, -1]) {
@@ -9278,7 +9469,8 @@ function updateHUD(dt) {
     UI.set('tire-bar', Math.round(L.tires) + '%', 'width'); UI.set('tire-bar', low(L.tires), 'bg');
     UI.set('oil-bar', Math.round(L.oil) + '%', 'width'); UI.set('oil-bar', low(L.oil), 'bg');
     UI.set('bat-bar', Math.round(L.bat) + '%', 'width'); UI.set('bat-bar', low(L.bat), 'bg');
-    const lo = !!player.lightsOff; if (UI.last.lo !== lo) { UI.last.lo = lo; $('hud-dash').classList.toggle('lights-off', lo); } }
+    const lo = !!player.lightsOff; if (UI.last.lo !== lo) { UI.last.lo = lo; $('hud-dash').classList.toggle('lights-off', lo); }
+    if (UI.last.som !== Som.on) { UI.last.som = Som.on; $('hud-dash').classList.toggle('som-on', Som.on); } }
   // prompt
   const pr = Act.prompt && !Screens.current ? '<kbd>E</kbd>' + escapeHtml(Act.prompt.text) : '';
   if (UI.last.prompt !== pr) { UI.last.prompt = pr; const el = $('prompt'); el.innerHTML = pr; el.classList.toggle('hidden', !pr); }
@@ -9301,7 +9493,7 @@ const NIGHT_START = 19 * 60 + 30, NIGHT_END = 29 * 60;
 
 function startPlay() {
   AudioSys.init();
-  Act.reset(); Events.reset(); CarLife.reset();
+  Act.reset(); Events.reset(); CarLife.reset(); Som.on = false;
   player = new Player(Profile.current);
   let pos = World.home;
   const sp = Profile.pos;
@@ -9361,7 +9553,7 @@ function saveGame() {
 function toMenu() {
   Game.mode = 'menu';
   player = null;
-  Act.reset(); Events.reset(); CarLife.reset();
+  Act.reset(); Events.reset(); CarLife.reset(); Som.on = false;
   Screens.closeAll();
   Screens.open('screen-main');
   AudioSys.hornOn = false;
@@ -9396,6 +9588,7 @@ function handleKeys() {
       case 'KeyE': if (Act.prompt) Act.prompt.act(); break;
       case 'KeyQ': Phone.open('home'); break;
       case 'KeyH': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
+      case 'KeyB': Som.toggle(); break;
       case 'KeyL': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
       case 'KeyC': Cam.quick = Cam.quick === 1 ? 0.72 : 1; break;
       case 'KeyR': if (player.speed < 120) resetVehicle(); break;
@@ -9417,6 +9610,7 @@ function stepPlay(dt) {
   Events.update(dt);
   CarLife.update(dt);
   Finance.update(dt);
+  Som.update(dt);
   Socorro.update(dt);
   Achievements.check(dt);
   Weather.updatePlayer(dt, player);
@@ -9491,6 +9685,7 @@ async function boot() {
   bindMenus();
   bindSettings();
   $('garage-main-btn').addEventListener('click', () => Garage.main());
+  document.querySelector('#screen-garage .garage-side').addEventListener('click', (e) => Garage.click(e));
   $('phone-body').addEventListener('click', (e) => Phone.click(e));
   $('phone-close').addEventListener('click', () => { AudioSys.back(); Screens.back(); });
   $('hud-phone').addEventListener('click', () => { if (Game.state === 'playing') Phone.open('home'); });

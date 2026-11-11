@@ -24,10 +24,13 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
   - Parcela descontada sozinha a cada virada de noite (05:00). Sem saldo: atrasa, +10% de juros por noite, e desconta assim que entrar dinheiro, com mensagem do banco.
   - Seu Zé faz fiado (socorro e oficina): cobra sozinho na virada da noite; se não der, +5% de juros. Com fiado em aberto ele não vem de novo e manda uma resposta de zoeira.
 
+- [x] **3. Personalização do carro + garagem refeita** (versão 1.6.0)
+  - Pintura, acabamento (metálico/fosco), rodas, insulfilm, adesivo no vidro traseiro, desenho no capô, neon, rebaixado (+4% aderência, faísca na lombada), paredão (tecla B, povo dança, gasta bateria parado) e aerofólio.
+  - Garagem com passo a passo, "Meus carros" e "À venda", marca na cor dela com o slogan embaixo, etiquetas do que o carro faz, prévia ao vivo antes de pagar.
+
 ## Próximos
 
 1. **História em capítulos** — missões contadas pelo WhatsApp, com personagens fixos (Seu Zé, o primo enrolado, um cliente misterioso, o dono do ferro-velho). Cada capítulo libera bairro, carro ou oficina nova. Ex.: buscar uma encomenda em Vila Véia e descobrir que é a moqueca roubada do concurso de Camburiso.
-3. **Personalização do carro** — cor, rodas, adesivos de zoeira ("Deus é fiel", "Não sou de Vitorinha", "Filho feio não tem pai"), som rebaixado, neon, suspensão baixa.
 4. **Colecionáveis escondidos** — 30 panelas de barro pelo mapa, pontos turísticos para "fotografar" com o celular, placas de zoeira. Coleção completa dá prêmio.
 5. **Desafios diários e semanais** — "3 corridas sem bater", "entregue um frete na chuva", "dirija 5 km na BR à noite".
 6. **Nível de motorista e reputação** — experiência por nível; notas no PegaAí liberam corridas VIP, aeroporto e mudança. Cliente mal atendido manda áudio xingando.
