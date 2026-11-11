@@ -774,3 +774,16 @@ div.ph-wid { cursor: default; }
 #phone-body.home .ph-lbl { font-size: 10px; }
 #phone-body.home .ph-wname { padding: 8px 0 6px; }
 #phone-body.home .ph-dock { padding: 9px 8px; border-radius: 26px; }
+/* carteira: abas, banco e fiado */
+.ph-tabs { display: flex; gap: 4px; background: #1c1c1e; border-radius: 10px; padding: 3px; margin-bottom: 10px; }
+.ph-tabs button { pointer-events: auto; cursor: pointer; flex: 1; border: 0; border-radius: 8px; padding: 7px; background: none; color: #98989f; font: 600 13px -apple-system, "Segoe UI", sans-serif; }
+.ph-tabs button.on { background: #3a3a3c; color: #fff; }
+.bank-hero { background: linear-gradient(135deg, #0b5a3a, #1e8a5a); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
+.bank-hero b { display: block; font: italic 900 20px -apple-system, "Segoe UI", sans-serif; color: #fff; letter-spacing: 0.02em; }
+.bank-hero span { font-size: 11px; color: #c9f5dc; }
+.loan-amts { display: flex; gap: 6px; margin: 8px 0 10px; }
+.loan-amts button { pointer-events: auto; cursor: pointer; flex: 1; border: 1px solid #3a3a3c; border-radius: 10px; padding: 9px 4px; background: #1c1c1e; color: #fff; font: 700 13px -apple-system, "Segoe UI", sans-serif; }
+.loan-amts button.on { background: #30d158; color: #000; border-color: #30d158; }
+.late, .ph-row .late { color: #ff6961; font-style: normal; }
+.wa-fiado { display: block; font-size: 11px; color: #ffb547; margin: 2px 0 6px; }
+.wa-fiado.ok { color: #98989f; }

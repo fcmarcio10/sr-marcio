@@ -19,6 +19,10 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
   - Bateria só descarrega com farol aceso e carro parado depois de 2,5 min; andando, recarrega. H liga/desliga o farol.
   - Troca na oficina (tudo), no posto (óleo) e na borracharia (pneus); Seu Zé faz chupeta e troca pneu pelo zap.
 - [x] **Chuva 10% mais longa**, com pedestres de guarda-chuva e de capa de chuva.
+- [x] **Banco e fiado** (versão 1.4.0)
+  - Banestresse (app Carteira > Empréstimo): R$ 500, 1.000 ou 2.000 em 3x (6%), 5x (12%) ou 8x (20%). Um por vez.
+  - Parcela descontada sozinha a cada virada de noite (05:00). Sem saldo: atrasa, +10% de juros por noite, e desconta assim que entrar dinheiro, com mensagem do banco.
+  - Seu Zé faz fiado (socorro e oficina): cobra sozinho na virada da noite; se não der, +5% de juros. Com fiado em aberto ele não vem de novo e manda uma resposta de zoeira.
 
 ## Próximos
 

@@ -3,7 +3,7 @@
    Jogo de exploração noturna top-down 2.5D — HTML5 Canvas + JS puro
    ===================================================================== */
 'use strict';
-const GAME_VERSION = '1.3.0';
+const GAME_VERSION = '1.4.0';
 try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
 
 /* ============================ UTILIDADES ============================ */
@@ -5510,6 +5510,7 @@ function socorroDrive(J, speed, dt) {
 }
 function socorroCall(kind) {
   if (Socorro.job || !player) return;
+  if (!zeFiadoGate()) return; // fiado em aberto: sem acertar, ele não vem
   // sai da oficina se ela estiver perto; senão aparece numa rua a uns 1,2 km de você
   const of = World.shops.find((s) => s.kind === 'oficina');
   let sx, sy;
@@ -5550,36 +5551,25 @@ Socorro.update = function (dt) {
   } else if (J.state === 'arrived') {
     if (player.speed > 30) { J.t = 0; if (Math.hypot(player.x - J.x, player.y - J.y) > 160) { J.state = 'coming'; J.rt = 0; } return; }
     if (J.t > 0.4 && Math.floor(J.t * 2.5) !== Math.floor((J.t - dt) * 2.5)) AudioSys.wrench();
-    if (J.t > 3 && (J.kind === 'bat' || J.kind === 'pneu')) {
-      // chupeta ou troca de pneu: Seu Zé faz e cobra o que você tiver (o resto fica no fiado)
-      const L = carLife(), paid = Math.min(J.quote, Math.max(0, Math.floor(Profile.money)));
-      if (J.kind === 'bat') { L.bat = 100; CarLife.stalled = false; } else L.tires = 100;
-      Profile.money -= paid; UI.moneyDelta(-paid); AudioSys.chime();
-      toast('Socorro do Seu Zé', (J.kind === 'bat' ? 'Chupeta feita, o motor pegou!' : 'Pneus novos no lugar!') + ' — R$ ' + fmtMoney(paid), 'good');
-      addMsg(ZE, '', J.kind === 'bat' ? 'Pegou de primeira! Agora não fica parado com o farol aceso não, hein. Bateria não é poste.' : 'Pneu novo, sapato novo! Agora para de cantar pneu em toda esquina, que borracha não nasce em árvore. Quer dizer, nasce, mas demora.', true);
+    if (J.t > 3) {
+      // serviço completo; o que faltar de dinheiro o Seu Zé anota no fiado (é amigo)
+      const L = carLife();
+      let cost = 0, what = '';
+      if (J.kind === 'bat') { L.bat = 100; CarLife.stalled = false; cost = J.quote; what = 'Chupeta feita, o motor pegou!'; }
+      else if (J.kind === 'pneu') { L.tires = 100; cost = J.quote; what = 'Pneus novos no lugar!'; }
+      else {
+        const fuelNeed = J.kind !== 'fix' ? Math.max(0, 100 - Profile.fuel) : 0, dmg = J.kind !== 'gas' ? Profile.damage : 0;
+        cost = fuelNeed * 1.8 * 1.15 + dmg * 4 * 1.15;
+        Profile.fuel = Math.min(100, Profile.fuel + fuelNeed);
+        if (dmg > 0) { Profile.damage = 0; if (Profile.zones) { for (const z of ['f', 'r', 'l', 'rt', 'fL', 'fR']) Profile.zones[z] = 0; Profile.zones.seed = (Profile.zones.seed || 0) + 1; } }
+        what = 'Tudo resolvido.';
+      }
+      const ch = zeCharge(cost, true);
+      AudioSys.chime();
+      toast('Socorro do Seu Zé', what + ' Pago R$ ' + fmtMoney(ch.paid) + (ch.owed ? ' · fiado R$ ' + fmtMoney(ch.owed) : ''), 'good');
+      const tip = J.kind === 'bat' ? ' Agora não fica parado com o farol aceso não, hein. Bateria não é poste.' : J.kind === 'pneu' ? ' Pneu novo, sapato novo! Para de cantar pneu em toda esquina.' : ' Vai com Deus e devagar.';
+      addMsg(ZE, '', ch.owed ? (ch.paid ? 'Peguei os R$ ' + fmtMoney(ch.paid) + ' que você tinha e ' : 'Tá liso, né? Tranquilo, ') + 'anotei R$ ' + fmtMoney(ch.owed) + ' no fiado. Amanhã, na virada da noite, eu pego sozinho se tiver dinheiro. Se atrasar, entra jurinho, viu?' + tip : 'Prontinho, R$ ' + fmtMoney(ch.paid) + '.' + tip, true);
       J.kind = 'done';
-      J.t = 3.01;
-    }
-    if (J.t > 3 && J.kind === 'done') {
-      J.state = 'leaving'; J.t = 0; J.v = 0; saveGame();
-      const of = World.shops.find((s) => s.kind === 'oficina');
-      const rb = of ? gpsRoute(J.x, J.y, of.x, of.y) : null;
-      J.pts = rb ? laneShift(rb.pts, 20) : [[J.x, J.y]]; J.ri = 1;
-      if (of && of.bld) { const b = of.bld; J.pts.push([clamp(of.x, b.x0 + 20, b.x1 - 20), clamp(of.y, b.y0, b.y1)]); }
-      J.home = !!of;
-    } else if (J.t > 3) {
-      // serviço feito: cobra o que der com o dinheiro que você tem
-      const fuelNeed = J.kind !== 'fix' ? Math.max(0, 100 - Profile.fuel) : 0, dmg = J.kind !== 'gas' ? Profile.damage : 0;
-      const pf = 1.8 * 1.15, pd = 4 * 1.15;
-      let money = Math.max(0, Profile.money), paid = 0;
-      const f = Math.min(fuelNeed, money / pf); Profile.fuel = Math.min(100, Profile.fuel + f); paid += f * pf; money -= f * pf;
-      const r = Math.min(dmg, money / pd); paid += r * pd;
-      if (r > 0) { const before = Profile.damage; Profile.damage = Math.max(0, Profile.damage - r); if (Profile.zones) { const k = before > 0 && Profile.damage >= 1 ? Profile.damage / before : 0; for (const z of ['f', 'r', 'l', 'rt', 'fL', 'fR']) Profile.zones[z] = (Profile.zones[z] || 0) * k; Profile.zones.seed = (Profile.zones.seed || 0) + 1; } if (Profile.damage < 1) Profile.damage = 0; }
-      paid = Math.ceil(paid);
-      Profile.money -= paid; UI.moneyDelta(-paid); AudioSys.chime();
-      const full = (fuelNeed - f) < 1 && (dmg - r) < 1;
-      toast('Socorro do Seu Zé', (full ? 'Tudo resolvido' : 'Fez o que deu com o seu dinheiro') + ' — R$ ' + fmtMoney(paid), 'good');
-      addMsg(ZE, '', full ? 'Prontinho, R$ ' + fmtMoney(paid) + '. Tá rodando de novo! Vai com Deus e devagar.' : 'Fiz o que deu com os R$ ' + fmtMoney(paid) + ' que você tinha. Passa na oficina depois pra terminar.', true);
       J.state = 'leaving'; J.t = 0; J.v = 0; saveGame();
       // volta pela rua até a garagem da oficina
       const of = World.shops.find((s) => s.kind === 'oficina');
@@ -5604,8 +5594,8 @@ function socorroBar(H) {
   const qg = socorroQuote('gas'), qf = socorroQuote('fix');
   const btn = (k, label, q, need) => `<button data-sos="${k}" ${need ? '' : 'disabled'}>${label}<small>${need ? 'R$ ' + fmtMoney(q) : 'não precisa'}</small></button>`;
   const L = carLife(), qb = socorroQuote('bat'), qp = socorroQuote('pneu');
-  return '<div class="wa-sos"><b>Pedir socorro (15% mais caro que a oficina)</b><div class="wa-sos-btns">' +
-    btn('gas', 'Gasolina', qg, qg > 0) + btn('fix', 'Conserto', qf, qf > 0) + btn('both', 'Os dois', qg + qf, qg > 0 && qf > 0) + '</div><div class="wa-sos-btns">' +
+  return '<div class="wa-sos"><b>Pedir socorro (15% mais caro que a oficina)</b>' + (fiadoOpen() ? `<small class="wa-fiado">Caderneta: R$ ${fmtMoney(Math.ceil(Profile.fiado.amount))} de fiado</small>` : '<small class="wa-fiado ok">Sem dinheiro? Ele faz fiado.</small>') + '<div class="wa-sos-btns">' +
+    btn('gas', 'Gasolina', qg, qg >= 8) + btn('fix', 'Conserto', qf, qf >= 8) + btn('both', 'Os dois', qg + qf, qg >= 8 && qf >= 8) + '</div><div class="wa-sos-btns">' +
     btn('bat', 'Chupeta', qb, L.bat < 30) + btn('pneu', 'Pneus', qp, L.tires < 15) + '</div></div>';
 }
 
@@ -5709,6 +5699,7 @@ const ACHIEVEMENTS_ALL = [
   { id: 'arraia', name: 'Salvou o arraiá', desc: 'Ajude a organizadora de uma festa junina.', goal: 1, val: () => (Profile.evDone || {}).festa || 0, prize: 150 },
   { id: 'caroneiro', name: 'Caroneiro da BR', desc: 'Dê 3 caronas na BR.', goal: 3, val: () => (Profile.evDone || {}).carona || 0, prize: 200 },
   { id: 'eventos10', name: 'A noite é uma caixinha de surpresas', desc: 'Participe de 10 eventos pela cidade.', goal: 10, val: () => Profile.evTotal || 0, prize: 400 },
+  { id: 'quitado', name: 'Nome limpo na praça', desc: 'Quite um empréstimo do Banestresse.', goal: 1, val: () => Profile.loansPaid || 0, prize: 150 },
   { id: 'noite', name: 'Varou a madrugada', desc: 'Jogue até o dia amanhecer.', goal: 1, val: () => Profile.nights || 0, prize: 200 },
 ];
 // sem o sistema de polícia, as conquistas de perseguição ficam escondidas
@@ -5962,8 +5953,7 @@ const Phone = {
             (ok ? `<em>Desbloqueada às ${H(A[a.id])} · +R$ ${fmtMoney(a.prize)}</em>` : `<div class="ach-bar sm"><i style="width:${(v / g * 100).toFixed(0)}%"></i></div><em>${fmtV(a, v)} de ${fmtV(a, g)} · prêmio R$ ${fmtMoney(a.prize)}</em>`) + '</div></div>';
         }).join('');
     } else if (this.app === 'carteira') {
-      html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div><div class="ph-card"><div class="ph-big">R$ ${fmtMoney(Profile.money)}</div><p>Total ganho: R$ ${fmtMoney(Profile.earned)}</p></div>` +
-        `<div class="ph-row static"><b>Entregas e fretes</b><span>${Profile.deliveries} concluídos</span></div><div class="ph-row static"><b>Corridas no PegaAí</b><span>${Profile.rides || 0}</span></div><div class="ph-row static"><b>Veículo atual</b><span>${H(player.car.name)}</span></div>`;
+      html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div>` + walletHTML(this.wtab);
     }
     body.innerHTML = html;
     if (this.app === 'mapa') { phoneMap = new MapView($('phonemap'), MapState.phone); renderMapDests(); requestAnimationFrame(() => phoneMap && phoneMap.draw()); } else phoneMap = null;
@@ -5979,6 +5969,9 @@ const Phone = {
       if (Profile.muted[n]) delete Profile.muted[n]; else Profile.muted[n] = true;
       toast(Profile.muted[n] ? 'Conversa silenciada' : 'Notificações reativadas', n, 'info'); phoneTone(900, 0.04, 0.05); this.render(); return;
     }
+    if (t.dataset.wtab) { this.wtab = t.dataset.wtab; phoneTone(900, 0.04, 0.05); this.render(); return; }
+    if (t.dataset.lamt) { this.loanAmt = +t.dataset.lamt; phoneTone(900, 0.04, 0.05); this.render(); return; }
+    if (t.dataset.loan) { if (takeLoan(this.loanAmt || 1000, +t.dataset.loan)) { phoneTone(1760, 0.06, 0.05); this.render(); } return; }
     if (t.dataset.loc) { Events.acceptLoc(+t.dataset.loc); return; }
     if (t.dataset.chat) { this.chat = t.dataset.chat; this.render(); if (phoneCfg().sounds) AudioSys.click(); return; }
     if (t.dataset.reply && this.chat) {
@@ -6832,20 +6825,23 @@ CarLife.update = function (dt) {
 };
 CarLife.reset = function () { this.idleT = 0; this.stalled = false; this.warned = {}; };
 // serviços (oficina, borracharia, posto e Seu Zé)
-function lifeService(kind, priceMul) {
+function lifeService(kind, priceMul, fiado) {
   const L = carLife(), price = Math.ceil(lifePrice(kind) * (priceMul || 1));
-  if (Profile.money < price) { AudioSys.error(); toast('Sem dinheiro', 'Custa R$ ' + fmtMoney(price) + '.', 'bad'); return false; }
-  Profile.money -= price; UI.moneyDelta(-price);
+  if (Profile.money < price) {
+    if (!fiado || fiadoOpen()) { AudioSys.error(); toast('Sem dinheiro', 'Custa R$ ' + fmtMoney(price) + '.', 'bad'); return false; }
+    zeCharge(price, true); toast('Seu Zé', '"Tá liso? Anotei no fiado. Amanhã eu pego sozinho, se tiver."', 'info');
+  } else { Profile.money -= price; UI.moneyDelta(-price); }
   if (kind === 'tires') { L.tires = 100; AudioSys.wrench(); toast('Pneus novos', 'Agarrando no asfalto de novo. R$ ' + fmtMoney(price), 'good'); }
   else if (kind === 'oil') { L.oil = 100; AudioSys.pump(); toast('Óleo trocado', 'Motor macio que nem manteiga. R$ ' + fmtMoney(price), 'good'); }
   else { L.bat = 100; CarLife.stalled = false; AudioSys.wrench(); toast('Bateria carregada', 'Farol forte de novo. R$ ' + fmtMoney(price), 'good'); }
   saveGame(); return true;
 }
-function lifeButtons(B, s, kinds) {
+function lifeButtons(B, s, kinds, fiado) {
   const L = carLife(), pct = (v) => Math.round(v) + '%';
-  if (kinds.includes('tires')) B(L.tires > 97 ? 'Pneus novos (' + pct(L.tires) + ')' : `Trocar os 4 pneus (${pct(L.tires)}) — R$ ${fmtMoney(lifePrice('tires'))}`, () => { lifeService('tires'); openShopDialog(s); }, L.tires > 97 || Profile.money < lifePrice('tires'));
-  if (kinds.includes('oil')) B(L.oil > 97 ? 'Óleo em dia (' + pct(L.oil) + ')' : `Trocar o óleo (${pct(L.oil)}) — R$ ${fmtMoney(lifePrice('oil'))}`, () => { lifeService('oil'); openShopDialog(s); }, L.oil > 97 || Profile.money < lifePrice('oil'));
-  if (kinds.includes('bat')) B(L.bat > 97 ? 'Bateria carregada (' + pct(L.bat) + ')' : `Carregar a bateria (${pct(L.bat)}) — R$ ${fmtMoney(lifePrice('bat'))}`, () => { lifeService('bat'); openShopDialog(s); }, L.bat > 97 || Profile.money < lifePrice('bat'));
+  const fz = fiado && !fiadoOpen(), lbl = (k) => Profile.money < lifePrice(k) && fz ? ' (fiado)' : '', no = (k) => Profile.money < lifePrice(k) && !fz;
+  if (kinds.includes('tires')) B(L.tires > 97 ? 'Pneus novos (' + pct(L.tires) + ')' : `Trocar os 4 pneus (${pct(L.tires)}) — R$ ${fmtMoney(lifePrice('tires'))}${lbl('tires')}`, () => { lifeService('tires', 1, fiado); openShopDialog(s); }, L.tires > 97 || no('tires'));
+  if (kinds.includes('oil')) B(L.oil > 97 ? 'Óleo em dia (' + pct(L.oil) + ')' : `Trocar o óleo (${pct(L.oil)}) — R$ ${fmtMoney(lifePrice('oil'))}${lbl('oil')}`, () => { lifeService('oil', 1, fiado); openShopDialog(s); }, L.oil > 97 || no('oil'));
+  if (kinds.includes('bat')) B(L.bat > 97 ? 'Bateria carregada (' + pct(L.bat) + ')' : `Carregar a bateria (${pct(L.bat)}) — R$ ${fmtMoney(lifePrice('bat'))}${lbl('bat')}`, () => { lifeService('bat', 1, fiado); openShopDialog(s); }, L.bat > 97 || no('bat'));
 }
 function lifeZeFala() {
   const L = carLife(), out = [];
@@ -6853,6 +6849,146 @@ function lifeZeFala() {
   if (L.tires < 30) out.push('os pneus tão mais lisos que sabonete');
   if (L.bat < 30) out.push('a bateria tá pedindo arrego');
   return out.length ? ' E olha: ' + out.join(', ') + '.' : '';
+}
+
+/* ============================ BANCO (EMPRÉSTIMO) E FIADO DO SEU ZÉ ============================
+   Um "dia" do jogo é uma noite inteira (19:30 até 05:00). A parcela vence a cada virada de noite e é
+   descontada sozinha. Sem saldo, a parcela atrasa, ganha juros e é descontada assim que entrar dinheiro.
+   O Seu Zé faz fiado quando você não tem dinheiro; ele cobra sozinho na virada da noite e, se atrasar,
+   bota juros. Com fiado em aberto, ele não vem de novo sem acertar a caderneta. */
+const BANK = 'Banestresse';
+const LOAN_AMOUNTS = [500, 1000, 2000];
+const LOAN_PLANS = [{ n: 3, rate: 0.06 }, { n: 5, rate: 0.12 }, { n: 8, rate: 0.2 }];
+const LOAN_LATE = 0.10; // juros por noite de atraso, sobre o que está atrasado
+const FIADO_LATE = 0.05; // o Seu Zé é amigo: juros menores
+const ZE_FIADO_NAO = [
+  'Ô meu filho... ainda tem R$ {v} pendurado na caderneta. Fiado é igual sogra: uma vez a gente aguenta, duas já é abuso. Acerta o de antes que eu vou correndo!',
+  'Rapaz, a caderneta tá tão cheia com teu nome que minha mulher achou que eu tinha outra família. R$ {v} ainda! Acerta comigo primeiro.',
+  'Meu guincho anda a diesel, não a promessa. Tem R$ {v} no fiado. Pega um empréstimo no Banestresse, faz umas corridas, vende o rim... aí eu vou.',
+  'Fiado só amanhã. E amanhã também é amanhã. Brincadeira... mas não muito: são R$ {v} ainda, viu? Paga que eu vou voando.',
+  'Até o papagaio da oficina já aprendeu a falar teu nome e "cadê o dinheiro". R$ {v}, meu querido. Primeiro acerta, depois eu socorro.',
+];
+function brl(v) { return 'R$ ' + fmtMoney(Math.round(v)); }
+function bankMsg(text, silent) { return addMsg(BANK, '', text, silent); }
+const Finance = { t: 0 };
+function loanPlan(amount, plan) { const total = Math.round(amount * (1 + plan.rate)); return { total, parcela: Math.ceil(total / plan.n) }; }
+function takeLoan(amount, n) {
+  if (Profile.loan) return false;
+  const plan = LOAN_PLANS.find((p) => p.n === n), q = loanPlan(amount, plan);
+  Profile.loan = { amount, n, parcela: q.parcela, total: q.total, billed: 0, paid: 0, overdue: 0, paidAmt: 0, lateFees: 0, day: Profile.nights || 0 };
+  Profile.money += amount; UI.moneyDelta(amount); AudioSys.money();
+  toast('Empréstimo aprovado', brl(amount) + ' na conta. ' + n + 'x de ' + brl(q.parcela) + ', descontadas a cada noite.', 'good');
+  bankMsg('Parabéns! Seu empréstimo de ' + brl(amount) + ' foi aprovado em 0,3 segundos, sem consulta, sem fiador e sem vergonha. Serão ' + n + ' parcelas de ' + brl(q.parcela) + ', descontadas sozinhas toda virada de noite. Banestresse: o banco que te estressa, mas te empresta.', true);
+  saveGame(); return true;
+}
+function loanLeft(L) { return L.overdue + Math.max(0, L.n - L.billed) * L.parcela; }
+// desconta o que estiver atrasado, se der
+function loanTryPay(fromNewDay) {
+  const L = Profile.loan; if (!L || L.overdue < 1) return;
+  const amt = Profile.money >= L.overdue ? L.overdue : Profile.money >= Math.min(L.overdue, L.parcela) ? Math.min(L.overdue, L.parcela) : 0;
+  if (amt <= 0) return;
+  const v = Math.ceil(amt);
+  Profile.money -= v; UI.moneyDelta(-v); L.overdue = Math.max(0, L.overdue - v); L.paidAmt += v;
+  const done = L.billed >= L.n && L.overdue < 1;
+  if (done) {
+    Profile.loan = null; Profile.loansPaid = (Profile.loansPaid || 0) + 1;
+    toast('Empréstimo quitado!', 'Banestresse descontou ' + brl(v) + '. Você está livre!', 'good');
+    bankMsg('QUITADO! Última parcela de ' + brl(v) + ' descontada. Você saiu do vermelho, parabéns. Já pré-aprovamos outro empréstimo pra você, porque a gente sente saudade.', false);
+  } else {
+    const falta = L.n - L.billed;
+    toast('Banestresse', 'Parcela descontada: ' + brl(v) + (L.overdue >= 1 ? ' · ainda atrasado ' + brl(L.overdue) : ''), 'info');
+    bankMsg((fromNewDay ? 'Parcela do dia descontada: ' : 'Opa, entrou dinheiro! Já descontamos a parcela atrasada: ') + brl(v) + '. ' + (L.overdue >= 1 ? 'Ainda tem ' + brl(L.overdue) + ' em atraso. ' : 'Tudo em dia. ') + 'Faltam ' + falta + ' parcela(s) a vencer.', true);
+  }
+  saveGame();
+}
+// cobra o Seu Zé: paga o que tiver e o resto vai pra caderneta (se puder)
+function zeCharge(cost, allowFiado) {
+  cost = Math.ceil(cost);
+  const has = Math.max(0, Math.floor(Profile.money));
+  const paid = Math.min(has, cost), owed = cost - paid;
+  if (owed > 0 && !allowFiado) return null;
+  Profile.money -= paid; if (paid) UI.moneyDelta(-paid);
+  if (owed > 0) {
+    if (!Profile.fiado) Profile.fiado = { amount: 0, day: Profile.nights || 0, count: 0 };
+    Profile.fiado.amount += owed; Profile.fiado.day = Profile.nights || 0; Profile.fiado.count++;
+  }
+  return { paid, owed };
+}
+function fiadoOpen() { return !!(Profile.fiado && Profile.fiado.amount >= 1); }
+function fiadoPay(manual) {
+  const F = Profile.fiado; if (!F) return 0;
+  const v = Math.min(Math.ceil(F.amount), Math.max(0, Math.floor(Profile.money)));
+  if (v <= 0) return 0;
+  Profile.money -= v; UI.moneyDelta(-v); F.amount -= v;
+  if (F.amount < 1) { Profile.fiado = null; addMsg(ZE, '', manual ? 'Recebido, ' + brl(v) + '! Caderneta zerada, pode rasgar a página. Tamo quite!' : 'Peguei os ' + brl(v) + ' do fiado, como combinado. Tamo quite! Pode quebrar o carro de novo... mas não muito, hein.', !manual); }
+  else addMsg(ZE, '', 'Peguei ' + brl(v) + ' do fiado. Ainda falta ' + brl(F.amount) + ', sem pressa (com um pouquinho de pressa).', true);
+  saveGame();
+  return v;
+}
+// virada da noite: vence parcela, aplica juros e cobra o fiado
+Finance.newDay = function () {
+  const L = Profile.loan;
+  if (L) {
+    if (L.overdue >= 1) {
+      const j = Math.ceil(L.overdue * LOAN_LATE); L.overdue += j; L.lateFees += j;
+      bankMsg('Prezado(a) cliente, sua parcela continua atrasada. Aplicamos juros de ' + Math.round(LOAN_LATE * 100) + '% (' + brl(j) + '). Total em atraso: ' + brl(L.overdue) + '. Assim que entrar dinheiro, a gente desconta sozinho. Banestresse: a gente não esquece. Nunca.', false);
+    }
+    if (L.billed < L.n) {
+      L.billed++; L.overdue += L.parcela;
+      if (Profile.money < Math.min(L.overdue, L.parcela)) {
+        bankMsg('Parcela ' + L.billed + '/' + L.n + ' venceu hoje (' + brl(L.parcela) + ') e o saldo tá zerado. Vai entrar juros amanhã se não pagar. Fica tranquilo: quando o dinheiro cair, a gente desconta na hora. Na hora mesmo.', false);
+      }
+    }
+    loanTryPay(true);
+  }
+  const F = Profile.fiado;
+  if (F && F.amount >= 1 && (Profile.nights || 0) > F.day) {
+    const v = fiadoPay(false);
+    if (Profile.fiado && Profile.fiado.amount >= 1) {
+      const j = Math.ceil(Profile.fiado.amount * FIADO_LATE); Profile.fiado.amount += j;
+      addMsg(ZE, '', (v ? 'Peguei ' + brl(v) + ', mas ' : 'Ô meu filho, ') + 'ainda falta ' + brl(Profile.fiado.amount) + ' na caderneta. Botei ' + Math.round(FIADO_LATE * 100) + '% de juros, que eu sou amigo mas não sou de ferro. A caderneta já tá até com cheiro de mofo!', false);
+    }
+  }
+  saveGame();
+};
+Finance.update = function (dt) {
+  this.t -= dt; if (this.t > 0) return; this.t = 1;
+  if (Profile.loan && Profile.loan.overdue >= 1) loanTryPay(false);
+};
+// Seu Zé recusa vir com fiado aberto (a não ser que dê pra pagar na hora)
+function zeFiadoGate() {
+  if (!fiadoOpen()) return true;
+  if (Profile.money >= Profile.fiado.amount) { fiadoPay(true); return true; }
+  const k = Profile.zeNaoI = ((Profile.zeNaoI || 0) + 1) % ZE_FIADO_NAO.length;
+  Profile.msgs.unshift({ from: ZE, title: '', body: 'Seu Zé, me socorre aí? Depois eu acerto...', read: true, me: true, t: Math.floor(Profile.time) });
+  setTimeout(() => { addMsg(ZE, '', ZE_FIADO_NAO[k].replace('{v}', fmtMoney(Math.ceil(Profile.fiado ? Profile.fiado.amount : 0))), true); if (Screens.current === 'screen-phone' && Phone.chat === ZE) { phoneTone(1320, 0.06, 0.05); Phone.render(); } }, 1400);
+  return false;
+}
+// tela da carteira: resumo + empréstimo
+function walletHTML(tab) {
+  const tabs = `<div class="ph-tabs"><button class="${tab !== 'loan' ? 'on' : ''}" data-wtab="sum">Resumo</button><button class="${tab === 'loan' ? 'on' : ''}" data-wtab="loan">Empréstimo</button></div>`;
+  const L = Profile.loan, F = Profile.fiado;
+  if (tab !== 'loan') {
+    return tabs + `<div class="ph-card"><div class="ph-big">R$ ${fmtMoney(Profile.money)}</div><p>Total ganho: R$ ${fmtMoney(Profile.earned)}</p></div>` +
+      (L ? `<div class="ph-row static"><b>Empréstimo ${BANK}</b><span>${L.billed}/${L.n} parcelas vencidas · falta ${brl(loanLeft(L))}${L.overdue >= 1 ? ' · <em class="late">atrasado ' + brl(L.overdue) + '</em>' : ''}</span></div>` : '') +
+      (F ? `<div class="ph-row static"><b>Caderneta do Seu Zé (fiado)</b><span>${brl(F.amount)} · cobra sozinho na virada da noite</span></div>` : '') +
+      `<div class="ph-row static"><b>Entregas e fretes</b><span>${Profile.deliveries} concluídos</span></div><div class="ph-row static"><b>Corridas no PegaAí</b><span>${Profile.rides || 0}</span></div><div class="ph-row static"><b>Veículo atual</b><span>${H(player.car.name)}</span></div>`;
+  }
+  let h = tabs + `<div class="bank-hero"><b>${BANK}</b><span>o banco que te estressa, mas te empresta</span></div>`;
+  if (L) {
+    const pct = Math.round((L.billed - (L.overdue >= 1 ? Math.ceil(L.overdue / L.parcela) : 0)) / L.n * 100);
+    h += `<div class="ph-card"><div class="ph-big">${brl(loanLeft(L))}</div><p>falta pagar · ${L.n}x de ${brl(L.parcela)}</p><div class="ach-bar"><i style="width:${clamp(pct, 0, 100)}%"></i></div>` +
+      `<p>${L.billed}/${L.n} parcelas vencidas${L.lateFees ? ' · juros de atraso: ' + brl(L.lateFees) : ''}</p>` +
+      (L.overdue >= 1 ? `<p class="late">Em atraso: ${brl(L.overdue)}. Desconta sozinho assim que entrar dinheiro.</p>` : `<p>Próxima parcela na virada da noite (05:00).</p>`) + '</div>' +
+      `<p class="ph-note">Só um empréstimo por vez. Quitou, pode pegar outro.</p>`;
+    return h;
+  }
+  const amt = Phone.loanAmt || 1000;
+  h += '<p class="ph-note">Escolha o valor e em quantas parcelas. Cada parcela é descontada sozinha na virada da noite. Sem saldo? Atrasa, entra juros de 10% por noite e desconta assim que o dinheiro cair.</p>' +
+    '<div class="loan-amts">' + LOAN_AMOUNTS.map((a) => `<button class="${a === amt ? 'on' : ''}" data-lamt="${a}">${brl(a)}</button>`).join('') + '</div>' +
+    LOAN_PLANS.map((p) => { const q = loanPlan(amt, p); return `<button class="ph-row" data-loan="${p.n}"><b>${p.n}x de ${brl(q.parcela)}</b><span>total ${brl(q.total)} · juros ${Math.round(p.rate * 100)}%</span></button>`; }).join('') +
+    (F ? `<p class="ph-note">Dica: o fiado do Seu Zé (${brl(F.amount)}) é cobrado sozinho na virada da noite.</p>` : '');
+  return h;
 }
 /* ============================ RENDERIZAÇÃO ============================ */
 const canvas = document.getElementById('game');
@@ -8882,6 +9018,14 @@ function openShopDialog(s) {
   }
   if (s.kind === 'oficina') {
     const cost = Math.ceil(Profile.damage * 4);
+    if (fiadoOpen()) B(Profile.money >= 1 ? `Acertar o fiado com o Seu Zé — R$ ${fmtMoney(Math.ceil(Math.min(Profile.fiado.amount, Profile.money)))}${Profile.money < Profile.fiado.amount ? ' (de ' + fmtMoney(Math.ceil(Profile.fiado.amount)) + ')' : ''}` : `Fiado em aberto: R$ ${fmtMoney(Math.ceil(Profile.fiado.amount))}`, () => { fiadoPay(true); AudioSys.money(); openShopDialog(s); }, Profile.money < 1);
+    const canFiado = !fiadoOpen();
+    if (Profile.damage >= 1 && Profile.money < cost && canFiado) B(`Consertar tudo no fiado — R$ ${fmtMoney(cost)} (paga o que tiver)`, () => {
+      zeCharge(cost, true); Profile.damage = 0; AudioSys.wrench();
+      if (Profile.zones) { for (const z of ['f', 'r', 'l', 'rt', 'fL', 'fR']) Profile.zones[z] = 0; Profile.zones.seed = (Profile.zones.seed || 0) + 1; }
+      toast('Seu Zé', '"Pode levar. Anotei na caderneta, amanhã eu pego. Amigo é pra essas coisas, mas o juro também é."', 'good');
+      saveGame(); openShopDialog(s);
+    });
     B(Profile.damage < 1 ? 'Carro em perfeito estado' : `Consertar o carro — R$ ${fmtMoney(cost)}`, () => {
       const fix = Math.min(Profile.damage, Profile.money / 4);
       const c = Math.ceil(fix * 4);
@@ -8892,7 +9036,7 @@ function openShopDialog(s) {
       toast('Seu Zé', Profile.damage < 1 ? '"Pronto! Tá novinho em folha. Vai com Deus e devagar."' : '"Fiz o que deu com o seu dinheiro, viu?"', 'good');
       saveGame(); openShopDialog(s);
     }, Profile.damage < 1 || Profile.money < 4);
-    lifeButtons(B, s, ['oil', 'tires', 'bat']);
+    lifeButtons(B, s, ['oil', 'tires', 'bat'], true);
     B('Melhorias e pintura', () => { Garage.sel = Profile.current; Screens.replace('screen-garage'); });
   }
   if (s.kind === 'borracharia') { lifeButtons(B, s, ['tires']); B('Calibrar os pneus (grátis)', () => { Profile.damage = Math.max(0, Profile.damage - 3); AudioSys.pump(); toast('Borracharia', 'Pneus calibrados. Valeu, chefe!', 'info'); closeDialog(); }); }
@@ -9187,7 +9331,7 @@ function handleKeys() {
 function stepPlay(dt) {
   Game.time += dt;
   Profile.time += dt;
-  if (Profile.time >= NIGHT_END) { Profile.nights = (Profile.nights || 0) + 1; Profile.time = NIGHT_START; toast('Uma nova noite começa', 'O relógio volta para as 19:30. A cidade nunca dorme.', 'info'); }
+  if (Profile.time >= NIGHT_END) { Profile.nights = (Profile.nights || 0) + 1; Profile.time = NIGHT_START; toast('Uma nova noite começa', 'O relógio volta para as 19:30. A cidade nunca dorme.', 'info'); Finance.newDay(); }
   const locked = Act.race && Act.race.count > 0;
   const inp = { thr: !locked && !!key.up(), brk: !!key.down(), steer: (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() };
   player.update(dt, inp);
@@ -9198,6 +9342,7 @@ function stepPlay(dt) {
   updateActivities(dt);
   Events.update(dt);
   CarLife.update(dt);
+  Finance.update(dt);
   Socorro.update(dt);
   Achievements.check(dt);
   Weather.updatePlayer(dt, player);
