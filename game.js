@@ -3595,6 +3595,9 @@ class Player {
     acc *= 1 - 0.35 * mudS;
     if (Profile.fuel <= 0) { maxS *= 0.3; acc *= 0.3; }
     { const LM = CarLife.mod(); maxS *= LM.max; acc *= LM.acc; } // pneus, óleo e bateria
+    // nunca trava de vez: no fundo do poço (sem gasolina, lataria pocada ou bateria arriada) se arrasta a 5%
+    const wreck = CarLife.stalled || (Profile.fuel <= 0 && Profile.damage >= 95);
+    if (wreck || maxS < st.max * 0.05) { maxS = st.max * 0.05; acc = Math.max(acc, st.acc * 0.25); }
     this.braking = false;
     // arrancada: pneu patina ao sair forte com o carro parado
     if (inp.thr && !this.prevThr && !inp.brk && Math.abs(vf) < 60 && (surf.grip > 0.75 || mudS > 0.3)) this.launchT = 0.5 + st.acc / 650 + mudS * 0.7;
@@ -3715,16 +3718,16 @@ class Player {
     if (Zf > 0.45 && !this.lampWarn) { this.lampWarn = true; toast('Farol avariado', 'A frente amassada deixou o farol fraco. Conserte na Oficina do Seu Zé.', 'bad'); }
     if (Zf < 0.2) this.lampWarn = false;
     for (const sd of [-1, 1]) {
-      const off = playerLamp(sd) <= 0.01, key = sd < 0 ? 'lampOffL' : 'lampOffR';
+      const off = playerLampBase(sd) <= 0.01, key = sd < 0 ? 'lampOffL' : 'lampOffR';
       if (off && !this[key] && Game.state === 'playing') toast('Farol ' + (sd < 0 ? 'esquerdo' : 'direito') + ' apagou', 'Esse lado amassou demais. A Oficina do Seu Zé troca a lâmpada.', 'bad');
       this[key] = off;
     }
-    if (Zf > 0.45 && chance(0.08 + Zf * 0.25)) Particles.emit(Zf > 0.75 ? 'smoke' : 'steam', this.x + c * this.m.L * 0.38, this.y + s * this.m.L * 0.38, rnd(-10, 10), rnd(-10, 10), rnd(0.8, 1.6), 4);
+    if (Zf > 0.62 && chance(0.06 + (Zf - 0.62) * 0.5)) Particles.emit(Zf > 0.85 ? 'smoke' : 'steam', this.x + c * this.m.L * 0.38, this.y + s * this.m.L * 0.38, rnd(-10, 10), rnd(-10, 10), rnd(0.8, 1.6), 4);
     if (this.thr > 0.6 && chance(0.12)) Particles.emit('exhaust', this.x - c * this.m.L * 0.52, this.y - s * this.m.L * 0.52, -c * 30 + rnd(-8, 8), -s * 30 + rnd(-8, 8), rnd(0.4, 0.8), 2.5);
     if (this.prevThr > 0.8 && !inp.thr && this.rpm > 4300 && chance(0.6)) { Particles.emit('flame', this.x - c * this.m.L * 0.55, this.y - s * this.m.L * 0.55, -c * 60, -s * 60, 0.18, 5); AudioSys.noise(0.06, 900, 1, 0.25, 'engine', 'lowpass'); AudioSys.tone(70, 0.08, 'square', 0.12, 'engine'); }
     this.prevThr = inp.thr ? 1 : 0;
     if (this.scrapeT > 0) { this.scrapeT -= dt; if (chance(0.25)) AudioSys.noise(0.08, 3400, 3, 0.05, 'engine', 'bandpass'); }
-    if (Profile.damage > 70 && chance(0.2)) Particles.emit('smoke', this.x + c * this.m.L * 0.35, this.y + s * this.m.L * 0.35, rnd(-8, 8), rnd(-8, 8), rnd(0.8, 1.5), 5);
+    if (Profile.damage > 84 && chance(0.15)) Particles.emit('smoke', this.x + c * this.m.L * 0.35, this.y + s * this.m.L * 0.35, rnd(-8, 8), rnd(-8, 8), rnd(0.8, 1.5), 5);
   }
   circleOffsets() {
     const r = this.m.W / 2, span = this.m.L / 2 - r;
@@ -4687,13 +4690,15 @@ function pay(v, why) {
 function onPlayerImpact(imp) {
   player.impactCd = 0.35;
   const k = clamp((imp - 70) / 380, 0, 1);
-  Profile.damage = clamp(Profile.damage + k * 13, 0, 100);
+  // batidas leves e médias amassam 6% menos; batida forte continua igual
+  const kd = k < 0.45 ? k * 0.94 : k;
+  Profile.damage = clamp(Profile.damage + kd * 13, 0, 100);
   AudioSys.crash(0.2 + k);
   Cam.shake = Math.max(Cam.shake, 3 + k * 12);
   const hx = player.hitX || player.x, hy = player.hitY || player.y;
   for (let i = 0; i < 4 + k * 12; i++) Particles.emit('spark', hx, hy, rnd(-220, 220), rnd(-220, 220), rnd(0.2, 0.5), 2);
   if (k > 0.45 && chance(0.6)) { const f = pick([['Pocou!', 'Isso vai doer no bolso…'], ['Ô, rapá!', 'Olha a lataria, sô!'], ['Que isso, maluco?', 'Seu Zé vai ter trabalho.'], ['Vixe!', 'Bateu feio.']]); toast(f[0], f[1], 'bad'); }
-  const zone = addZoneDamage(Profile.zones || (Profile.zones = { f: 0, r: 0, l: 0, rt: 0 }), player, hx, hy, k);
+  const zone = addZoneDamage(Profile.zones || (Profile.zones = { f: 0, r: 0, l: 0, rt: 0 }), player, hx, hy, kd);
   Debris.spill(hx, hy, k, player.color, zone);
   if ((zone === 'l' || zone === 'rt') && k > 0.45 && chance(0.6)) Particles.emit('hubcap', hx, hy, rnd(-140, 140), rnd(-140, 140), 2.6, 3);
   Events.onImpact(imp);
@@ -5592,11 +5597,11 @@ function socorroBar(H) {
     return `<div class="wa-sos"><b>${J.state === 'coming' ? 'Seu Zé está a caminho · ' + (d > 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : d + ' m') : J.state === 'arrived' ? 'Seu Zé chegou! Fique parado.' : 'Serviço concluído'}</b>${J.state === 'coming' ? '<button data-sos="cancel" class="off">Cancelar</button>' : ''}</div>`;
   }
   const qg = socorroQuote('gas'), qf = socorroQuote('fix');
-  const btn = (k, label, q, need) => `<button data-sos="${k}" ${need ? '' : 'disabled'}>${label}<small>${need ? 'R$ ' + fmtMoney(q) : 'não precisa'}</small></button>`;
   const L = carLife(), qb = socorroQuote('bat'), qp = socorroQuote('pneu');
-  return '<div class="wa-sos"><b>Pedir socorro (15% mais caro que a oficina)</b>' + (fiadoOpen() ? `<small class="wa-fiado">Caderneta: R$ ${fmtMoney(Math.ceil(Profile.fiado.amount))} de fiado</small>` : '<small class="wa-fiado ok">Sem dinheiro? Ele faz fiado.</small>') + '<div class="wa-sos-btns">' +
-    btn('gas', 'Gasolina', qg, qg >= 8) + btn('fix', 'Conserto', qf, qf >= 8) + btn('both', 'Os dois', qg + qf, qg >= 8 && qf >= 8) + '</div><div class="wa-sos-btns">' +
-    btn('bat', 'Chupeta', qb, L.bat < 30) + btn('pneu', 'Pneus', qp, L.tires < 15) + '</div></div>';
+  const opts = [['gas', 'Gasolina', qg, qg >= 8], ['fix', 'Conserto', qf, qf >= 8], ['both', 'Os dois', qg + qf, qg >= 8 && qf >= 8], ['bat', 'Chupeta', qb, L.bat < 30], ['pneu', 'Pneus', qp, L.tires < 15]].filter((o) => o[3]);
+  const sub = fiadoOpen() ? `<small class="wa-fiado">fiado R$ ${fmtMoney(Math.ceil(Profile.fiado.amount))}</small>` : '<small>+15% · faz fiado</small>';
+  return `<div class="wa-sos"><div class="wa-sos-h"><b>Socorro do Seu Zé</b>${sub}</div>` +
+    (opts.length ? '<div class="wa-sos-btns">' + opts.map((o) => `<button data-sos="${o[0]}">${o[1]}<small>R$ ${fmtMoney(o[2])}</small></button>`).join('') + '</div>' : '<small class="wa-sos-ok">Carro em dia, nada pra socorrer.</small>') + '</div>';
 }
 
 /* ---------- backup do save ---------- */
@@ -6749,7 +6754,6 @@ CarLife.mod = function () {
   if (L.oil < 20) { acc *= 0.85; }
   if (L.oil <= 0) { acc *= 0.55; max *= 0.62; }
   if (L.tires <= 0) { max *= 0.6; }
-  if (this.stalled) { acc = 0; }
   return { max, acc };
 };
 CarLife.gripK = function () {
@@ -6797,7 +6801,7 @@ CarLife.update = function (dt) {
   if (L.bat <= 0 && sp < 25 && !this.stalled) {
     this.stalled = true;
     AudioSys.tone(140, 0.4, 'sawtooth', 0.06, 'engine', 60);
-    toast('A bateria arriou!', 'O motor morreu. Chame o Seu Zé no zap (Q > Mensagens) pra fazer uma chupeta.', 'bad');
+    toast('A bateria arriou!', 'O motor morreu e o carro só se arrasta. Chame o Seu Zé no zap (Q > Mensagens) pra fazer uma chupeta.', 'bad');
   }
   if (this.stalled && L.bat > 5) this.stalled = false;
   // avisos

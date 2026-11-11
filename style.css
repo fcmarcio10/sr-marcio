@@ -697,14 +697,17 @@ div.ph-wid { cursor: default; }
 .wa-bar { text-align: center; font: 500 11.5px -apple-system, "Segoe UI", sans-serif; color: #8696a0; padding: 10px 0 4px; }
 .brand-badge { display: inline-block; vertical-align: middle; margin-right: 10px; padding: 3px 10px; border-radius: 6px; border: 2px solid var(--bc); color: var(--bc); font: italic 900 13px var(--font); letter-spacing: 0.08em; text-transform: uppercase; transform: skewX(-8deg); }
 .gbrand { display: block; font: italic 800 10px var(--font); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1px; }
-.wa-sos { margin: 8px 0 4px; padding: 10px; border-radius: 12px; background: #1f2c34; font: 12px -apple-system, "Segoe UI", sans-serif; color: #e9edef; display: flex; flex-direction: column; gap: 8px; }
-.wa-sos b { font-weight: 600; color: #53bdeb; }
-.wa-sos-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.wa-sos-btns + .wa-sos-btns { margin-top: 6px; }
-.wa-sos button { pointer-events: auto; cursor: pointer; border: 0; border-radius: 10px; padding: 8px 4px; background: #005c4b; color: #fff; font: 600 12px -apple-system, "Segoe UI", sans-serif; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.wa-sos button small { font-size: 10.5px; font-weight: 500; opacity: 0.85; }
-.wa-sos button:disabled { background: #2a3942; color: #8696a0; cursor: default; }
+.wa-sos { margin: 6px 0 2px; padding: 7px 9px; border-radius: 12px; background: #1f2c34; font: 11.5px -apple-system, "Segoe UI", sans-serif; color: #e9edef; display: flex; flex-direction: column; gap: 6px; }
+.wa-sos b { font-weight: 600; color: #53bdeb; font-size: 12px; }
+.wa-sos-h { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.wa-sos-h small { color: #8696a0; font-size: 10.5px; }
+.wa-sos-h .wa-fiado { color: #ffb547; margin: 0; }
+.wa-sos-btns { display: flex; flex-wrap: wrap; gap: 5px; }
+.wa-sos button { pointer-events: auto; cursor: pointer; border: 0; border-radius: 14px; padding: 5px 10px; background: #005c4b; color: #fff; font: 600 11.5px -apple-system, "Segoe UI", sans-serif; display: inline-flex; align-items: baseline; gap: 5px; }
+.wa-sos button small { font-size: 10px; font-weight: 500; opacity: 0.8; }
+.wa-sos button:hover { background: #00745e; }
 .wa-sos button.off { background: #3a1a1a; color: #ff8a80; }
+.wa-sos-ok { color: #8696a0; font-size: 11px; }
 .wa-who { flex: 1; min-width: 0; }
 .wa-mute { pointer-events: auto; cursor: pointer; border: 0; background: none; color: #aebac1; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; }
 .wa-mute svg { width: 21px; height: 21px; }
@@ -785,5 +788,3 @@ div.ph-wid { cursor: default; }
 .loan-amts button { pointer-events: auto; cursor: pointer; flex: 1; border: 1px solid #3a3a3c; border-radius: 10px; padding: 9px 4px; background: #1c1c1e; color: #fff; font: 700 13px -apple-system, "Segoe UI", sans-serif; }
 .loan-amts button.on { background: #30d158; color: #000; border-color: #30d158; }
 .late, .ph-row .late { color: #ff6961; font-style: normal; }
-.wa-fiado { display: block; font-size: 11px; color: #ffb547; margin: 2px 0 6px; }
-.wa-fiado.ok { color: #98989f; }
