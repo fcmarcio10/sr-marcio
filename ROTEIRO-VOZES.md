@@ -23,7 +23,6 @@ Os áudios dos passageiros chegam no **chat do PegaAí**. Os dos personagens (Se
 
 | Arquivo | Personagem | Voz sugerida | Texto |
 |---|---|---|---|
-| `ze_fiado.mp3` | Seu Zé (oficina) | Sergio Funny | [cobrando, meio rindo] Ô meu filho, cadê o meu dinheiro? A caderneta já tá com cheiro de mofo! Paga o fiado aí que eu sou amigo, mas não sou de ferro, bicho! |
 | `ze_nao.mp3` | Seu Zé (oficina) | Sergio Funny | [suspira] Rapá, de novo? Ainda tem fiado pendurado aqui! Fiado é igual sogra: uma vez a gente aguenta, duas já é abuso. Acerta comigo que eu vou voando! |
 | `biu_socorro.mp3` | Seu Biu (bananas) | Thiago - Warm and inviting | [desesperado] Ô meu patrão, a carreta tombou! Tá banana pra todo lado, parece feira depois de terremoto! Me ajuda aqui, pelo amor de Deus, que eu pago cada caixa! |
 | `banco_atraso.mp3` | Banestresse (robô do banco) | Lucinda - Earthy and Wise | [voz de atendente eletrônica, calma demais] Olá. Aqui é a assistente virtual do Banestresse. Identificamos uma parcela em atraso. Os juros já estão trabalhando por você. Tenha uma ótima noite. |
