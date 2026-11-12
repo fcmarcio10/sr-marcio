@@ -5,7 +5,7 @@ Baixe em **MP3** e salve com **exatamente o nome do arquivo** da tabela. Depois 
 
 Já estão no jogo: `xingo1`, `xingo2`, `xingo3`, `vip`, `mudanca`, `demora`, `aero`.
 
-Os áudios dos passageiros chegam no **chat do PegaAí**. Os dos personagens (Seu Zé, Seu Biu, Banestresse, noivo) chegam no **WhatsApp**.
+Os áudios dos passageiros chegam no **chat do PegaAí**. Os dos personagens (Seu Zé, Seu Biu, Banestresse) chegam no **WhatsApp**.
 
 ## Passageiros (PegaAí)
 
@@ -26,7 +26,6 @@ Os áudios dos passageiros chegam no **chat do PegaAí**. Os dos personagens (Se
 | `ze_nao.mp3` | Seu Zé (oficina) | Sergio Funny | [suspira] Rapá, de novo? Ainda tem fiado pendurado aqui! Fiado é igual sogra: uma vez a gente aguenta, duas já é abuso. Acerta comigo que eu vou voando! |
 | `biu_socorro.mp3` | Seu Biu (bananas) | Thiago - Warm and inviting | [desesperado] Ô meu patrão, a carreta tombou! Tá banana pra todo lado, parece feira depois de terremoto! Me ajuda aqui, pelo amor de Deus, que eu pago cada caixa! |
 | `banco_atraso.mp3` | Banestresse (robô do banco) | Lucinda - Earthy and Wise | [voz de atendente eletrônica, calma demais] Olá. Aqui é a assistente virtual do Banestresse. Identificamos uma parcela em atraso. Os juros já estão trabalhando por você. Tenha uma ótima noite. |
-| `noivo_casei.mp3` | Noivo | Wesley Bessa | [eufórico, gritando de alegria] CASEI, BICHO! CASEI! Ela disse sim! Você é padrinho honorário! Tem bolo guardado pra você, vem pra festa! |
 
 ## Observações
 

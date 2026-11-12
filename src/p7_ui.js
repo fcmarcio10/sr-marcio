@@ -72,6 +72,12 @@ function updateHudVisibility() {
 
 /* ---------- botões e menus ---------- */
 function bindMenus() {
+  // convite de evento: clique aceita/recusa sem tirar o foco do jogo (senão o espaço apertaria o botão)
+  for (const [sel, yes] of [['.evo-yes', true], ['.evo-no', false]]) {
+    const b = document.querySelector('#ev-offer ' + sel); if (!b) continue;
+    b.addEventListener('mousedown', (e) => e.preventDefault());
+    b.addEventListener('click', () => { b.blur(); Events.answerOffer(yes); });
+  }
   document.querySelectorAll('.mbtn').forEach((b) => {
     b.addEventListener('mouseenter', () => AudioSys.hover());
   });

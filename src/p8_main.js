@@ -104,6 +104,8 @@ function handleKeys() {
     if (Game.state !== 'playing') continue;
     switch (k) {
       case 'KeyE': if (Act.prompt) Act.prompt.act(); break;
+      case 'KeyY': Events.answerOffer(true); break;
+      case 'KeyN': Events.answerOffer(false); break;
       case 'KeyQ': Phone.open('home'); break;
       case 'KeyH': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
       case 'KeyB': Som.toggle(); break;

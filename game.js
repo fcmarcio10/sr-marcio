@@ -6008,8 +6008,12 @@ const EV_NAMES = {
   blitz: 'Blitz da Lei Seca', festa: 'Festa junina na rua', carona: 'Carona na BR',
 };
 const EV_DRIVERS = ['Seu Valdir', 'Dona Rosângela', 'Cleiton', 'Jéssica', 'Seu Arlindo', 'Tia Nice', 'Wellington', 'Dona Zilda'];
-const EV_NOIVOS = ['Robson', 'Uelinton', 'Marquinhos', 'Jefferson', 'Dudu'];
-const EV_NOIVAS = ['Kátia', 'Suelen', 'Jaqueline', 'Rayane', 'Débora'];
+// cada noivo tem a sua noiva fixa; quem já casou com a sua ajuda não aparece de novo
+const EV_CASAIS = [['Robson', 'Kátia'], ['Uelinton', 'Suelen'], ['Marquinhos', 'Jaqueline'], ['Jefferson', 'Rayane'], ['Dudu', 'Débora'],
+  ['Cleberson', 'Thayná'], ['Washington', 'Gleice'], ['Juninho', 'Patrícia'], ['Edinho', 'Karol'], ['Maicon', 'Vanessa'], ['Tiago', 'Elaine'], ['Rodrigo', 'Fabiana']];
+// eventos que chegam como convite (aceitar ou recusar); banana vai pelo zap e blitz é só aviso
+const EV_OFFER = { quebrado: 1, noivo: 1, festa: 1, carona: 1 };
+const EV_OFFER_T = 20;
 const EV_CARONAS = [
   { name: 'Romeiro Tião', col: '#e8e2d0', pants: '#5a4a3a', lines: ['"Tô indo pagar promessa no Convento. Subo a ladeira de joelho!"', '"Moço, já rezei três terços nessa BR."', '"Se Nossa Senhora quiser, o senhor ganha uma bênção extra."'], bye: '"Deus lhe pague, meu filho. Vou rezar pelo seu carro, que tá precisando."' },
   { name: 'Surfista Kauã', col: '#29b6c9', pants: '#f2a03a', lines: ['"Mano, o mar em Camburiso tá flat, mas a resenha tá boa."', '"Já pegou onda em Guarapariu? Lá é outro nível, brother."', '"Esse carro tem lugar pra prancha? Não? Tranquilo, tô de boa."'], bye: '"Valeu, brother! Aloha capixaba!"' },
@@ -6035,8 +6039,13 @@ const EV_FESTA_ITENS = [['milho verde', 'mercado'], ['gelo pro quentão', 'merca
 
 const Events = {
   cur: null, spawnT: 75, cols: [], closed: [], slow: null,
-  reset() { this.clear(); this.spawnT = rnd(60, 100); },
+  reset() {
+    this.clear(); this.spawnT = rnd(60, 100);
+    // limpa do zap as conversas antigas de noivo e de carro quebrado (agora esses eventos não mandam mensagem)
+    if (Profile.msgs) Profile.msgs = Profile.msgs.filter((m) => !/ \(noivo\)$/.test(m.from) && !/^Oi, aqui é .*, do carro quebrado\./.test(m.body || ''));
+  },
   clear() {
+    if (Offer.E) Offer.hide();
     for (const c of this.cols) c.dead = true;
     this.cols.length = 0;
     for (const e of this.closed) e.closed = false;
@@ -6117,7 +6126,45 @@ Events.spawn = function (type) {
   this.cur = E;
   if (E.invite) { E.invite(); return true; }
   AudioSys.tone(784, 0.09, 'triangle', 0.07, 'ui'); AudioSys.tone(1175, 0.14, 'triangle', 0.07, 'ui', null, 0.11);
+  if (EV_OFFER[type]) { E.stage = 'offer'; E.offerT = EV_OFFER_T; Offer.show(E); return true; }
   toast('Evento: ' + EV_NAMES[type], E.intro, 'info');
+  return true;
+};
+
+/* ---------- convite: janelinha no canto que não pausa o jogo ---------- */
+const EV_OFFER_TXT = {
+  quebrado: (E) => [E.who + ' está com o carro parado e pediu ajuda.', { bateria: 'Bateria arriada', pneu: 'Pneu furado', gasolina: 'Acabou a gasolina' }[E.kind]],
+  noivo: (E) => ['O noivo ' + E.nome + ' tá atrasado pro casamento com a ' + E.noiva + '.', 'Levar até a igreja correndo'],
+  festa: () => ['A Dona Fátima do arraiá precisa de uma mão.', 'Buscar o que acabou na festa'],
+  carona: (E) => [E.C.name + ' tá pedindo carona na beira da estrada.', 'Levar até ' + E.dest.name.split(' · ')[0]],
+};
+const Offer = { el: null, E: null };
+Offer.show = function (E) {
+  this.E = E;
+  const el = this.el || (this.el = $('ev-offer'));
+  if (!el) return;
+  const t = EV_OFFER_TXT[E.type](E);
+  const d = Math.round(Math.hypot((E.pick || E).x - player.x, (E.pick || E).y - player.y) * 0.09);
+  el.querySelector('.evo-title').textContent = EV_NAMES[E.type];
+  el.querySelector('.evo-text').textContent = t[0];
+  el.querySelector('.evo-meta').textContent = t[1] + ' · ' + (d > 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : d + ' m') + ' daqui';
+  el.querySelector('.evo-bar i').style.width = '100%';
+  el.classList.remove('hidden', 'out');
+};
+Offer.hide = function () { this.E = null; if (this.el) { this.el.classList.add('out'); const el = this.el; setTimeout(() => { if (!Offer.E) el.classList.add('hidden'); }, 260); } };
+Offer.tick = function (E) { if (this.el && this.E === E) this.el.querySelector('.evo-bar i').style.width = Math.max(0, E.offerT / EV_OFFER_T * 100).toFixed(1) + '%'; };
+// sim = true aceita, false recusa; vem da tecla (Y/N) ou do clique
+Events.answerOffer = function (yes) {
+  const E = this.cur; if (!E || E.over || E.stage !== 'offer') return false;
+  Offer.hide();
+  if (yes) {
+    E.stage = 'wait'; E.life = E.t + Math.max(110, E.life - E.t); Act.gpsT = 0;
+    AudioSys.chime();
+    toast('Ajuda aceita', E.intro.replace(/ Siga o ponto rosa no mapa\.$/, '') + ' Siga o ponto rosa no mapa.', 'good');
+  } else {
+    E.over = true; E.endT = 0; E.ok = false; E.refused = true; E.target = null; Act.gpsT = 0;
+    AudioSys.click();
+  }
   return true;
 };
 function evMakeQuebrado() {
@@ -6141,7 +6188,10 @@ function evMakeNoivo() {
   const dir = chance(0.5) ? 1 : -1, w = evPos(P.e, P.s, evWalkOff(P.e) * dir), r = evPos(P.e, P.s, (P.e.T.lanes[P.e.T.lanes.length - 1]) * dir);
   const far = ch.filter((c) => { const d = Math.hypot(c.x - r[0], c.y - r[1]); return d > 1100 && d < 4200; });
   const dest = pick(far.length ? far : ch);
-  const nome = pick(EV_NOIVOS), noiva = pick(EV_NOIVAS);
+  Profile.evCasados = Profile.evCasados || [];
+  let livres = EV_CASAIS.filter((c) => !Profile.evCasados.includes(c[0]));
+  if (!livres.length) { Profile.evCasados = []; livres = EV_CASAIS; }
+  const [nome, noiva] = pick(livres);
   const E = { x: w[0], y: w[1], pick: { x: r[0], y: r[1] }, dest, nome, noiva, edge: P.e, npc: evPerson('#17171c', '#17171c', Math.random(), { x: w[0], y: w[1], dance: true, hair: '#1a1410' }), talkT: 6, hits: 0 };
   E.intro = 'O noivo ' + nome + ' tá desesperado na calçada em ' + evPlaceName(P.e, w[0], w[1]) + '. O casamento com ' + noiva + ' já vai começar!';
   return E;
@@ -6319,7 +6369,13 @@ Events.update = function (dt) {
     return;
   }
   // ignorou: expira
-  const engaged = !['wait', 'invite', 'accepted'].includes(E.stage);
+  // convite na tela: corre só com o jogo na tela; se ignorar, conta como recusado
+  if (E.stage === 'offer') {
+    if (!Screens.current) E.offerT -= dt;
+    Offer.tick(E);
+    if (E.offerT <= 0) { this.answerOffer(false); return; }
+  }
+  const engaged = !['offer', 'wait', 'invite', 'accepted'].includes(E.stage);
   if ((!engaged && (E.t > E.life || (dP > 3800 && E.t > 25 && E.type !== 'banana'))) || (E.type === 'banana' && E.t > E.life)) {
     if (E.type === 'banana' && !E.got) {
       const m = (Profile.msgs || []).find((x) => x.from === BIU);
@@ -6387,7 +6443,6 @@ function evQuebrado(E, dt, prompt, busy, busyMsg) {
         const v = Math.round(rnd(90, 150) / 5) * 5;
         AudioSys.tone(220, 0.25, 'sawtooth', 0.05, 'engine'); AudioSys.aiHorn(40, 'dupla', 0);
         evFinish(E, true, 'Motorista salvo!', E.who + ': "Pegou! Deus te abençoe, toma aqui pela ajuda."', v);
-        addMsg(E.who, '', 'Oi, aqui é ' + E.who + ', do carro quebrado. Peguei seu número com o povo do bairro. Muito obrigado pela ajuda, você é gente boa demais!', true);
       }
     } else if (d > 160) { E.hold = Math.max(0, E.hold - dt); }
   } else if (E.stage === 'fetch') {
@@ -6417,7 +6472,9 @@ function evNoivo(E, dt, prompt, busy, busyMsg) {
       const v = clamp(Math.round((260 + E.left * 6 - E.hits * 35) / 5) * 5, 80, 450);
       AudioSys.chime();
       evFinish(E, true, 'Chegou a tempo! O noivo casou', E.nome + ' saiu correndo pro altar. ' + (E.hits ? 'O terno chegou meio amassado, mas deu certo.' : 'Terno impecável!'), v);
-      setTimeout(() => charVoice('noivo_casei', E.nome + ' (noivo)'), 25000);
+      Profile.evCasados = (Profile.evCasados || []).concat(E.nome);
+      // o recado de agradecimento aparece na tela (não vai pro WhatsApp)
+      setTimeout(() => toast(E.nome + ' e ' + E.noiva + ' casaram!', pick(['"CASEI, BICHO! Ela disse sim! Você agora é padrinho honorário!"', '"Deu tudo certo! A ' + E.noiva + ' mandou guardar um pedaço de bolo pra você!"', '"O padre disse que nunca viu noivo chegar tão rápido. Valeu demais!"']), 'good'), 14000);
     } else if (E.left <= 0) {
       AudioSys.error();
       evFinish(E, false, 'Atrasou!', E.nome + ': "A ' + E.noiva + ' achou que eu tinha fugido e foi embora com o padrinho!" Sem pagamento dessa vez.', 0);
@@ -6540,6 +6597,7 @@ function evCarona(E, dt, prompt, busy, busyMsg) {
 Events.hud = function () {
   const E = this.cur; if (!E || E.over) return null;
   const p = player, dist = (q) => { const d = Math.round((Act.gps && Act.gpsTarget && Act.gpsTarget.kind === 'event' ? Act.gps.len : Math.hypot(q.x - p.x, q.y - p.y)) * 0.09); return d > 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : d + ' m'; };
+  if (E.stage === 'offer') return null;
   const left = Math.max(0, Math.ceil(E.life - E.t));
   const t = EV_NAMES[E.type];
   if (E.type === 'banana' && E.stage === 'invite') return [t, 'O Seu Biu mandou mensagem no zap. Abra o celular (Q).', 'some em ' + fmtTime(left).replace(/\.\d$/, '')];
@@ -9117,7 +9175,6 @@ const CHAR_VOICES = {
   ze_nao: { from: 'Seu Zé (Oficina)', text: 'Rapá, de novo? Ainda tem fiado pendurado aqui! Fiado é igual sogra: uma vez a gente aguenta, duas já é abuso. Acerta comigo que eu vou voando!' },
   biu_socorro: { from: 'Seu Biu (Bananas)', text: 'Ô meu patrão, a carreta tombou! Tá banana pra todo lado, parece feira depois de terremoto! Me ajuda aqui, pelo amor de Deus, que eu pago cada caixa!' },
   banco_atraso: { from: 'Banestresse', text: 'Olá. Aqui é a assistente virtual do Banestresse. Identificamos uma parcela em atraso. Os juros já estão trabalhando por você. Tenha uma ótima noite.' },
-  noivo_casei: { from: 'noivo', text: 'CASEI, BICHO! CASEI! Ela disse sim! Você é padrinho honorário! Tem bolo guardado pra você, vem pra festa!' },
 };
 function charVoice(key, from, fallbackText) {
   const C = CHAR_VOICES[key]; if (!C) return null;
@@ -9298,6 +9355,12 @@ function updateHudVisibility() {
 
 /* ---------- botões e menus ---------- */
 function bindMenus() {
+  // convite de evento: clique aceita/recusa sem tirar o foco do jogo (senão o espaço apertaria o botão)
+  for (const [sel, yes] of [['.evo-yes', true], ['.evo-no', false]]) {
+    const b = document.querySelector('#ev-offer ' + sel); if (!b) continue;
+    b.addEventListener('mousedown', (e) => e.preventDefault());
+    b.addEventListener('click', () => { b.blur(); Events.answerOffer(yes); });
+  }
   document.querySelectorAll('.mbtn').forEach((b) => {
     b.addEventListener('mouseenter', () => AudioSys.hover());
   });
@@ -9960,6 +10023,8 @@ function handleKeys() {
     if (Game.state !== 'playing') continue;
     switch (k) {
       case 'KeyE': if (Act.prompt) Act.prompt.act(); break;
+      case 'KeyY': Events.answerOffer(true); break;
+      case 'KeyN': Events.answerOffer(false); break;
       case 'KeyQ': Phone.open('home'); break;
       case 'KeyH': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
       case 'KeyB': Som.toggle(); break;

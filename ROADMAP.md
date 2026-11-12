@@ -13,6 +13,8 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
   - Alguém pedindo carona na BR
   - Cada um dura de 1 a 3 minutos e paga um bônus.
   - Um evento por vez. Na 1.3.0 a chance caiu 60%: a cada 1,5 a 2,5 minutos (tempo real) depois do anterior, só 40% de chance de rolar um. 7 conquistas novas.
+  - Carro quebrado, noivo, festa junina e carona chegam como **convite** num cartão no canto da tela (não pausa): Aceitar (Y ou clique) ou Recusar (N). Ignorar por 20 s conta como recusa. Só depois de aceitar aparece o ponto rosa e o GPS. Blitz continua só como aviso.
+  - Noivo: cada um tem a sua noiva fixa e quem já casou não volta. Noivo e carro quebrado não mandam mais mensagem no WhatsApp.
   - Carreta do Seu Biu chega como mensagem no WhatsApp: aceitar manda a localização (toque marca a rota); recusar rende resposta de zoeira.
 - [x] **Vida do carro** (versão 1.3.0)
   - Pneus (60 km, gastam mais derrapando), óleo (45 km, gasta mais no talo) e bateria por carro.
@@ -35,7 +37,7 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
 - [x] **6. Nível de motorista e reputação** (versão 1.8.0)
   - XP de tudo que paga; 30 níveis com títulos e bônus; banner "SUBIU DE NÍVEL" e chip de nível no HUD.
   - Nota (últimas 30 corridas) com faixas Bronze/Prata/Ouro/Diamante. Nível e nota liberam PegaAí Aeroporto (nível 2), Mudança (nível 3, Kombo/picape/Unho) e VIP (nível 5, nota 4,5).
-  - Cliente mal atendido (1-2 estrelas) manda áudio no WhatsApp: voz real (ElevenLabs) ou leitura pelo Windows, com transcrição. Personagens (Seu Zé, Seu Biu, Banestresse, noivo) também mandam áudios. Roteiro das vozes em ROTEIRO-VOZES.md.
+  - Cliente mal atendido (1-2 estrelas) manda áudio no WhatsApp: voz real (ElevenLabs) ou leitura pelo Windows, com transcrição. Personagens (Seu Zé, Seu Biu, Banestresse) também mandam áudios. Roteiro das vozes em ROTEIRO-VOZES.md.
 
 ## Próximos
 

@@ -7,7 +7,7 @@ O dono do projeto fala português e não é técnico: responda em português sim
 
 - O código fica em `src/` (partes numeradas). **Não edite `game.js` direto**: ele é gerado.
 - `./tools/build.sh` → gera `src/p00_clips.js` (vozes de `audio/`), junta tudo em `game.js`, confere a sintaxe e gera `dist/br-night-drive.html` (página única) e `tools/tests/wrapped.html`.
-- Testes (Playwright, rodar de dentro de `tools/tests/`): `t3` (fluxo geral, oficina, garagem), `t26` (celular, fretes, racha), `t43` (conquistas), `t66` (litoral), `t75` (vida do carro, Seu Biu, chuva), `t77` (banco e fiado), `t83` (personalização), `t94` (chat do PegaAí). `prof2.js alta|media|baixa` mede o tempo de desenho.
+- Testes (Playwright, rodar de dentro de `tools/tests/`): `t3` (fluxo geral, oficina, garagem), `t26` (celular, fretes, racha), `t43` (conquistas), `t66` (litoral), `t75` (vida do carro, Seu Biu, chuva), `t77` (banco e fiado), `t83` (personalização), `t94` (chat do PegaAí), `t95` (convite de evento e noivo). `prof2.js alta|media|baixa` mede o tempo de desenho.
 - Jogo no navegador: artefato https://claude.ai/artifact/A27NagegSAtFf2ud7b3fsU — publicar sempre o arquivo `dist/br-night-drive.html` nesse mesmo link.
 
 ## App do Windows
@@ -20,9 +20,9 @@ O dono do projeto fala português e não é técnico: responda em português sim
 ## Vozes (ElevenLabs)
 
 - Vozes ficam em `audio/*.mp3` (já comprimidas). O nome do arquivo é a chave em `VOICE_LINES` / `CHAR_VOICES` (`src/p66_career.js`).
-- Faltam as 4 dos personagens em `ROTEIRO-VOZES.md` (nome do arquivo, voz e texto com as marcações de emoção). Gerar uma por vez com o modelo `eleven_v4`, baixar o `content_url` (host `elevenlabsusercontent.com` liberado no ambiente "sr-marcio"), comprimir com ffmpeg e rodar o build.
+- Faltam as 3 dos personagens em `ROTEIRO-VOZES.md` (nome do arquivo, voz e texto com as marcações de emoção). Gerar uma por vez com o modelo `eleven_v4`, baixar o `content_url` (host `elevenlabsusercontent.com` liberado no ambiente "sr-marcio"), comprimir com ffmpeg e rodar o build.
 - As contas grátis (antiga e principal) foram bloqueadas por "atividade incomum" depois de algumas gerações: só gera de novo com plano pago. O plano grátis não permite uso comercial (o crédito está na tela de Créditos). `tools/tests/tv.js` lista quais vozes já têm áudio.
-- Passageiros falam pelo **chat do PegaAí** (estilo app de corrida). Personagens (Seu Zé, Seu Biu, Banestresse, noivo) falam pelo **WhatsApp**. Configuração "Mensagens dos personagens": Áudio (só português) ou Texto.
+- Passageiros falam pelo **chat do PegaAí** (estilo app de corrida). Personagens fixos (Seu Zé, Seu Biu, Banestresse) falam pelo **WhatsApp**. Gente de evento (noivo, motorista do carro quebrado) **não** manda mensagem no WhatsApp: o agradecimento aparece só na tela. Configuração "Mensagens dos personagens": Áudio (só português) ou Texto.
 
 ## Regras e preferências do dono
 

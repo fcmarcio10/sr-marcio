@@ -1159,3 +1159,23 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 .pg-row em { font-style: normal; font-size: 11px; color: #98989f; }
 .pg-row.new .pg-mid b::after { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #30d158; margin-left: 6px; vertical-align: 2px; }
 .pgc-top .ph-back { position: static; transform: none; margin: 0 2px 0 -4px; font-size: 26px; line-height: 1; color: #111; }
+
+/* ---------- convite de evento (aceitar / recusar), não pausa o jogo ---------- */
+#ev-offer { position: absolute; left: 18px; top: 132px; width: 300px; pointer-events: auto; background: rgba(7, 9, 15, 0.93); border-left: 4px solid #ff5ad1; border-radius: 3px;
+  padding: 10px 14px 0; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5); overflow: hidden; animation: evoIn 0.32s ease-out; transition: opacity 0.25s, transform 0.25s; }
+#ev-offer.out { opacity: 0; transform: translateX(-24px); }
+#ev-offer .evo-tag { font-family: var(--f-cond); font-weight: 800; font-size: 11px; letter-spacing: 0.22em; color: #ff5ad1; }
+#ev-offer .evo-title { font-family: var(--f-cond); font-weight: 800; font-size: 19px; text-transform: uppercase; color: #fff; margin-top: 2px; letter-spacing: 0.02em; }
+#ev-offer .evo-text { font-family: var(--f-body); font-size: 13.5px; line-height: 1.35; color: #dfe3ec; margin-top: 4px; }
+#ev-offer .evo-meta { font-family: var(--f-cond); font-weight: 700; font-size: 13px; color: var(--ouro); margin-top: 5px; }
+#ev-offer .evo-btns { display: flex; gap: 8px; margin: 10px 0 10px; }
+#ev-offer button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 2px; cursor: pointer; border: 0; border-radius: 3px; padding: 7px 8px;
+  font-family: var(--f-cond); font-weight: 800; font-size: 15px; text-transform: uppercase; letter-spacing: 0.04em; }
+#ev-offer button kbd { font-size: 12px; min-width: 20px; padding: 1px 5px; margin-right: 7px; }
+#ev-offer .evo-yes { background: #39d353; color: #07140b; }
+#ev-offer .evo-yes:hover { background: #5be274; }
+#ev-offer .evo-no { background: rgba(255, 255, 255, 0.1); color: #e9edf5; }
+#ev-offer .evo-no:hover { background: rgba(255, 255, 255, 0.18); }
+#ev-offer .evo-bar { height: 3px; margin: 0 -14px; background: rgba(255, 255, 255, 0.08); }
+#ev-offer .evo-bar i { display: block; height: 100%; width: 100%; background: #ff5ad1; transition: width 0.2s linear; }
+@keyframes evoIn { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }

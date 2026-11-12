@@ -140,7 +140,6 @@ const CHAR_VOICES = {
   ze_nao: { from: 'Seu Zé (Oficina)', text: 'Rapá, de novo? Ainda tem fiado pendurado aqui! Fiado é igual sogra: uma vez a gente aguenta, duas já é abuso. Acerta comigo que eu vou voando!' },
   biu_socorro: { from: 'Seu Biu (Bananas)', text: 'Ô meu patrão, a carreta tombou! Tá banana pra todo lado, parece feira depois de terremoto! Me ajuda aqui, pelo amor de Deus, que eu pago cada caixa!' },
   banco_atraso: { from: 'Banestresse', text: 'Olá. Aqui é a assistente virtual do Banestresse. Identificamos uma parcela em atraso. Os juros já estão trabalhando por você. Tenha uma ótima noite.' },
-  noivo_casei: { from: 'noivo', text: 'CASEI, BICHO! CASEI! Ela disse sim! Você é padrinho honorário! Tem bolo guardado pra você, vem pra festa!' },
 };
 function charVoice(key, from, fallbackText) {
   const C = CHAR_VOICES[key]; if (!C) return null;
