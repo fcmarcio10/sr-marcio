@@ -5621,42 +5621,6 @@ function socorroBar(H) {
     (opts.length ? '<div class="wa-sos-btns">' + opts.map((o) => `<button data-sos="${o[0]}">${o[1]}<small>R$ ${fmtMoney(o[2])}</small></button>`).join('') + '</div>' : '<small class="wa-sos-ok">Carro em dia, nada pra socorrer.</small>') + '</div>';
 }
 
-/* ---------- backup do save ---------- */
-function saveCode() { const j = JSON.stringify(Profile); return 'BRND1:' + btoa(unescape(encodeURIComponent(j))); }
-function restoreSave(txt) {
-  let p = null;
-  try {
-    txt = (txt || '').trim();
-    const json = txt.startsWith('BRND1:') ? decodeURIComponent(escape(atob(txt.slice(6).replace(/\s+/g, '')))) : txt;
-    p = JSON.parse(json);
-  } catch (e) { return false; }
-  if (!p || p.v !== 1 || !p.owned || !p.cars || typeof p.money !== 'number') return false;
-  try { localStorage.setItem('brnd_save', JSON.stringify(p)); } catch (e) { return false; }
-  Screens.closeAll();
-  continueGame();
-  setTimeout(() => toast('Save restaurado', 'R$ ' + fmtMoney(Profile.money) + ' · ' + Object.keys(Profile.owned).length + ' veículo(s)', 'good'), 900);
-  return true;
-}
-
-// baixa o save como arquivo: dentro do claude.ai usa a permissão de download; fora dele, um link normal
-async function saveFileDownload() {
-  const data = JSON.stringify(Profile), name = 'br-night-drive-save.json';
-  const done = (msg) => { Phone.bkMsg = msg; if (Phone.app === 'aj-backup') Phone.render(); };
-  let dl = null;
-  try { if (window.claude && window.claude.use) dl = await window.claude.use('downloads'); } catch (e) { dl = null; }
-  if (dl) {
-    try { await dl.save({ filename: name, data }); done('Arquivo salvo.'); }
-    catch (e) { done(e && e.code === 'declined' ? 'Download cancelado.' : 'Não deu para baixar aqui. Use "Copiar código".'); }
-    return;
-  }
-  if (window.claude) { done('Download indisponível aqui. Use "Copiar código".'); return; }
-  try {
-    const u = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
-    const l = document.createElement('a'); l.href = u; l.download = name; document.body.appendChild(l); l.click(); l.remove();
-    setTimeout(() => URL.revokeObjectURL(u), 2000); done('Arquivo baixado.');
-  } catch (e) { done('Não deu para baixar aqui. Use "Copiar código".'); }
-}
-
 /* ---------- APP TEMPORÁRIO DE TRAPAÇAS (para testes) ----------
    Para remover: troque CHEATS_ENABLED para false (o ícone some e nada disso roda). */
 const CHEATS_ENABLED = true;
@@ -5855,7 +5819,7 @@ const Phone = {
     if (cfg.wall === 'auto' || !WALLS.some((w) => w.id === cfg.wall)) { let w; do { w = pick(WALLS).id; } while (w === this.wall); this.wall = w; } else this.wall = cfg.wall;
     this.app = app || 'home'; if (Screens.current !== 'screen-phone') Screens.open('screen-phone'); this.render(); phoneTone(1200, 0.05, 0.05);
   },
-  go(app) { this.app = app; this.chat = null; if (app === 'aj-backup') { this.bkCode = null; this.bkMsg = ''; } if (app === 'aj-update') this.updT = performance.now(); this.render(); if (phoneCfg().sounds) AudioSys.click(); },
+  go(app) { this.app = app; this.chat = null; if (app === 'aj-update') this.updT = performance.now(); this.render(); if (phoneCfg().sounds) AudioSys.click(); },
   render() {
     const body = $('phone-body'); if (!body) return;
     $('phone-clock').textContent = clockStr();
@@ -5881,22 +5845,12 @@ const Phone = {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
         `<div class="aj-group"><div class="aj-prof"><span class="aj-ava">${PERA_LOGO}</span><div><b>Motorista de São Gambiarra</b><small>Pera ID · Nuvem Capixaba</small></div></div></div>` +
         '<div class="aj-group">' + row('aj-wall', 'Papel de parede', cfg.wall === 'auto' ? 'Variado' : (WALLS.find((w) => w.id === cfg.wall) || WALLS[0]).name) + tog('notif', 'Notificações') + tog('sounds', 'Sons do celular') + '</div>' +
-        '<div class="aj-group">' + row('aj-sobre', 'Sobre') + row('aj-update', 'Atualização de Software') + row('aj-backup', 'Backup do save') + '</div>' +
+        '<div class="aj-group">' + row('aj-sobre', 'Sobre') + row('aj-update', 'Atualização de Software') + '</div>' +
         `<div class="aj-group"><button class="aj-row aj-save" data-act2="save"><span>Salvar jogo</span></button></div><p class="aj-foot">${cfg.lastSave ? 'Último salvamento às ' + H(cfg.lastSave) + ' (horário do jogo).' : 'O jogo também salva sozinho a cada 30 segundos.'}</p>`;
     } else if (this.app === 'aj-wall') {
       html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Papel de parede</div>' +
         '<div class="aj-group">' + tog('autoWall', 'Variar a cada vez que abrir') + '</div>' +
         '<div class="aj-walls">' + WALLS.map((w) => `<button class="aj-wall${cfg.wall === w.id ? ' sel' : ''}" data-wall="${w.id}"><span style="background-image:${wallURL(w.id).replace(/"/g, "'")}"></span><b>${H(w.name)}</b><small>${H(w.place)}</small></button>`).join('') + '</div>';
-    } else if (this.app === 'aj-backup') {
-      if (!this.bkCode) { saveGame(); this.bkCode = saveCode(); }
-      html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Backup do save</div>' +
-        '<p class="ph-note">Seu progresso fica salvo só neste navegador. Guarde este código (ou o arquivo) para não perder nada e para continuar em outro aparelho.</p>' +
-        `<textarea class="bk-code" readonly id="bk-out">${H(this.bkCode)}</textarea>` +
-        '<div class="bk-btns"><button class="ph-btn" data-act2="bk-copy">Copiar código</button><button class="ph-btn alt" data-act2="bk-file">Baixar arquivo</button></div>' +
-        '<p class="ph-note" style="margin-top:12px">Restaurar: cole um código abaixo ou abra um arquivo de save.</p>' +
-        '<textarea class="bk-code" id="bk-in" placeholder="Cole aqui o código do save"></textarea>' +
-        '<div class="bk-btns"><button class="ph-btn" data-act2="bk-restore">Restaurar código</button><button class="ph-btn alt" data-act2="bk-open">Abrir arquivo</button></div>' +
-        `<p class="ph-note" id="bk-msg">${H(this.bkMsg || '')}</p>`;
     } else if (this.app === 'aj-sobre') {
       const free = 256 - 41 - Math.min(60, Math.floor((Profile.distance || 0) / 90000));
       html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Sobre</div><div class="aj-hero">' + PERA_LOGO + '<b>Pera 15 Pro</b></div>' +
@@ -6020,10 +5974,6 @@ const Phone = {
     const a = t.dataset.act2;
     if (t.dataset.cheat && CHEATS_ENABLED) { cheatDo(t.dataset.cheat, t.dataset.cv); return; }
     if (a === 'map-full') { Object.assign(MapState.full, MapState.phone); Screens.open('screen-map'); AudioSys.click(); return; }
-    if (a === 'bk-copy') { const ta = $('bk-out'); ta.select(); let ok = false; try { if (navigator.clipboard) { navigator.clipboard.writeText(ta.value); ok = true; } else ok = document.execCommand('copy'); } catch (e) { ok = false; } this.bkMsg = ok ? 'Código copiado.' : 'Selecione o texto acima e copie (Ctrl+C).'; this.render(); return; }
-    if (a === 'bk-file') { saveFileDownload(); return; }
-    if (a === 'bk-restore') { const v = ($('bk-in').value || '').trim(); this.bkMsg = restoreSave(v) ? '' : 'Código inválido.'; if (this.bkMsg) this.render(); return; }
-    if (a === 'bk-open') { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json,text/plain'; inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { if (!restoreSave(String(rd.result))) { this.bkMsg = 'Arquivo inválido.'; this.render(); } }; rd.readAsText(f); }; inp.click(); return; }
     if (a === 'save') { saveGame(); phoneCfg().lastSave = clockStr(); writeProfile(); AudioSys.chime(); toast('Jogo salvo', 'Progresso, dinheiro e carros guardados neste navegador.', 'good'); this.render(); return; }
     if (a === 'ride-toggle') { Act.rideOnline = !Act.rideOnline; Act.rideT = rnd(3, 6); if (!Act.rideOnline) Act.ride = null; AudioSys.click(); this.render(); }
     if (a === 'job-cancel') { Act.delivery = null; toast('Frete cancelado', '', 'bad'); AudioSys.back(); this.render(); }
