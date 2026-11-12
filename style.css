@@ -1126,3 +1126,36 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 .wa-voice em { font-style: normal; font-size: 11px; color: #8696a0; flex: none; }
 .wv-tr { display: block; margin-top: 4px; font-size: 11.5px; line-height: 1.35; color: #aebac1; font-style: italic; }
 .wa-mic { font-weight: 600; color: #53bdeb; }
+
+/* ---------- chat do PegaAí (estilo app de corrida: claro, preto e branco) ---------- */
+.pgc { margin: -50px -14px 0; min-height: calc(100% + 50px); background: #f6f6f6; color: #111; display: flex; flex-direction: column; font-family: -apple-system, "Segoe UI", sans-serif; }
+.pgc-top { display: flex; align-items: center; gap: 10px; padding: 54px 14px 12px; background: #fff; border-bottom: 1px solid #e5e5e5; }
+.pgc-top .ph-back { color: #111; }
+.pgc-top b { display: block; font-size: 15px; }
+.pgc-top small { font-size: 12px; color: #6b6b6b; }
+.pgc-ava { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #111; color: #fff; font-weight: 700; font-size: 13px; flex: none; }
+.pgc-body { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 8px; }
+.pgc-note { align-self: center; text-align: center; font-size: 11px; color: #8a8a8a; background: #ececec; border-radius: 10px; padding: 6px 10px; max-width: 90%; }
+.pgc-msg { position: relative; align-self: flex-start; max-width: 82%; background: #e9e9eb; color: #111; border-radius: 16px 16px 16px 4px; padding: 8px 12px 18px; font-size: 14px; line-height: 1.35; min-width: 64px; }
+.pgc-msg.me { align-self: flex-end; background: #111; color: #fff; border-radius: 16px 16px 4px 16px; }
+.pgc-msg i { position: absolute; right: 10px; bottom: 3px; font-style: normal; font-size: 10px; opacity: 0.55; }
+.pgc .wa-msg.pgc-in { background: #e9e9eb; color: #111; border-radius: 16px 16px 16px 4px; }
+.pgc .wa-msg.pgc-in i { color: #6b6b6b; }
+.pgc .wv-wave .wb { background: #9a9a9a; }
+.pgc .wa-voice.heard .wv-wave .wb { background: #111; }
+.pgc .wv-play { border-left-color: #111; }
+.pgc .wa-voice.playing .wv-play { border-left-color: #111; border-right-color: #111; }
+.pgc .wv-tr { color: #555; }
+.pgc .wa-voice em { color: #6b6b6b; }
+.pgc-quick { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 16px; background: #fff; border-top: 1px solid #e5e5e5; }
+.pgc-quick button { pointer-events: auto; cursor: pointer; border: 1.5px solid #111; background: #fff; color: #111; border-radius: 18px; padding: 7px 12px; font: 600 12.5px -apple-system, "Segoe UI", sans-serif; }
+.pgc-quick button:hover { background: #111; color: #fff; }
+.pgc-closed { text-align: center; padding: 12px; font-size: 12px; color: #8a8a8a; background: #fff; border-top: 1px solid #e5e5e5; }
+.pg-row { pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: #1c1c1e; color: #fff; border-radius: 12px; padding: 9px 12px; margin-bottom: 6px; font-family: -apple-system, "Segoe UI", sans-serif; }
+.pg-row .pgc-ava { background: #fff; color: #111; }
+.pg-mid { flex: 1; min-width: 0; }
+.pg-mid b { display: block; font-size: 14px; font-weight: 600; }
+.pg-mid small { display: block; font-size: 12px; color: #98989f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pg-row em { font-style: normal; font-size: 11px; color: #98989f; }
+.pg-row.new .pg-mid b::after { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #30d158; margin-left: 6px; vertical-align: 2px; }
+.pgc-top .ph-back { position: static; transform: none; margin: 0 2px 0 -4px; font-size: 26px; line-height: 1; color: #111; }

@@ -3,14 +3,14 @@
 Gere cada fala no ElevenLabs (modelo **Eleven v4**, que entende as marcações entre colchetes).
 Baixe em **MP3** e salve com **exatamente o nome do arquivo** da tabela. Depois é só me mandar os arquivos.
 
-Já estão no jogo: `xingo1`, `xingo2`, `xingo3`, `vip`, `mudanca`.
+Já estão no jogo: `xingo1`, `xingo2`, `xingo3`, `vip`, `mudanca`, `demora`, `aero`.
+
+Os áudios dos passageiros chegam no **chat do PegaAí**. Os dos personagens (Seu Zé, Seu Biu, Banestresse, noivo) chegam no **WhatsApp**.
 
 ## Passageiros (PegaAí)
 
 | Arquivo | Voz sugerida | Texto |
 |---|---|---|
-| `demora.mp3` | Sergio Funny | [resmungando] Demorou tanto que eu fiquei mais velho dentro desse carro. Cheguei atrasado e ainda com torcicolo. Uma estrela, e olhe lá! |
-| `aero.mp3` | Wesley Bessa | [desesperado] Perdi o voo! PERDI O VOO! Agora vou ter que ir pra Vitorinha de ônibus, com galinha no colo. Obrigado, viu, campeão! |
 | `p_bicho.mp3` | Marcio Brasil Brasileiro | [bravo] Ô bicho, que corrida foi essa? Pocou meu joelho no banco da frente! Vou dar uma estrela e olhe lá, mermão! |
 | `p_ahla.mp3` | Bianca - Quirky and Animated | [indignada] Ah lá, ah lá! Bateu de novo! Tô passando mal paca nesse carro. Me deixa aqui que eu vou a pé! |
 | `p_moqueca.mp3` | Thiago - Warm and inviting | [irritado] Rapá, tu pegou todo buraco de São Gambiarra. Minha moqueca chegou virada dentro da panela de barro. Moqueca é capixaba, o resto é peixada, mas a minha virou sopa! |
@@ -31,5 +31,6 @@ Já estão no jogo: `xingo1`, `xingo2`, `xingo3`, `vip`, `mudanca`.
 
 ## Observações
 
+- Nas Configurações, o jogador escolhe **Áudio (só em português)** ou **Texto**. Em Texto, todas as mensagens de voz aparecem escritas.
 - Enquanto um arquivo não existe, o celular do jogo mostra a mensagem de voz com a transcrição e lê o texto com a voz do próprio Windows.
 - O plano grátis do ElevenLabs pede crédito ao ElevenLabs (já está na tela de Créditos) e **não permite uso comercial**. Para vender o jogo, as vozes precisam ser geradas num plano pago.
