@@ -1,3 +1,7 @@
 BR-Night-Drive-Windows.zip
 BR-Night-Drive-Instalador-*.exe
 BR-Night-Drive-Instalador-*.zip
+dist/
+tools/tests/wrapped.html
+tools/tests/*.png
+src/p00_clips.js
