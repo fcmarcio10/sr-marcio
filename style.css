@@ -1081,3 +1081,4 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 .kit-buy:hover:not(:disabled) { background: #4cf0a0; }
 .swatches .sw { border-radius: 3px; }
 #hud-dash.som-on #car-name::before { content: 'SOM · '; color: #ff5ad1; }
+#transit-tip { transition: opacity 0.22s; min-height: 46px; }

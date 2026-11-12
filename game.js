@@ -9513,16 +9513,20 @@ function startPlay() {
 function withTransit(fn) {
   const el = $('transit'), fill = $('transit-fill'), txt = $('transit-text');
   if (!el) { fn(); return; }
-  const MSG = ['Ligando o motor…', 'Esquentando o óleo…', 'Acordando a cidade…', 'Ajustando o retrovisor…', 'Procurando a chave…'];
-  $('transit-tip').innerHTML = loadTipHTML();
+  const MSG = ['Procurando a chave…', 'Ligando o motor…', 'Esquentando o óleo…', 'Ajustando o retrovisor…', 'Acordando a cidade…', 'Acendendo os postes…', 'Chamando o trânsito…', 'Bora rodar!'];
+  // 3 dicas diferentes, uma a cada 2 segundos
+  const tips = LOAD_TIPS.slice().sort(() => Math.random() - 0.5).slice(0, 3), tipEl = $('transit-tip');
+  let tipI = 0; tipEl.innerHTML = '<b>DICA</b>' + tips[0]; tipEl.style.opacity = 1;
   txt.textContent = MSG[0]; fill.style.width = '0%';
   el.classList.remove('hidden', 'fade');
-  const t0 = performance.now(), D = 2400;
+  const t0 = performance.now(), D = 6000;
   setTimeout(fn, 40); // monta o jogo por trás da tela de carregamento
   const step = (now) => {
     const k = Math.min(1, (now - t0) / D);
     fill.style.width = (k * 100).toFixed(1) + '%';
     txt.textContent = MSG[Math.min(MSG.length - 1, Math.floor(k * MSG.length))];
+    const ti = Math.min(tips.length - 1, Math.floor((now - t0) / 2000));
+    if (ti !== tipI) { tipI = ti; tipEl.style.opacity = 0; setTimeout(() => { tipEl.innerHTML = '<b>DICA</b>' + tips[ti]; tipEl.style.opacity = 1; }, 220); }
     if (k < 1) requestAnimationFrame(step);
     else { el.classList.add('fade'); setTimeout(() => el.classList.add('hidden'), 460); }
   };
@@ -9712,6 +9716,8 @@ async function boot() {
   Screens.open('screen-main');
   requestAnimationFrame(frame);
   await tick(); await tick();
+  prog(0.97, 'Conferindo tudo…');
+  await new Promise((r) => setTimeout(r, 500)); // meio segundo a mais para garantir que tudo assentou
   prog(1, 'Pronto.');
   $('loading').classList.add('fade');
   setTimeout(() => $('loading').remove(), 800);
