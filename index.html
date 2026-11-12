@@ -21,6 +21,7 @@
     <span class="cur">R$</span><span id="money-value">0</span>
     <div id="money-delta"></div>
   </div>
+  <div id="hud-level"><b id="lvl-num">1</b><div class="lvl-bar"><i id="lvl-fill"></i></div></div>
   <div id="hud-wanted" class="hidden"><div class="w-stars"><i></i><i></i><i></i></div><div class="w-label">PROCURADO</div><div class="w-bar"><b id="w-bar"></b></div></div>
 
   <div id="hud-objective" class="glass">
@@ -51,6 +52,7 @@
   <div id="toasts"></div>
   <div id="fps" class="hidden"></div>
   <div id="region-banner"></div>
+  <div id="levelup" class="hidden"><b>SUBIU DE NÍVEL</b><span id="lu-num"></span><i id="lu-title"></i></div>
 </div>
 <div id="tutorial" class="glass hidden"></div>
 
@@ -71,7 +73,7 @@
       <button class="mbtn desk-only hidden" data-act="quit">SAIR DO JOGO</button>
     </nav>
     <div class="main-foot"><span><kbd>W A S D</kbd>Dirigir</span><span><kbd>Espaço</kbd>Freio de mão</span><span><kbd>E</kbd>Interagir</span><span><kbd>Q</kbd>Celular</span><span><kbd>H</kbd>Farol</span><span><kbd>B</kbd>Som</span><span><kbd>ESC</kbd>Pausa</span></div>
-    <div class="main-ver">v<span class="game-ver">1.7.0</span></div>
+    <div class="main-ver">v<span class="game-ver">1.8.0</span></div>
   </div>
 </div>
 
@@ -170,11 +172,12 @@
     <h2>CRÉDITOS</h2>
     <div class="credits">
       <p class="big">BR NIGHT DRIVE</p>
-      <p class="dim">Versão <span class="game-ver">1.7.0</span></p>
+      <p class="dim">Versão <span class="game-ver">1.8.0</span></p>
       <p>Um jogo de direção noturna por São Gambiarra, uma cidade capixaba inventada e cheia de trocadilho, no Espírito Santo: do Centrão à Rodovia BR-101 e Pouco, passando pela Vila Sem Pressa e pela Fazenda Muuuito Longe.</p>
       <p><b>Design, programação e arte</b><br>Desenvolvido inteiramente em HTML5 Canvas, CSS3 e JavaScript puro.</p>
       <p><b>Gráficos</b><br>Todos os veículos, construções, animais e efeitos de luz são desenhados proceduralmente em tempo real — nenhuma imagem externa.</p>
       <p><b>Fontes</b><br>Anton e Barlow, licença livre SIL Open Font License 1.1.</p>
+      <p><b>Vozes</b><br>Mensagens de voz geradas com ElevenLabs.</p>
       <p><b>Áudio</b><br>Motor, pneus, grilos, cidade e interface sintetizados com a Web Audio API.</p>
       <p><b>Veículos</b><br>Modelos originais inspirados em carros populares brasileiros, com nomes de zoeira (Fort, Volks Vagão, Fiá, Chevrolé…). Nenhum logotipo real — é tudo paródia.</p>
       <p class="dim">Dirija com calma. A noite é longa.</p>
