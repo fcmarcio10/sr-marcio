@@ -1,0 +1,12 @@
+{
+  "name": "br-night-drive-nativo",
+  "private": true,
+  "version": "1.6.0",
+  "scripts": {
+    "prepare-game": "node prepare.js",
+    "build:win": "node prepare.js && tauri build --target x86_64-pc-windows-gnu --bundles nsis"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0"
+  }
+}
