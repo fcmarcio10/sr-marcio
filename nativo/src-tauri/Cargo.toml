@@ -1,6 +1,6 @@
 [package]
 name = "br-night-drive"
-version = "1.6.0"
+version = "1.7.0"
 description = "BR Night Drive"
 authors = ["BR Night Drive"]
 edition = "2021"

@@ -3,7 +3,7 @@
    Jogo de exploração noturna top-down 2.5D — HTML5 Canvas + JS puro
    ===================================================================== */
 'use strict';
-const GAME_VERSION = '1.6.0';
+const GAME_VERSION = '1.7.0';
 try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
 // dica na tela de carregamento
 const LOAD_TIPS = ['Parado com o farol aceso por muito tempo, a bateria arria. Aperte H.', 'Sem dinheiro? O Seu Zé faz fiado. Só não some, que ele cobra.', 'De ré na vaga azul vale mais dinheiro.', 'Casca de banana na pista escorrega de verdade.', 'Na blitz da Lei Seca, pare ao lado do guarda de colete.', 'Depois das 22h tem racha. Cuidado com a viatura.', 'Pneus gastam mais quando você derrapa.', 'O Banestresse empresta, mas desconta toda virada de noite.', 'Q abre o celular. O mapa fica no app Mapa.', 'Óleo vencido faz o motor soltar fumaça e perder força.', 'Carona na BR rende gorjeta se você não bater.', 'Na chuva o carro escorrega mais, e no barro mais ainda.', 'F11 deixa o jogo em tela cheia.'];
@@ -3111,8 +3111,8 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   const lift = o.noLift ? 0 : vehLift(m);
   ctx.save();
   ctx.translate(x + 2.5, y + 3.5 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as);
-  ctx.fillStyle = 'rgba(0,0,0,0.42)';
-  ctx.beginPath(); rrect(ctx, -m.L / 2 - 1, -m.W / 2 - 0.5, m.L + 2, m.W + 1, m.kind === 'moto' ? 4 : 6); ctx.fill();
+  if (typeof SHSPR !== 'undefined' && SHSPR && Settings.quality === 'alta') { const ga = ctx.globalAlpha; ctx.translate(-1, -1); ctx.globalAlpha = ga * 0.78; softCarShadow(ctx, m.L + 4, m.W + 3); ctx.globalAlpha = ga; } // sombra de contato macia
+  else { ctx.fillStyle = 'rgba(0,0,0,0.42)'; ctx.beginPath(); rrect(ctx, -m.L / 2 - 1, -m.W / 2 - 0.5, m.L + 2, m.W + 1, m.kind === 'moto' ? 4 : 6); ctx.fill(); }
   ctx.restore();
   if (lift && m.kind !== 'moto') {
     const bp = bodyPath(m), base = m.kind === 'car' ? color : m.kind === 'bus' ? '#d8d6ce' : m.kind === 'truck' ? (o.box || '#d9d6cc') : color;
@@ -7070,7 +7070,7 @@ Som.update = function (dt) {
 };
 /* ============================ RENDERIZAÇÃO ============================ */
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+const ctx = canvas.getContext('2d', { alpha: false }); // tela opaca: o navegador não precisa misturar com a página
 const lightCanvas = document.createElement('canvas');
 const lctx = lightCanvas.getContext('2d');
 const glowCanvas = document.createElement('canvas');
@@ -7086,7 +7086,8 @@ function resize() {
   const dpr = window.devicePixelRatio || 1;
   RS = Settings.quality === 'alta' ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.7 : Math.min(dpr, 1.25);
   canvas.width = Math.round(SCREEN_W * RS); canvas.height = Math.round(SCREEN_H * RS);
-  LS = Settings.quality === 'alta' ? 0.7 : Settings.quality === 'baixa' ? 0.28 : 0.45;
+  // a camada de luz é toda suave: resolução menor não muda o visual e alivia muito
+  LS = Settings.quality === 'alta' ? 0.5 : Settings.quality === 'baixa' ? 0.28 : 0.42;
   lightCanvas.width = Math.ceil(SCREEN_W * LS); lightCanvas.height = Math.ceil(SCREEN_H * LS);
   glowCanvas.width = lightCanvas.width; glowCanvas.height = lightCanvas.height;
 }
@@ -7130,7 +7131,11 @@ const CHUNK = 512;
 const chunks = new Map();
 let frameNo = 0;
 const _bq = [];
-function maxChunks() { return Settings.quality === 'baixa' ? 24 : Settings.quality === 'alta' ? 64 : 46; }
+// guarda pelo menos os blocos da tela + um anel em volta (senão fica refazendo chão o tempo todo)
+function maxChunks() {
+  const v = Cam.view, need = v && v.x1 > v.x0 ? (Math.ceil((v.x1 - v.x0) / CHUNK) + 3) * (Math.ceil((v.y1 - v.y0) / CHUNK) + 3) + 6 : 30;
+  return Math.max(need, Settings.quality === 'baixa' ? 24 : Settings.quality === 'alta' ? 64 : 46);
+}
 function renderChunk(cx, cy) {
   const cv = makeCanvas(CHUNK, CHUNK), g = cv.getContext('2d');
   const X = cx * CHUNK, Y = cy * CHUNK;
@@ -8421,6 +8426,7 @@ const _talls = [];
 let forceGround = true;
 function render() {
   frameNo++;
+  const _P = window.__PROF; let _pt = _P ? performance.now() : 0; const pm = (k) => { if (_P) { const t = performance.now(); _P[k] = (_P[k] || 0) + t - _pt; _pt = t; } };
   const W = canvas.width, Hh = canvas.height;
   const z = Cam.zoom * RS;
   const sx = (Math.random() - 0.5) * Cam.shake, sy = (Math.random() - 0.5) * Cam.shake;
@@ -8430,16 +8436,21 @@ function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   ctx.fillStyle = '#0a1008'; ctx.fillRect(0, 0, W, Hh);
+  pm('clear');
   ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
   ctx.imageSmoothingEnabled = true;
   drawGround(view, forceGround); forceGround = false;
+  pm('ground');
   Weather.drawPuddles(ctx, view);
   Skids.draw(ctx, view);
   Weather.drawRipples(ctx, view);
   Debris.draw(ctx, view);
+  drawDynShadows(ctx, view);
+  pm('decals');
   // veículos e animais
   for (const an of Animals.list) if (an.type !== 'owl' && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
   if (Settings.quality !== 'baixa') Peladas.draw(ctx, view);
+  pm('animals');
   for (const c of Traffic.cars) {
     if (!inView(view, c.x, c.y, 80)) continue;
     drawVehicle(ctx, c.m, c.color, c.x, c.y, c.a, { steer: c.steerVis, roll: c.roll, brake: c.braking || c.v < 3, box: c.box, zones: c.zones });
@@ -8461,19 +8472,24 @@ function render() {
     }
   }
   Particles.draw(ctx);
+  pm('vehicles');
   // objetos altos ordenados por distância à câmera (longe primeiro)
   rendGrid.query(view.x0 - 170, view.y0 - 170, view.x1 + 170, view.y1 + 170, _rq);
   _talls.length = 0;
   for (const o of _rq) { const ox = o.cx !== undefined ? o.cx : o.x, oy = o.cy !== undefined ? o.cy : o.y; o._d = (ox - cx) * (ox - cx) + (oy - cy) * (oy - cy); _talls.push(o); }
   _talls.sort((a, b) => b._d - a._d);
+  pm('tallsQuery');
   for (const o of _talls) drawTall(ctx, o);
+  pm('talls');
   Events.drawTop(ctx, view);
   for (const an of Animals.list) if (an.type === 'owl' && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
   // escuridão + luzes
   if (Weather.wet > 0.02) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = `rgba(18,30,52,${(0.2 * Weather.wet).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ); }
   lightPass(view, cx, cy);
+  pm('lightPass');
   const lowQ = Settings.quality === 'baixa';
   if (!lowQ) glowPass(view, cx, cy); // na baixa: sem a camada de brilho colorido
+  pm('glowPass');
   if (Settings.quality === 'alta') {
     // bloom: espalha o brilho na própria camada de baixa resolução (barato) antes de ir para a tela
     const gw = glowCanvas.width, gh = glowCanvas.height;
@@ -8488,15 +8504,19 @@ function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.imageSmoothingQuality = 'low';
   ctx.drawImage(lightCanvas, 0, 0, W, Hh);
+  pm('compLight');
   if (!lowQ) {
     ctx.globalCompositeOperation = 'lighter';
     ctx.drawImage(glowCanvas, 0, 0, W, Hh);
+  pm('compGlow');
 
     ctx.globalCompositeOperation = 'source-over';
   }
   ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
   emissivePass(view, _talls);
+  pm('emissive');
   Weather.drawDrops(ctx);
+  pm('drops');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (Cam.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${(Cam.flash * 0.6).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
 }
@@ -8804,6 +8824,134 @@ function drawSpeedo() {
   spx.font = '22px "BRND Anton", Impact, sans-serif'; spx.fillStyle = gear === 'R' ? '#ff5f7a' : '#ffcc2e'; spx.fillText(gear, cx, cy + 43);
   spx.font = '700 10px "BRND Cond", Arial'; spx.fillStyle = 'rgba(255,255,255,0.45)'; spx.fillText('MARCHA', cx, cy + 60);
   if (player.highBeam) { spx.fillStyle = '#59e0ff'; spx.font = '800 12px "BRND Cond", Arial'; spx.fillText('FAROL ALTO', cx, 12); }
+}
+
+/* ============================ SOMBRAS DETALHADAS (gráfico Alta) ============================
+   1) Cada poste projeta no chão a sombra das construções e árvores em volta (assada uma vez no chão).
+   2) Carros e pedestres projetam sombra macia para longe de cada poste perto (muda enquanto andam).
+   3) Sombra de contato macia embaixo dos carros e escurecimento no pé das construções. */
+function hqShadows() { return Settings.quality === 'alta'; }
+let SHSPR = null, SHDOT = null;
+function buildShadowSprites() {
+  // retângulo borrado (sombra de carro) e mancha redonda (pessoas)
+  SHSPR = makeCanvas(128, 72);
+  { const g = SHSPR.getContext('2d'); g.shadowColor = 'rgba(0,0,0,1)'; g.shadowBlur = 12; g.shadowOffsetX = 1000; g.fillStyle = '#000'; g.beginPath(); rrect(g, 18 - 1000, 16, 92, 40, 8); g.fill(); }
+  SHDOT = makeCanvas(64, 64);
+  { const g = SHDOT.getContext('2d'), gr = g.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, 'rgba(0,0,0,0.95)'); gr.addColorStop(0.55, 'rgba(0,0,0,0.5)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); }
+}
+// sombra macia de um retângulo L x W (centro em 0,0, já rotacionado pelo chamador)
+function softCarShadow(ctx, L, W) { const sx = L / 92, sy = W / 40; ctx.drawImage(SHSPR, -64 * sx, -36 * sy, 128 * sx, 72 * sy); }
+
+// --- postes que iluminam um ponto (no máximo 2, os mais fortes) ---
+const _shLq = [], _shLn = [];
+function lampsAt(x, y) {
+  lightGrid.query(x - 1, y - 1, x + 1, y + 1, _shLq);
+  _shLn.length = 0;
+  for (const L of _shLq) {
+    if (L.fountain || L.shop || (L.dieAt && Game.time > L.dieAt)) continue;
+    if (!(L.lamp || L.flood || L.canopy || (L.r >= 110 && L.i >= 0.75))) continue;
+    const R = L.r * 0.9, d = Math.hypot(x - L.x, y - L.y);
+    if (d >= R || d < 3) continue;
+    _shLn.push([L, d, (1 - d / R) * L.i]);
+  }
+  _shLn.sort((a, b) => b[2] - a[2]);
+  if (_shLn.length > 2) _shLn.length = 2;
+  return _shLn;
+}
+function drawDynShadows(ctx, view) {
+  if (!hqShadows() || !SHSPR) return;
+  const car = (o, m, a) => {
+    for (const [L, d, w] of lampsAt(o.x, o.y)) {
+      const dx = (o.x - L.x) / d, dy = (o.y - L.y) / d, len = 10 + 42 * (d / L.r);
+      for (const [k, al] of [[0.4, 0.55], [0.85, 0.32]]) {
+        ctx.save(); ctx.translate(o.x + dx * len * k, o.y + dy * len * k); ctx.rotate(a);
+        ctx.globalAlpha = Math.min(0.85, 0.95 * w + 0.15) * al * 1.5; softCarShadow(ctx, m.L * (1 + k * 0.15), m.W); ctx.restore();
+      }
+    }
+  };
+  const ped = (o) => {
+    for (const [L, d, w] of lampsAt(o.x, o.y)) {
+      const dx = (o.x - L.x) / d, dy = (o.y - L.y) / d, len = 6 + 22 * (d / L.r);
+      ctx.globalAlpha = Math.min(0.7, 0.8 * w + 0.1);
+      ctx.save(); ctx.translate(o.x + dx * len * 0.5, o.y + dy * len * 0.5); ctx.rotate(Math.atan2(dy, dx)); ctx.drawImage(SHDOT, -len * 0.5 - 4, -4.5, len + 8, 9); ctx.restore();
+    }
+  };
+  for (const c of Traffic.cars) if (inView(view, c.x, c.y, 60)) car(c, c.m, c.a);
+  for (const u of Police.units) if (inView(view, u.x, u.y, 60)) car(u, VMODELS.police, u.a);
+  if (Socorro.job && inView(view, Socorro.job.x, Socorro.job.y, 60)) car(Socorro.job, VMODELS.guincho, Socorro.job.a);
+  if (player && Game.state !== 'menu') car(player, player.m, player.a);
+  for (const an of Animals.list) if ((an.type === 'person' || an.type === 'dog') && inView(view, an.x, an.y, 30)) ped(an);
+  ctx.globalAlpha = 1;
+}
+
+// --- sombras fixas dos postes (assadas no chão) ---
+function hull(P) {
+  P.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const p of P) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  up.pop(); lo.pop(); return lo.concat(up);
+}
+function bakeLampShadows() {
+  const HL = 64, q = [];
+  for (const L of World.lights) {
+    if (!L.lamp) continue;
+    const R = L.r * 0.95;
+    rendGrid.query(L.x - R, L.y - R, L.x + R, L.y + R, q);
+    const occ = q.filter((o) => (o.kind === 'bld' && !(L.x > o.x0 && L.x < o.x1 && L.y > o.y0 && L.y < o.y1)) || (o.kind === 'tree' && o.type !== 'bush'));
+    if (!occ.length) continue;
+    // pré-calcula os polígonos de sombra
+    const shapes = [];
+    for (const o of occ) {
+      if (o.kind === 'bld') {
+        const C = [[o.x0, o.y0], [o.x1, o.y0], [o.x1, o.y1], [o.x0, o.y1]], P = C.slice();
+        for (const c of C) {
+          const dx = c[0] - L.x, dy = c[1] - L.y, d = Math.hypot(dx, dy) || 1;
+          const ext = o.h >= HL * 0.85 ? R * 1.2 : Math.min(R * 1.2, d * o.h / (HL - o.h));
+          P.push([c[0] + dx / d * ext, c[1] + dy / d * ext]);
+        }
+        shapes.push({ poly: hull(P) });
+      } else {
+        const dx = o.x - L.x, dy = o.y - L.y, d = Math.hypot(dx, dy) || 1, h = Math.min(o.h, HL * 0.8);
+        const cd = Math.min(R, d * HL / (HL - h)), rc = (o.type === 'palm' ? 18 : 15) * o.size;
+        shapes.push({ tree: o, cx: L.x + dx / d * cd, cy: L.y + dy / d * cd, rx: rc * (1.15 + 0.25 * cd / R), ry: rc, a: Math.atan2(dy, dx), bx: o.x, by: o.y });
+      }
+    }
+    bake(L.x - R, L.y - R, L.x + R, L.y + R, 7.3, (g) => {
+      if (!hqShadows() || (L.lamp && (L.lamp.broken || L.lamp.down !== undefined))) return;
+      g.save();
+      g.beginPath(); g.arc(L.x, L.y, R, 0, TAU); g.clip();
+      const grd = g.createRadialGradient(L.x, L.y, 8, L.x, L.y, R);
+      grd.addColorStop(0, `rgba(0,0,0,${(0.75 * L.i).toFixed(3)})`); grd.addColorStop(0.65, `rgba(0,0,0,${(0.45 * L.i).toFixed(3)})`); grd.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = grd; g.strokeStyle = grd; g.lineCap = 'round';
+      const path = () => {
+        g.beginPath();
+        for (const s of shapes) {
+          if (s.poly) { s.poly.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); }
+          else if (!s.tree.removed) { g.moveTo(s.cx + Math.cos(s.a) * s.rx, s.cy + Math.sin(s.a) * s.rx); g.ellipse(s.cx, s.cy, s.rx, s.ry, s.a, 0, TAU); }
+        }
+      };
+      // três passadas levemente deslocadas = borda de penumbra macia
+      for (const [ox, oy, al] of [[0, 0, 0.5], [1.6, 1.2, 0.28], [-1.6, 1.2, 0.28]]) { g.globalAlpha = al; g.save(); g.translate(ox, oy); path(); g.fill(); g.restore(); }
+      // tronco das árvores
+      g.globalAlpha = 0.5; g.lineWidth = 3;
+      for (const s of shapes) if (s.tree && !s.tree.removed) { g.beginPath(); g.moveTo(s.bx, s.by); g.lineTo(s.cx, s.cy); g.stroke(); }
+      g.restore();
+    });
+  }
+  // escurecimento no pé das construções (as paredes "assentam" no chão)
+  for (const b of World.buildings) {
+    const m = 10;
+    bake(b.x0 - m, b.y0 - m, b.x1 + m, b.y1 + m, 7.1, (g) => {
+      if (!hqShadows()) return;
+      const side = (x0, y0, x1, y1, gx0, gy0, gx1, gy1) => { const gr = g.createLinearGradient(gx0, gy0, gx1, gy1); gr.addColorStop(0, 'rgba(0,0,0,0.38)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x0, y0, x1 - x0, y1 - y0); };
+      side(b.x0, b.y0 - m, b.x1, b.y0, 0, b.y0, 0, b.y0 - m);
+      side(b.x0, b.y1, b.x1, b.y1 + m, 0, b.y1, 0, b.y1 + m);
+      side(b.x0 - m, b.y0, b.x0, b.y1, b.x0, 0, b.x0 - m, 0);
+      side(b.x1, b.y0, b.x1 + m, b.y1, b.x1, 0, b.x1 + m, 0);
+    });
+  }
 }
 /* ============================ INTERFACE ============================ */
 const $ = (id) => document.getElementById(id);
@@ -9654,6 +9802,7 @@ async function boot() {
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
   pruneRoadTrees();
+  buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();
   buildMapImage();
   Traffic.prepare();
