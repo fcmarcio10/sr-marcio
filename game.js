@@ -9519,13 +9519,13 @@ function withTransit(fn) {
   let tipI = 0; tipEl.innerHTML = '<b>DICA</b>' + tips[0]; tipEl.style.opacity = 1;
   txt.textContent = MSG[0]; fill.style.width = '0%';
   el.classList.remove('hidden', 'fade');
-  const t0 = performance.now(), D = 6000;
+  const t0 = performance.now(), D = 6600;
   setTimeout(fn, 40); // monta o jogo por trás da tela de carregamento
   const step = (now) => {
     const k = Math.min(1, (now - t0) / D);
     fill.style.width = (k * 100).toFixed(1) + '%';
     txt.textContent = MSG[Math.min(MSG.length - 1, Math.floor(k * MSG.length))];
-    const ti = Math.min(tips.length - 1, Math.floor((now - t0) / 2000));
+    const ti = Math.min(tips.length - 1, Math.floor((now - t0) / 2200));
     if (ti !== tipI) { tipI = ti; tipEl.style.opacity = 0; setTimeout(() => { tipEl.innerHTML = '<b>DICA</b>' + tips[ti]; tipEl.style.opacity = 1; }, 220); }
     if (k < 1) requestAnimationFrame(step);
     else { el.classList.add('fade'); setTimeout(() => el.classList.add('hidden'), 460); }
