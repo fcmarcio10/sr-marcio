@@ -13,6 +13,8 @@
   st.textContent = `#g6-grade{position:fixed;inset:0;z-index:9000;pointer-events:none;mix-blend-mode:soft-light;opacity:0;
     background:linear-gradient(165deg,rgba(255,150,60,.55) 0%,rgba(255,70,140,.38) 42%,rgba(0,120,150,.5) 100%)}
   body.g6-cd #hud > *:not(#countdown){visibility:hidden !important}
+  body.g6-hud #prompt,body.g6-hud #money-delta,body.g6-hud #hud-wanted{display:none !important}
+  body.g6-hud #tr-ov .g6-nome{bottom:330px}
   #tr-ov .g6-social{position:absolute;inset:0;opacity:0}
   #tr-ov .g6-social .q-sd{position:absolute;top:0;bottom:0;width:calc(50% - 304px);-webkit-backdrop-filter:blur(30px) brightness(.42) saturate(1.3);backdrop-filter:blur(30px) brightness(.42) saturate(1.3)}
   #tr-ov .g6-social .q-sd.q-l{left:0}#tr-ov .g6-social .q-sd.q-r{right:0}
@@ -113,7 +115,7 @@
   T.titulo = function (big, small, f0, f1) { T.tio = { f0, f1: f1 || T.n }; ti.querySelector('b').textContent = big; ti.querySelector('em').textContent = small || ''; };
 
   /* ---------- cartaz final ---------- */
-  const fim = el('g6-fim', '<div class="q-sol"></div><div class="q-lg"><div class="q-t">BR</div><div class="q-m">NIGHT DRIVE</div><div class="q-s">São Gambiarra · Espírito Santo</div></div><div class="q-ja">Já disponível</div><div class="q-on">No navegador e no Windows</div>', preto);
+  const fim = el('g6-fim', '<div class="q-sol"></div><div class="q-lg"><div class="q-t">BR</div><div class="q-m">NIGHT DRIVE</div><div class="q-s">São Gambiarra · Espírito Santo</div></div><div class="q-ja">Em breve para Windows</div><div class="q-on"></div>', preto);
   T.final = function (f0) { T.fimo = { f0 }; };
 
   T.grade = function (o) { gr.style.opacity = o; };
@@ -133,6 +135,9 @@
   T.reset = function (opt) {
     opt = opt || {};
     _reset(opt);
+    // carro novinho: sem amassado, sem fumaça e sem sujeira
+    Profile.damage = 0; Profile.dirt = 0; Profile.zones = null; if (player) player.mud = 0;
+    document.body.classList.toggle('g6-hud', !!opt.hud); // painel do jogo aparecendo (sem o aviso de tecla)
     T.so = null; T.tvo = null; T.nmo = null; T.tio = null; T.fimo = null; T.tremido = 0;
     T.grade(opt.grade === undefined ? 0.55 : opt.grade);
     document.body.classList.toggle('g6-cd', !!opt.soContagem); // do painel, só a contagem do racha
