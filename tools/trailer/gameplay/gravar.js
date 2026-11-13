@@ -59,7 +59,7 @@ for (let i = 0; i < legendas.length - 1; i++) legendas[i].b = Math.min(legendas[
     await p.evaluate((n) => { TR.n = n; TR.log = { sons: [], motor: [] }; TR.som = []; }, c.quadros);
     await p.evaluate(() => TR.limpaGags());
     try { await p.evaluate(c.setup + '\n;void 0'); } catch (e) { console.log('ERRO no setup de', c.nome, e.message); continue; }
-    if (!c.placa) await p.evaluate(() => { if (player) UI.region = regionKeyAt(player.x, player.y); }); // placa do bairro só quando cruza a divisa
+    if (!c.placa) await p.evaluate(() => { if (player) { UI.region = regionKeyAt(player.x, player.y); UI.set('region-name', REGIONS[UI.region].name); } }); // placa do bairro só quando cruza a divisa
     for (let i = 0; i < (c.antes || 0); i++) await p.evaluate(() => TR.step());
     await p.evaluate((f0) => { TR.f = 0; TR.flash = TR.flash0 || 0; TR.gf0 = f0; TR.rec = true; }, c.f0);
     const t0 = Date.now(), ult = FOTOS ? Math.min(c.quadros - 1, Math.max(...FOTOS)) : c.quadros - 1;
