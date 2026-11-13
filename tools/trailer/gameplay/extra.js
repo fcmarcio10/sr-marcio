@@ -167,7 +167,9 @@
     T.rail = null; player.place(x0, y0, c.a); player.vx = Math.cos(c.a) * speed; player.vy = Math.sin(c.a) * speed;
     Cam.x = x0; Cam.y = y0; forceGround = true;
     let bateu = -1; const d0 = Profile.damage;
-    T.manual = (f, p) => { c.cruise = 0; if (bateu < 0 && (Profile.damage > d0 + 0.3 || Math.hypot(c.x - p.x, c.y - p.y) < (c.m.L + p.m.L) / 2 + 2)) bateu = f; return bateu < 0 ? { thr: true } : { brk: p.speed > 12 }; };
+    // o trânsito do jogo apaga carro fora da tela: este fica (é o alvo da batida)
+    T.manual = (f, p) => { c.cruise = 0; c.hideT = 0; if (!Traffic.cars.includes(c)) { c.dead = false; c.alive = true; Traffic.cars.push(c); }
+      if (bateu < 0 && Profile.damage > d0 + 0.3) bateu = f; return bateu < 0 ? { thr: true } : { brk: p.speed > 12 }; };
     return c;
   };
   // chega até (x, y) e para perto do quadro fStop
