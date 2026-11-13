@@ -2,12 +2,17 @@
 // uso (de dentro de tools/trailer):
 //   node gravar.js [cena ...]                      -> trailer simples (roteiro.js, pasta quadros/)
 //   ROTEIRO=./roteiro_gta.js node gravar.js [...]   -> trailer estilo GTA (pasta quadros_gta/, sons em eventos/)
+//   ROTEIRO=./gta6/roteiro.js node gravar.js [...]  -> trailer curto estilo GTA 6 (pastas do próprio roteiro)
+//   FOTOS=0,60 ...                                  -> prévia: só tira foto nesses quadros de cada cena (pasta previa/)
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
 const ROT = require(process.env.ROTEIRO || './roteiro.js');
 const CENAS = Array.isArray(ROT) ? ROT : ROT.cenas;
 const GTA = !Array.isArray(ROT);
-const OUT = GTA ? 'quadros_gta' : 'quadros';
+const PASTAS = ROT.pastas || {};
+const FOTOS = process.env.FOTOS ? process.env.FOTOS.split(',').map(Number) : null;
+const OUT = FOTOS ? (PASTAS.previa || 'previa') : PASTAS.quadros || (GTA ? 'quadros_gta' : 'quadros');
+const EVD = PASTAS.eventos || 'eventos';
 
 // tempos em compassos -> quadros (cortes caem certinho na batida)
 if (GTA) {
@@ -35,26 +40,29 @@ if (GTA) {
     player.setCar('brasa'); Events.spawnT = 1e9; Profile.msgs = []; UI.last = {};
   });
   await p.addScriptTag({ path: path.join(__dirname, 'cena.js') });
+  for (const x of ROT.extra || []) await p.addScriptTag({ path: path.join(__dirname, x) }); // visual próprio do roteiro
   await p.evaluate((bpm) => { window.__VT.start(); TR.BEATF = 3600 / (bpm || 130); }, ROT.bpm);
-  if (GTA) fs.mkdirSync(path.join(__dirname, 'eventos'), { recursive: true });
+  if (GTA) fs.mkdirSync(path.join(__dirname, EVD), { recursive: true });
   for (const c of lista) {
     const dir = path.join(__dirname, OUT, c.nome);
-    fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
+    if (!FOTOS) fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(FOTOS ? path.join(__dirname, OUT) : dir, { recursive: true });
     await p.evaluate((n) => { TR.n = n; TR.log = { sons: [], motor: [] }; }, c.quadros);
     await p.evaluate(() => TR.limpaGags()); // piadas da cena anterior não passam pra próxima
-    await p.evaluate(c.setup);
+    try { await p.evaluate(c.setup + '\n;void 0'); } catch (e) { console.log('ERRO no setup de', c.nome, e.message); continue; }
     for (let i = 0; i < (c.antes || 0); i++) await p.evaluate(() => TR.step()); // deixa a cena "assentar" antes de gravar
     await p.evaluate((f0) => { TR.f = 0; TR.flash = TR.flash0 || 0; TR.gf0 = f0; TR.rec = true; }, c.f0 || 0);
     const t0 = Date.now();
-    for (let i = 0; i < c.quadros; i++) {
+    const ult = FOTOS ? Math.min(c.quadros - 1, Math.max(...FOTOS)) : c.quadros - 1;
+    for (let i = 0; i <= ult; i++) {
       await p.evaluate(() => TR.step());
-      await p.screenshot({ path: path.join(dir, String(i).padStart(5, '0') + '.jpg'), type: 'jpeg', quality: 92 });
+      if (!FOTOS) await p.screenshot({ path: path.join(dir, String(i).padStart(5, '0') + '.jpg'), type: 'jpeg', quality: 92 });
+      else if (FOTOS.includes(i)) await p.screenshot({ path: path.join(__dirname, OUT, c.nome + '_' + i + '.jpg'), type: 'jpeg', quality: 70 });
     }
     const log = await p.evaluate(() => { TR.rec = false; return TR.log; });
-    if (GTA) fs.writeFileSync(path.join(__dirname, 'eventos', c.nome + '.json'), JSON.stringify({ nome: c.nome, f0: c.f0, n: c.quadros, bar0: c.bar0, bars: c.bars, sfx: c.sfx || [], motor: !!c.motor, chuva: !!c.chuva, mudo: c.mudo || null, sons: log.sons, vel: log.motor }));
+    if (GTA && !FOTOS) fs.writeFileSync(path.join(__dirname, EVD, c.nome + '.json'), JSON.stringify({ nome: c.nome, f0: c.f0, n: c.quadros, bar0: c.bar0, bars: c.bars, sfx: c.sfx || [], motor: !!c.motor, chuva: !!c.chuva, mudo: c.mudo || null, sons: log.sons, vel: log.motor }));
     console.log(c.nome, c.quadros, 'quadros em', ((Date.now() - t0) / 1000).toFixed(0) + ' s');
   }
-  if (GTA) fs.writeFileSync(path.join(__dirname, 'eventos', '_trailer.json'), JSON.stringify({ bpm: ROT.bpm, fps: 60, cenas: CENAS.map((c) => ({ nome: c.nome, f0: c.f0, n: c.quadros, bar0: c.bar0, bars: c.bars })), vozes: ROT.vozes || [] }));
+  if (GTA && !FOTOS) fs.writeFileSync(path.join(__dirname, EVD, '_trailer.json'), JSON.stringify({ bpm: ROT.bpm, fps: 60, cenas: CENAS.map((c) => ({ nome: c.nome, f0: c.f0, n: c.quadros, bar0: c.bar0, bars: c.bars })), vozes: ROT.vozes || [] }));
   if (errs.length) console.log('ERROS:\n' + errs.slice(0, 5).join('\n'));
   await b.close();
 })();
