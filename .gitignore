@@ -7,3 +7,6 @@ tools/tests/*.png
 src/p00_clips.js
 tools/trailer/quadros/
 tools/trailer/saida/
+tools/trailer/quadros_gta/
+tools/trailer/eventos/
+tools/trailer/voz/
