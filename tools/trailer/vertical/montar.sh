@@ -16,6 +16,6 @@ with open('saida/lista.txt', 'w') as f:
 PY
 [ -n "$SO_SOM" ] && [ -f saida/video.mp4 ] || ffmpeg -y -loglevel error -f concat -safe 0 -i saida/lista.txt -vf "fps=60,format=yuv420p" -c:v libx264 -preset slow -crf 20 -movflags +faststart saida/video.mp4
 [ -n "$PULA_JOGO" ] && [ -f saida/jogo.wav ] || PASTA="$PWD" node ../gameplay/som_jogo.js
-PASTA="$PWD" MUSICA=0.3 python3 ../gameplay/mix.py
+PASTA="$PWD" MUSICA=0.22 python3 ../gameplay/mix.py
 ffmpeg -y -loglevel error -i saida/video.mp4 -i saida/mix.wav -af "loudnorm=I=-14:TP=-1.0:LRA=11" -c:v copy -c:a aac -b:a 256k -shortest -movflags +faststart saida/br-night-drive-vertical.mp4
 ls -la saida/br-night-drive-vertical.mp4
