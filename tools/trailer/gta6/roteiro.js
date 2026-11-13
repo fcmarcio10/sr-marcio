@@ -6,10 +6,10 @@
 const LB = 138; // faixas de cinema (tela 2.39:1)
 const semPolicia = `for (const c of Traffic.cars) if (c.model === 'police') { c.release(); c.dead = true; } Traffic.cars = Traffic.cars.filter((c) => !c.dead);`;
 const poca = (frente) => `if (!Weather.puddleGrid) Weather.buildPuddles(); { const R = TR.rail, q = TR.at(R, R.s + ${frente}), p = { x: q[0], y: q[1], rx: 24, ry: 9, mud: false, cool: 0, ph: 1 }; const C = Weather.puddleCell, k = Math.floor(p.x / C) + ',' + Math.floor(p.y / C); if (!Weather.puddleGrid.has(k)) Weather.puddleGrid.set(k, []); Weather.puddleGrid.get(k).push(p); }`;
-// na frente da oficina do Seu Zé (ox, oy = vaga na rua, de frente pra oficina)
+// na frente da oficina do Seu Zé (ox, oy = vaga na rua, de frente pra oficina; vx, vy = câmera puxada pro lado da placa)
 const naOficina = (dano) => `const of = World.shops.find((x) => x.kind === 'oficina'), ne = nearestEdge(of.x, of.y), e = ne.e;
   const ox = e.a.x + e.dx * ne.s - e.dy * 24, oy = e.a.y + e.dy * ne.s + e.dx * 24; player.place(ox, oy, Math.atan2(e.dy, e.dx)); TR.rail = null; Profile.damage = ${dano};
-  Profile.zones = { f: 0.8, r: 0.3, l: 0.6, rt: 0.2, seed: 7 }; const od = Math.hypot(of.x - ox, of.y - oy) || 1, vx = ox - (of.x - ox) / od * 80, vy = oy - (of.y - oy) / od * 80; // a placa fica do outro lado`;
+  Profile.zones = { f: 0.8, r: 0.3, l: 0.6, rt: 0.2, seed: 7 }; const od = Math.hypot(of.x - ox, of.y - oy) || 1, vx = ox - (of.x - ox) / od * 80, vy = oy - (of.y - oy) / od * 80;`;
 // arrancada na BR-101 contra o Zé do Canecão (skip = já no meio da corrida)
 const racha = (skip, t) => `${semPolicia} const r = World.rachas.find((x) => x.id === 'arrancada');
   TR.drive(r.start[0], r.start[1], r.pts[r.pts.length - 1][0], r.pts[r.pts.length - 1][1], 460, { lane: 0, v0: ${skip ? 420 : 0}, skip: ${skip || 0} });
@@ -55,7 +55,7 @@ module.exports = {
     { nome: '07-lombada', bars: 1, antes: 0, motor: true,
       setup: `TR.reset({ lb: ${LB}, time: 23 * 60 + 5 }); TR.lombada(62, 300, 0.42); TR.follow(3.0, 3.4, 0.05); TR.onBump = () => { TR.flash = 0.2; };` },
     { nome: '08-blitz', bars: 1.5, antes: 20,
-      setup: `TR.reset({ lb: 0, time: 23 * 60 }); const E = TR.spawnEv('blitz', 1600, 3880); TR.toward(E.x, E.y, 320, 170); TR.fixo(E.x, E.y, 2.5, 2.8);
+      setup: `TR.reset({ lb: 0, time: 23 * 60 }); const E = TR.spawnEv('blitz', 1600, 3880); TR.toward(E.x, E.y, 320, 170); TR.fixo(E.x, E.y - 70, 2.5, 2.8);
         ${social({ user: '@flagra.sg', cor: '#2bb3ff', curtidas: '8.432', coment: '611', txt: 'blitz da lei seca 23h e o cara soprou 0,00. disse que só bebeu caldo de cana kkkkk <b>#SãoGambiarra</b> <b>#LeiSeca</b>' })}` },
     { nome: '09-br', bars: 1, antes: 40, motor: true,
       setup: `TR.reset({ lb: ${LB}, cam: 3, time: 21 * 60 }); TR.drive(700, 6221, 4400, 6221, 480, { lane: 21 }); TR.follow(1.12, 1.25, 0.25);` },
@@ -96,7 +96,7 @@ module.exports = {
         ${social({ user: '@zezinho.da.kombi', cor: '#2bdc6a', curtidas: '12,9 mil', coment: '904', txt: 'bateria arriou 23h e um doido de Opalha rebaixado parou pra dar chupeta. ainda existe gente boa nesse mundo <b>#SãoGambiarra</b>' })}` },
     { nome: '21-seubiu', bars: 1, antes: 20,
       setup: `TR.reset({ lb: ${LB}, time: 22 * 60 + 10 }); const E = TR.spawnEv('banana', 3400, 6221); E.stage = 'collect'; player.place(E.x + 2000, E.y, 0); TR.rail = null;
-        TR.fixo(E.npc.x + 20, E.npc.y - 10, 3.6, 4.0); TR.slow = 0.6; TR.nome('Seu Biu', 'Caminhoneiro · tomba toda semana', 6, TR.n - 2);` },
+        TR.fixo(E.x, E.y, 2.35, 2.75, (E.x * 2 + E.npc.x) / 3, (E.y * 2 + E.npc.y) / 3); TR.slow = 0.6; TR.nome('Seu Biu', 'Caminhoneiro · tomba toda semana', 6, TR.n - 2);` },
     { nome: '22-viela', bars: 1, antes: 20,
       setup: `TR.reset({ lb: ${LB}, time: 23 * 60 + 20 }); const v = World.animalsDef.filter((d) => d.type === 'person' && d.n === 3 && d.rect[2] - d.rect[0] < 14 && d.rect[1] > 6400)[3];
         const cx = (v.rect[0] + v.rect[2]) / 2, cy = (v.rect[1] + v.rect[3]) / 2; player.place(cx + 3000, cy, 0); TR.rail = null; TR.fixo(cx, cy - 60, 2.0, 1.85, cx, cy + 60);` },

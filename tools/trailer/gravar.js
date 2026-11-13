@@ -24,7 +24,7 @@ if (GTA) {
   const want = process.argv.slice(2);
   const lista = CENAS.filter((c) => !want.length || want.includes(c.nome));
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1920, height: 1080 } });
-  const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+  const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => { if (m.type() === 'warning') console.log('  [página]', m.text().slice(0, 200)); });
   await p.addInitScript({ path: path.join(__dirname, 'relogio.js') });
   await p.goto('file://' + path.join(__dirname, '..', 'tests', 'wrapped.html'));
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 60000 });

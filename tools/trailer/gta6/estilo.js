@@ -48,7 +48,8 @@
   #tr-ov .g6-tv .q-sub span{padding:8px 26px;flex:1}#tr-ov .g6-tv .q-sub b{background:#071534;padding:8px 22px;font-weight:800}
   #tr-ov .g6-tv .q-tk{position:absolute;left:0;right:0;bottom:44px;height:56px;background:rgba(5,10,24,.9);overflow:hidden;color:#ffd23a;font-weight:800;font-size:30px;letter-spacing:.06em;line-height:56px;white-space:nowrap}
   #tr-ov .g6-tv .q-tk i{font-style:normal;position:absolute;left:0}
-  #tr-ov .g6-nome{position:absolute;left:110px;bottom:150px;opacity:0}
+  #tr-ov .g6-nome{position:absolute;left:110px;bottom:150px;opacity:0;isolation:isolate}
+  #tr-ov .g6-nome:before{content:'';position:absolute;left:-220px;right:-320px;top:-40px;bottom:-110px;z-index:-1;background:radial-gradient(ellipse at 40% 62%,rgba(3,4,8,.78) 0%,rgba(3,4,8,.45) 45%,transparent 72%)}
   #tr-ov .g6-nome b{display:block;font-family:var(--f-display);font-weight:400;font-size:178px;line-height:1;padding-top:34px;text-transform:uppercase;letter-spacing:.01em;
     background:linear-gradient(100deg,#ff4f9a 0%,#ff8a3d 55%,#ffd04a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(8px 8px 0 rgba(5,7,11,.9))}
   #tr-ov .g6-nome em{display:block;margin-top:16px;font-style:normal;font-family:var(--f-cond);font-weight:800;font-size:36px;letter-spacing:.2em;color:#fff;text-transform:uppercase;text-shadow:3px 3px 0 #05070b}
@@ -151,7 +152,7 @@
       if (o && f % 13 === 0 && f - S.f0 > 26) coracao(f);
       for (const c of S.cores) {
         const k = (f - c.f0) / 70; c.d.style.opacity = k < 0 || k > 1 ? 0 : Math.min(1, 4 * (1 - k));
-        c.d.style.bottom = (640 + k * 300) + 'px'; c.d.style.transform = 'translateX(' + (c.dx + Math.sin(k * 6 + c.f0) * 16).toFixed(1) + 'px) scale(' + (0.6 + 0.6 * Math.min(1, k * 5)).toFixed(2) + ')';
+        c.d.style.bottom = (690 + k * 280) + 'px'; c.d.style.transform = 'translateX(' + (c.dx + Math.sin(k * 6 + c.f0) * 16).toFixed(1) + 'px) scale(' + (0.6 + 0.6 * Math.min(1, k * 5)).toFixed(2) + ')';
       }
     } else so.style.opacity = 0;
     // TV
@@ -164,7 +165,7 @@
     // nome do personagem
     if (T.nmo) {
       const N = T.nmo, k = Math.min(1, Math.max(0, (f - N.f0) / 14)), o = f < N.f0 ? 0 : Math.min(1, (N.f1 - f) / 8);
-      nm.style.opacity = Math.max(0, o); nm.style.clipPath = 'inset(-80px ' + ((1 - ease(k)) * 100).toFixed(1) + '% -40px -20px)';
+      nm.style.opacity = Math.max(0, o); { const e = ease(k); nm.style.clipPath = 'inset(-220px calc(' + ((1 - e) * 100).toFixed(1) + '% - ' + (e * 420).toFixed(0) + 'px) -220px -420px)'; }
       nm.style.transform = 'translateX(' + ((1 - ease(k)) * -30).toFixed(1) + 'px)';
     } else nm.style.opacity = 0;
     // título do lugar
