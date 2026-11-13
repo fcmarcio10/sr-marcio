@@ -78,7 +78,7 @@ const cenas = [
     setup: `TR.legDir = 760; TR.em([
         [${s(0.2)}, () => TR.tocar('#phone-body [data-app="mapa"]')],
         [${s(1.7)}, () => TR.botao(/Oficina do Seu Zé/, '#ph-map-dests button')],
-        [${s(3.9)}, () => { TR.tecla('KeyQ', 'Q', 'fechar'); TR.legDir = 0; }],
+        [${s(3.9)}, () => { TR.fecharCel(); }],
       ]);` },
 
   /* ================= PEGAAÍ ================= */
@@ -90,7 +90,7 @@ const cenas = [
         [${s(0.15)}, () => { TR.tecla('KeyQ', 'Q', 'celular'); TR.legDir = 760; }],
         [${s(0.9)}, () => TR.tocar('#phone-body [data-app="pegaai"]')],
         [${s(2.6)}, () => TR.tocar('#phone-body [data-act2="ride-toggle"]')],
-        [${s(3.4)}, () => { TR.tecla('KeyQ', 'Q', 'fechar'); TR.legDir = 0; Act.rideT = 0.3; }],
+        [${s(3.4)}, () => { TR.fecharCel(); Act.rideT = 0.3; }],
         [${s(4.0)}, () => { const t = __VT.timers.find((t) => String(t.fn).includes('PG_PICKUP')); if (t) t.at = __VT.t + 1600; }],
       ]);` },
   { nome: '12-busca', seg: 0.2 + D('g12') + 0.5, antes: 0, estilo: 'trampo',
@@ -145,7 +145,7 @@ const cenas = [
         [${s(0.2)}, () => { TR.tecla('KeyQ', 'Q', 'celular'); TR.legDir = 760; }],
         [${s(0.8)}, () => TR.tocar('#phone-body [data-app="fretes"]')],
         [${s(5.0)}, () => TR.tocar('#phone-body [data-job="0"]')],
-        [${s(6.6)}, () => { TR.tecla('KeyQ', 'Q', 'fechar'); TR.legDir = 0; }],
+        [${s(6.6)}, () => { TR.fecharCel(); }],
       ]);` },
   { nome: '19-gas', seg: 0.2 + D('g20') + 0.5, antes: 0, estilo: 'trampo',
     setup: `const J = Act.delivery; J.stage = 'deliver'; GasJingle.t = 0; const r = TR.drive(J.pick.x, J.pick.y, J.dest.x, J.dest.y, 190, { lane: 22 }); r.s = r.len * 0.45; r.v = 190; TR.follow(1.35, 1.45, 0.12);` },
@@ -159,7 +159,7 @@ const cenas = [
       TR.em([[${s(0.9)}, () => TR.tecla('KeyE', 'E', 'oficina')], [${s(6.5)}, () => TR.destacar(fb(), 'fiado', TR.f, TR.f + 60, false)], [${s(7.6)}, () => TR.tocar(fb())]]);` },
   { nome: '21-posto', seg: 0.2 + D('g22') + 0.4, antes: 10, estilo: 'trampo',
     setup: `TR.reset({ hud: true, toasts: true, time: 20 * 60 + 42 }); Profile.fuel = 28; Profile.dirt = 0.85; Profile.money = 640; Profile.damage = 0;
-      const ps = World.shops.find((x) => x.kind === 'posto' && x.wash); TR.chegar(ps.x, ps.y, ${s(0.4)}, 150);
+      const ps = World.shops.find((x) => x.kind === 'posto' && x.wash); TR.chegar(ps.x, ps.y, ${s(0.4)}, 150, { entra: true });
       TR.em([[${s(0.6)}, () => TR.tecla('KeyE', 'E', 'posto')], [${s(1.3)}, () => TR.botao(/Encher o tanque/)], [${s(3.0)}, () => TR.botao(/Lavar o carro/)], [${s(5.0)}, () => TR.botao(/café/)]]);` },
   { nome: '22a-emprestimo', seg: 0.2 + 5.5, antes: 10, estilo: 'trampo',
     setup: `TR.reset({ hud: true, toasts: true, bigPhone: true, time: 20 * 60 + 44 }); Profile.loan = null; Profile.money = 120; TR.drive(1500, 1260, 2600, 1260, 0, { lane: 24, v0: 0 });

@@ -7,7 +7,7 @@
   T.filtroToast = null; // na gameplay todos os avisos do jogo aparecem
   // reset da gameplay: placa do bairro ligada e o dinheiro de verdade (o do trailer enchia o bolso)
   const _reset = T.reset;
-  const st0 = document.createElement('style'); st0.textContent = '#toasts{transform:scale(1.55);transform-origin:top right}#phone-body [data-app="trapaca"]{display:none!important}body.gp-soplaca #hud{visibility:visible!important}body.gp-soplaca #hud>*:not(#region-banner){visibility:hidden!important}'; document.head.appendChild(st0);
+  const st0 = document.createElement('style'); st0.textContent = '#toasts{transform:scale(1.55);transform-origin:top right}#ev-offer{transform:scale(1.5);transform-origin:top left}#phone-body [data-app="trapaca"]{display:none!important}body.gp-soplaca #hud{visibility:visible!important}body.gp-soplaca #hud>*:not(#region-banner){visibility:hidden!important}'; document.head.appendChild(st0);
   T.reset = function (opt) { const m = Profile.money; _reset(opt); Profile.money = m; const rb = document.getElementById('region-banner'); if (rb) rb.style.display = ''; document.body.classList.toggle('gp-soplaca', !!(opt && opt.placa)); };
   /* ---------- quadro global (para os sons caírem no quadro certo do vídeo) ---------- */
   const _vs = V.step;
@@ -173,7 +173,19 @@
     return c;
   };
   // chega até (x, y) e para perto do quadro fStop
-  T.chegar = function (x, y, fStop, speed, opt) { return T.toward(x, y, Math.max(90, speed * (fStop / 60 - 0.55)), speed, opt); };
+  T.chegar = function (x, y, fStop, speed, opt) {
+    opt = opt || {};
+    const R = T.toward(x, y, Math.max(90, speed * (fStop / 60 - 0.55)), speed, opt);
+    // entra no pátio (posto, oficina): estica o trilho da rua até o ponto da loja
+    if (R && opt.entra) {
+      const fim = R.P[R.P.length - 1], L = Math.hypot(x - fim[0], y - fim[1]), n = Math.max(1, Math.ceil(L / 6));
+      for (let i = 1; i <= n; i++) { const q = [fim[0] + (x - fim[0]) * i / n, fim[1] + (y - fim[1]) * i / n]; R.S.push(R.S[R.S.length - 1] + Math.hypot(q[0] - R.P[R.P.length - 1][0], q[1] - R.P[R.P.length - 1][1])); R.P.push(q); }
+      R.len = R.S[R.S.length - 1];
+    }
+    return R;
+  };
+  // fecha o celular só se estiver aberto (tocar num frete já fecha sozinho)
+  T.fecharCel = function () { if (Screens.current === 'screen-phone') T.tecla('KeyQ', 'Q', 'fechar'); T.legDir = 0; };
   // trava o sorteio de uma lista do jogo num item (ex.: a fala do passageiro), sem mexer no resto
   T.fixos = new Map();
   const _pick = window.pick;
