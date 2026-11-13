@@ -225,7 +225,7 @@ const REGIONS = {
 };
 const SUBREG = [];
 function regionKeyAt(x, y) {
-  if (y > CALC_Y - 40) return 'orla';
+  if (y > CALC_Y - 40) return x < ORLA_X0 ? 'mata' : 'orla';
   if (x < 230 || y < 230 || x > 8790) return 'mata';
   if (y > 6440 && x >= 4660) return x >= 7520 ? 'porto' : x >= 6300 ? 'camburi' : 'barra';
   for (const s of SUBREG) if (x > s[0] && x < s[2] && y > s[1] && y < s[3]) return s[4];
@@ -1555,7 +1555,7 @@ function buildActivitiesData() {
   P('ponte3', 'Terceira Ponte e Meia', riverCX(1500), 1500, 'Concreto, vento forte e vista do Rio Jururu.');
   P('paneleiras', 'Galpão das Paneleiras', 4830, 3275, 'Panelas de barro feitas à mão, do jeitinho capixaba.');
   P('feira', 'Feira da Roça', 860, 5830, 'Pastel, caldo de cana e banana a preço de domingo.');
-  P('orlacamburi', 'Orla de Camburiso', 3000, 8900, 'Calçadão de pedra portuguesa, quiosque aberto e o barulho do mar a noite inteira.');
+  P('orlacamburi', 'Orla de Camburiso', 6900, 8900, 'Calçadão de pedra portuguesa, quiosque aberto e o barulho do mar a noite inteira.');
   P('barra', 'Barra do Jururuzinho', riverCX(8800), 8780, 'Onde o Rio Jururu encontra o mar. Os pescadores juram que o peixe era deste tamanho.');
   P('pedra', 'Pedra da Cebolinha', World.pedra.x, World.pedra.y + 170, 'Pedra de granito no meio do parque. Dizem que é parente da Pedra da Cebola.');
   P('feirarolo', 'Feira do Rolo da Madrugada', World.feiraRolo.x, World.feiraRolo.y, 'Tem de tudo e mais um pouco. Não pergunte de onde veio.');
@@ -1618,6 +1618,8 @@ function buildRoadSurface() {
 /* ============================ LITORAL: BARRA DO JURURUZINHO, CAMBURISO, PORTO DO TUBARÃO BANGUELA E A ORLA ============================ */
 const LIT_X = [4600, 6300, 7500, 8700], LIT_Y = [6200, 7500, 8100, 8700];
 const SEA_Y = 8960, SAND_Y = 8850, CALC_Y = 8816;
+// a praia fica só do lado da cidade grande (Barra, Camburiso e Porto); embaixo da Serra é mata até o mar
+const ORLA_X0 = 4660;
 function litHW(t) { return RT[t].w / 2 + (RT[t].sw || 0); }
 function litRect(c, r) {
   const hv = (x) => (x === 8700 ? RT.road.w / 2 + 14 : RT.street.w / 2 + 22);
@@ -1694,11 +1696,14 @@ function buildLitoral() {
     addShop({ kind: 'porto', name: 'Porto do Tubarão Banguela', x: (R.x0 + R.x1) / 2, y: 8700 - RT.avenue.lanes[1], bld: b, color: '#59e0ff', region: 'porto', pickup: true, items: ['Contêiner de café capixaba', 'Pelotas de minério', 'Bloco de granito', 'Caixas de chocolate de Vianinha'] });
     World.porto = { x: (R.x0 + R.x1) / 2, y: (R.y0 + R.y1) / 2 };
   }
-  // ---- a orla: calçadão, areia e mar de ponta a ponta ----
+  // ---- a orla: calçadão, areia e mar, só do lado da cidade grande ----
   // calçadão e areia dos dois lados da foz do rio (o rio continua desaguando no mar)
   const rL = riverCX(8880) - riverHW(8880) - 30, rR = riverCX(8880) + riverHW(8880) + 30;
-  decal(230, 8772, 4600, CALC_Y, 'lawn');
-  for (const [a, b] of [[230, rL], [rR, 8790]]) { decal(a, CALC_Y, b, SAND_Y, 'plaza'); decal(a, SAND_Y, b, SEA_Y + 20, 'sand'); }
+  // embaixo da Serra (Feio Rosa, Cara-Pintada, Nova Prosa e Flexão): mata fechada descendo até o mar
+  forest(230, 8760, ORLA_X0, SEA_Y - 4);
+  decal(ORLA_X0 - 60, SAND_Y - 20, ORLA_X0 + 40, SEA_Y + 20, 'sand');
+  for (const [x, y, r, h] of [[ORLA_X0 + 30, SAND_Y + 40, 46, 30], [ORLA_X0 + 2, SEA_Y - 8, 34, 20], [ORLA_X0 + 80, SEA_Y + 6, 22, 12]]) addRock(x, y, r, h); // pedras onde a praia começa
+  for (const [a, b] of [[ORLA_X0, rL], [rR, 8790]]) { decal(a, CALC_Y, b, SAND_Y, 'plaza'); decal(a, SAND_Y, b, SEA_Y + 20, 'sand'); }
   gFill(0, SEA_Y, WORLD_W, WORLD_H, SF.WATER);
   for (let x = 0; x < WORLD_W; x += 512) bake(x, SEA_Y - 30, x + 512, WORLD_H, 2, (g) => drawSea(g, x, x + 512));
   // píer do porto e o navio atracado
@@ -1708,14 +1713,14 @@ function buildLitoral() {
   addRectCol(8190, 8995, 8780, 9165, 'bld');
   addCrane(8130, 9020, 140, Math.PI * 0.5); addCrane(7830, 9020, 140, Math.PI * 0.5);
   // postes, coqueiros e quiosques na beira-mar
-  for (let x = 400; x < 8700; x += 230) {
+  for (let x = ORLA_X0 + 110; x < 8700; x += 230) {
     if (Math.abs(x - riverCX(8830)) < 220 || (x > 7760 && x < 8200)) continue;
     addLamp(x, CALC_Y + 10, x, CALC_Y + 10, 'white', { style: 'globe', h: 32, r: 120, i: 0.75 });
     if (chance(0.8)) addTree(x + 70 + rnd(-20, 20), SAND_Y + rnd(20, 70), 'palm', rnd(0.9, 1.25));
   }
   const KIOSKS = [['SIRI NA LATA', '#ff6b4a', 'Quiosque Siri na Lata'], ['ÁGUA DE COCO', '#3cff8f', 'Quiosque Água de Coco Gelada'], ['SOL E MOQUECA', '#ffd23f', 'Quiosque Sol e Moqueca'], ['CAMARÃO QUE DORME', '#ff9ed2', 'Quiosque Camarão que Dorme'], ['DO CAPIXABA', '#59e0ff', 'Quiosque do Capixaba'], ['PASTEL DE ARRAIA', '#ffb547', 'Quiosque Pastel de Arraia'], ['CHOPP DA MARÉ', '#f4f1e0', 'Quiosque Chopp da Maré']];
   let ki = 0;
-  for (let x = 650; x < 7600; x += 980) {
+  for (let x = ORLA_X0 + 290; x < 7600; x += 900) {
     if (Math.abs(x - riverCX(8900)) < 300) continue;
     const [name, col, full] = KIOSKS[ki++ % KIOSKS.length], y0 = SAND_Y + 8;
     const b = addBuilding(x - 32, y0, x + 32, y0 + 50, 22, { style: 'kiosk', roofType: 'hip', roofColor: '#7a5230', wall: '#c9a06a', lit: 0.95, sign: name, signColor: col, front: 'N' });
@@ -1725,11 +1730,11 @@ function buildLitoral() {
     addShop({ kind: 'bar', name: full, x, y: yRoad, bld: b, color: col, region: 'orla', pickup: true, items: ['Porção de camarão', 'Água de coco', 'Moqueca na panela de barro', 'Isopor de gelo'] });
   }
   // posto de salva-vidas, rede de vôlei e barcos na areia
-  for (const x of [1500, 3600, 6600]) { addBuilding(x - 14, SAND_Y + 40, x + 14, SAND_Y + 68, 30, { style: 'kiosk', roofType: 'flat', roofColor: '#d62828', wall: '#f2f2ea', lit: 0.6, sign: 'SALVA-VIDAS', signColor: '#ff4d4d' }); }
-  for (const x of [2500, 5000, 7000]) bake(x - 50, SAND_Y + 30, x + 50, SAND_Y + 90, 6, (g) => drawNet(g, x, SAND_Y + 60));
+  for (const x of [6600]) { addBuilding(x - 14, SAND_Y + 40, x + 14, SAND_Y + 68, 30, { style: 'kiosk', roofType: 'flat', roofColor: '#d62828', wall: '#f2f2ea', lit: 0.6, sign: 'SALVA-VIDAS', signColor: '#ff4d4d' }); }
+  for (const x of [5000, 7000]) bake(x - 50, SAND_Y + 30, x + 50, SAND_Y + 90, 6, (g) => drawNet(g, x, SAND_Y + 60));
   for (const [x, c] of [[riverCX(8900) - 260, '#2a6fd1'], [riverCX(8900) + 240, '#e8402a'], [riverCX(8900) + 300, '#f4c430']]) bake(x - 30, SAND_Y + 40, x + 30, SAND_Y + 100, 6, (g) => drawBoat(g, x, SAND_Y + 70, 1.4, c));
   // gente no calçadão e na areia, dos dois lados da foz (ninguém anda dentro do rio)
-  for (const [a, b] of [[500, rL - 20], [rR + 20, 7600]]) {
+  for (const [a, b] of [[ORLA_X0 + 60, rL - 20], [rR + 20, 7600]]) {
     const k = (b - a) / 7100;
     World.animalsDef.push({ type: 'person', n: Math.round(22 * k), rect: [a, CALC_Y + 6, b, SAND_Y - 6] });
     World.animalsDef.push({ type: 'person', n: Math.round(10 * k), rect: [a, SAND_Y + 20, b, SEA_Y - 30] });

@@ -116,7 +116,10 @@
           <button data-v="baixa">Baixa</button><button data-v="media">Média</button><button data-v="alta">Alta</button>
         </div>
       </div>
-      <label class="set-row"><span>Zoom da câmera</span><input type="range" min="70" max="140" data-set="zoom"><b></b></label>
+      <div class="set-row cam-row"><span>Altura da câmera</span>
+        <div class="seg" data-seg="cam"><button data-v="1">1 · Perto</button><button data-v="2">2 · Médio</button><button data-v="3">3 · Alto</button></div>
+        <div id="cam-prev" class="hidden"><canvas width="320" height="180"></canvas><div class="cp-cap"></div></div>
+      </div>
       <div class="set-row"><span>Clima</span>
         <div class="seg" data-seg="weather"><button data-v="auto">Dinâmico</button><button data-v="limpo">Sempre limpo</button><button data-v="chuva">Sempre chuva</button></div>
       </div>
@@ -140,7 +143,7 @@
         <div><kbd>H</kbd> Buzina</div>
         <div><kbd>L</kbd> Farol alto</div>
         <div><kbd>Q</kbd> Celular e mapa</div>
-        <div><kbd>C</kbd> Zoom rápido</div>
+        <div><kbd>C</kbd> Altura da câmera</div>
         <div><kbd>R</kbd> Reposicionar</div>
         <div><kbd>ESC</kbd> Pausar</div>
       </div>

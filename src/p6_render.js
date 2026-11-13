@@ -45,7 +45,9 @@ function updateCamera(dt) {
     tx = player.x + lx; ty = player.y + ly;
     const k = 1 - Math.exp(-5 * dt);
     Cam.x += (tx - Cam.x) * k; Cam.y += (ty - Cam.y) * k;
-    const target = screenZoomBase() * (Settings.zoom / 100) * Cam.quick * (1 - clamp(sp / 700, 0, 1) * 0.22);
+    // correndo, a câmera sobe um pouco, mas nunca passa do nível 3 (130%)
+    const pct = Math.max(CAM_MIN, (Settings.zoom || 140) * (1 - clamp(sp / 700, 0, 1) * 0.22));
+    const target = screenZoomBase() * (pct / 100);
     Cam.zoom = lerp(Cam.zoom, target, 1 - Math.exp(-2.5 * dt));
   }
   Cam.shake *= Math.exp(-7 * dt);
@@ -1570,7 +1572,7 @@ const mmCanvas = document.getElementById('minimap'), mm = mmCanvas.getContext('2
 function drawMinimap() {
   if (!MAPIMG || !player) return;
   const S = mmCanvas.width, k = S / 220;
-  const R = 1250;
+  const R = Math.round(1250 / 1.2); // 20% mais perto da cidade
   const scale = (S / 2) / R;
   mm.setTransform(1, 0, 0, 1, 0, 0);
   mm.fillStyle = '#0b1210'; mm.fillRect(0, 0, S, S);
@@ -1588,7 +1590,6 @@ function drawMinimap() {
     mm.beginPath(); Act.gps.pts.forEach((p, i) => (i ? mm.lineTo(p[0], p[1]) : mm.moveTo(p[0], p[1]))); mm.stroke();
   }
   const ic = (x, y, kind) => { mm.save(); mm.translate(x, y); mm.rotate(-rot); mm.scale(1 / scale * k * 1.05, 1 / scale * k * 1.05); mapIcon(mm, 0, 0, kind, 1.1); mm.restore(); };
-  for (const c of Traffic.cars) { if (Math.abs(c.x - player.x) > R * 1.5 || Math.abs(c.y - player.y) > R * 1.5) continue; mm.fillStyle = 'rgba(255,255,255,0.55)'; mm.fillRect(c.x - 12, c.y - 12, 24, 24); }
   for (const s of World.shops) ic(s.x, s.y, shopIconKind(s));
   if (Socorro.job) ic(Socorro.job.x, Socorro.job.y, 'repair');
   { const ep = Events.mapPoint(); if (ep) ic(ep[0], ep[1], 'event'); }
@@ -1609,7 +1610,7 @@ function drawMinimap() {
   }
 }
 /* ---------- mapa estilo app de celular: arrastar, zoom e destinos ---------- */
-const MAP_LABELS = [['BARRA DO JURURUZINHO', 5450, 7300], ['JARDIM CAMBURISO', 6900, 7800], ['PORTO DO TUBARÃO BANGUELA', 8150, 6900], ['ORLA DE CAMBURISO', 3000, 8900], ['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JURURU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEIO ROSA', 1150, 7350], ['JARDIM CARA-PINTADA', 3300, 7350], ['NOVA PROSA DA PENA', 1300, 8400], ['FLEXÃO', 3600, 8400]];
+const MAP_LABELS = [['BARRA DO JURURUZINHO', 5450, 7300], ['JARDIM CAMBURISO', 6900, 7800], ['PORTO DO TUBARÃO BANGUELA', 8150, 6900], ['ORLA DE CAMBURISO', 6700, 8905], ['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JURURU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEIO ROSA', 1150, 7350], ['JARDIM CARA-PINTADA', 3300, 7350], ['NOVA PROSA DA PENA', 1300, 8400], ['FLEXÃO', 3600, 8400]];
 class MapView {
   constructor(canvas, st) {
     this.c = canvas; this.g = canvas.getContext('2d'); this.st = st; // st: {cx, cy, z} compartilhado

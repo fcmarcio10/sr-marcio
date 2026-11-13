@@ -110,7 +110,10 @@ function handleKeys() {
       case 'KeyH': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
       case 'KeyB': Som.toggle(); break;
       case 'KeyL': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
-      case 'KeyC': Cam.quick = Cam.quick === 1 ? 0.72 : 1; break;
+      case 'KeyC': { // troca a altura da câmera: 1 → 2 → 3 → 1
+        Settings.cam = String(Settings.cam % 3 + 1); Settings.zoom = CAM_LEVELS[Settings.cam]; saveSettings(); syncSettingsUI();
+        AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); toast('Câmera: nível ' + Settings.cam, Settings.cam === '1' ? 'Mais perto do carro.' : Settings.cam === '3' ? 'Mais alto, vê mais a cidade.' : 'Altura do meio.', 'info'); break;
+      }
       case 'KeyR': if (player.speed < 120) resetVehicle(); break;
     }
   }
@@ -168,6 +171,7 @@ function frame(now) {
   render();
   updateHUD(dt);
   Tutorial.update(dt);
+  CamPrev.update(dt);
   if (Screens.current === 'screen-garage') drawGaragePreview(dt);
   if (Screens.current === 'screen-map' && bigMap) bigMap.draw();
   else if (Screens.current === 'screen-phone' && phoneMap && Phone.app === 'mapa') phoneMap.draw();

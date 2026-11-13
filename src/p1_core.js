@@ -95,9 +95,20 @@ const HORNS = {
   musical: { f: [523], wave: 'square', band: 1300, len: 0.2, pat: [[0, 0.12, 1], [0.14, 0.12, 1.25], [0.28, 0.12, 1.5], [0.42, 0.28, 2], [0.74, 0.12, 1.5], [0.88, 0.32, 2]] },
   trator: { f: [180], wave: 'square', band: 700, len: 0.5, pat: [[0, 0.5]] },
 };
-const Settings = { weather: 'auto', master: 80, engine: 75, ambient: 65, ui: 60, quality: 'media', zoom: 100, showFps: false, minimapRotate: false, msgMode: 'audio' };
+// altura da câmera em 3 níveis: 1 = 140% (mais perto, padrão), 2 = 135%, 3 = 130% (o mais alto que dá)
+const CAM_LEVELS = { 1: 140, 2: 135, 3: 130 }, CAM_MIN = 130;
+const Settings = { weather: 'auto', master: 80, engine: 75, ambient: 65, ui: 60, quality: 'alta', cam: '1', zoom: 140, showFps: false, minimapRotate: false, msgMode: 'audio', sv: 2 };
 function loadSettings() {
-  try { const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null'); if (s && typeof s === 'object') Object.assign(Settings, s); } catch (e) { /* sem storage */ }
+  try {
+    const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null');
+    if (s && typeof s === 'object') {
+      // configuração antiga (antes dos 3 níveis): câmera volta pro padrão e o gráfico passa a ser Alto uma vez
+      if (!s.sv || s.sv < 2) { delete s.zoom; s.cam = '1'; s.quality = 'alta'; s.sv = 2; }
+      Object.assign(Settings, s);
+    }
+  } catch (e) { /* sem storage */ }
+  if (!CAM_LEVELS[Settings.cam]) Settings.cam = '1';
+  Settings.zoom = CAM_LEVELS[Settings.cam];
 }
 function saveSettings() { try { localStorage.setItem('brnd_settings', JSON.stringify(Settings)); } catch (e) { /* sem storage */ } }
 

@@ -146,10 +146,40 @@ function bindSettings() {
       AudioSys.click();
       if (k === 'quality') { resize(); clearChunks(); forceGround = true; Particles.list.length = 0; }
       if (k === 'showFps') $('fps').classList.toggle('hidden', !Settings.showFps);
+      if (k === 'cam') { Settings.zoom = CAM_LEVELS[v]; CamPrev.show(v); }
       saveSettings(); syncSettingsUI();
     });
   });
 }
+
+/* ---------- prévia da altura da câmera ---------- */
+// desenha a cena atual na altura escolhida (como fica dirigindo parado) numa janelinha
+const CamPrev = { lvl: null, t: 0, hideT: null };
+CamPrev.show = function (lvl) {
+  this.lvl = lvl; this.t = 0;
+  const box = $('cam-prev'); box.classList.remove('hidden');
+  box.querySelector('.cp-cap').textContent = 'Nível ' + lvl + ' · ' + CAM_LEVELS[lvl] + '%' + (lvl === '1' ? ' · mais perto (padrão)' : lvl === '3' ? ' · mais alto' : '');
+  this.snap();
+  clearTimeout(this.hideT); this.hideT = setTimeout(() => this.hide(), 6000);
+};
+CamPrev.hide = function () { this.lvl = null; $('cam-prev').classList.add('hidden'); };
+CamPrev.snap = function () {
+  if (!this.lvl) return;
+  const z0 = Cam.zoom, cv = $('cam-prev').querySelector('canvas'), g = cv.getContext('2d');
+  Cam.zoom = screenZoomBase() * CAM_LEVELS[this.lvl] / 100;
+  render();
+  // recorta o meio da tela no formato da janelinha
+  const W = canvas.width, H = canvas.height, r = cv.width / cv.height;
+  let sw = W, sh = W / r; if (sh > H) { sh = H; sw = H * r; }
+  g.drawImage(canvas, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
+  Cam.zoom = z0; render(); // devolve a tela de trás como estava
+};
+// atualiza a janelinha algumas vezes por segundo enquanto está aberta
+CamPrev.update = function (dt) {
+  if (!this.lvl) return;
+  if (Screens.current !== 'screen-settings') return this.hide();
+  this.t += dt; if (this.t > 0.25) { this.t = 0; this.snap(); }
+};
 
 /* ---------- garagem ---------- */
 const CAR_KIND_TXT = { gas: 'Caminhão de gás', guincho: 'Guincho', cacamba: 'Caçamba', bau: 'Caminhão baú', tanker: 'Caminhão-tanque', quadrado: 'Hatch quadrado', besouro: 'Clássico a ar', escada: 'Hatch caixote', hatch: 'Hatch', van: 'Furgão', pickup: 'Picape', sedan: 'Sedã', santana: 'Sedã quadrado', sport: 'Esportivo', muscle: 'Clássico V6' };

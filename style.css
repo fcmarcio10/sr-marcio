@@ -1179,3 +1179,10 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 #ev-offer .evo-bar { height: 3px; margin: 0 -14px; background: rgba(255, 255, 255, 0.08); }
 #ev-offer .evo-bar i { display: block; height: 100%; width: 100%; background: #ff5ad1; transition: width 0.2s linear; }
 @keyframes evoIn { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+
+/* ---------- prévia da altura da câmera ---------- */
+.cam-row { position: relative; }
+#cam-prev { position: absolute; right: 0; top: calc(100% + 8px); z-index: 6; width: 300px; padding: 6px 6px 7px; background: rgba(7, 9, 15, 0.97); border-left: 4px solid var(--ouro);
+  border-radius: 3px; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6); animation: evoIn 0.25s ease-out; pointer-events: none; }
+#cam-prev canvas { display: block; width: 100%; height: auto; border-radius: 2px; background: #0a1008; }
+#cam-prev .cp-cap { font-family: var(--f-cond); font-weight: 700; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: #e9edf5; margin-top: 6px; }

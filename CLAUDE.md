@@ -7,7 +7,7 @@ O dono do projeto fala português e não é técnico: responda em português sim
 
 - O código fica em `src/` (partes numeradas). **Não edite `game.js` direto**: ele é gerado.
 - `./tools/build.sh` → gera `src/p00_clips.js` (vozes de `audio/`), junta tudo em `game.js`, confere a sintaxe e gera `dist/br-night-drive.html` (página única) e `tools/tests/wrapped.html`.
-- Testes (Playwright, rodar de dentro de `tools/tests/`): `t3` (fluxo geral, oficina, garagem), `t26` (celular, fretes, racha), `t43` (conquistas), `t66` (litoral), `t75` (vida do carro, Seu Biu, chuva), `t77` (banco e fiado), `t83` (personalização), `t94` (chat do PegaAí), `t95` (convite de evento e noivo). `prof2.js alta|media|baixa` mede o tempo de desenho; `prof3.js alta 7500` dirige o carro mais rápido pela Serra (Cara-Pintada) e mede travadas; `calls.js wrapped.html` conta as pinceladas por quadro; `shot.js arquivo.html saida.png x y` tira foto da mesma cena para comparar versões. Este computador de testes não tem placa de vídeo: compare pinceladas por quadro, não só milissegundos.
+- Testes (Playwright, rodar de dentro de `tools/tests/`): `t3` (fluxo geral, oficina, garagem), `t26` (celular, fretes, racha), `t43` (conquistas), `t66` (litoral), `t75` (vida do carro, Seu Biu, chuva), `t77` (banco e fiado), `t83` (personalização), `t94` (chat do PegaAí), `t95` (convite de evento e noivo), `t96` (câmera em 3 níveis, prévia, gráfico Alto padrão). `trafego.js [y]` mede carros simulados x carros na tela. `prof2.js alta|media|baixa` mede o tempo de desenho; `prof3.js alta 7500` dirige o carro mais rápido pela Serra (Cara-Pintada) e mede travadas; `calls.js wrapped.html` conta as pinceladas por quadro; `shot.js arquivo.html saida.png x y` tira foto da mesma cena para comparar versões. Este computador de testes não tem placa de vídeo: compare pinceladas por quadro, não só milissegundos.
 - Jogo no navegador: artefato https://claude.ai/artifact/A27NagegSAtFf2ud7b3fsU — publicar sempre o arquivo `dist/br-night-drive.html` nesse mesmo link.
 
 ## App do Windows
@@ -28,6 +28,8 @@ O dono do projeto fala português e não é técnico: responda em português sim
 
 - Sem emojis como visual. Sem imagens externas (tudo desenhado no código). Fontes embutidas (Anton e Barlow, licença OFL).
 - Nomes de zoeira/paródia (cidades e marcas), humor brasileiro e gírias capixabas.
+- Câmera: 3 alturas (1 = 140% padrão, 2 = 135%, 3 = 130%); nada passa de 130%, nem correndo. Gráfico padrão: Alto.
+- Trânsito só em volta da tela (nasce fora da borda, some após 4 s fora da tela). GPS sem carros. Praia só do lado da cidade grande (embaixo da Serra é mata).
 - Pichações foram removidas (pesavam). Polícia está desligada (`POLICE_ENABLED = false`) até ser refeita.
 - Pedidos chegam também por comentários no artefato: responder no próprio comentário, em português.
 - Ideias e ordem de desenvolvimento: `ROADMAP.md`. Próximos: história em capítulos, colecionáveis, desafios diários.

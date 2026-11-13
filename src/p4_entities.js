@@ -349,11 +349,6 @@ function trafficRush() {
 }
 // área rural: 60% menos movimento que na cidade
 function ruralFactor(x, y) { const R = REGIONS[regionKeyAt(x, y)]; return 1 - 0.8 * clamp((R.rural - 0.3) / 0.5, 0, 1); }
-function trafficMax() {
-  const base = Settings.quality === 'alta' ? 22 : Settings.quality === 'baixa' ? 10 : 17;
-  const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
-  return Math.max(k < 0.7 ? 2 : 5, Math.round(base * trafficRush().k * k));
-}
 function lightState(n, axis, now) {
   const t = (now + n.light.off) % 15;
   if (axis === 'H') return t < 6 ? 'G' : t < 7.5 ? 'Y' : 'R';
@@ -720,30 +715,63 @@ Traffic.randomEdge = function () {
   while (lo < hi) { const mid = (lo + hi) >> 1; if (this.cum[mid] < r) lo = mid + 1; else hi = mid; }
   return World.edges[lo];
 };
-Traffic.spawnNear = function (cx, cy, minD, maxD, view) {
-  for (let t = 0; t < 24; t++) {
-    const e = this.randomEdge();
+/* ---------- trânsito só em volta da tela (estilo GTA) ----------
+   Carro nasce logo fora da borda da tela e entra andando. Carro que fica fora da tela por alguns
+   segundos é apagado. Fora da tela, quem ainda existe é calculado 4x menos vezes. Se um trecho já
+   está cheio (engarrafamento), não chega carro novo ali. */
+const TR_RING = 460;      // faixa em volta da tela onde os carros nascem e existem
+const TR_GONE = 4;      // segundos fora da tela até o carro sumir
+const TR_SLOW = 1 / 30;   // passo do cálculo fora da tela (30 vezes por segundo, em vez de 120)
+// quantos carros cabem na faixa (mesma sensação de rua movimentada na tela)
+function trafficTarget(view) {
+  const dens = Settings.quality === 'alta' ? 4.6 : Settings.quality === 'baixa' ? 2.8 : 3.8; // carros por milhão de unidades²
+  const area = (view.x1 - view.x0 + TR_RING * 2) * (view.y1 - view.y0 + TR_RING * 2) / 1e6;
+  const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
+  return clamp(Math.round(dens * area * trafficRush().k * k), k < 0.7 ? 2 : 4, 26);
+}
+function trInView(c, v, m) { return c.x > v.x0 - m && c.x < v.x1 + m && c.y > v.y0 - m && c.y < v.y1 + m; }
+// ruas que passam perto da tela
+Traffic.nearEdges = [];
+Traffic.scanEdges = function (v) {
+  const x0 = v.x0 - TR_RING, y0 = v.y0 - TR_RING, x1 = v.x1 + TR_RING, y1 = v.y1 + TR_RING, L = this.nearEdges;
+  L.length = 0; this.nearMax = 0;
+  for (const e of World.edges) {
+    if (e.closed) continue;
+    const ex0 = Math.min(e.a.x, e.b.x), ex1 = Math.max(e.a.x, e.b.x), ey0 = Math.min(e.a.y, e.b.y), ey1 = Math.max(e.a.y, e.b.y);
+    if (ex1 < x0 || ex0 > x1 || ey1 < y0 || ey0 > y1) continue;
+    L.push(e); if (e.len > this.nearMax) this.nearMax = e.len;
+  }
+};
+// tenta pôr um carro na faixa em volta da tela (ou na tela também, quando ninguém está vendo ainda)
+Traffic.spawnRing = function (v, inside) {
+  const L = this.nearEdges; if (!L.length) return null;
+  const fast = player && Game.state === 'playing' && player.speed > 140;
+  for (let t = 0; t < 30; t++) {
+    const e = L[(Math.random() * L.length) | 0];
+    if (rnd(this.nearMax) > e.len) continue; // rua comprida recebe mais carro
+    if (e.closed) continue;
     const dir = chance(0.5) ? 1 : -1;
     const sStart = dir > 0 ? e.clearA : e.clearB, sEnd = e.len - (dir > 0 ? e.clearB : e.clearA);
     if (sEnd - sStart < 80) continue;
     const s = rnd(sStart + 20, sEnd - 20);
-    const fx = dir > 0 ? e.a : e.b;
-    const dx = e.dx * dir, dy = e.dy * dir;
-    const lane = e.T.lanes.length > 1 ? (chance(0.5) ? 1 : 0) : 0;
-    const off = e.T.lanes[lane];
+    const fx = dir > 0 ? e.a : e.b, dx = e.dx * dir, dy = e.dy * dir;
+    const lane = e.T.lanes.length > 1 ? (chance(0.5) ? 1 : 0) : 0, off = e.T.lanes[lane];
     const x = fx.x + dx * s - dy * off, y = fx.y + dy * s + dx * off;
-    const d = Math.hypot(x - cx, y - cy);
-    if (d < minD || d > maxD) continue;
-    if (view && x > view.x0 - 80 && x < view.x1 + 80 && y > view.y0 - 80 && y < view.y1 + 80) continue;
-    let ok = true;
-    for (const o of this.cars) if (Math.abs(o.x - x) < 90 && Math.abs(o.y - y) < 90) { ok = false; break; }
+    if (x < v.x0 - TR_RING || x > v.x1 + TR_RING || y < v.y0 - TR_RING || y > v.y1 + TR_RING) continue;
+    if (!inside && x > v.x0 - 70 && x < v.x1 + 70 && y > v.y0 - 70 && y < v.y1 + 70) continue; // nunca aparece do nada na tela
+    // correndo: carro novo nasce na frente, não atrás
+    if (fast && (x - player.x) * player.vx + (y - player.y) * player.vy < 0 && chance(0.8)) continue;
+    // de preferência já vindo em direção à tela (senão ele vai embora antes de alguém ver)
+    if (!inside && (((v.x0 + v.x1) / 2 - x) * dx + ((v.y0 + v.y1) / 2 - y) * dy) < 0 && chance(0.85)) continue;
+    // trecho cheio (engarrafamento): não manda mais carro pra lá
+    let ok = true, perto = 0;
+    for (const o of this.cars) { const ax = Math.abs(o.x - x), ay = Math.abs(o.y - y); if (ax < 90 && ay < 90) { ok = false; break; } if (ax < 240 && ay < 240 && ++perto >= 3) { ok = false; break; } }
     if (player && Math.abs(player.x - x) < 120 && Math.abs(player.y - y) < 120) ok = false;
     if (!ok) continue;
-    // estradas da roça recebem bem menos carros
-    if ((e.T.id === 'dirt' || e.T.id === 'road') && !chance(0.22)) continue;
-    const model = trafficModelFor(e);
-    const car = new AICar(e, dir, s, lane, model);
+    if ((e.T.id === 'dirt' || e.T.id === 'road') && !chance(0.3)) continue; // estradas da roça recebem bem menos
+    const car = new AICar(e, dir, s, lane, trafficModelFor(e));
     if (!car.allowed(e)) { car.release(); continue; }
+    car.off = 0; car.acc = 0;
     this.cars.push(car);
     return car;
   }
@@ -753,36 +781,47 @@ Traffic.fill = function (cx, cy) {
   for (const c of this.cars) c.release();
   this.cars.length = 0;
   for (const n of World.nodes) n.res = null;
-  const mx = trafficMax();
-  for (let i = 0; i < mx; i++) this.spawnNear(cx, cy, 160, 2100, null);
+  // ainda não tem nada na tela: pode pôr carro em qualquer lugar perto
+  const v = Cam.view && Cam.view.x1 > Cam.view.x0 ? Cam.view : { x0: cx - 700, y0: cy - 400, x1: cx + 700, y1: cy + 400 };
+  const w = (v.x1 - v.x0) / 2, h = (v.y1 - v.y0) / 2, vv = { x0: cx - w, y0: cy - h, x1: cx + w, y1: cy + h };
+  this.scanEdges(vv);
+  const mx = trafficTarget(vv);
+  for (let i = 0; i < mx * 3 && this.cars.length < mx; i++) this.spawnRing(vv, true);
+  this.timer = 0;
 };
 Traffic.update = function (dt, now, cx, cy, view) {
-  for (const c of this.cars) c.update(dt, now);
+  const v = view && view.x1 > view.x0 ? view : Cam.view;
+  // na tela (e logo antes de entrar): cálculo completo; fora: 4x menos vezes
+  for (const c of this.cars) {
+    if (trInView(c, v, 160)) { if (c.acc) { c.update(c.acc + dt, now); c.acc = 0; } else c.update(dt, now); c.off = 0; }
+    else { c.acc = (c.acc || 0) + dt; if (c.acc >= TR_SLOW) { c.update(c.acc, now); c.acc = 0; } if (!trInView(c, v, 40)) c.off = (c.off || 0) + dt; }
+  }
   // vigia anti-travamento: carro parado tempo demais sem ser por sinal vermelho nem pelo jogador
   for (const c of this.cars) {
     if (c.wait < 13) continue;
     let o = c, light = false, k = 0;
     while (o && k < 10) { if (o === player) { light = true; break; } if (o.atLight) { light = true; break; } o = o.blocker instanceof AICar ? o.blocker : null; k++; }
     if (light) continue;
-    const v = Cam.view, vis = c.x > v.x0 - 60 && c.x < v.x1 + 60 && c.y > v.y0 - 60 && c.y < v.y1 + 60;
-    if (!vis) { c.release(); c.dead = true; continue; }
+    if (!trInView(c, v, 60)) { c.release(); c.dead = true; continue; }
     c.ghost = 2; c.animalGhost = 2; c.wait = 0;
+  }
+  // some: ficou fora da tela uns segundos ou saiu da faixa em volta
+  for (const c of this.cars) {
+    if (c.dead) continue;
+    if (c.off > TR_GONE || !trInView(c, v, TR_RING + 160)) { c.release(); c.dead = true; }
   }
   if (this.cars.some((c) => c.dead)) this.cars = this.cars.filter((c) => !c.dead);
   this.timer -= dt;
   if (this.timer <= 0) {
-    this.timer = 0.4;
-    for (let i = this.cars.length - 1; i >= 0; i--) {
-      const c = this.cars[i];
-      if (Math.abs(c.x - cx) > 2700 || Math.abs(c.y - cy) > 2300) { c.release(); this.cars.splice(i, 1); }
-    }
-    const mx = trafficMax();
+    this.timer = 0.25;
+    this.scanEdges(v);
+    const mx = trafficTarget(v);
     let n = 0;
-    while (this.cars.length < mx && n++ < 3) this.spawnNear(cx, cy, 700, 2200, view);
-    // menos carros fora do pico: tira um por vez, longe da tela
+    while (this.cars.length < mx && n++ < 3) this.spawnRing(v, false);
+    // menos carros fora do pico: tira um por vez, dos que estão fora da tela
     if (this.cars.length > mx) {
       let far = -1, fd = 0;
-      this.cars.forEach((c, i) => { const v = Cam.view; if (c.x > v.x0 - 80 && c.x < v.x1 + 80 && c.y > v.y0 - 80 && c.y < v.y1 + 80) return; const d = Math.hypot(c.x - cx, c.y - cy); if (d > fd) { fd = d; far = i; } });
+      this.cars.forEach((c, i) => { if (trInView(c, v, 80)) return; const d = Math.hypot(c.x - cx, c.y - cy); if (d > fd) { fd = d; far = i; } });
       if (far >= 0) { this.cars[far].release(); this.cars.splice(far, 1); }
     }
   }
@@ -862,11 +901,13 @@ Animals.build = function () {
   this.list.length = 0;
   for (const d of World.animalsDef) for (let i = 0; i < d.n; i++) { const a = new Animal(d.type, d.rect); if (d.look) Object.assign(a, d.look); this.list.push(a); }
 };
+// só mexe quem está na tela ou bem perto dela (o resto fica parado, ninguém vê)
+function nearView(x, y, m) { const v = Cam.view; return v && v.x1 > v.x0 ? x > v.x0 - m && x < v.x1 + m && y > v.y0 - m && y < v.y1 + m : Math.abs(x - Cam.x) < 1200 && Math.abs(y - Cam.y) < 900; }
 Animals.update = function (dt, cx, cy) {
-  for (const a of this.list) if (Math.abs(a.x - cx) < 1700 && Math.abs(a.y - cy) < 1400) a.update(dt);
-  for (const s of World.sparkers) if (Game.time < s.until && Math.abs(s.x - cx) < 1200 && Math.abs(s.y - cy) < 900) for (let i = 0; i < 2; i++) Particles.emit('spark', s.x, s.y, rnd(-160, 160), rnd(-160, 160), rnd(0.2, 0.5), 2);
-  for (const g of World.geysers) if (Game.time < g.until && Math.abs(g.x - cx) < 1200 && Math.abs(g.y - cy) < 900 && chance(0.7)) Particles.emit('water', g.x + rnd(-2, 2), g.y + rnd(-2, 2), rnd(-70, 70), rnd(-70, 70), rnd(0.5, 1.1), 2);
-  for (const g of World.grills) if (g.down === undefined && Math.abs(g.x - cx) < 900 && Math.abs(g.y - cy) < 700 && chance(dt * 6)) Particles.emit('smoke', g.x + rnd(-4, 4), g.y + rnd(-3, 3), rnd(-6, 6), rnd(-14, -4), rnd(1.2, 2.2), 4);
+  for (const a of this.list) if (nearView(a.x, a.y, 220)) a.update(dt);
+  for (const s of World.sparkers) if (Game.time < s.until && nearView(s.x, s.y, 60)) for (let i = 0; i < 2; i++) Particles.emit('spark', s.x, s.y, rnd(-160, 160), rnd(-160, 160), rnd(0.2, 0.5), 2);
+  for (const g of World.geysers) if (Game.time < g.until && nearView(g.x, g.y, 60) && chance(0.7)) Particles.emit('water', g.x + rnd(-2, 2), g.y + rnd(-2, 2), rnd(-70, 70), rnd(-70, 70), rnd(0.5, 1.1), 2);
+  for (const g of World.grills) if (g.down === undefined && nearView(g.x, g.y, 80) && chance(dt * 6)) Particles.emit('smoke', g.x + rnd(-4, 4), g.y + rnd(-3, 3), rnd(-6, 6), rnd(-14, -4), rnd(1.2, 2.2), 4);
   this.soundT -= dt;
   if (this.soundT <= 0 && Game.state === 'playing') {
     this.soundT = rnd(5, 11);
@@ -899,7 +940,7 @@ Peladas.build = function () {
 Peladas.update = function (dt, cx, cy) {
   for (const G of this.list) {
     const P = G.P;
-    if (Math.abs(P.cx - cx) > 1500 || Math.abs(P.cy - cy) > 1200) continue;
+    if (!nearView(P.cx, P.cy, 300 + Math.max(P.x1 - P.x0, P.y1 - P.y0) / 2)) continue;
     G.cd -= dt;
     if (G.cel > 0) {
       G.cel -= dt;

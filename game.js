@@ -95,9 +95,20 @@ const HORNS = {
   musical: { f: [523], wave: 'square', band: 1300, len: 0.2, pat: [[0, 0.12, 1], [0.14, 0.12, 1.25], [0.28, 0.12, 1.5], [0.42, 0.28, 2], [0.74, 0.12, 1.5], [0.88, 0.32, 2]] },
   trator: { f: [180], wave: 'square', band: 700, len: 0.5, pat: [[0, 0.5]] },
 };
-const Settings = { weather: 'auto', master: 80, engine: 75, ambient: 65, ui: 60, quality: 'media', zoom: 100, showFps: false, minimapRotate: false, msgMode: 'audio' };
+// altura da câmera em 3 níveis: 1 = 140% (mais perto, padrão), 2 = 135%, 3 = 130% (o mais alto que dá)
+const CAM_LEVELS = { 1: 140, 2: 135, 3: 130 }, CAM_MIN = 130;
+const Settings = { weather: 'auto', master: 80, engine: 75, ambient: 65, ui: 60, quality: 'alta', cam: '1', zoom: 140, showFps: false, minimapRotate: false, msgMode: 'audio', sv: 2 };
 function loadSettings() {
-  try { const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null'); if (s && typeof s === 'object') Object.assign(Settings, s); } catch (e) { /* sem storage */ }
+  try {
+    const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null');
+    if (s && typeof s === 'object') {
+      // configuração antiga (antes dos 3 níveis): câmera volta pro padrão e o gráfico passa a ser Alto uma vez
+      if (!s.sv || s.sv < 2) { delete s.zoom; s.cam = '1'; s.quality = 'alta'; s.sv = 2; }
+      Object.assign(Settings, s);
+    }
+  } catch (e) { /* sem storage */ }
+  if (!CAM_LEVELS[Settings.cam]) Settings.cam = '1';
+  Settings.zoom = CAM_LEVELS[Settings.cam];
 }
 function saveSettings() { try { localStorage.setItem('brnd_settings', JSON.stringify(Settings)); } catch (e) { /* sem storage */ } }
 
@@ -706,7 +717,7 @@ const REGIONS = {
 };
 const SUBREG = [];
 function regionKeyAt(x, y) {
-  if (y > CALC_Y - 40) return 'orla';
+  if (y > CALC_Y - 40) return x < ORLA_X0 ? 'mata' : 'orla';
   if (x < 230 || y < 230 || x > 8790) return 'mata';
   if (y > 6440 && x >= 4660) return x >= 7520 ? 'porto' : x >= 6300 ? 'camburi' : 'barra';
   for (const s of SUBREG) if (x > s[0] && x < s[2] && y > s[1] && y < s[3]) return s[4];
@@ -2036,7 +2047,7 @@ function buildActivitiesData() {
   P('ponte3', 'Terceira Ponte e Meia', riverCX(1500), 1500, 'Concreto, vento forte e vista do Rio Jururu.');
   P('paneleiras', 'Galpão das Paneleiras', 4830, 3275, 'Panelas de barro feitas à mão, do jeitinho capixaba.');
   P('feira', 'Feira da Roça', 860, 5830, 'Pastel, caldo de cana e banana a preço de domingo.');
-  P('orlacamburi', 'Orla de Camburiso', 3000, 8900, 'Calçadão de pedra portuguesa, quiosque aberto e o barulho do mar a noite inteira.');
+  P('orlacamburi', 'Orla de Camburiso', 6900, 8900, 'Calçadão de pedra portuguesa, quiosque aberto e o barulho do mar a noite inteira.');
   P('barra', 'Barra do Jururuzinho', riverCX(8800), 8780, 'Onde o Rio Jururu encontra o mar. Os pescadores juram que o peixe era deste tamanho.');
   P('pedra', 'Pedra da Cebolinha', World.pedra.x, World.pedra.y + 170, 'Pedra de granito no meio do parque. Dizem que é parente da Pedra da Cebola.');
   P('feirarolo', 'Feira do Rolo da Madrugada', World.feiraRolo.x, World.feiraRolo.y, 'Tem de tudo e mais um pouco. Não pergunte de onde veio.');
@@ -2099,6 +2110,8 @@ function buildRoadSurface() {
 /* ============================ LITORAL: BARRA DO JURURUZINHO, CAMBURISO, PORTO DO TUBARÃO BANGUELA E A ORLA ============================ */
 const LIT_X = [4600, 6300, 7500, 8700], LIT_Y = [6200, 7500, 8100, 8700];
 const SEA_Y = 8960, SAND_Y = 8850, CALC_Y = 8816;
+// a praia fica só do lado da cidade grande (Barra, Camburiso e Porto); embaixo da Serra é mata até o mar
+const ORLA_X0 = 4660;
 function litHW(t) { return RT[t].w / 2 + (RT[t].sw || 0); }
 function litRect(c, r) {
   const hv = (x) => (x === 8700 ? RT.road.w / 2 + 14 : RT.street.w / 2 + 22);
@@ -2175,11 +2188,14 @@ function buildLitoral() {
     addShop({ kind: 'porto', name: 'Porto do Tubarão Banguela', x: (R.x0 + R.x1) / 2, y: 8700 - RT.avenue.lanes[1], bld: b, color: '#59e0ff', region: 'porto', pickup: true, items: ['Contêiner de café capixaba', 'Pelotas de minério', 'Bloco de granito', 'Caixas de chocolate de Vianinha'] });
     World.porto = { x: (R.x0 + R.x1) / 2, y: (R.y0 + R.y1) / 2 };
   }
-  // ---- a orla: calçadão, areia e mar de ponta a ponta ----
+  // ---- a orla: calçadão, areia e mar, só do lado da cidade grande ----
   // calçadão e areia dos dois lados da foz do rio (o rio continua desaguando no mar)
   const rL = riverCX(8880) - riverHW(8880) - 30, rR = riverCX(8880) + riverHW(8880) + 30;
-  decal(230, 8772, 4600, CALC_Y, 'lawn');
-  for (const [a, b] of [[230, rL], [rR, 8790]]) { decal(a, CALC_Y, b, SAND_Y, 'plaza'); decal(a, SAND_Y, b, SEA_Y + 20, 'sand'); }
+  // embaixo da Serra (Feio Rosa, Cara-Pintada, Nova Prosa e Flexão): mata fechada descendo até o mar
+  forest(230, 8760, ORLA_X0, SEA_Y - 4);
+  decal(ORLA_X0 - 60, SAND_Y - 20, ORLA_X0 + 40, SEA_Y + 20, 'sand');
+  for (const [x, y, r, h] of [[ORLA_X0 + 30, SAND_Y + 40, 46, 30], [ORLA_X0 + 2, SEA_Y - 8, 34, 20], [ORLA_X0 + 80, SEA_Y + 6, 22, 12]]) addRock(x, y, r, h); // pedras onde a praia começa
+  for (const [a, b] of [[ORLA_X0, rL], [rR, 8790]]) { decal(a, CALC_Y, b, SAND_Y, 'plaza'); decal(a, SAND_Y, b, SEA_Y + 20, 'sand'); }
   gFill(0, SEA_Y, WORLD_W, WORLD_H, SF.WATER);
   for (let x = 0; x < WORLD_W; x += 512) bake(x, SEA_Y - 30, x + 512, WORLD_H, 2, (g) => drawSea(g, x, x + 512));
   // píer do porto e o navio atracado
@@ -2189,14 +2205,14 @@ function buildLitoral() {
   addRectCol(8190, 8995, 8780, 9165, 'bld');
   addCrane(8130, 9020, 140, Math.PI * 0.5); addCrane(7830, 9020, 140, Math.PI * 0.5);
   // postes, coqueiros e quiosques na beira-mar
-  for (let x = 400; x < 8700; x += 230) {
+  for (let x = ORLA_X0 + 110; x < 8700; x += 230) {
     if (Math.abs(x - riverCX(8830)) < 220 || (x > 7760 && x < 8200)) continue;
     addLamp(x, CALC_Y + 10, x, CALC_Y + 10, 'white', { style: 'globe', h: 32, r: 120, i: 0.75 });
     if (chance(0.8)) addTree(x + 70 + rnd(-20, 20), SAND_Y + rnd(20, 70), 'palm', rnd(0.9, 1.25));
   }
   const KIOSKS = [['SIRI NA LATA', '#ff6b4a', 'Quiosque Siri na Lata'], ['ÁGUA DE COCO', '#3cff8f', 'Quiosque Água de Coco Gelada'], ['SOL E MOQUECA', '#ffd23f', 'Quiosque Sol e Moqueca'], ['CAMARÃO QUE DORME', '#ff9ed2', 'Quiosque Camarão que Dorme'], ['DO CAPIXABA', '#59e0ff', 'Quiosque do Capixaba'], ['PASTEL DE ARRAIA', '#ffb547', 'Quiosque Pastel de Arraia'], ['CHOPP DA MARÉ', '#f4f1e0', 'Quiosque Chopp da Maré']];
   let ki = 0;
-  for (let x = 650; x < 7600; x += 980) {
+  for (let x = ORLA_X0 + 290; x < 7600; x += 900) {
     if (Math.abs(x - riverCX(8900)) < 300) continue;
     const [name, col, full] = KIOSKS[ki++ % KIOSKS.length], y0 = SAND_Y + 8;
     const b = addBuilding(x - 32, y0, x + 32, y0 + 50, 22, { style: 'kiosk', roofType: 'hip', roofColor: '#7a5230', wall: '#c9a06a', lit: 0.95, sign: name, signColor: col, front: 'N' });
@@ -2206,11 +2222,11 @@ function buildLitoral() {
     addShop({ kind: 'bar', name: full, x, y: yRoad, bld: b, color: col, region: 'orla', pickup: true, items: ['Porção de camarão', 'Água de coco', 'Moqueca na panela de barro', 'Isopor de gelo'] });
   }
   // posto de salva-vidas, rede de vôlei e barcos na areia
-  for (const x of [1500, 3600, 6600]) { addBuilding(x - 14, SAND_Y + 40, x + 14, SAND_Y + 68, 30, { style: 'kiosk', roofType: 'flat', roofColor: '#d62828', wall: '#f2f2ea', lit: 0.6, sign: 'SALVA-VIDAS', signColor: '#ff4d4d' }); }
-  for (const x of [2500, 5000, 7000]) bake(x - 50, SAND_Y + 30, x + 50, SAND_Y + 90, 6, (g) => drawNet(g, x, SAND_Y + 60));
+  for (const x of [6600]) { addBuilding(x - 14, SAND_Y + 40, x + 14, SAND_Y + 68, 30, { style: 'kiosk', roofType: 'flat', roofColor: '#d62828', wall: '#f2f2ea', lit: 0.6, sign: 'SALVA-VIDAS', signColor: '#ff4d4d' }); }
+  for (const x of [5000, 7000]) bake(x - 50, SAND_Y + 30, x + 50, SAND_Y + 90, 6, (g) => drawNet(g, x, SAND_Y + 60));
   for (const [x, c] of [[riverCX(8900) - 260, '#2a6fd1'], [riverCX(8900) + 240, '#e8402a'], [riverCX(8900) + 300, '#f4c430']]) bake(x - 30, SAND_Y + 40, x + 30, SAND_Y + 100, 6, (g) => drawBoat(g, x, SAND_Y + 70, 1.4, c));
   // gente no calçadão e na areia, dos dois lados da foz (ninguém anda dentro do rio)
-  for (const [a, b] of [[500, rL - 20], [rR + 20, 7600]]) {
+  for (const [a, b] of [[ORLA_X0 + 60, rL - 20], [rR + 20, 7600]]) {
     const k = (b - a) / 7100;
     World.animalsDef.push({ type: 'person', n: Math.round(22 * k), rect: [a, CALC_Y + 6, b, SAND_Y - 6] });
     World.animalsDef.push({ type: 'person', n: Math.round(10 * k), rect: [a, SAND_Y + 20, b, SEA_Y - 30] });
@@ -3892,11 +3908,6 @@ function trafficRush() {
 }
 // área rural: 60% menos movimento que na cidade
 function ruralFactor(x, y) { const R = REGIONS[regionKeyAt(x, y)]; return 1 - 0.8 * clamp((R.rural - 0.3) / 0.5, 0, 1); }
-function trafficMax() {
-  const base = Settings.quality === 'alta' ? 22 : Settings.quality === 'baixa' ? 10 : 17;
-  const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
-  return Math.max(k < 0.7 ? 2 : 5, Math.round(base * trafficRush().k * k));
-}
 function lightState(n, axis, now) {
   const t = (now + n.light.off) % 15;
   if (axis === 'H') return t < 6 ? 'G' : t < 7.5 ? 'Y' : 'R';
@@ -4263,30 +4274,63 @@ Traffic.randomEdge = function () {
   while (lo < hi) { const mid = (lo + hi) >> 1; if (this.cum[mid] < r) lo = mid + 1; else hi = mid; }
   return World.edges[lo];
 };
-Traffic.spawnNear = function (cx, cy, minD, maxD, view) {
-  for (let t = 0; t < 24; t++) {
-    const e = this.randomEdge();
+/* ---------- trânsito só em volta da tela (estilo GTA) ----------
+   Carro nasce logo fora da borda da tela e entra andando. Carro que fica fora da tela por alguns
+   segundos é apagado. Fora da tela, quem ainda existe é calculado 4x menos vezes. Se um trecho já
+   está cheio (engarrafamento), não chega carro novo ali. */
+const TR_RING = 460;      // faixa em volta da tela onde os carros nascem e existem
+const TR_GONE = 4;      // segundos fora da tela até o carro sumir
+const TR_SLOW = 1 / 30;   // passo do cálculo fora da tela (30 vezes por segundo, em vez de 120)
+// quantos carros cabem na faixa (mesma sensação de rua movimentada na tela)
+function trafficTarget(view) {
+  const dens = Settings.quality === 'alta' ? 4.6 : Settings.quality === 'baixa' ? 2.8 : 3.8; // carros por milhão de unidades²
+  const area = (view.x1 - view.x0 + TR_RING * 2) * (view.y1 - view.y0 + TR_RING * 2) / 1e6;
+  const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
+  return clamp(Math.round(dens * area * trafficRush().k * k), k < 0.7 ? 2 : 4, 26);
+}
+function trInView(c, v, m) { return c.x > v.x0 - m && c.x < v.x1 + m && c.y > v.y0 - m && c.y < v.y1 + m; }
+// ruas que passam perto da tela
+Traffic.nearEdges = [];
+Traffic.scanEdges = function (v) {
+  const x0 = v.x0 - TR_RING, y0 = v.y0 - TR_RING, x1 = v.x1 + TR_RING, y1 = v.y1 + TR_RING, L = this.nearEdges;
+  L.length = 0; this.nearMax = 0;
+  for (const e of World.edges) {
+    if (e.closed) continue;
+    const ex0 = Math.min(e.a.x, e.b.x), ex1 = Math.max(e.a.x, e.b.x), ey0 = Math.min(e.a.y, e.b.y), ey1 = Math.max(e.a.y, e.b.y);
+    if (ex1 < x0 || ex0 > x1 || ey1 < y0 || ey0 > y1) continue;
+    L.push(e); if (e.len > this.nearMax) this.nearMax = e.len;
+  }
+};
+// tenta pôr um carro na faixa em volta da tela (ou na tela também, quando ninguém está vendo ainda)
+Traffic.spawnRing = function (v, inside) {
+  const L = this.nearEdges; if (!L.length) return null;
+  const fast = player && Game.state === 'playing' && player.speed > 140;
+  for (let t = 0; t < 30; t++) {
+    const e = L[(Math.random() * L.length) | 0];
+    if (rnd(this.nearMax) > e.len) continue; // rua comprida recebe mais carro
+    if (e.closed) continue;
     const dir = chance(0.5) ? 1 : -1;
     const sStart = dir > 0 ? e.clearA : e.clearB, sEnd = e.len - (dir > 0 ? e.clearB : e.clearA);
     if (sEnd - sStart < 80) continue;
     const s = rnd(sStart + 20, sEnd - 20);
-    const fx = dir > 0 ? e.a : e.b;
-    const dx = e.dx * dir, dy = e.dy * dir;
-    const lane = e.T.lanes.length > 1 ? (chance(0.5) ? 1 : 0) : 0;
-    const off = e.T.lanes[lane];
+    const fx = dir > 0 ? e.a : e.b, dx = e.dx * dir, dy = e.dy * dir;
+    const lane = e.T.lanes.length > 1 ? (chance(0.5) ? 1 : 0) : 0, off = e.T.lanes[lane];
     const x = fx.x + dx * s - dy * off, y = fx.y + dy * s + dx * off;
-    const d = Math.hypot(x - cx, y - cy);
-    if (d < minD || d > maxD) continue;
-    if (view && x > view.x0 - 80 && x < view.x1 + 80 && y > view.y0 - 80 && y < view.y1 + 80) continue;
-    let ok = true;
-    for (const o of this.cars) if (Math.abs(o.x - x) < 90 && Math.abs(o.y - y) < 90) { ok = false; break; }
+    if (x < v.x0 - TR_RING || x > v.x1 + TR_RING || y < v.y0 - TR_RING || y > v.y1 + TR_RING) continue;
+    if (!inside && x > v.x0 - 70 && x < v.x1 + 70 && y > v.y0 - 70 && y < v.y1 + 70) continue; // nunca aparece do nada na tela
+    // correndo: carro novo nasce na frente, não atrás
+    if (fast && (x - player.x) * player.vx + (y - player.y) * player.vy < 0 && chance(0.8)) continue;
+    // de preferência já vindo em direção à tela (senão ele vai embora antes de alguém ver)
+    if (!inside && (((v.x0 + v.x1) / 2 - x) * dx + ((v.y0 + v.y1) / 2 - y) * dy) < 0 && chance(0.85)) continue;
+    // trecho cheio (engarrafamento): não manda mais carro pra lá
+    let ok = true, perto = 0;
+    for (const o of this.cars) { const ax = Math.abs(o.x - x), ay = Math.abs(o.y - y); if (ax < 90 && ay < 90) { ok = false; break; } if (ax < 240 && ay < 240 && ++perto >= 3) { ok = false; break; } }
     if (player && Math.abs(player.x - x) < 120 && Math.abs(player.y - y) < 120) ok = false;
     if (!ok) continue;
-    // estradas da roça recebem bem menos carros
-    if ((e.T.id === 'dirt' || e.T.id === 'road') && !chance(0.22)) continue;
-    const model = trafficModelFor(e);
-    const car = new AICar(e, dir, s, lane, model);
+    if ((e.T.id === 'dirt' || e.T.id === 'road') && !chance(0.3)) continue; // estradas da roça recebem bem menos
+    const car = new AICar(e, dir, s, lane, trafficModelFor(e));
     if (!car.allowed(e)) { car.release(); continue; }
+    car.off = 0; car.acc = 0;
     this.cars.push(car);
     return car;
   }
@@ -4296,36 +4340,47 @@ Traffic.fill = function (cx, cy) {
   for (const c of this.cars) c.release();
   this.cars.length = 0;
   for (const n of World.nodes) n.res = null;
-  const mx = trafficMax();
-  for (let i = 0; i < mx; i++) this.spawnNear(cx, cy, 160, 2100, null);
+  // ainda não tem nada na tela: pode pôr carro em qualquer lugar perto
+  const v = Cam.view && Cam.view.x1 > Cam.view.x0 ? Cam.view : { x0: cx - 700, y0: cy - 400, x1: cx + 700, y1: cy + 400 };
+  const w = (v.x1 - v.x0) / 2, h = (v.y1 - v.y0) / 2, vv = { x0: cx - w, y0: cy - h, x1: cx + w, y1: cy + h };
+  this.scanEdges(vv);
+  const mx = trafficTarget(vv);
+  for (let i = 0; i < mx * 3 && this.cars.length < mx; i++) this.spawnRing(vv, true);
+  this.timer = 0;
 };
 Traffic.update = function (dt, now, cx, cy, view) {
-  for (const c of this.cars) c.update(dt, now);
+  const v = view && view.x1 > view.x0 ? view : Cam.view;
+  // na tela (e logo antes de entrar): cálculo completo; fora: 4x menos vezes
+  for (const c of this.cars) {
+    if (trInView(c, v, 160)) { if (c.acc) { c.update(c.acc + dt, now); c.acc = 0; } else c.update(dt, now); c.off = 0; }
+    else { c.acc = (c.acc || 0) + dt; if (c.acc >= TR_SLOW) { c.update(c.acc, now); c.acc = 0; } if (!trInView(c, v, 40)) c.off = (c.off || 0) + dt; }
+  }
   // vigia anti-travamento: carro parado tempo demais sem ser por sinal vermelho nem pelo jogador
   for (const c of this.cars) {
     if (c.wait < 13) continue;
     let o = c, light = false, k = 0;
     while (o && k < 10) { if (o === player) { light = true; break; } if (o.atLight) { light = true; break; } o = o.blocker instanceof AICar ? o.blocker : null; k++; }
     if (light) continue;
-    const v = Cam.view, vis = c.x > v.x0 - 60 && c.x < v.x1 + 60 && c.y > v.y0 - 60 && c.y < v.y1 + 60;
-    if (!vis) { c.release(); c.dead = true; continue; }
+    if (!trInView(c, v, 60)) { c.release(); c.dead = true; continue; }
     c.ghost = 2; c.animalGhost = 2; c.wait = 0;
+  }
+  // some: ficou fora da tela uns segundos ou saiu da faixa em volta
+  for (const c of this.cars) {
+    if (c.dead) continue;
+    if (c.off > TR_GONE || !trInView(c, v, TR_RING + 160)) { c.release(); c.dead = true; }
   }
   if (this.cars.some((c) => c.dead)) this.cars = this.cars.filter((c) => !c.dead);
   this.timer -= dt;
   if (this.timer <= 0) {
-    this.timer = 0.4;
-    for (let i = this.cars.length - 1; i >= 0; i--) {
-      const c = this.cars[i];
-      if (Math.abs(c.x - cx) > 2700 || Math.abs(c.y - cy) > 2300) { c.release(); this.cars.splice(i, 1); }
-    }
-    const mx = trafficMax();
+    this.timer = 0.25;
+    this.scanEdges(v);
+    const mx = trafficTarget(v);
     let n = 0;
-    while (this.cars.length < mx && n++ < 3) this.spawnNear(cx, cy, 700, 2200, view);
-    // menos carros fora do pico: tira um por vez, longe da tela
+    while (this.cars.length < mx && n++ < 3) this.spawnRing(v, false);
+    // menos carros fora do pico: tira um por vez, dos que estão fora da tela
     if (this.cars.length > mx) {
       let far = -1, fd = 0;
-      this.cars.forEach((c, i) => { const v = Cam.view; if (c.x > v.x0 - 80 && c.x < v.x1 + 80 && c.y > v.y0 - 80 && c.y < v.y1 + 80) return; const d = Math.hypot(c.x - cx, c.y - cy); if (d > fd) { fd = d; far = i; } });
+      this.cars.forEach((c, i) => { if (trInView(c, v, 80)) return; const d = Math.hypot(c.x - cx, c.y - cy); if (d > fd) { fd = d; far = i; } });
       if (far >= 0) { this.cars[far].release(); this.cars.splice(far, 1); }
     }
   }
@@ -4405,11 +4460,13 @@ Animals.build = function () {
   this.list.length = 0;
   for (const d of World.animalsDef) for (let i = 0; i < d.n; i++) { const a = new Animal(d.type, d.rect); if (d.look) Object.assign(a, d.look); this.list.push(a); }
 };
+// só mexe quem está na tela ou bem perto dela (o resto fica parado, ninguém vê)
+function nearView(x, y, m) { const v = Cam.view; return v && v.x1 > v.x0 ? x > v.x0 - m && x < v.x1 + m && y > v.y0 - m && y < v.y1 + m : Math.abs(x - Cam.x) < 1200 && Math.abs(y - Cam.y) < 900; }
 Animals.update = function (dt, cx, cy) {
-  for (const a of this.list) if (Math.abs(a.x - cx) < 1700 && Math.abs(a.y - cy) < 1400) a.update(dt);
-  for (const s of World.sparkers) if (Game.time < s.until && Math.abs(s.x - cx) < 1200 && Math.abs(s.y - cy) < 900) for (let i = 0; i < 2; i++) Particles.emit('spark', s.x, s.y, rnd(-160, 160), rnd(-160, 160), rnd(0.2, 0.5), 2);
-  for (const g of World.geysers) if (Game.time < g.until && Math.abs(g.x - cx) < 1200 && Math.abs(g.y - cy) < 900 && chance(0.7)) Particles.emit('water', g.x + rnd(-2, 2), g.y + rnd(-2, 2), rnd(-70, 70), rnd(-70, 70), rnd(0.5, 1.1), 2);
-  for (const g of World.grills) if (g.down === undefined && Math.abs(g.x - cx) < 900 && Math.abs(g.y - cy) < 700 && chance(dt * 6)) Particles.emit('smoke', g.x + rnd(-4, 4), g.y + rnd(-3, 3), rnd(-6, 6), rnd(-14, -4), rnd(1.2, 2.2), 4);
+  for (const a of this.list) if (nearView(a.x, a.y, 220)) a.update(dt);
+  for (const s of World.sparkers) if (Game.time < s.until && nearView(s.x, s.y, 60)) for (let i = 0; i < 2; i++) Particles.emit('spark', s.x, s.y, rnd(-160, 160), rnd(-160, 160), rnd(0.2, 0.5), 2);
+  for (const g of World.geysers) if (Game.time < g.until && nearView(g.x, g.y, 60) && chance(0.7)) Particles.emit('water', g.x + rnd(-2, 2), g.y + rnd(-2, 2), rnd(-70, 70), rnd(-70, 70), rnd(0.5, 1.1), 2);
+  for (const g of World.grills) if (g.down === undefined && nearView(g.x, g.y, 80) && chance(dt * 6)) Particles.emit('smoke', g.x + rnd(-4, 4), g.y + rnd(-3, 3), rnd(-6, 6), rnd(-14, -4), rnd(1.2, 2.2), 4);
   this.soundT -= dt;
   if (this.soundT <= 0 && Game.state === 'playing') {
     this.soundT = rnd(5, 11);
@@ -4442,7 +4499,7 @@ Peladas.build = function () {
 Peladas.update = function (dt, cx, cy) {
   for (const G of this.list) {
     const P = G.P;
-    if (Math.abs(P.cx - cx) > 1500 || Math.abs(P.cy - cy) > 1200) continue;
+    if (!nearView(P.cx, P.cy, 300 + Math.max(P.x1 - P.x0, P.y1 - P.y0) / 2)) continue;
     G.cd -= dt;
     if (G.cel > 0) {
       G.cel -= dt;
@@ -7195,7 +7252,9 @@ function updateCamera(dt) {
     tx = player.x + lx; ty = player.y + ly;
     const k = 1 - Math.exp(-5 * dt);
     Cam.x += (tx - Cam.x) * k; Cam.y += (ty - Cam.y) * k;
-    const target = screenZoomBase() * (Settings.zoom / 100) * Cam.quick * (1 - clamp(sp / 700, 0, 1) * 0.22);
+    // correndo, a câmera sobe um pouco, mas nunca passa do nível 3 (130%)
+    const pct = Math.max(CAM_MIN, (Settings.zoom || 140) * (1 - clamp(sp / 700, 0, 1) * 0.22));
+    const target = screenZoomBase() * (pct / 100);
     Cam.zoom = lerp(Cam.zoom, target, 1 - Math.exp(-2.5 * dt));
   }
   Cam.shake *= Math.exp(-7 * dt);
@@ -8720,7 +8779,7 @@ const mmCanvas = document.getElementById('minimap'), mm = mmCanvas.getContext('2
 function drawMinimap() {
   if (!MAPIMG || !player) return;
   const S = mmCanvas.width, k = S / 220;
-  const R = 1250;
+  const R = Math.round(1250 / 1.2); // 20% mais perto da cidade
   const scale = (S / 2) / R;
   mm.setTransform(1, 0, 0, 1, 0, 0);
   mm.fillStyle = '#0b1210'; mm.fillRect(0, 0, S, S);
@@ -8738,7 +8797,6 @@ function drawMinimap() {
     mm.beginPath(); Act.gps.pts.forEach((p, i) => (i ? mm.lineTo(p[0], p[1]) : mm.moveTo(p[0], p[1]))); mm.stroke();
   }
   const ic = (x, y, kind) => { mm.save(); mm.translate(x, y); mm.rotate(-rot); mm.scale(1 / scale * k * 1.05, 1 / scale * k * 1.05); mapIcon(mm, 0, 0, kind, 1.1); mm.restore(); };
-  for (const c of Traffic.cars) { if (Math.abs(c.x - player.x) > R * 1.5 || Math.abs(c.y - player.y) > R * 1.5) continue; mm.fillStyle = 'rgba(255,255,255,0.55)'; mm.fillRect(c.x - 12, c.y - 12, 24, 24); }
   for (const s of World.shops) ic(s.x, s.y, shopIconKind(s));
   if (Socorro.job) ic(Socorro.job.x, Socorro.job.y, 'repair');
   { const ep = Events.mapPoint(); if (ep) ic(ep[0], ep[1], 'event'); }
@@ -8759,7 +8817,7 @@ function drawMinimap() {
   }
 }
 /* ---------- mapa estilo app de celular: arrastar, zoom e destinos ---------- */
-const MAP_LABELS = [['BARRA DO JURURUZINHO', 5450, 7300], ['JARDIM CAMBURISO', 6900, 7800], ['PORTO DO TUBARÃO BANGUELA', 8150, 6900], ['ORLA DE CAMBURISO', 3000, 8900], ['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JURURU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEIO ROSA', 1150, 7350], ['JARDIM CARA-PINTADA', 3300, 7350], ['NOVA PROSA DA PENA', 1300, 8400], ['FLEXÃO', 3600, 8400]];
+const MAP_LABELS = [['BARRA DO JURURUZINHO', 5450, 7300], ['JARDIM CAMBURISO', 6900, 7800], ['PORTO DO TUBARÃO BANGUELA', 8150, 6900], ['ORLA DE CAMBURISO', 6700, 8905], ['CENTRÃO', 1600, 1150], ['DISTRITO DA GAMBIARRA', 3650, 700], ['VILA SEM PRESSA', 1150, 4100], ['ALFAVILA', 3400, 4700], ['RIO JURURU', 5450, 5000], ['SÍTIO BOTA FÉ', 7500, 2600], ['FAZENDA MUUUITO LONGE', 7700, 5000], ['RODOVIA BR-101 E POUCO', 4200, 6370], ['FEIO ROSA', 1150, 7350], ['JARDIM CARA-PINTADA', 3300, 7350], ['NOVA PROSA DA PENA', 1300, 8400], ['FLEXÃO', 3600, 8400]];
 class MapView {
   constructor(canvas, st) {
     this.c = canvas; this.g = canvas.getContext('2d'); this.st = st; // st: {cx, cy, z} compartilhado
@@ -9497,10 +9555,40 @@ function bindSettings() {
       AudioSys.click();
       if (k === 'quality') { resize(); clearChunks(); forceGround = true; Particles.list.length = 0; }
       if (k === 'showFps') $('fps').classList.toggle('hidden', !Settings.showFps);
+      if (k === 'cam') { Settings.zoom = CAM_LEVELS[v]; CamPrev.show(v); }
       saveSettings(); syncSettingsUI();
     });
   });
 }
+
+/* ---------- prévia da altura da câmera ---------- */
+// desenha a cena atual na altura escolhida (como fica dirigindo parado) numa janelinha
+const CamPrev = { lvl: null, t: 0, hideT: null };
+CamPrev.show = function (lvl) {
+  this.lvl = lvl; this.t = 0;
+  const box = $('cam-prev'); box.classList.remove('hidden');
+  box.querySelector('.cp-cap').textContent = 'Nível ' + lvl + ' · ' + CAM_LEVELS[lvl] + '%' + (lvl === '1' ? ' · mais perto (padrão)' : lvl === '3' ? ' · mais alto' : '');
+  this.snap();
+  clearTimeout(this.hideT); this.hideT = setTimeout(() => this.hide(), 6000);
+};
+CamPrev.hide = function () { this.lvl = null; $('cam-prev').classList.add('hidden'); };
+CamPrev.snap = function () {
+  if (!this.lvl) return;
+  const z0 = Cam.zoom, cv = $('cam-prev').querySelector('canvas'), g = cv.getContext('2d');
+  Cam.zoom = screenZoomBase() * CAM_LEVELS[this.lvl] / 100;
+  render();
+  // recorta o meio da tela no formato da janelinha
+  const W = canvas.width, H = canvas.height, r = cv.width / cv.height;
+  let sw = W, sh = W / r; if (sh > H) { sh = H; sw = H * r; }
+  g.drawImage(canvas, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
+  Cam.zoom = z0; render(); // devolve a tela de trás como estava
+};
+// atualiza a janelinha algumas vezes por segundo enquanto está aberta
+CamPrev.update = function (dt) {
+  if (!this.lvl) return;
+  if (Screens.current !== 'screen-settings') return this.hide();
+  this.t += dt; if (this.t > 0.25) { this.t = 0; this.snap(); }
+};
 
 /* ---------- garagem ---------- */
 const CAR_KIND_TXT = { gas: 'Caminhão de gás', guincho: 'Guincho', cacamba: 'Caçamba', bau: 'Caminhão baú', tanker: 'Caminhão-tanque', quadrado: 'Hatch quadrado', besouro: 'Clássico a ar', escada: 'Hatch caixote', hatch: 'Hatch', van: 'Furgão', pickup: 'Picape', sedan: 'Sedã', santana: 'Sedã quadrado', sport: 'Esportivo', muscle: 'Clássico V6' };
@@ -10097,7 +10185,10 @@ function handleKeys() {
       case 'KeyH': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
       case 'KeyB': Som.toggle(); break;
       case 'KeyL': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
-      case 'KeyC': Cam.quick = Cam.quick === 1 ? 0.72 : 1; break;
+      case 'KeyC': { // troca a altura da câmera: 1 → 2 → 3 → 1
+        Settings.cam = String(Settings.cam % 3 + 1); Settings.zoom = CAM_LEVELS[Settings.cam]; saveSettings(); syncSettingsUI();
+        AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); toast('Câmera: nível ' + Settings.cam, Settings.cam === '1' ? 'Mais perto do carro.' : Settings.cam === '3' ? 'Mais alto, vê mais a cidade.' : 'Altura do meio.', 'info'); break;
+      }
       case 'KeyR': if (player.speed < 120) resetVehicle(); break;
     }
   }
@@ -10155,6 +10246,7 @@ function frame(now) {
   render();
   updateHUD(dt);
   Tutorial.update(dt);
+  CamPrev.update(dt);
   if (Screens.current === 'screen-garage') drawGaragePreview(dt);
   if (Screens.current === 'screen-map' && bigMap) bigMap.draw();
   else if (Screens.current === 'screen-phone' && phoneMap && Phone.app === 'mapa') phoneMap.draw();

@@ -12,6 +12,6 @@ const { chromium } = require('playwright');
     await p.waitForTimeout(900); await p.evaluate((z) => { Cam.zoom = z; }, z); await p.waitForTimeout(400);
     await p.screenshot({ path: n + '.png' });
   }
-  console.log(await p.evaluate(() => [regionKeyAt(2600, 8900), regionKeyAt(6900, 7800), regionKeyAt(8000, 7000), regionKeyAt(5000, 7000), World.shops.filter(s => ['orla', 'porto', 'camburi', 'barra'].includes(s.region)).map(s => s.name)]));
+  console.log(await p.evaluate(() => [regionKeyAt(2600, 8900) + '(mata na Serra)', regionKeyAt(6900, 8900) + '(praia)', regionKeyAt(6900, 7800), regionKeyAt(8000, 7000), regionKeyAt(5000, 7000), World.shops.filter(s => ['orla', 'porto', 'camburi', 'barra'].includes(s.region)).map(s => s.name)]));
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();

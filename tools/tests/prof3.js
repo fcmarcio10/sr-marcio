@@ -28,7 +28,7 @@ const { chromium } = require('playwright');
     Keys.KeyW = true;
     const fr = []; let last = performance.now(); const t0 = last; let minX = player.x;
     window.__PROF = {};
-    await new Promise(res => { const f = (now) => { fr.push(now - last); last = now; if (now - t0 < 12000 && player.x < 4500) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+    await new Promise(res => { const f = (now) => { for (const c of Traffic.cars) c.ghost = 1; fr.push(now - last); last = now; if (now - t0 < 12000 && player.x < 4500) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
     Keys.KeyW = false;
     const P = window.__PROF; window.__PROF = null;
     const n = fr.length, s = fr.slice(1).sort((a, b) => a - b);
