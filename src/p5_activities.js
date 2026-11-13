@@ -203,6 +203,11 @@ function startRace(r) {
   Act.race = { r, idx: 0, t: 0, count: 3.4, lastBeep: 4 };
   toast('Percurso: ' + r.name, 'Ouro ' + fmtTime(r.gold) + ' · Prata ' + fmtTime(r.silver) + ' · Bronze ' + fmtTime(r.bronze), 'info');
 }
+function distToSeg(x, y, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy || 1;
+  const t = clamp(((x - a[0]) * dx + (y - a[1]) * dy) / L2, 0, 1);
+  return Math.hypot(x - (a[0] + dx * t), y - (a[1] + dy * t));
+}
 function finishRace() {
   if (Act.race.racha) { finishRacha(Act.race); return; }
   const R = Act.race, r = R.r, t = R.t;
@@ -335,7 +340,7 @@ function updateActivities(dt) {
       if (Math.hypot(cp[0] - p.x, cp[1] - p.y) < 95) {
         R.idx++;
         if (R.idx >= R.r.pts.length) finishRace(); else { AudioSys.checkpoint(); Act.gpsT = 0; }
-      } else if (Math.hypot(cp[0] - p.x, cp[1] - p.y) > 2600) {
+      } else if (distToSeg(p.x, p.y, R.idx ? R.r.pts[R.idx - 1] : R.r.start, cp) > 1200) { // longe do trajeto (não do ponto: o racha da Cara-Pintada tem 4 km de reta)
         Act.race = null; toast('Percurso cancelado', 'Você se afastou demais do trajeto.', 'bad');
       }
     }

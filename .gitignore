@@ -5,3 +5,5 @@ dist/
 tools/tests/wrapped.html
 tools/tests/*.png
 src/p00_clips.js
+tools/trailer/quadros/
+tools/trailer/saida/
