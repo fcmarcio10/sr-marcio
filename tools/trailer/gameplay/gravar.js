@@ -12,7 +12,10 @@ const FPS = 60;
 
 // ---------- linha do tempo ----------
 let acc = 0;
-for (const c of ROT.cenas) { c.f0 = Math.round(acc * FPS); acc += c.seg; c.quadros = Math.round(acc * FPS) - c.f0; }
+// os cortes caem na batida da música (meio tempo a 130 BPM = 0,23 s)
+const MB = 30 / 130, nb = (t) => Math.round(t / MB) * MB;
+for (const c of ROT.cenas) { c.f0 = Math.round(nb(acc) * FPS); acc += c.seg; c.quadros = Math.round(nb(acc) * FPS) - c.f0; }
+acc = nb(acc);
 const cena = (n) => { const c = ROT.cenas.find((x) => x.nome === n); if (!c) throw new Error('cena não existe: ' + n); return c; };
 // falas da narração e vozes do jogo, no tempo global
 const linha = ROT.falas.map((fl) => ({ id: fl.id, t: +(cena(fl.cena).f0 / FPS + (fl.t || 0)).toFixed(3), dur: FALAS[fl.id].dur, gan: fl.gan || 1 }));
@@ -36,7 +39,7 @@ for (let i = 0; i < legendas.length - 1; i++) legendas[i].b = Math.min(legendas[
   await p.goto('file://' + path.join(TRD, '..', 'tests', 'wrapped.html'));
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 60000 });
   await p.evaluate(() => { localStorage.clear(); Settings.quality = 'alta'; Settings.msgMode = 'audio'; resize(); });
-  await p.click('[data-act="play"]'); await p.waitForTimeout(7800);
+  await p.click('[data-act="play"]'); await p.waitForTimeout(10500); // espera o áudio de boas-vindas (9,5 s) disparar antes de ligar o relógio controlado
   const ok = await p.evaluate(() => AudioSys.ok);
   if (!ok) console.log('AVISO: o som do jogo não ligou (AudioSys.ok = false)');
   await p.evaluate(() => {
@@ -44,7 +47,7 @@ for (let i = 0; i < legendas.length - 1; i++) legendas[i].b = Math.min(legendas[
     Profile.owned.brasa = true; Profile.owned.gas = true; Profile.current = 'brasa';
     const cfg = carCfg('brasa'); cfg.color = '#b3121f'; cfg.up = { motor: 3, cambio: 3, freio: 3, pneu: 3 };
     Object.assign(carKit('brasa'), { finish: 'metal', neon: '#22d1ff', low: true, spoiler: true, wheels: 'tala', tint: 2, sound: true });
-    player.setCar('brasa'); Events.spawnT = 1e9; Profile.msgs = []; UI.last = {}; ensurePhoneData();
+    player.setCar('brasa'); Events.spawnT = 1e9; Profile.msgs = []; UI.last = {}; ensurePhoneData(); VoicePlayer.stop(); Screens.closeAll();
   });
   await p.addScriptTag({ path: path.join(TRD, 'cena.js') });
   await p.addScriptTag({ path: path.join(AQ, 'extra.js') });
@@ -55,7 +58,8 @@ for (let i = 0; i < legendas.length - 1; i++) legendas[i].b = Math.min(legendas[
     if (!FOTOS) { fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true }); } else fs.mkdirSync(OUT, { recursive: true });
     await p.evaluate((n) => { TR.n = n; TR.log = { sons: [], motor: [] }; TR.som = []; }, c.quadros);
     await p.evaluate(() => TR.limpaGags());
-    try { await p.evaluate(c.setup); } catch (e) { console.log('ERRO no setup de', c.nome, e.message); continue; }
+    try { await p.evaluate(c.setup + '\n;void 0'); } catch (e) { console.log('ERRO no setup de', c.nome, e.message); continue; }
+    if (!c.placa) await p.evaluate(() => { if (player) UI.region = regionKeyAt(player.x, player.y); }); // placa do bairro só quando cruza a divisa
     for (let i = 0; i < (c.antes || 0); i++) await p.evaluate(() => TR.step());
     await p.evaluate((f0) => { TR.f = 0; TR.flash = TR.flash0 || 0; TR.gf0 = f0; TR.rec = true; }, c.f0);
     const t0 = Date.now(), ult = FOTOS ? Math.min(c.quadros - 1, Math.max(...FOTOS)) : c.quadros - 1;

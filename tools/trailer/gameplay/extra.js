@@ -7,7 +7,8 @@
   T.filtroToast = null; // na gameplay todos os avisos do jogo aparecem
   // reset da gameplay: placa do bairro ligada e o dinheiro de verdade (o do trailer enchia o bolso)
   const _reset = T.reset;
-  T.reset = function (opt) { const m = Profile.money; _reset(opt); Profile.money = m; const rb = document.getElementById('region-banner'); if (rb) rb.style.display = ''; };
+  const st0 = document.createElement('style'); st0.textContent = '#phone-body [data-app="trapaca"]{display:none!important}body.gp-soplaca #hud{visibility:visible!important}body.gp-soplaca #hud>*:not(#region-banner){visibility:hidden!important}'; document.head.appendChild(st0);
+  T.reset = function (opt) { const m = Profile.money; _reset(opt); Profile.money = m; const rb = document.getElementById('region-banner'); if (rb) rb.style.display = ''; document.body.classList.toggle('gp-soplaca', !!(opt && opt.placa)); };
   /* ---------- quadro global (para os sons caírem no quadro certo do vídeo) ---------- */
   const _vs = V.step;
   V.step = (ms) => { T.inStep = true; try { _vs(ms); } finally { T.inStep = false; } };
@@ -59,11 +60,12 @@
   };
   // aperta uma tecla do jogo (mesmo caminho do teclado) e mostra a tecla na tela
   T.keyT = -1;
-  T.tecla = function (code, txt, rotulo) { KeyPress.push(code); T.keyT = T.f; key.querySelector('b').textContent = txt; key.querySelector('span').textContent = rotulo || ''; };
+  T.tecla = function (code, txt, rotulo) { if (T.rec) T.som.push([T.quadro(), 'FX', ['tecla']]); KeyPress.push(code); T.keyT = T.f; key.querySelector('b').textContent = txt; key.querySelector('span').textContent = rotulo || ''; };
   // destaca uma parte da tela (anel amarelo com o nome)
   T.aneis = [];
   T.destacar = function (sel, nome, f0, f1, cima) {
     const el = typeof sel === 'string' ? document.querySelector(sel) : sel; if (!el) { console.warn('sem', sel); return; }
+    if (T.rec) T.som.push([T.quadro(), 'FX', ['pop']]);
     const r = el.getBoundingClientRect(), d = mk('gp-ring', '<i>' + nome + '</i>'), m = 8;
     Object.assign(d.style, { left: (r.left - m) + 'px', top: (r.top - m) + 'px', width: (r.width + 2 * m) + 'px', height: (r.height + 2 * m) + 'px' });
     d.querySelector('i').style[cima === false ? 'bottom' : 'top'] = '-46px'; if (cima === false) d.querySelector('i').style.top = 'auto';
@@ -88,29 +90,43 @@
     if (L) { const sp = leg.querySelector('span'); if (sp.dataset.k !== L.k) { sp.innerHTML = L.html; sp.dataset.k = L.k; } leg.style.opacity = 1; leg.style.right = (T.legDir || 0) + 'px'; } else leg.style.opacity = 0;
   };
   const _limpa = T.limpaGags;
-  T.limpaGags = function () { _limpa(); for (const a of T.aneis) a.d.remove(); T.aneis = []; T.keyT = -1; T.chap = null; key.style.opacity = 0; if (T.fixos) T.fixos.clear(); T.escolha = null; T.sorte = false; T.legDir = 0; };
+  T.limpaGags = function () { _limpa(); T.onFrame = null; T.cc = null; T.slow = 1; T.freezeAt = undefined; if (canvas) canvas.style.filter = ''; for (const a of T.aneis) a.d.remove(); T.aneis = []; T.keyT = -1; T.chap = null; key.style.opacity = 0; if (T.fixos) T.fixos.clear(); T.escolha = null; T.cada = null; T.sorte = false; T.legDir = 0; };
 
   /* ---------- cruzar a divisa entre dois bairros (a placa do bairro aparece no quadro fHit) ---------- */
   T.cruzar = function (para, fHit, speed, opt) {
     opt = opt || {};
-    const passo = 20, antes = speed / 60 * fHit + 60, depois = opt.depois || 500;
-    const tipos = opt.tipo || ['street', 'avenue', 'road', 'highway'];
-    for (const e of World.edges) {
-      if (!tipos.includes(e.T.id) || e.len < antes + depois) continue;
+    const passo = 20, antes = speed / 60 * fHit, tipos = opt.tipo || ['street', 'avenue', 'road', 'highway'];
+    const tentados = new Set();
+    const lista = opt.perto ? World.edges.slice().sort((a, b) => Math.hypot((a.a.x + a.b.x) / 2 - opt.perto[0], (a.a.y + a.b.y) / 2 - opt.perto[1]) - Math.hypot((b.a.x + b.b.x) / 2 - opt.perto[0], (b.a.y + b.b.y) / 2 - opt.perto[1])) : World.edges;
+    for (const e of lista) {
+      if (!tipos.includes(e.T.id)) continue;
       const P = (q) => [e.a.x + e.dx * q, e.a.y + e.dy * q];
       let rPrev = regionKeyAt(...P(0));
       for (let s = passo; s <= e.len; s += passo) {
         const r = regionKeyAt(...P(s));
-        if (r !== rPrev) {
-          const sc = s - passo / 2;
-          for (const [dir, rA, rD] of [[1, rPrev, r], [-1, r, rPrev]]) {
-            if (rD !== para || (opt.de && rA !== opt.de)) continue;
-            const s0 = sc - dir * antes, s1 = sc + dir * depois;
-            if (Math.min(s0, s1) < 0 || Math.max(s0, s1) > e.len) continue;
-            const R = T.makeRail([P(s0), P(s1)], opt.lane || 24);
-            T.useRail(R, speed, { v0: speed });
-            UI.region = regionKeyAt(player.x, player.y); // sem placa no começo da cena
-            return { e, x: P(sc)[0], y: P(sc)[1], de: rA };
+        if (r !== rPrev && (r === para || rPrev === para)) {
+          const dir = r === para ? 1 : -1, rA = r === para ? rPrev : r, [cx, cy] = P(s - passo / 2);
+          const chave = Math.round(cx / 200) + ',' + Math.round(cy / 200);
+          if ((!opt.de || rA === opt.de) && !tentados.has(chave)) {
+            tentados.add(chave);
+            const ux = e.dx * dir, uy = e.dy * dir, L0 = antes + 260, L1 = opt.depois || 600;
+            const r0 = gpsRoute(cx - ux * L0, cy - uy * L0, cx + ux * L1, cy + uy * L1);
+            if (r0 && r0.pts.length >= 3) {
+              const R = T.makeRail(r0.pts.length > 3 ? r0.pts.slice(1, -1) : r0.pts, opt.lane || 24);
+              // onde o trilho entra no bairro "para"
+              let sc = -1, ra = regionKeyAt(...T.at(R, 0));
+              for (let q = 4; q < R.len; q += 4) { const rq = regionKeyAt(...T.at(R, q)); if (rq === para && ra !== para) { sc = q; break; } ra = rq; }
+              if (sc > antes + 20) {
+                // trecho reto antes e depois da divisa
+                const h = (q) => { const a = T.at(R, q), b = T.at(R, q + 12); return Math.atan2(b[1] - a[1], b[0] - a[0]); };
+                const reto = Math.abs(angDiff(h(sc - antes), h(sc))) < 0.15 && Math.abs(angDiff(h(sc), h(Math.min(R.len - 14, sc + 200)))) < 0.15;
+                if (reto) {
+                  T.useRail(R, speed, { v0: speed, skip: sc - antes });
+                  UI.region = regionKeyAt(player.x, player.y); // sem placa no começo da cena
+                  return { x: cx, y: cy, de: rA };
+                }
+              }
+            }
           }
         }
         rPrev = r;
@@ -131,9 +147,13 @@
     T.rail = null; player.place(x0, y0, a); player.vx = Math.cos(a) * speed; player.vy = Math.sin(a) * speed;
     Cam.x = x0; Cam.y = y0; Traffic.fill(Cam.x, Cam.y); forceGround = true;
     let bateu = -1; const dano0 = Profile.damage;
-    T.manual = (f, p) => { if (bateu < 0 && (col.dead || Profile.damage > dano0 + 0.5)) bateu = f; return bateu < 0 ? { thr: f < fHit + 30 } : { brk: f > bateu + (opt.solta || 8) }; };
+    T.manual = (f, p) => { if (bateu < 0 && (col.dead || Profile.damage > dano0 + 0.5)) bateu = f; return bateu < 0 ? { thr: f < fHit + 30 } : { brk: f > bateu + (opt.solta || 8) && p.speed > 12 }; };
     return { x: tx, y: ty, e };
   };
+  // toca o botão cujo texto bate com a expressão (diálogo da loja, celular)
+  T.botao = function (re, sel) { const b = [...document.querySelectorAll(sel || '#dialog-buttons button, #phone-body button')].find((x) => re.test(x.textContent)); if (!b) console.warn('sem botão', re); return b ? T.tocar(b) : false; };
+  // agenda de ações por quadro (só durante a gravação): [[quadro, função], ...]
+  T.em = function (lista) { TR.onFrame = (f) => { if (TR.cada) TR.cada(f); if (!TR.rec) return; for (const [q, fn] of lista) if (f === q) fn(f); }; };
   // chega até (x, y) e para perto do quadro fStop
   T.chegar = function (x, y, fStop, speed, opt) { return T.toward(x, y, Math.max(90, speed * (fStop / 60 - 0.55)), speed, opt); };
   // trava o sorteio de uma lista do jogo num item (ex.: a fala do passageiro), sem mexer no resto
