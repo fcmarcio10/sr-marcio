@@ -39,6 +39,9 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
   - Nota (últimas 30 corridas) com faixas Bronze/Prata/Ouro/Diamante. Nível e nota liberam PegaAí Aeroporto (nível 2), Mudança (nível 3, Kombo/picape/Unho) e VIP (nível 5, nota 4,5).
   - Cliente mal atendido (1-2 estrelas) manda áudio no WhatsApp: voz real (ElevenLabs) ou leitura pelo Windows, com transcrição. Personagens (Seu Zé, Seu Biu, Banestresse) também mandam áudios. Roteiro das vozes em ROTEIRO-VOZES.md.
 
+- [x] **Desempenho na Serra** (Cara-Pintada, Feio Rosa, Flexão, Nova Prosa)
+  - Paredes das casinhas viram "adesivos" prontos, reaproveitados entre casas iguais; bandeirinhas da mesma cor numa pincelada só. Pinceladas por quadro caíram de ~11.700 para ~6.300 nesses bairros, sem mudar o visual.
+
 ## Próximos
 
 1. **História em capítulos** — missões contadas pelo WhatsApp, com personagens fixos (Seu Zé, o primo enrolado, um cliente misterioso, o dono do ferro-velho). Cada capítulo libera bairro, carro ou oficina nova. Ex.: buscar uma encomenda em Vila Véia e descobrir que é a moqueca roubada do concurso de Camburiso.

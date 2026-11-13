@@ -20,6 +20,7 @@ function resize() {
   LS = Settings.quality === 'alta' ? 0.5 : Settings.quality === 'baixa' ? 0.28 : 0.42;
   lightCanvas.width = Math.ceil(SCREEN_W * LS); lightCanvas.height = Math.ceil(SCREEN_H * LS);
   glowCanvas.width = lightCanvas.width; glowCanvas.height = lightCanvas.height;
+  if (typeof wsClear === 'function') wsClear();
 }
 function screenZoomBase() { return clamp(Math.min(SCREEN_W, SCREEN_H * 1.45) / 1250, 0.62, 1.5); }
 
@@ -304,13 +305,71 @@ function bldOffset(b) {
   if (l > m) { ox *= m / l; oy *= m / l; }
   return [ox, oy - b.h * TILT_H];
 }
+/* ---------- paredes prontas ("adesivos") ----------
+   Parede de construção pequena (casinhas da comunidade, lojinhas) é pintada uma vez numa imagem
+   com janelas, porta, tijolo e sombra, e a cada quadro só é colada inclinada no lugar certo.
+   Paredes iguais (mesma cor, tamanho, lado e janelas acesas) usam a mesma imagem, então quase
+   não se pinta nada novo enquanto você anda. O desenho é o mesmo de antes. */
+let WS_BAKE = 1, WS_LEN = 0, WS_K = 1.6, WS_CHECK = 0;
+const WS_H = 40, WS_MAX = 110, WS_CACHE = new Map();
+const WS_BASE = { ctx: null, z: 1, zs: 1, tx: 0, ty: 0 };
+function wallFlickT(b) { return Math.floor(Game.time * 0.5 + ((b.seed * 0.618) % 1)); }
+function wsUse(ctx, b) { return ctx === WS_BASE.ctx && b.x1 - b.x0 <= WS_MAX && b.y1 - b.y0 <= WS_MAX; }
+function wsClear() { WS_CACHE.clear(); WS_K = RS >= 1.5 ? 2.5 : 1.6; }
+// o que muda o desenho da parede: estilo, cor, lado, tamanho, andares, porta, tijolo e quais janelas estão acesas
+// (janelas e porta ficam em proporção ao comprimento: o que importa é quantas cabem, não o tamanho exato)
+const WS_LINES = { warehouse: 1, barn: 1, container: 1, shed: 1 };
+function wallKey(b, side, len, Lb) {
+  const ws = WIN_STYLES[b.style];
+  let k = b.style + '|' + b.wall + '|' + side + '|' + Lb + (b.front === side ? 'F' : '') + (b.brick ? 'B' : '');
+  if (WS_LINES[b.style]) k += '|' + Math.floor(len / 5);
+  if (b.style === 'colonial') k += '|' + (b.seed % 2) + Math.floor(len / 18);
+  if (b.style === 'apart') k += '|' + Math.floor(b.h / 15);
+  if (!ws || (ws === 3 && b.front === side)) return k + (ws ? '|' + Math.floor(len / 24) : '');
+  let floors, cols;
+  if (ws === 1) { floors = b.h > 40 ? 2 : 1; cols = Math.max(1, Math.floor(len / 30)); }
+  else if (ws === 4) { floors = 2; cols = Math.max(1, Math.floor(len / 18)); }
+  else if (ws === 2) { floors = Math.max(1, Math.floor(b.h / 15)); cols = Math.max(1, Math.floor(len / 15)); }
+  else { floors = 1; cols = Math.max(1, Math.floor(len / 24)); }
+  const tf = wallFlickT(b), sc = side.charCodeAt(0);
+  let bits = '';
+  for (let f = 0; f < floors; f++) for (let c = 0; c < cols; c++) {
+    const hsh = hash2(b.seed + f * 131 + c * 7, sc);
+    let on = hsh < b.lit;
+    if (hsh < 0.04) on = hash2(b.seed + tf, c) < 0.7;
+    bits += on ? '1' : '0';
+  }
+  return k + '|' + floors + 'x' + cols + '|' + bits;
+}
+function wallFast(ctx, b, ax, ay, bx, by, ox, oy, side) {
+  const len = Math.hypot(bx - ax, by - ay), Lb = Math.max(8, Math.round(len / 8) * 8);
+  const key = wallKey(b, side, len, Lb);
+  let E = WS_CACHE.get(key);
+  if (!E) {
+    const W = Math.ceil(Lb * WS_K), cv = makeCanvas(W, WS_H), g = cv.getContext('2d');
+    WS_BAKE = WS_K; WS_LEN = len; drawWall(g, b, 0, 0, W, 0, 0, WS_H, side); WS_BAKE = 1; WS_LEN = 0;
+    E = { cv, u: 0 }; WS_CACHE.set(key, E);
+  }
+  E.u = frameNo;
+  // canto do adesivo: (0,0) = chão no ponto a; eixo u ao longo da parede; eixo v subindo (ox, oy)
+  const B = WS_BASE, W = E.cv.width, m11 = (bx - ax) / W, m12 = (by - ay) / W, m21 = ox / WS_H, m22 = oy / WS_H;
+  ctx.setTransform(B.z * m11, B.zs * m12, B.z * m21, B.zs * m22, B.z * ax + B.tx, B.zs * ay + B.ty);
+  ctx.drawImage(E.cv, 0, 0);
+  ctx.setTransform(B.z, 0, 0, B.zs, B.tx, B.ty);
+}
+// libera adesivos que não aparecem faz tempo
+function wsTrim() {
+  if (WS_CACHE.size < 2000 || frameNo < WS_CHECK) return;
+  WS_CHECK = frameNo + 120;
+  for (const [k, E] of WS_CACHE) if (frameNo - E.u > 90) WS_CACHE.delete(k);
+}
 const WIN_STYLES = { house: 1, farmhouse: 1, office: 2, tower: 2, church: 2, apart: 2, colonial: 4, shop: 3, workshop: 3, garage: 3, kiosk: 3 };
 function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
   const ws = WIN_STYLES[b.style];
   if (!ws) return;
   const ext = Math.hypot(ox, oy);
   if (ext < 2.2) return;
-  const len = Math.hypot(bx - ax, by - ay);
+  const len = WS_LEN || Math.hypot(bx - ax, by - ay);
   let floors, cols;
   if (ws === 1) { floors = b.h > 40 ? 2 : 1; cols = Math.max(1, Math.floor(len / 30)); }
   else if (ws === 4) { floors = 2; cols = Math.max(1, Math.floor(len / 18)); }
@@ -320,7 +379,7 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
   const front = b.front === side;
   const big = ws === 3 && front;
   const lit = emissive ? null : new Path2D(), dark = emissive ? null : new Path2D(), em = emissive ? new Path2D() : null;
-  const tflick = Math.floor(Game.time * 0.5);
+  const tflick = wallFlickT(b);
   for (let f = 0; f < floors; f++) {
     const f0 = big ? 0.08 : (f + 0.28) / floors, f1 = big ? 0.62 : (f + 0.74) / floors;
     for (let c = 0; c < cols; c++) {
@@ -353,8 +412,8 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
   ctx.fillStyle = shade(b.wall, SIDE_SHADE[side]);
   ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(bx + ox, by + oy); ctx.lineTo(ax + ox, ay + oy); ctx.closePath(); ctx.fill();
   if (b.style === 'warehouse' || b.style === 'barn' || b.style === 'container' || b.style === 'shed') {
-    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 1; ctx.beginPath();
-    const n = Math.floor(Math.hypot(bx - ax, by - ay) / 5);
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = WS_BAKE; ctx.beginPath();
+    const n = Math.floor((WS_LEN || Math.hypot(bx - ax, by - ay)) / 5);
     for (let i = 1; i < n; i++) { const t = i / n; ctx.moveTo(ax + (bx - ax) * t, ay + (by - ay) * t); ctx.lineTo(ax + (bx - ax) * t + ox, ay + (by - ay) * t + oy); }
     ctx.stroke();
     if (b.front === side || b.style === 'barn') {
@@ -364,7 +423,7 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
     }
   } else {
     if (b.brick) {
-      ctx.strokeStyle = 'rgba(70,25,10,0.4)'; ctx.lineWidth = 0.7; ctx.beginPath();
+      ctx.strokeStyle = 'rgba(70,25,10,0.4)'; ctx.lineWidth = WS_BAKE > 1 ? 1.6 : 0.7; ctx.beginPath();
       for (let f = 0.12; f < 1; f += 0.11) { ctx.moveTo(ax + ox * f, ay + oy * f); ctx.lineTo(bx + ox * f, by + oy * f); }
       ctx.stroke();
     }
@@ -372,7 +431,7 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
     if (b.style === 'colonial') {
       // janelas coloniais com venezianas coloridas
       ctx.fillStyle = b.seed % 2 ? '#2f6b4a' : '#2d4f7a';
-      const n = Math.max(1, Math.floor(Math.hypot(bx - ax, by - ay) / 18)), ex = bx - ax, ey = by - ay;
+      const n = Math.max(1, Math.floor((WS_LEN || Math.hypot(bx - ax, by - ay)) / 18)), ex = bx - ax, ey = by - ay;
       for (let f = 0; f < 2; f++) for (let c = 0; c < n; c++) for (const sd of [0.14, 0.72]) {
         const s0 = (c + sd) / n, s1 = s0 + 0.12 / n, f0 = (f + 0.2) / 2, f1 = (f + 0.8) / 2;
         ctx.beginPath(); ctx.moveTo(ax + ex * s0 + ox * f0, ay + ey * s0 + oy * f0); ctx.lineTo(ax + ex * s1 + ox * f0, ay + ey * s1 + oy * f0); ctx.lineTo(ax + ex * s1 + ox * f1, ay + ey * s1 + oy * f1); ctx.lineTo(ax + ex * s0 + ox * f1, ay + ey * s0 + oy * f1); ctx.closePath(); ctx.fill();
@@ -383,7 +442,7 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
     if (b.style === 'apart') {
       // sacadas com grade por andar
       const fl = Math.max(1, Math.floor(b.h / 15));
-      ctx.strokeStyle = 'rgba(235,235,225,0.55)'; ctx.lineWidth = 1; ctx.beginPath();
+      ctx.strokeStyle = 'rgba(235,235,225,0.55)'; ctx.lineWidth = WS_BAKE > 1 ? 1.6 : 1; ctx.beginPath();
       for (let f = 1; f <= fl; f++) { const ff = (f - 0.18) / fl; ctx.moveTo(ax + ox * ff, ay + oy * ff); ctx.lineTo(bx + ox * ff, by + oy * ff); }
       ctx.stroke();
     }
@@ -427,8 +486,9 @@ function drawBuilding(ctx, b) {
   let alpha = 1;
   if (b.alphaNear && player && player.x > x0 + ox - 10 && player.x < x1 + ox + 10 && player.y > y0 + oy - 10 && player.y < y1 + oy + 10) alpha = 0.4;
   if (alpha < 1) ctx.globalAlpha = alpha;
-  if (ox > 0.3) drawWall(ctx, b, x0, y1, x0, y0, ox, oy, 'W'); else if (ox < -0.3) drawWall(ctx, b, x1, y0, x1, y1, ox, oy, 'E');
-  if (oy > 0.3) drawWall(ctx, b, x0, y0, x1, y0, ox, oy, 'N'); else if (oy < -0.3) drawWall(ctx, b, x1, y1, x0, y1, ox, oy, 'S');
+  const dw = wsUse(ctx, b) ? wallFast : drawWall;
+  if (ox > 0.3) dw(ctx, b, x0, y1, x0, y0, ox, oy, 'W'); else if (ox < -0.3) dw(ctx, b, x1, y0, x1, y1, ox, oy, 'E');
+  if (oy > 0.3) dw(ctx, b, x0, y0, x1, y0, ox, oy, 'N'); else if (oy < -0.3) dw(ctx, b, x1, y1, x0, y1, ox, oy, 'S');
   ctx.drawImage(roofSprite(b), x0 + ox, y0 + oy, x1 - x0, y1 - y0);
   if (b.party) drawParty(ctx, b, x0 + ox, y0 + oy);
   if (alpha < 1) ctx.globalAlpha = 1;
@@ -486,6 +546,7 @@ function offAt(x, y, h) {
   const ox = (x - Cam.x) * h * PAR, oy = (y - Cam.y) * h * PAR - h * TILT_H;
   return [ox, oy];
 }
+const FLAG_COLS = ['#e63946', '#f4c430', '#2a9d8f', '#3a86ff', '#ff7f11', '#8338ec', '#f1f1f1', '#2bb24c'];
 function drawTall(ctx, o) {
   switch (o.kind) {
     case 'bld': drawBuilding(ctx, o); break;
@@ -608,15 +669,21 @@ function drawTall(ctx, o) {
       ctx.strokeStyle = 'rgba(30,26,22,0.8)'; ctx.lineWidth = 0.8;
       ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(cx, cy, x1, y1); ctx.stroke();
       const L = Math.hypot(x1 - x0, y1 - y0), n = Math.max(3, Math.floor(L / 9));
-      const cols = ['#e63946', '#f4c430', '#2a9d8f', '#3a86ff', '#ff7f11', '#8338ec', '#f1f1f1', '#2bb24c'];
-      for (let i = 1; i < n; i++) {
-        const t = i / n, u = 1 - t;
-        const px = u * u * x0 + 2 * u * t * cx + t * t * x1, py = u * u * y0 + 2 * u * t * cy + t * t * y1;
-        const t2 = (i + 0.6) / n, u2 = 1 - t2;
-        const qx = u2 * u2 * x0 + 2 * u2 * t2 * cx + t2 * t2 * x1, qy = u2 * u2 * y0 + 2 * u2 * t2 * cy + t2 * t2 * y1;
-        const sw = Math.sin(Game.time * 3 + i + o.seed * 9) * 1.2;
-        ctx.fillStyle = cols[(i + (o.seed * 8 | 0)) % cols.length];
-        ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(qx, qy); ctx.lineTo((px + qx) / 2 + sw, (py + qy) / 2 + 6); ctx.closePath(); ctx.fill();
+      // junta as bandeirinhas da mesma cor numa pincelada só (8 em vez de uma por bandeirinha)
+      const cols = FLAG_COLS, so = o.seed * 8 | 0;
+      for (let k = 0; k < cols.length; k++) {
+        let any = false;
+        ctx.beginPath();
+        for (let i = 1; i < n; i++) {
+          if ((i + so) % cols.length !== k) continue;
+          const t = i / n, u = 1 - t;
+          const px = u * u * x0 + 2 * u * t * cx + t * t * x1, py = u * u * y0 + 2 * u * t * cy + t * t * y1;
+          const t2 = (i + 0.6) / n, u2 = 1 - t2;
+          const qx = u2 * u2 * x0 + 2 * u2 * t2 * cx + t2 * t2 * x1, qy = u2 * u2 * y0 + 2 * u2 * t2 * cy + t2 * t2 * y1;
+          const sw = Math.sin(Game.time * 3 + i + o.seed * 9) * 1.2;
+          ctx.moveTo(px, py); ctx.lineTo(qx, qy); ctx.lineTo((px + qx) / 2 + sw, (py + qy) / 2 + 6); ctx.closePath(); any = true;
+        }
+        if (any) { ctx.fillStyle = cols[k]; ctx.fill(); }
       }
       break;
     }
@@ -1368,6 +1435,7 @@ function render() {
   ctx.fillStyle = '#0a1008'; ctx.fillRect(0, 0, W, Hh);
   pm('clear');
   ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
+  WS_BASE.ctx = ctx; WS_BASE.z = z; WS_BASE.zs = z * SQ; WS_BASE.tx = W / 2 - cx * z; WS_BASE.ty = Hh / 2 - cy * z * SQ; wsTrim();
   ctx.imageSmoothingEnabled = true;
   drawGround(view, forceGround); forceGround = false;
   pm('ground');
