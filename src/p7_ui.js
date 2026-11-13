@@ -224,9 +224,9 @@ const Garage = {
     $('garage-tags').innerHTML = carTags(sel).map(([t, k]) => `<span class="gt-${k}">${escapeHtml(t)}</span>`).join('');
     $('garage-car-desc').textContent = sel.desc;
     const mb = $('garage-main-btn'), note = $('garage-main-note');
-    if (!owned) { mb.textContent = 'COMPRAR POR R$ ' + fmtMoney(sel.price); mb.disabled = Profile.money < sel.price; note.textContent = Profile.money < sel.price ? 'Faltam R$ ' + fmtMoney(sel.price - Profile.money) + '. Faça entregas, corridas e eventos para juntar.' : 'Depois de comprar, ele fica na sua garagem para sempre.'; }
-    else if (Profile.current === sel.id) { mb.textContent = 'ESTE É O SEU CARRO ATUAL'; mb.disabled = true; note.textContent = 'Melhore e personalize na direita.'; }
-    else { mb.textContent = 'USAR ESTE CARRO'; mb.disabled = false; note.textContent = 'Troque de carro quando quiser, de graça.'; }
+    if (!owned) { mb.textContent = 'COMPRAR POR R$ ' + fmtMoney(sel.price); mb.disabled = Profile.money < sel.price; note.textContent = Profile.money < sel.price ? 'Faltam R$ ' + fmtMoney(sel.price - Profile.money) + '.' : ''; }
+    else if (Profile.current === sel.id) { mb.textContent = 'EM USO'; mb.disabled = true; note.textContent = ''; }
+    else { mb.textContent = 'USAR ESTE CARRO'; mb.disabled = false; note.textContent = ''; }
     document.querySelectorAll('[data-gtab]').forEach((b) => b.classList.toggle('on', b.dataset.gtab === this.tab));
     $('garage-tab').innerHTML = this.tab === 'kit' ? this.kitHTML(sel, owned) : this.perfHTML(sel, owned);
   },
@@ -237,26 +237,26 @@ const Garage = {
     let h = '<div class="side-title">COMO ELE ANDA</div><div id="garage-stats">' + rows.map(([n, b, c, mx, lab]) => {
       const pb = clamp(b / mx, 0, 1) * 100, pc = clamp(c / mx, 0, 1) * 100;
       return `<div class="stat"><div class="st-top"><span>${n}</span><span>${lab || word(pc / 100)}</span></div><div class="st-bar"><i class="up" style="width:${pc}%"></i><i style="width:${pb}%"></i></div></div>`;
-    }).join('') + '</div><div class="side-title">MELHORIAS <small>verde = ganho das melhorias</small></div><div id="garage-upgrades">';
+    }).join('') + '</div><div class="side-title">MELHORIAS</div><div id="garage-upgrades">';
     const cfg = owned ? carCfg(sel.id) : null;
     const plain = { motor: 'Arranca mais rápido', cambio: 'Chega mais longe na velocidade', freio: 'Para em menos espaço', pneu: 'Segura melhor nas curvas' };
     for (const u of UPGRADES) {
       const lvl = owned ? cfg.up[u.id] : 0, cost = lvl < 3 ? upgradeCost(sel.id, u.id, lvl) : 0;
-      h += `<div class="upg"><div class="un">${u.name}<small>${plain[u.id]} · nível ${lvl} de 3</small></div><div class="pips">${[0, 1, 2].map((i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</div><button data-gup="${u.id}" ${!owned || lvl >= 3 || Profile.money < cost ? 'disabled' : ''}>${!owned ? '—' : lvl >= 3 ? 'MÁXIMO' : 'R$ ' + fmtMoney(cost)}</button></div>`;
+      h += `<div class="upg"><div class="un">${u.name}<small>${plain[u.id]}</small></div><div class="pips">${[0, 1, 2].map((i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</div><button data-gup="${u.id}" ${!owned || lvl >= 3 || Profile.money < cost ? 'disabled' : ''}>${!owned ? '—' : lvl >= 3 ? 'MÁXIMO' : 'R$ ' + fmtMoney(cost)}</button></div>`;
     }
-    h += '</div>' + (!owned ? '<div class="garage-note">Compre o carro para instalar melhorias.</div>' : '<div class="garage-note">Toda melhoria passa pela oficina: o carro volta desamassado.</div>');
+    h += '</div>' + (!owned ? '<div class="garage-note">Compre o carro para melhorar.</div>' : '');
     return h;
   },
   kitHTML(sel, owned) {
     const cats = kitCatsFor(sel.id), k = this.previewKit(), real = owned ? carKit(sel.id) : KIT_DEFAULT;
     let h = '<div class="kit-cats">' + cats.map((c) => `<button data-kcat="${c.id}" class="${c.id === this.cat ? 'on' : ''}">${KIT_ICONS[c.id] || ''}<span>${c.name}</span></button>`).join('') + '</div>';
     const C = KIT_CATS.find((c) => c.id === this.cat);
-    h += `<div class="side-title">${C.name.toUpperCase()}</div><p class="kit-desc">${KIT_DESC[C.id]}</p>`;
+    h += `<div class="side-title">${C.name.toUpperCase()}</div>` + (KIT_DESC[C.id] ? `<p class="kit-desc">${KIT_DESC[C.id]}</p>` : '');
     if (C.id === 'paint') {
       const curColor = this.previewColor || (owned ? carCfg(sel.id).color : PALETTE[CARS.indexOf(sel) % PALETTE.length]);
       h += '<div id="garage-colors" class="swatches">' + PALETTE.map((col) => `<div class="sw${col === curColor ? ' on' : ''}" data-kcol="${col}" style="background:${col}" title="${owned ? 'Pintar (R$ 150)' : 'Ver cor'}"></div>`).join('') + '</div>';
       const pend = owned && this.previewColor && this.previewColor !== carCfg(sel.id).color;
-      h += pend ? `<button class="kit-buy" data-kpaint="1" ${Profile.money < 150 ? 'disabled' : ''}>PINTAR DESTA COR — R$ 150</button>` : '';
+      h += pend ? `<button class="kit-buy" data-kpaint="1" ${Profile.money < 150 ? 'disabled' : ''}>PINTAR — R$ 150</button>` : '';
     } else {
       h += '<div class="kit-opts">' + C.opts.map(([v, label, price]) => {
         const isReal = real[C.id] === v, isPrev = k[C.id] === v;
@@ -266,10 +266,9 @@ const Garage = {
       const pv = this.preview[C.id];
       if (pv !== undefined && pv !== real[C.id]) {
         const price = kitPrice(C.id, pv);
-        h += owned ? `<button class="kit-buy" data-kbuy="${C.id}" ${Profile.money < price ? 'disabled' : ''}>${price ? 'INSTALAR — R$ ' + fmtMoney(price) : 'VOLTAR AO ORIGINAL (GRÁTIS)'}</button>` : '<div class="garage-note">Isso é só uma prévia. Compre o carro para instalar.</div>';
+        h += owned ? `<button class="kit-buy" data-kbuy="${C.id}" ${Profile.money < price ? 'disabled' : ''}>${price ? 'INSTALAR — R$ ' + fmtMoney(price) : 'VOLTAR AO ORIGINAL (GRÁTIS)'}</button>` : '<div class="garage-note">Compre o carro para instalar.</div>';
       }
     }
-    h += '<div class="garage-note">Clique numa opção para ver no carro antes de pagar.</div>';
     return h;
   },
   click(e) {

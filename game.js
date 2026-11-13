@@ -1971,7 +1971,7 @@ function pracaBagunca(R) {
   for (const [dx, dy] of [[-200, 0], [200, 0], [0, -110], [0, 110]]) addLamp(cx + dx, cy + dy, cx + dx, cy + dy, 'white', { style: 'globe', h: 34, r: 140, i: 0.85 });
   addFlags(R.x0 + 20, R.y0 + 90, R.x1 - 20, R.y1 - 90, true); addFlags(R.x0 + 20, R.y1 - 90, R.x1 - 20, R.y0 + 90, true);
   addFlags(R.x0 + 20, cy, R.x1 - 20, cy, true);
-  World.animalsDef.push({ type: 'person', n: 26, rect: [R.x0 + 16, R.y0 + 16, R.x1 - 16, R.y1 - 16], look: { dance: true } });
+  World.animalsDef.push({ type: 'person', n: 16, rect: [R.x0 + 16, R.y0 + 16, R.x1 - 16, R.y1 - 16], look: { dance: true } });
   addShop({ kind: 'bar', name: 'Bar da Bagunça', x: cx, y: R.y0 - 22 - (RT.street.w / 2 - RT.street.lanes[0]), color: '#ffd24a', region: 'feurosa' });
   World.pracaBagunca = { x: cx, y: cy };
 }
@@ -1980,7 +1980,7 @@ function quadraBloco(R) {
   addBuilding(R.x0 + 30, R.y0 + 30, R.x1 - 30, R.y0 + 230, 34, { style: 'warehouse', roofType: 'corrugated', roofColor: '#2a6a3a', wall: '#f2f2ea', lit: 0.6, sign: 'G.R.E.S. UNIDOS DA GAMBIARRA', signColor: '#5be38f', front: 'S' });
   addLight((R.x0 + R.x1) / 2, R.y0 + 250, 200, 0.9, 'green', { shop: true });
   addFlags(R.x0 + 30, R.y0 + 270, R.x1 - 30, R.y0 + 270, true);
-  World.animalsDef.push({ type: 'person', n: 12, rect: [R.x0 + 30, R.y0 + 240, R.x1 - 30, R.y0 + 300], look: { dance: true } });
+  World.animalsDef.push({ type: 'person', n: 8, rect: [R.x0 + 30, R.y0 + 240, R.x1 - 30, R.y0 + 300], look: { dance: true } });
   comunidadeBlock({ x0: R.x0, y0: R.y0 + 320, x1: R.x1, y1: R.y1 });
 }
 function batalhaoBlock(R) {
@@ -4315,15 +4315,15 @@ Traffic.randomEdge = function () {
    Carro nasce logo fora da borda da tela e entra andando. Carro que fica fora da tela por alguns
    segundos é apagado. Fora da tela, quem ainda existe é calculado 4x menos vezes. Se um trecho já
    está cheio (engarrafamento), não chega carro novo ali. */
-const TR_RING = 460;      // faixa em volta da tela onde os carros nascem e existem
-const TR_GONE = 4;      // segundos fora da tela até o carro sumir
+const TR_RING = 240;      // faixa em volta da tela onde os carros nascem e existem (pequena)
+const TR_GONE = 2.5;      // segundos fora da tela até o carro sumir
 const TR_SLOW = 1 / 30;   // passo do cálculo fora da tela (30 vezes por segundo, em vez de 120)
 // quantos carros cabem na faixa (mesma sensação de rua movimentada na tela)
 function trafficTarget(view) {
-  const dens = Settings.quality === 'alta' ? 4.6 : Settings.quality === 'baixa' ? 2.8 : 3.8; // carros por milhão de unidades²
+  const dens = Settings.quality === 'alta' ? 2.4 : Settings.quality === 'baixa' ? 1.6 : 2; // carros por milhão de unidades²
   const area = (view.x1 - view.x0 + TR_RING * 2) * (view.y1 - view.y0 + TR_RING * 2) / 1e6;
   const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
-  return clamp(Math.round(dens * area * trafficRush().k * k), k < 0.7 ? 2 : 4, 26);
+  return clamp(Math.round(dens * area * Math.min(1.2, trafficRush().k) * k), k < 0.7 ? 1 : 2, 9);
 }
 function trInView(c, v, m) { return c.x > v.x0 - m && c.x < v.x1 + m && c.y > v.y0 - m && c.y < v.y1 + m; }
 // ruas que passam perto da tela
@@ -4358,10 +4358,10 @@ Traffic.spawnRing = function (v, inside) {
     // correndo: carro novo nasce na frente, não atrás
     if (fast && (x - player.x) * player.vx + (y - player.y) * player.vy < 0 && chance(0.8)) continue;
     // de preferência já vindo em direção à tela (senão ele vai embora antes de alguém ver)
-    if (!inside && (((v.x0 + v.x1) / 2 - x) * dx + ((v.y0 + v.y1) / 2 - y) * dy) < 0 && chance(0.85)) continue;
+    if (!inside && (((v.x0 + v.x1) / 2 - x) * dx + ((v.y0 + v.y1) / 2 - y) * dy) < 0) continue; // nunca nasce indo embora
     // trecho cheio (engarrafamento): não manda mais carro pra lá
     let ok = true, perto = 0;
-    for (const o of this.cars) { const ax = Math.abs(o.x - x), ay = Math.abs(o.y - y); if (ax < 90 && ay < 90) { ok = false; break; } if (ax < 240 && ay < 240 && ++perto >= 3) { ok = false; break; } }
+    for (const o of this.cars) { const ax = Math.abs(o.x - x), ay = Math.abs(o.y - y); if (ax < 90 && ay < 90) { ok = false; break; } if (ax < 260 && ay < 260 && ++perto >= 2) { ok = false; break; } }
     if (player && Math.abs(player.x - x) < 120 && Math.abs(player.y - y) < 120) ok = false;
     if (!ok) continue;
     if ((e.T.id === 'dirt' || e.T.id === 'road') && !chance(0.3)) continue; // estradas da roça recebem bem menos
@@ -4401,10 +4401,12 @@ Traffic.update = function (dt, now, cx, cy, view) {
     if (!trInView(c, v, 60)) { c.release(); c.dead = true; continue; }
     c.ghost = 2; c.animalGhost = 2; c.wait = 0;
   }
-  // some: ficou fora da tela uns segundos ou saiu da faixa em volta
+  // some: saiu da tela indo embora, ficou fora da tela uns segundos ou saiu da área onde os carros nascem
+  const mx0 = (v.x0 + v.x1) / 2, my0 = (v.y0 + v.y1) / 2;
   for (const c of this.cars) {
     if (c.dead) continue;
-    if (c.off > TR_GONE || !trInView(c, v, TR_RING + 160)) { c.release(); c.dead = true; }
+    const fora = !trInView(c, v, 40), indoEmbora = fora && (c.x - mx0) * Math.cos(c.a) + (c.y - my0) * Math.sin(c.a) > 0;
+    if (indoEmbora || c.off > TR_GONE || !trInView(c, v, TR_RING + 30)) { c.release(); c.dead = true; }
   }
   if (this.cars.some((c) => c.dead)) this.cars = this.cars.filter((c) => !c.dead);
   this.timer -= dt;
@@ -4412,8 +4414,11 @@ Traffic.update = function (dt, now, cx, cy, view) {
     this.timer = 0.25;
     this.scanEdges(v);
     const mx = trafficTarget(v);
+    // poucos na tela de cada vez: com a tela já movimentada, não manda mais
+    let vis = 0; for (const c of this.cars) if (trInView(c, v, 0)) vis++;
+    const visMax = Settings.quality === 'baixa' ? 3 : Settings.quality === 'alta' ? 5 : 4;
     let n = 0;
-    while (this.cars.length < mx && n++ < 3) this.spawnRing(v, false);
+    while (this.cars.length < mx && vis < visMax && n++ < 2) this.spawnRing(v, false);
     // menos carros fora do pico: tira um por vez, dos que estão fora da tela
     if (this.cars.length > mx) {
       let far = -1, fd = 0;
@@ -7151,17 +7156,11 @@ const KIT_CATS = [
   { id: 'sound', name: 'Som', car: false, opts: [[false, 'Rádio de fábrica', 0], [true, 'Paredão (tecla B)', 1200]] },
   { id: 'spoiler', name: 'Aerofólio', car: true, opts: [[false, 'Sem aerofólio', 0], [true, 'Aerofólio', 500]] },
 ];
+// só o que muda alguma coisa pra quem joga (o resto se vê na prévia)
 const KIT_DESC = {
-  paint: 'Troca a cor da lataria. R$ 150 por pintura.',
-  finish: 'Metálico brilha mais; fosco fica com cara de carro de filme.',
-  wheels: 'Só visual. A tala larga é a mais larga de todas.',
-  tint: 'Escurece os vidros. Quanto mais escuro, mais caro.',
-  sticker: 'Adesivo no vidro de trás, do jeito que todo brasileiro gosta.',
-  hood: 'Desenho pintado em cima do carro.',
-  neon: 'Luz colorida embaixo do carro. Brilha bonito à noite.',
-  low: 'Carro mais baixo: segura um pouco mais nas curvas (+4% aderência), mas raspa e solta faísca nas lombadas.',
-  sound: 'Paredão no porta-malas. Aperte B para ligar e desligar. O povo dança. Parado com o som ligado gasta bateria.',
-  spoiler: 'Aerofólio na traseira. Só visual (mas parece mais rápido).',
+  paint: 'R$ 150 cada pintura.',
+  low: '+4% de aderência nas curvas. Solta faísca nas lombadas.',
+  sound: 'Tecla B liga e desliga. Parado, gasta bateria.',
 };
 const KIT_DEFAULT = { finish: 'normal', wheels: 'serie', tint: 0, sticker: '', hood: '', neon: '', low: false, sound: false, spoiler: false };
 function carKit(id) {
@@ -7609,6 +7608,7 @@ function wsTrim() {
   WS_CHECK = frameNo + 120;
   for (const [k, E] of WS_CACHE) if (frameNo - E.u > 90) WS_CACHE.delete(k);
 }
+const EM_BATCH = { on: false, norm: null, big: null, n: 0 };
 const WIN_STYLES = { house: 1, farmhouse: 1, office: 2, tower: 2, church: 2, apart: 2, colonial: 4, shop: 3, workshop: 3, garage: 3, kiosk: 3 };
 function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
   const ws = WIN_STYLES[b.style];
@@ -7624,7 +7624,8 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
   const ex = bx - ax, ey = by - ay;
   const front = b.front === side;
   const big = ws === 3 && front;
-  const lit = emissive ? null : new Path2D(), dark = emissive ? null : new Path2D(), em = emissive ? new Path2D() : null;
+  // luz das janelas: vai tudo para um caminho só, pintado de uma vez no fim (luz somada não depende da ordem)
+  const lit = emissive ? null : new Path2D(), dark = emissive ? null : new Path2D(), em = emissive ? (EM_BATCH.on ? (big ? EM_BATCH.big : EM_BATCH.norm) : new Path2D()) : null;
   const tflick = wallFlickT(b);
   let nLit = 0, nDark = 0;
   for (let f = 0; f < floors; f++) {
@@ -7645,7 +7646,7 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
     }
   }
   // só pinta se tiver janela daquele tipo (parede sem janela acesa não gasta nada)
-  if (emissive) { if (nLit) { ctx.fillStyle = big ? 'rgba(255,214,150,0.5)' : 'rgba(255,186,105,0.55)'; ctx.fill(em); } }
+  if (emissive) { if (nLit) { if (EM_BATCH.on) EM_BATCH.n++; else { ctx.fillStyle = big ? 'rgba(255,214,150,0.5)' : 'rgba(255,186,105,0.55)'; ctx.fill(em); } } }
   else {
     if (nDark) { ctx.fillStyle = '#18202b'; ctx.fill(dark); }
     if (nLit) { ctx.fillStyle = big ? '#f3dcb0' : '#f0c47a'; ctx.fill(lit); }
@@ -8509,7 +8510,10 @@ function glowPass(view, cx, cy) {
 function emissivePass(view, talls) {
   ctx.globalCompositeOperation = 'lighter';
   const T = Game.time;
+  EM_BATCH.on = true; EM_BATCH.norm = new Path2D(); EM_BATCH.big = new Path2D(); EM_BATCH.n = 0;
   for (const o of talls) drawTallEmissive(ctx, o);
+  EM_BATCH.on = false;
+  if (EM_BATCH.n) { ctx.fillStyle = 'rgba(255,186,105,0.55)'; ctx.fill(EM_BATCH.norm); ctx.fillStyle = 'rgba(255,214,150,0.5)'; ctx.fill(EM_BATCH.big); }
   // veículos
   const tail = glowSprite('#ff2a1e'), head = glowSprite('#fff1cf'), amber = glowSprite('#ffa520'), white = glowSprite('#ffffff');
   const carGlow = (c, brake, rev, blink, isPlayer) => {
@@ -9671,9 +9675,9 @@ const Garage = {
     $('garage-tags').innerHTML = carTags(sel).map(([t, k]) => `<span class="gt-${k}">${escapeHtml(t)}</span>`).join('');
     $('garage-car-desc').textContent = sel.desc;
     const mb = $('garage-main-btn'), note = $('garage-main-note');
-    if (!owned) { mb.textContent = 'COMPRAR POR R$ ' + fmtMoney(sel.price); mb.disabled = Profile.money < sel.price; note.textContent = Profile.money < sel.price ? 'Faltam R$ ' + fmtMoney(sel.price - Profile.money) + '. Faça entregas, corridas e eventos para juntar.' : 'Depois de comprar, ele fica na sua garagem para sempre.'; }
-    else if (Profile.current === sel.id) { mb.textContent = 'ESTE É O SEU CARRO ATUAL'; mb.disabled = true; note.textContent = 'Melhore e personalize na direita.'; }
-    else { mb.textContent = 'USAR ESTE CARRO'; mb.disabled = false; note.textContent = 'Troque de carro quando quiser, de graça.'; }
+    if (!owned) { mb.textContent = 'COMPRAR POR R$ ' + fmtMoney(sel.price); mb.disabled = Profile.money < sel.price; note.textContent = Profile.money < sel.price ? 'Faltam R$ ' + fmtMoney(sel.price - Profile.money) + '.' : ''; }
+    else if (Profile.current === sel.id) { mb.textContent = 'EM USO'; mb.disabled = true; note.textContent = ''; }
+    else { mb.textContent = 'USAR ESTE CARRO'; mb.disabled = false; note.textContent = ''; }
     document.querySelectorAll('[data-gtab]').forEach((b) => b.classList.toggle('on', b.dataset.gtab === this.tab));
     $('garage-tab').innerHTML = this.tab === 'kit' ? this.kitHTML(sel, owned) : this.perfHTML(sel, owned);
   },
@@ -9684,26 +9688,26 @@ const Garage = {
     let h = '<div class="side-title">COMO ELE ANDA</div><div id="garage-stats">' + rows.map(([n, b, c, mx, lab]) => {
       const pb = clamp(b / mx, 0, 1) * 100, pc = clamp(c / mx, 0, 1) * 100;
       return `<div class="stat"><div class="st-top"><span>${n}</span><span>${lab || word(pc / 100)}</span></div><div class="st-bar"><i class="up" style="width:${pc}%"></i><i style="width:${pb}%"></i></div></div>`;
-    }).join('') + '</div><div class="side-title">MELHORIAS <small>verde = ganho das melhorias</small></div><div id="garage-upgrades">';
+    }).join('') + '</div><div class="side-title">MELHORIAS</div><div id="garage-upgrades">';
     const cfg = owned ? carCfg(sel.id) : null;
     const plain = { motor: 'Arranca mais rápido', cambio: 'Chega mais longe na velocidade', freio: 'Para em menos espaço', pneu: 'Segura melhor nas curvas' };
     for (const u of UPGRADES) {
       const lvl = owned ? cfg.up[u.id] : 0, cost = lvl < 3 ? upgradeCost(sel.id, u.id, lvl) : 0;
-      h += `<div class="upg"><div class="un">${u.name}<small>${plain[u.id]} · nível ${lvl} de 3</small></div><div class="pips">${[0, 1, 2].map((i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</div><button data-gup="${u.id}" ${!owned || lvl >= 3 || Profile.money < cost ? 'disabled' : ''}>${!owned ? '—' : lvl >= 3 ? 'MÁXIMO' : 'R$ ' + fmtMoney(cost)}</button></div>`;
+      h += `<div class="upg"><div class="un">${u.name}<small>${plain[u.id]}</small></div><div class="pips">${[0, 1, 2].map((i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</div><button data-gup="${u.id}" ${!owned || lvl >= 3 || Profile.money < cost ? 'disabled' : ''}>${!owned ? '—' : lvl >= 3 ? 'MÁXIMO' : 'R$ ' + fmtMoney(cost)}</button></div>`;
     }
-    h += '</div>' + (!owned ? '<div class="garage-note">Compre o carro para instalar melhorias.</div>' : '<div class="garage-note">Toda melhoria passa pela oficina: o carro volta desamassado.</div>');
+    h += '</div>' + (!owned ? '<div class="garage-note">Compre o carro para melhorar.</div>' : '');
     return h;
   },
   kitHTML(sel, owned) {
     const cats = kitCatsFor(sel.id), k = this.previewKit(), real = owned ? carKit(sel.id) : KIT_DEFAULT;
     let h = '<div class="kit-cats">' + cats.map((c) => `<button data-kcat="${c.id}" class="${c.id === this.cat ? 'on' : ''}">${KIT_ICONS[c.id] || ''}<span>${c.name}</span></button>`).join('') + '</div>';
     const C = KIT_CATS.find((c) => c.id === this.cat);
-    h += `<div class="side-title">${C.name.toUpperCase()}</div><p class="kit-desc">${KIT_DESC[C.id]}</p>`;
+    h += `<div class="side-title">${C.name.toUpperCase()}</div>` + (KIT_DESC[C.id] ? `<p class="kit-desc">${KIT_DESC[C.id]}</p>` : '');
     if (C.id === 'paint') {
       const curColor = this.previewColor || (owned ? carCfg(sel.id).color : PALETTE[CARS.indexOf(sel) % PALETTE.length]);
       h += '<div id="garage-colors" class="swatches">' + PALETTE.map((col) => `<div class="sw${col === curColor ? ' on' : ''}" data-kcol="${col}" style="background:${col}" title="${owned ? 'Pintar (R$ 150)' : 'Ver cor'}"></div>`).join('') + '</div>';
       const pend = owned && this.previewColor && this.previewColor !== carCfg(sel.id).color;
-      h += pend ? `<button class="kit-buy" data-kpaint="1" ${Profile.money < 150 ? 'disabled' : ''}>PINTAR DESTA COR — R$ 150</button>` : '';
+      h += pend ? `<button class="kit-buy" data-kpaint="1" ${Profile.money < 150 ? 'disabled' : ''}>PINTAR — R$ 150</button>` : '';
     } else {
       h += '<div class="kit-opts">' + C.opts.map(([v, label, price]) => {
         const isReal = real[C.id] === v, isPrev = k[C.id] === v;
@@ -9713,10 +9717,9 @@ const Garage = {
       const pv = this.preview[C.id];
       if (pv !== undefined && pv !== real[C.id]) {
         const price = kitPrice(C.id, pv);
-        h += owned ? `<button class="kit-buy" data-kbuy="${C.id}" ${Profile.money < price ? 'disabled' : ''}>${price ? 'INSTALAR — R$ ' + fmtMoney(price) : 'VOLTAR AO ORIGINAL (GRÁTIS)'}</button>` : '<div class="garage-note">Isso é só uma prévia. Compre o carro para instalar.</div>';
+        h += owned ? `<button class="kit-buy" data-kbuy="${C.id}" ${Profile.money < price ? 'disabled' : ''}>${price ? 'INSTALAR — R$ ' + fmtMoney(price) : 'VOLTAR AO ORIGINAL (GRÁTIS)'}</button>` : '<div class="garage-note">Compre o carro para instalar.</div>';
       }
     }
-    h += '<div class="garage-note">Clique numa opção para ver no carro antes de pagar.</div>';
     return h;
   },
   click(e) {

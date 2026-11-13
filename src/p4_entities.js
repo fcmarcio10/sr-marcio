@@ -719,15 +719,15 @@ Traffic.randomEdge = function () {
    Carro nasce logo fora da borda da tela e entra andando. Carro que fica fora da tela por alguns
    segundos é apagado. Fora da tela, quem ainda existe é calculado 4x menos vezes. Se um trecho já
    está cheio (engarrafamento), não chega carro novo ali. */
-const TR_RING = 460;      // faixa em volta da tela onde os carros nascem e existem
-const TR_GONE = 4;      // segundos fora da tela até o carro sumir
+const TR_RING = 240;      // faixa em volta da tela onde os carros nascem e existem (pequena)
+const TR_GONE = 2.5;      // segundos fora da tela até o carro sumir
 const TR_SLOW = 1 / 30;   // passo do cálculo fora da tela (30 vezes por segundo, em vez de 120)
 // quantos carros cabem na faixa (mesma sensação de rua movimentada na tela)
 function trafficTarget(view) {
-  const dens = Settings.quality === 'alta' ? 4.6 : Settings.quality === 'baixa' ? 2.8 : 3.8; // carros por milhão de unidades²
+  const dens = Settings.quality === 'alta' ? 2.4 : Settings.quality === 'baixa' ? 1.6 : 2; // carros por milhão de unidades²
   const area = (view.x1 - view.x0 + TR_RING * 2) * (view.y1 - view.y0 + TR_RING * 2) / 1e6;
   const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
-  return clamp(Math.round(dens * area * trafficRush().k * k), k < 0.7 ? 2 : 4, 26);
+  return clamp(Math.round(dens * area * Math.min(1.2, trafficRush().k) * k), k < 0.7 ? 1 : 2, 9);
 }
 function trInView(c, v, m) { return c.x > v.x0 - m && c.x < v.x1 + m && c.y > v.y0 - m && c.y < v.y1 + m; }
 // ruas que passam perto da tela
@@ -762,10 +762,10 @@ Traffic.spawnRing = function (v, inside) {
     // correndo: carro novo nasce na frente, não atrás
     if (fast && (x - player.x) * player.vx + (y - player.y) * player.vy < 0 && chance(0.8)) continue;
     // de preferência já vindo em direção à tela (senão ele vai embora antes de alguém ver)
-    if (!inside && (((v.x0 + v.x1) / 2 - x) * dx + ((v.y0 + v.y1) / 2 - y) * dy) < 0 && chance(0.85)) continue;
+    if (!inside && (((v.x0 + v.x1) / 2 - x) * dx + ((v.y0 + v.y1) / 2 - y) * dy) < 0) continue; // nunca nasce indo embora
     // trecho cheio (engarrafamento): não manda mais carro pra lá
     let ok = true, perto = 0;
-    for (const o of this.cars) { const ax = Math.abs(o.x - x), ay = Math.abs(o.y - y); if (ax < 90 && ay < 90) { ok = false; break; } if (ax < 240 && ay < 240 && ++perto >= 3) { ok = false; break; } }
+    for (const o of this.cars) { const ax = Math.abs(o.x - x), ay = Math.abs(o.y - y); if (ax < 90 && ay < 90) { ok = false; break; } if (ax < 260 && ay < 260 && ++perto >= 2) { ok = false; break; } }
     if (player && Math.abs(player.x - x) < 120 && Math.abs(player.y - y) < 120) ok = false;
     if (!ok) continue;
     if ((e.T.id === 'dirt' || e.T.id === 'road') && !chance(0.3)) continue; // estradas da roça recebem bem menos
@@ -805,10 +805,12 @@ Traffic.update = function (dt, now, cx, cy, view) {
     if (!trInView(c, v, 60)) { c.release(); c.dead = true; continue; }
     c.ghost = 2; c.animalGhost = 2; c.wait = 0;
   }
-  // some: ficou fora da tela uns segundos ou saiu da faixa em volta
+  // some: saiu da tela indo embora, ficou fora da tela uns segundos ou saiu da área onde os carros nascem
+  const mx0 = (v.x0 + v.x1) / 2, my0 = (v.y0 + v.y1) / 2;
   for (const c of this.cars) {
     if (c.dead) continue;
-    if (c.off > TR_GONE || !trInView(c, v, TR_RING + 160)) { c.release(); c.dead = true; }
+    const fora = !trInView(c, v, 40), indoEmbora = fora && (c.x - mx0) * Math.cos(c.a) + (c.y - my0) * Math.sin(c.a) > 0;
+    if (indoEmbora || c.off > TR_GONE || !trInView(c, v, TR_RING + 30)) { c.release(); c.dead = true; }
   }
   if (this.cars.some((c) => c.dead)) this.cars = this.cars.filter((c) => !c.dead);
   this.timer -= dt;
@@ -816,8 +818,11 @@ Traffic.update = function (dt, now, cx, cy, view) {
     this.timer = 0.25;
     this.scanEdges(v);
     const mx = trafficTarget(v);
+    // poucos na tela de cada vez: com a tela já movimentada, não manda mais
+    let vis = 0; for (const c of this.cars) if (trInView(c, v, 0)) vis++;
+    const visMax = Settings.quality === 'baixa' ? 3 : Settings.quality === 'alta' ? 5 : 4;
     let n = 0;
-    while (this.cars.length < mx && n++ < 3) this.spawnRing(v, false);
+    while (this.cars.length < mx && vis < visMax && n++ < 2) this.spawnRing(v, false);
     // menos carros fora do pico: tira um por vez, dos que estão fora da tela
     if (this.cars.length > mx) {
       let far = -1, fd = 0;

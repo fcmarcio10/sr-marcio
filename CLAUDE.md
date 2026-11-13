@@ -29,8 +29,10 @@ O dono do projeto fala português e não é técnico: responda em português sim
 - Sem emojis como visual. Sem imagens externas (tudo desenhado no código). Fontes embutidas (Anton e Barlow, licença OFL).
 - Nomes de zoeira/paródia (cidades e marcas), humor brasileiro e gírias capixabas.
 - Câmera: 3 alturas (1 = 140% padrão, 2 = 135%, 3 = 130%); nada passa de 130%, nem correndo. Gráfico padrão: Alto.
-- Trânsito só em volta da tela (nasce fora da borda, some após 4 s fora da tela). GPS sem carros. Praia só do lado da cidade grande (embaixo da Serra é mata).
+- Trânsito enxuto: nasce numa faixa pequena (240) fora da borda, sempre vindo pra tela; some ao sair da tela indo embora, após 2,5 s fora dela ou ao sair da faixa. No máximo ~5 carros na tela e 9 no total. GPS sem carros. Praia só do lado da cidade grande (embaixo da Serra é mata).
 - **Mapa montado por sorteio numa sequência só** (`RNG` em `p1_core.js`): mudar quantos sorteios uma parte faz embaralha tudo o que vem depois (lojas, postes, árvores). Ao mexer na montagem, use sorteio próprio na parte nova e repita os sorteios antigos — ver `comunidadeSorteioAntigo` e `orlaSorteioAntigo` (`p2_world.js`).
+- Garagem só com o essencial (sem passo a passo, legenda nem "nível X de 3"); personalização só com texto quando muda algo ("R$ 150 cada pintura", tecla B, +4% aderência).
+- Luz das janelas de todas as construções numa pincelada só por quadro (`EM_BATCH`).
 - Cortes de desempenho: sem placas de PARE (só faixa e letras no chão), sem mariposas nos postes, sem bandeirinhas nos quarteirões de comunidade, casinhas da comunidade maiores e em menor número. Bloquete só na favela (Serra, São Pedreiro, Terra Amarelou); no resto, um asfalto só.
 - Pichações foram removidas (pesavam). Polícia está desligada (`POLICE_ENABLED = false`) até ser refeita.
 - Pedidos chegam também por comentários no artefato: responder no próprio comentário, em português.

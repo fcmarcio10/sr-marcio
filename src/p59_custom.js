@@ -14,17 +14,11 @@ const KIT_CATS = [
   { id: 'sound', name: 'Som', car: false, opts: [[false, 'Rádio de fábrica', 0], [true, 'Paredão (tecla B)', 1200]] },
   { id: 'spoiler', name: 'Aerofólio', car: true, opts: [[false, 'Sem aerofólio', 0], [true, 'Aerofólio', 500]] },
 ];
+// só o que muda alguma coisa pra quem joga (o resto se vê na prévia)
 const KIT_DESC = {
-  paint: 'Troca a cor da lataria. R$ 150 por pintura.',
-  finish: 'Metálico brilha mais; fosco fica com cara de carro de filme.',
-  wheels: 'Só visual. A tala larga é a mais larga de todas.',
-  tint: 'Escurece os vidros. Quanto mais escuro, mais caro.',
-  sticker: 'Adesivo no vidro de trás, do jeito que todo brasileiro gosta.',
-  hood: 'Desenho pintado em cima do carro.',
-  neon: 'Luz colorida embaixo do carro. Brilha bonito à noite.',
-  low: 'Carro mais baixo: segura um pouco mais nas curvas (+4% aderência), mas raspa e solta faísca nas lombadas.',
-  sound: 'Paredão no porta-malas. Aperte B para ligar e desligar. O povo dança. Parado com o som ligado gasta bateria.',
-  spoiler: 'Aerofólio na traseira. Só visual (mas parece mais rápido).',
+  paint: 'R$ 150 cada pintura.',
+  low: '+4% de aderência nas curvas. Solta faísca nas lombadas.',
+  sound: 'Tecla B liga e desliga. Parado, gasta bateria.',
 };
 const KIT_DEFAULT = { finish: 'normal', wheels: 'serie', tint: 0, sticker: '', hood: '', neon: '', low: false, sound: false, spoiler: false };
 function carKit(id) {

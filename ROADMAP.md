@@ -51,6 +51,10 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
   - Sem placas de PARE (ficam a faixa e as letras), sem mariposas nos postes, sem bandeirinhas cruzando os quarteirões de comunidade; casinhas da comunidade maiores e em metade do número (2.102 → 1.573 construções). Contêineres e casarões viram adesivos; parede sem janela acesa não gasta luz.
   - Um asfalto só (−4% de detalhe) e bloquete só na favela (−7%). Pinceladas por quadro: −24% a −43% nos bairros da cidade.
 
+- [x] **Garagem limpa, favela mais leve e trânsito enxuto**
+  - Garagem sem textos dispensáveis. Luz das janelas da cidade toda numa pincelada; Praça da Bagunça e quadra do samba com menos gente. Favela 11–18% mais leve.
+  - Trânsito: no máximo ~5 carros na tela, faixa de nascimento menor, carro indo embora some na hora.
+
 ## Próximos
 
 1. **História em capítulos** — missões contadas pelo WhatsApp, com personagens fixos (Seu Zé, o primo enrolado, um cliente misterioso, o dono do ferro-velho). Cada capítulo libera bairro, carro ou oficina nova. Ex.: buscar uma encomenda em Vila Véia e descobrir que é a moqueca roubada do concurso de Camburiso.

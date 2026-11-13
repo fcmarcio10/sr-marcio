@@ -365,6 +365,7 @@ function wsTrim() {
   WS_CHECK = frameNo + 120;
   for (const [k, E] of WS_CACHE) if (frameNo - E.u > 90) WS_CACHE.delete(k);
 }
+const EM_BATCH = { on: false, norm: null, big: null, n: 0 };
 const WIN_STYLES = { house: 1, farmhouse: 1, office: 2, tower: 2, church: 2, apart: 2, colonial: 4, shop: 3, workshop: 3, garage: 3, kiosk: 3 };
 function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
   const ws = WIN_STYLES[b.style];
@@ -380,7 +381,8 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
   const ex = bx - ax, ey = by - ay;
   const front = b.front === side;
   const big = ws === 3 && front;
-  const lit = emissive ? null : new Path2D(), dark = emissive ? null : new Path2D(), em = emissive ? new Path2D() : null;
+  // luz das janelas: vai tudo para um caminho só, pintado de uma vez no fim (luz somada não depende da ordem)
+  const lit = emissive ? null : new Path2D(), dark = emissive ? null : new Path2D(), em = emissive ? (EM_BATCH.on ? (big ? EM_BATCH.big : EM_BATCH.norm) : new Path2D()) : null;
   const tflick = wallFlickT(b);
   let nLit = 0, nDark = 0;
   for (let f = 0; f < floors; f++) {
@@ -401,7 +403,7 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
     }
   }
   // só pinta se tiver janela daquele tipo (parede sem janela acesa não gasta nada)
-  if (emissive) { if (nLit) { ctx.fillStyle = big ? 'rgba(255,214,150,0.5)' : 'rgba(255,186,105,0.55)'; ctx.fill(em); } }
+  if (emissive) { if (nLit) { if (EM_BATCH.on) EM_BATCH.n++; else { ctx.fillStyle = big ? 'rgba(255,214,150,0.5)' : 'rgba(255,186,105,0.55)'; ctx.fill(em); } } }
   else {
     if (nDark) { ctx.fillStyle = '#18202b'; ctx.fill(dark); }
     if (nLit) { ctx.fillStyle = big ? '#f3dcb0' : '#f0c47a'; ctx.fill(lit); }
@@ -1265,7 +1267,10 @@ function glowPass(view, cx, cy) {
 function emissivePass(view, talls) {
   ctx.globalCompositeOperation = 'lighter';
   const T = Game.time;
+  EM_BATCH.on = true; EM_BATCH.norm = new Path2D(); EM_BATCH.big = new Path2D(); EM_BATCH.n = 0;
   for (const o of talls) drawTallEmissive(ctx, o);
+  EM_BATCH.on = false;
+  if (EM_BATCH.n) { ctx.fillStyle = 'rgba(255,186,105,0.55)'; ctx.fill(EM_BATCH.norm); ctx.fillStyle = 'rgba(255,214,150,0.5)'; ctx.fill(EM_BATCH.big); }
   // veículos
   const tail = glowSprite('#ff2a1e'), head = glowSprite('#fff1cf'), amber = glowSprite('#ffa520'), white = glowSprite('#ffffff');
   const carGlow = (c, brake, rev, blink, isPlayer) => {

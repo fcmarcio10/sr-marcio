@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
   await p.goto('file://' + process.cwd() + '/' + (process.env.FILE || 'wrapped.html'));
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 60000 });
   await p.click('[data-act="play"]'); await p.waitForTimeout(7500);
-  const pts = [[1600, 1500], [3000, 7500], [1200, 8100], [1500, 4100], [3400, 4700], [3650, 700], [5450, 7300], [6900, 7800], [8150, 6900], [2500, 6200], [7700, 3000]];
+  const pts = process.env.PTS ? JSON.parse(process.env.PTS) : [[1600, 1500], [3000, 7500], [1200, 8100], [1500, 4100], [3400, 4700], [3650, 700], [5450, 7300], [6900, 7800], [8150, 6900], [2500, 6200], [7700, 3000]];
   const tot = {};
   for (const [x, y] of pts) {
     const r = await p.evaluate(([x, y]) => {

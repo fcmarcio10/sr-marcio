@@ -1479,7 +1479,7 @@ function pracaBagunca(R) {
   for (const [dx, dy] of [[-200, 0], [200, 0], [0, -110], [0, 110]]) addLamp(cx + dx, cy + dy, cx + dx, cy + dy, 'white', { style: 'globe', h: 34, r: 140, i: 0.85 });
   addFlags(R.x0 + 20, R.y0 + 90, R.x1 - 20, R.y1 - 90, true); addFlags(R.x0 + 20, R.y1 - 90, R.x1 - 20, R.y0 + 90, true);
   addFlags(R.x0 + 20, cy, R.x1 - 20, cy, true);
-  World.animalsDef.push({ type: 'person', n: 26, rect: [R.x0 + 16, R.y0 + 16, R.x1 - 16, R.y1 - 16], look: { dance: true } });
+  World.animalsDef.push({ type: 'person', n: 16, rect: [R.x0 + 16, R.y0 + 16, R.x1 - 16, R.y1 - 16], look: { dance: true } });
   addShop({ kind: 'bar', name: 'Bar da Bagunça', x: cx, y: R.y0 - 22 - (RT.street.w / 2 - RT.street.lanes[0]), color: '#ffd24a', region: 'feurosa' });
   World.pracaBagunca = { x: cx, y: cy };
 }
@@ -1488,7 +1488,7 @@ function quadraBloco(R) {
   addBuilding(R.x0 + 30, R.y0 + 30, R.x1 - 30, R.y0 + 230, 34, { style: 'warehouse', roofType: 'corrugated', roofColor: '#2a6a3a', wall: '#f2f2ea', lit: 0.6, sign: 'G.R.E.S. UNIDOS DA GAMBIARRA', signColor: '#5be38f', front: 'S' });
   addLight((R.x0 + R.x1) / 2, R.y0 + 250, 200, 0.9, 'green', { shop: true });
   addFlags(R.x0 + 30, R.y0 + 270, R.x1 - 30, R.y0 + 270, true);
-  World.animalsDef.push({ type: 'person', n: 12, rect: [R.x0 + 30, R.y0 + 240, R.x1 - 30, R.y0 + 300], look: { dance: true } });
+  World.animalsDef.push({ type: 'person', n: 8, rect: [R.x0 + 30, R.y0 + 240, R.x1 - 30, R.y0 + 300], look: { dance: true } });
   comunidadeBlock({ x0: R.x0, y0: R.y0 + 320, x1: R.x1, y1: R.y1 });
 }
 function batalhaoBlock(R) {
