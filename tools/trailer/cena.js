@@ -80,6 +80,29 @@
     p.vx = Math.cos(a) * R.v; p.vy = Math.sin(a) * R.v;
     p.rpm = 1100 + (R.v % 140) * 30; p.gear = 1 + Math.min(4, Math.floor(R.v / 140)); p.thr = R.v < v ? 1 : 0; p.braking = R.v > v + 25;
     p.roll = (p.roll || 0) + R.v * dt * 0.25; p.lean = 0; p.drift = 0; p.slip = 0; p.surface = groundAt(p.x, p.y);
+    // lombada: o Opalha rebaixado raspa o fundo e solta faísca (como no jogo)
+    let onB = false; for (const b of World.bumps) if (p.x > b.x0 && p.x < b.x1 && p.y > b.y0 && p.y < b.y1) { onB = true; break; }
+    if (onB && !p._trBump && R.v > 60) {
+      Cam.shake = Math.max(Cam.shake, 7); T.faisca = 14;
+      if (T.rec) T.log.sons.push([T.gf0 + T.f, 'lombada', []]);
+      if (T.onBump) T.onBump();
+    }
+    p._trBump = onB;
+    if (T.faisca > 0) { T.faisca--; const c = Math.cos(p.a), sn = Math.sin(p.a); for (let i = 0; i < 7; i++) Particles.emit('spark', p.x - c * 14 + rnd(-8, 8), p.y - sn * 14 + rnd(-8, 8), -p.vx * 0.5 + rnd(-140, 140), -p.vy * 0.5 + rnd(-140, 140), rnd(0.35, 0.7), 3.2); }
+  };
+  // coloca o carro numa rua reta com lombada, para bater nela no quadro fHit da gravação (velocidade e câmera lenta dadas)
+  T.lombada = function (fHit, speed, sl, lane) {
+    for (const b of World.bumps) {
+      if (b.x1 - b.x0 > 30) continue; // só lombada atravessada numa rua horizontal
+      const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, r = gpsRoute(cx - 1600, cy, cx + 700, cy);
+      if (!r || r.pts.length < 3) continue;
+      const R = T.makeRail(r.pts.length > 3 ? r.pts.slice(1, -1) : r.pts, lane || 24);
+      let sb = -1; for (let s = 0; s < R.len; s += 3) { const q = T.at(R, s); if (q[0] > b.x0 && q[0] < b.x1 && q[1] > b.y0 && q[1] < b.y1) { sb = s; break; } }
+      const d = speed * sl / 60 * fHit; if (sb < 0 || sb - d < 40) continue;
+      const a = T.at(R, sb - d - 40), m = T.at(R, sb + 80); if (Math.abs(a[1] - m[1]) > 20 || m[0] < a[0]) continue; // reta, indo pra direita
+      T.slow = sl; T.useRail(R, speed, { skip: sb - d, v0: speed }); return { x: cx, y: cy };
+    }
+    return null;
   };
   // câmera deslocada (ex.: na praia, olhar um pouco pra baixo pra mostrar a areia e o mar)
   const _render = window.render;
@@ -145,6 +168,7 @@
     document.getElementById('hud').style.visibility = opt.hud ? 'visible' : 'hidden';
     const tut = document.getElementById('tutorial'); if (tut) tut.style.display = 'none';
     document.getElementById('toasts').innerHTML = ''; Act.prompt = null;
+    T.limpaGags(); T.onPoca = null; T.onBump = null; T.faisca = 0;
     T.camOff = opt.camOff || null; document.body.classList.toggle('tr-bigphone', !!opt.bigPhone);
     document.body.classList.toggle('tr-bigdlg', !!opt.bigDlg); document.body.classList.toggle('tr-biggar', !!opt.bigGar);
     Som.on = false; Cam.shake = 0; const rb = document.getElementById('region-banner'); if (rb) rb.style.display = 'none';
@@ -209,7 +233,8 @@
   #tr-ov .tr-char b{display:block;font-family:var(--f-display);font-size:170px;line-height:.9;text-transform:uppercase;text-shadow:9px 9px 0 #05070b,0 0 50px rgba(0,0,0,.6)}
   #tr-ov .tr-char em{display:block;margin-top:18px;font-style:normal;font-family:var(--f-cond);font-weight:800;font-size:38px;letter-spacing:.12em;color:#fff;text-transform:uppercase;text-shadow:4px 4px 0 #05070b}`;
   document.head.appendChild(st2);
-  T.subtitle = function (html, f0, f1) { T.sub = { f0, f1 }; sb.querySelector('span').innerHTML = html; };
+  // dir = espaço livre à direita (ex.: celular grande na tela)
+  T.subtitle = function (html, f0, f1, dir) { T.sub = { f0, f1 }; sb.querySelector('span').innerHTML = html; sb.style.right = (dir || 0) + 'px'; };
   T.word = function (w, f0, f1) { T.punch = { f0, f1 }; pu.querySelector('b').textContent = w; };
   T.charCard = function (name, role, color, f0, retrato) {
     T.char = { f0 }; ch.querySelector('b').textContent = name; ch.querySelector('b').style.color = color; ch.querySelector('i').style.background = color; ch.querySelector('em').textContent = role;
@@ -242,8 +267,88 @@
     g.fillStyle = '#5a4a1a'; g.fillRect(-16, -26, 30, 6); g.restore();
     g.fillStyle = '#c68a55'; g.beginPath(); g.ellipse(48, 80, 12, 9, 0, 0, TAU); g.fill(); // mão
   };
+  /* ================= piadas visuais: carimbo, meme, encarte de oferta, placas, avaliação, placar ================= */
+  const gagBox = add('tr-gags'); T.gags = [];
+  T.limpaGags = function () { gagBox.innerHTML = ''; T.gags = []; };
+  // textura de carimbo de borracha (falhas na tinta)
+  const mk = document.createElement('canvas'); mk.width = 420; mk.height = 200;
+  { const g = mk.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, 420, 200); g.globalCompositeOperation = 'destination-out'; let sd = 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 650; i++) { g.globalAlpha = 0.3 + r() * 0.7; g.beginPath(); g.arc(r() * 420, r() * 200, r() * 2.0 + 0.3, 0, TAU); g.fill(); }
+    g.lineCap = 'round'; for (let i = 0; i < 16; i++) { g.globalAlpha = 0.55; g.lineWidth = r() * 3 + 1; g.beginPath(); const x = r() * 420, y = r() * 200; g.moveTo(x, y); g.lineTo(x + r() * 140 - 70, y + r() * 16 - 8); g.stroke(); } }
+  const estrela = (cx, cy, n, r0, r1) => { const p = []; for (let i = 0; i < n * 2; i++) { const a = i / (n * 2) * TAU - Math.PI / 2, r = i % 2 ? r0 : r1; p.push((cx + Math.cos(a) * r).toFixed(1) + ',' + (cy + Math.sin(a) * r).toFixed(1)); } return p.join(' '); };
+  const st3 = document.createElement('style');
+  st3.textContent = `#tr-ov .tr-gags{position:absolute;inset:0}
+  #tr-ov .tr-gag{position:absolute;opacity:0;transform-origin:center center}
+  #tr-ov .tr-stamp{padding:4px 36px 12px;border:12px solid currentColor;border-radius:20px;text-align:center;font-family:var(--f-display);text-transform:uppercase;line-height:1;white-space:nowrap;background:rgba(10,8,8,.18);-webkit-mask-image:url(${mk.toDataURL()});-webkit-mask-size:100% 100%}
+  #tr-ov .tr-stamp b{display:block;font-weight:400;font-size:116px;letter-spacing:.03em}
+  #tr-ov .tr-stamp small{display:block;font-family:var(--f-cond);font-weight:900;font-size:50px;letter-spacing:.16em;margin-top:2px}
+  #tr-ov .tr-meme{left:50px;right:50px;text-align:center;font-family:var(--f-display);font-size:112px;line-height:1.02;color:#fff;text-transform:uppercase;letter-spacing:.015em;-webkit-text-stroke:3px #000;
+    text-shadow:7px 0 0 #000,-7px 0 0 #000,0 7px 0 #000,0 -7px 0 #000,5px 5px 0 #000,-5px -5px 0 #000,5px -5px 0 #000,-5px 5px 0 #000,10px 12px 0 #000}
+  #tr-ov .tr-encarte{width:440px;height:440px}
+  #tr-ov .tr-encarte svg{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(12px 12px 0 rgba(5,7,11,.92))}
+  #tr-ov .tr-encarte div{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#d40f1a;text-transform:uppercase;text-align:center}
+  #tr-ov .tr-encarte i{font-style:normal;font-family:var(--f-cond);font-weight:800;font-size:40px;letter-spacing:.1em;color:#1b1b1b}
+  #tr-ov .tr-encarte b{font-family:var(--f-display);font-weight:400;font-size:132px;line-height:.92}
+  #tr-ov .tr-encarte em{font-style:normal;font-family:var(--f-cond);font-weight:800;font-size:38px;letter-spacing:.08em;color:#1b1b1b}
+  #tr-ov .tr-rate{background:#fff;border-radius:30px;padding:30px 48px 36px;box-shadow:14px 14px 0 #05070b;text-align:center;color:#20232b;font-family:var(--f-body)}
+  #tr-ov .tr-rate i{display:block;font-style:normal;font-weight:700;font-size:34px;color:#5b6170}
+  #tr-ov .tr-rate svg{display:block;width:540px;height:108px;margin:16px auto 12px}
+  #tr-ov .tr-rate em{display:block;font-style:italic;font-weight:600;font-size:36px}
+  #tr-ov .tr-placar{display:flex;font-family:var(--f-cond);font-weight:800;text-transform:uppercase;box-shadow:10px 10px 0 #05070b;white-space:nowrap}
+  #tr-ov .tr-placar span{display:flex;align-items:center;height:96px;padding:0 28px;font-size:54px;letter-spacing:.06em;background:#0f2a6b;color:#fff}
+  #tr-ov .tr-placar .s{background:#fff;color:#0f2a6b;font-family:var(--f-display);font-weight:400;font-size:70px;padding:0 20px}
+  #tr-ov .tr-placar .x{background:#fff;color:#0f2a6b;padding:0 2px;font-size:44px}
+  #tr-ov .tr-placar .c{background:#18a957;font-size:42px}
+  #tr-ov .tr-obra{width:600px;background:#0d6b3b;border:8px solid #fff;outline:5px solid #0d6b3b;color:#fff;font-family:var(--f-cond);text-transform:uppercase;box-shadow:14px 14px 0 rgba(5,7,11,.9)}
+  #tr-ov .tr-obra .h{background:#fff;color:#0d6b3b;font-weight:800;font-size:31px;letter-spacing:.05em;padding:8px 18px;text-align:center}
+  #tr-ov .tr-obra .l{font-weight:600;font-size:36px;padding:7px 24px;border-top:3px solid rgba(255,255,255,.3)}
+  #tr-ov .tr-obra .l b{font-weight:800;color:#ffe14a}
+  #tr-ov .tr-papelao{background:#c4955a;background-image:repeating-linear-gradient(90deg,rgba(80,45,10,.08) 0 3px,transparent 3px 16px);padding:24px 44px 26px;border-radius:5px;
+    box-shadow:12px 12px 0 rgba(5,7,11,.85),inset 0 0 40px rgba(90,50,10,.4);font-family:var(--f-display);color:#17110d;font-size:82px;line-height:1;text-transform:uppercase;text-align:center;white-space:nowrap}
+  #tr-ov .tr-papelao small{display:block;font-family:var(--f-cond);font-weight:800;font-size:32px;letter-spacing:.06em;margin-top:8px}
+  #tr-ov .tr-papelao:before,#tr-ov .tr-papelao:after{content:'';position:absolute;top:-14px;width:120px;height:34px;background:rgba(235,230,200,.75);transform:rotate(-8deg)}
+  #tr-ov .tr-papelao:before{left:-30px}#tr-ov .tr-papelao:after{right:-30px;transform:rotate(9deg)}
+  #tr-ov .tr-aviso{left:0;right:0;bottom:64px;text-align:center;font-family:var(--f-body);font-weight:600;font-size:30px;color:#aab2c2;letter-spacing:.04em}`;
+  document.head.appendChild(st3);
+  // cria uma piada: aparece no quadro f0 e some no f1 (anim: carimbo, pop, entra, seco, fade)
+  T.gag = function (cls, html, f0, f1, o) {
+    o = o || {}; const el = document.createElement('div'); el.className = 'tr-gag ' + cls; el.innerHTML = html;
+    if (o.x !== undefined) el.style.left = o.x; if (o.y !== undefined) el.style.top = o.y; if (o.cor) el.style.color = o.cor;
+    gagBox.appendChild(el); const g = { el, f0, f1: f1 || 1e9, rot: o.rot || 0, anim: o.anim || 'pop', som: o.som, mexe: o.mexe }; T.gags.push(g); return g;
+  };
+  T.carimbo = (txt, sub, cor, f0, f1, x, y, rot) => T.gag('tr-stamp', '<b>' + txt + '</b>' + (sub ? '<small>' + sub + '</small>' : ''), f0, f1, { x, y, cor, rot: rot === undefined ? -9 : rot, anim: 'carimbo', som: 'carimbo' });
+  // meme: texto de cima e, uma batida depois, o de baixo (a piada)
+  T.meme = function (cima, baixo, f0, f1) {
+    const m = Math.round(T.lb || 0) + 40, a = T.gag('tr-meme', cima, f0, f1, { anim: 'seco' }), b = T.gag('tr-meme', baixo, f0 + Math.round(T.BEATF || 28), f1, { anim: 'seco' });
+    a.el.style.top = m + 'px'; b.el.style.bottom = m + 'px'; return [a, b];
+  };
+  T.encarte = (l1, l2, l3, f0, f1, x, y, rot) => T.gag('tr-encarte', '<svg viewBox="0 0 400 400"><polygon points="' + estrela(200, 200, 22, 156, 198) + '" fill="#d40f1a"/><polygon points="' + estrela(200, 200, 22, 143, 181) + '" fill="#ffe600"/></svg><div><i>' + l1 + '</i><b style="font-size:' + (l2.length > 4 ? 98 : 132) + 'px">' + l2 + '</b><em>' + l3 + '</em></div>', f0, f1, { x, y, rot: rot === undefined ? -8 : rot, mexe: true, som: 'boing' });
+  T.estrelas = function (n, txt, f0, f1, x, y) {
+    let sv = ''; for (let i = 0; i < 5; i++) sv += '<polygon points="' + estrela(54 + i * 108, 54, 5, 20, 47) + '" fill="' + (i < n ? '#ffc21a' : 'none') + '" stroke="' + (i < n ? '#e39400' : '#c3c8d2') + '" stroke-width="5" stroke-linejoin="round"/>';
+    return T.gag('tr-rate', '<i>Avaliação da passageira</i><svg viewBox="0 0 540 108">' + sv + '</svg><em>' + txt + '</em>', f0, f1, { x, y, rot: -3, som: 'trombone' });
+  };
+  T.placar = (a, ga, gb, b, tempo, f0, f1, x, y) => T.gag('tr-placar', '<span>' + a + '</span><span class="s">' + ga + '</span><span class="x">×</span><span class="s">' + gb + '</span><span>' + b + '</span><span class="c">' + tempo + '</span>', f0, f1, { x, y, anim: 'entra' });
+  T.obra = (titulo, linhas, f0, f1, x, y) => T.gag('tr-obra', '<div class="h">' + titulo + '</div>' + linhas.map((l) => '<div class="l">' + l + '</div>').join(''), f0, f1, { x, y, anim: 'entra' });
+  T.papelao = (txt, sub, f0, f1, x, y, rot) => T.gag('tr-papelao', txt + (sub ? '<small>' + sub + '</small>' : ''), f0, f1, { x, y, rot: rot === undefined ? 4 : rot });
+  T.aviso = (txt, f0, f1) => T.gag('tr-aviso', txt, f0, f1, { anim: 'fade' });
+  const backOut = (x) => 1 + 2.70158 * Math.pow(x - 1, 3) + 1.70158 * Math.pow(x - 1, 2);
+  T.desenhaGags = function (f) {
+    for (const g of T.gags) {
+      const k = f - g.f0, el = g.el;
+      if (k < 0 || f > g.f1 + 6) { el.style.opacity = 0; continue; }
+      if (T.rec && !g.dito) { g.dito = true; if (g.som) T.log.sons.push([T.gf0 + f - 1, g.som, []]); }
+      let o = Math.min(1, (g.f1 + 6 - f) / 6), s = 1, r = g.rot, dx = 0;
+      if (g.anim === 'carimbo') { const e = Math.max(0, 1 - k / 5); s = 1 + 1.7 * e * e; o *= Math.min(1, 0.35 + k / 3); if (k === 1) Cam.shake = Math.max(Cam.shake || 0, 4); }
+      else if (g.anim === 'pop') { const e = Math.min(1, k / 9); s = 0.25 + 0.75 * backOut(e); if (g.mexe) r += Math.sin(f / 4.5) * 2.2; }
+      else if (g.anim === 'entra') { const e = ease(Math.min(1, k / 11)); dx = (1 - e) * 1100; }
+      else if (g.anim === 'fade') o *= Math.min(1, k / 20);
+      el.style.opacity = o;
+      if (g.anim !== 'seco' && g.anim !== 'fade') el.style.transform = 'translate(calc(-50% + ' + dx.toFixed(1) + 'px),-50%) rotate(' + r.toFixed(2) + 'deg) scale(' + s.toFixed(3) + ')';
+    }
+  };
   T.cine = function () {
     const f = T.f, lb = Math.round(T.lb || 0);
+    T.desenhaGags(f);
     lbT.style.height = lb + 'px'; lbB.style.height = lb + 'px';
     fl.style.opacity = Math.max(0, T.flash || 0); T.flash = (T.flash || 0) * 0.82;
     if (T.punch) { const o = T.fade(f, T.punch.f0, T.punch.f1, 4); pu.style.opacity = o; pu.querySelector('b').style.transform = `scale(${1.25 - 0.25 * Math.min(1, (f - T.punch.f0) / 6)})`; } else pu.style.opacity = 0;
@@ -260,5 +365,5 @@
   const _pay = window.pay; window.pay = function (v, t) { if (T.rec && v > 0) T.log.sons.push([T.gf0 + T.f, 'grana', [v]]); return _pay.apply(this, arguments); };
   // espirro de poça: é o único "noise" de 0,35 s em passa-banda que o jogo toca
   const _noise = AudioSys.noise;
-  AudioSys.noise = function (d, f, q, v, bus, type) { if (T.rec && d === 0.35 && type === 'bandpass' && (f === 1900 || f === 700)) T.log.sons.push([T.gf0 + T.f, 'poca', []]); return _noise.apply(this, arguments); };
+  AudioSys.noise = function (d, f, q, v, bus, type) { if (T.rec && d === 0.35 && type === 'bandpass' && (f === 1900 || f === 700)) { T.log.sons.push([T.gf0 + T.f, 'poca', []]); if (T.onPoca) T.onPoca(); } return _noise.apply(this, arguments); };
 })();

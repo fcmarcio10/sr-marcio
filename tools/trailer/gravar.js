@@ -41,6 +41,7 @@ if (GTA) {
     const dir = path.join(__dirname, OUT, c.nome);
     fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
     await p.evaluate((n) => { TR.n = n; TR.log = { sons: [], motor: [] }; }, c.quadros);
+    await p.evaluate(() => TR.limpaGags()); // piadas da cena anterior não passam pra próxima
     await p.evaluate(c.setup);
     for (let i = 0; i < (c.antes || 0); i++) await p.evaluate(() => TR.step()); // deixa a cena "assentar" antes de gravar
     await p.evaluate((f0) => { TR.f = 0; TR.flash = TR.flash0 || 0; TR.gf0 = f0; TR.rec = true; }, c.f0 || 0);
@@ -50,7 +51,7 @@ if (GTA) {
       await p.screenshot({ path: path.join(dir, String(i).padStart(5, '0') + '.jpg'), type: 'jpeg', quality: 92 });
     }
     const log = await p.evaluate(() => { TR.rec = false; return TR.log; });
-    if (GTA) fs.writeFileSync(path.join(__dirname, 'eventos', c.nome + '.json'), JSON.stringify({ nome: c.nome, f0: c.f0, n: c.quadros, bar0: c.bar0, bars: c.bars, sfx: c.sfx || [], motor: !!c.motor, chuva: !!c.chuva, sons: log.sons, vel: log.motor }));
+    if (GTA) fs.writeFileSync(path.join(__dirname, 'eventos', c.nome + '.json'), JSON.stringify({ nome: c.nome, f0: c.f0, n: c.quadros, bar0: c.bar0, bars: c.bars, sfx: c.sfx || [], motor: !!c.motor, chuva: !!c.chuva, mudo: c.mudo || null, sons: log.sons, vel: log.motor }));
     console.log(c.nome, c.quadros, 'quadros em', ((Date.now() - t0) / 1000).toFixed(0) + ' s');
   }
   if (GTA) fs.writeFileSync(path.join(__dirname, 'eventos', '_trailer.json'), JSON.stringify({ bpm: ROT.bpm, fps: 60, cenas: CENAS.map((c) => ({ nome: c.nome, f0: c.f0, n: c.quadros, bar0: c.bar0, bars: c.bars })), vozes: ROT.vozes || [] }));

@@ -23,7 +23,7 @@ for v in $VOZES; do
   fi
 done
 if [ $k -gt 0 ]; then
-  ffmpeg -y -loglevel error -i "$AUD" "${in[@]}" -filter_complex "${f}${mix}amix=inputs=$k:normalize=0,apad,asplit[vz][sc];[0:a][sc]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[duck];[duck][vz]amix=inputs=2:normalize=0[out]" -map "[out]" -t 72 saida/trilha_gta_voz.wav
+  ffmpeg -y -loglevel error -i "$AUD" "${in[@]}" -filter_complex "${f}${mix}amix=inputs=$k:normalize=0,apad,asplit[vz][sc];[0:a][sc]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[duck];[duck][vz]amix=inputs=2:normalize=0[out]" -map "[out]" -t 78 saida/trilha_gta_voz.wav
   AUD=saida/trilha_gta_voz.wav; echo "falas encaixadas: $k"
 fi
 ffmpeg -y -loglevel error -i saida/gta_video.mp4 -i "$AUD" -af "loudnorm=I=-14:TP=-1.0:LRA=11" -c:v copy -c:a aac -b:a 256k -shortest saida/br-night-drive-trailer-gta.mp4
