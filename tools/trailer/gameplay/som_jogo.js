@@ -4,7 +4,7 @@
 // uso: node som_jogo.js   ->  saida/jogo.wav
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
-const AQ = __dirname, SR = 48000;
+const AQ = process.env.PASTA ? path.resolve(process.env.PASTA) : __dirname, SR = 48000; // PASTA: outra gravação (ex.: ../vertical)
 const L = JSON.parse(fs.readFileSync(path.join(AQ, 'eventos', '_linha.json'), 'utf8'));
 const ev = [];
 for (const c of L.cenas) {
@@ -17,7 +17,7 @@ const dur = L.total + 1;
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage();
   p.on('pageerror', (e) => console.log('erro na página:', e.message));
-  await p.goto('file://' + path.join(AQ, '..', '..', 'tests', 'wrapped.html'));
+  await p.goto('file://' + path.join(__dirname, '..', '..', 'tests', 'wrapped.html'));
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 60000 });
   await p.evaluate(() => localStorage.clear());
   const t0 = Date.now();

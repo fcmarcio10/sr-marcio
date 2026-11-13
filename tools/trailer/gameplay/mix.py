@@ -14,15 +14,18 @@
 import json, os, subprocess
 import numpy as np
 
-AQ = os.path.dirname(os.path.abspath(__file__)); RAIZ = os.path.abspath(os.path.join(AQ, '..', '..', '..'))
+AQ = os.path.abspath(os.environ.get('PASTA') or os.path.dirname(os.path.abspath(__file__)))  # PASTA: outra gravação (ex.: ../vertical)
+RAIZ = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..'))
+MUSICA = float(os.environ.get('MUSICA', '0.12'))  # volume da trilha (sem narração dá pra subir)
 SR = 48000
 L = json.load(open(os.path.join(AQ, 'eventos', '_linha.json')))
 TOTAL = L['total']; N = int((TOTAL + 1.5) * SR)
 
 # instrumentos do trailer (som.py): kick, clap, hat, tom, bass808, pad, stab, lead, riser, impacto, prato, whoosh...
-src = open(os.path.join(AQ, '..', 'som.py')).read().split('# ---------------- música')[0]
+SOMPY = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'som.py')
+src = open(SOMPY).read().split('# ---------------- música')[0]
 src = src.replace("info = json.load(open(os.path.join(BASE, 'eventos', '_trailer.json')))", "info = {'bpm': 130, 'cenas': [{'bars': 1}]}")
-G = {'__file__': os.path.join(AQ, '..', 'som.py')}; exec(src, G)
+G = {'__file__': SOMPY}; exec(src, G)
 kick, clap, hat, tom, bass808, pad, stab, lead, riser, impacto, prato, whoosh = (G[k] for k in ('kick', 'clap', 'hat', 'tom', 'bass808', 'pad', 'stab', 'lead', 'riser', 'impacto', 'prato', 'whoosh'))
 lp, hp, bp, tt, noise, midi = G['lp'], G['hp'], G['bp'], G['tt'], G['noise'], G['midi']
 rng = np.random.default_rng(11)
@@ -131,9 +134,9 @@ for k, (a, e, st) in enumerate(trechos):
     poe(mus['fx'], prato(), a, 0.8)
     poe(mus['fx'], whoosh(0.7), a - 0.35, 0.6)
 for c in L['cenas']:
-    if c['nome'] in ('02-logo', '32-logo'): poe(mus['fx'], impacto(), c['f0'] / 60, 1.1); poe(mus['fx'], prato(), c['f0'] / 60, 0.9)
+    if c['nome'].endswith('logo'): poe(mus['fx'], impacto(), c['f0'] / 60, 1.1); poe(mus['fx'], prato(), c['f0'] / 60, 0.9)
 # corte final: acorde longo no logo
-fim = [c for c in L['cenas'] if c['nome'] == '32-logo']
+fim = [c for c in L['cenas'] if c['nome'].endswith('logo')][-1:]
 if fim:
     t = fim[0]['f0'] / 60; poe(mus['harm'], pad(ACS[0][0][:3], 3.2 * BAR, 1200), t, 1.0); poe(mus['baixo'], bass808(55, 2.2 * BAR) * 0.7, t, 0.7)
 
@@ -172,9 +175,9 @@ for i in range(0, N, 64):
     e = env[i]; v = a_ * v + (1 - a_) * e if e > v else r_ * v + (1 - r_) * e; sm[i:i + 64] = v
 jogo = ler(os.path.join(AQ, 'saida', 'jogo.wav')) if os.path.exists(os.path.join(AQ, 'saida', 'jogo.wav')) else np.zeros((2, N))
 jogo = np.pad(jogo, ((0, 0), (0, max(0, N - jogo.shape[1]))))[:, :N]
-mix = musica * 0.12 * (1 - 0.8 * sm) + jogo * 0.75 * (1 - 0.7 * sm) + voz * 1.0 + fx * 0.9  # voz ~12 dB acima do fundo
+mix = musica * MUSICA * (1 - 0.8 * sm) + jogo * 0.75 * (1 - 0.7 * sm) + voz * 1.0 + fx * 0.9  # voz ~12 dB acima do fundo
 if os.environ.get('STEMS'):
-    fundo = musica * 0.12 * (1 - 0.8 * sm) + jogo * 0.75 * (1 - 0.7 * sm) + fx * 0.9
+    fundo = musica * MUSICA * (1 - 0.8 * sm) + jogo * 0.75 * (1 - 0.7 * sm) + fx * 0.9
     for nome, st in (('st_voz', voz), ('st_fundo', fundo), ('st_mus', musica), ('st_jogo', jogo), ('st_env', np.vstack([sm, sm]))):
         subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-f', 'f32le', '-ar', str(SR), '-ac', '2', '-i', '-', os.path.join(AQ, 'saida', nome + '.wav')], input=st.T.astype(np.float32).tobytes(), check=True)
 mix = hp(mix, 30)
