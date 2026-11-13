@@ -365,6 +365,7 @@ function wsTrim() {
   WS_CHECK = frameNo + 120;
   for (const [k, E] of WS_CACHE) if (frameNo - E.u > 90) WS_CACHE.delete(k);
 }
+const FAVELA_RK = { feurosa: 1, carapina: 1, novarosa: 1, flexal: 1, saopedro: 1, terravermelha: 1 };
 const EM_BATCH = { on: false, norm: null, big: null, n: 0 };
 const WIN_STYLES = { house: 1, farmhouse: 1, office: 2, tower: 2, church: 2, apart: 2, colonial: 4, shop: 3, workshop: 3, garage: 3, kiosk: 3 };
 function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
@@ -891,6 +892,9 @@ function drawTallEmissive(ctx, o) {
       const hex = lightHex(o.col);
       ctx.drawImage(glowSprite(hex), o.hx + ox - 16, o.hy + oy - 16, 32, 32);
       ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 5, o.hy + oy - 5, 10, 10);
+      // mariposas rodando a lâmpada: só em 30% dos postes das favelas
+      if (o.moth === undefined) o.moth = !!FAVELA_RK[regionKeyAt(o.x, o.y)] && hash2(o.x | 0, o.y | 0) < 0.3;
+      if (o.moth && Settings.quality !== 'baixa') { ctx.fillStyle = 'rgba(255,240,200,0.75)'; for (let i = 0; i < 3; i++) { const a = Game.time * (3 + i) + i * 2.1 + o.x * 0.01; ctx.fillRect(o.hx + ox + Math.cos(a) * (7 + i * 3), o.hy + oy + Math.sin(a * 1.3) * (6 + i * 2), 1.2, 1.2); } }
       break;
     }
     case 'tlight': {
@@ -992,7 +996,7 @@ Weather.update = function (dt) {
   // relâmpago e trovão no temporal
   if (this.rain > 0.6) { this.thunderT -= dt; if (this.thunderT <= 0) { this.thunderT = rnd(14, 32); Cam.flash = Math.max(Cam.flash, 0.55); const d = rnd(0.4, 2); setTimeout(() => AudioSys.thunder(d), d * 1000); } }
   // gotas na tela (espaço da tela)
-  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 90 : Settings.quality === 'alta' ? 420 : 240));
+  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 81 : Settings.quality === 'alta' ? 378 : 216)); // 10% menos gotas
   // câmera olhando de cima: a gota cai na direção do chão, então na tela ela "afunda" em direção ao centro,
   // encolhendo e ficando mais fina até bater no chão (onde vira respingo)
   const newDrop = (d, z) => { const R = Math.hypot(SCREEN_W, SCREEN_H) * 0.62; d.a = Math.random() * TAU; d.r = Math.sqrt(Math.random()) * R; d.z = z; d.life = rnd(0.3, 0.55); d.l = rnd(0.025, 0.055); return d; };
@@ -1002,7 +1006,7 @@ Weather.update = function (dt) {
   for (const d of this.drops) { d.z -= dt / d.life; if (d.z <= 0) newDrop(d, 1); }
   // respingos no chão (espaço do mundo)
   if (Settings.quality !== 'baixa' && this.rain > 0.05) {
-    const v = Cam.view, n = this.rain * 60 * dt;
+    const v = Cam.view, n = this.rain * 54 * dt;
     for (let i = 0; i < n || (Math.random() < n - Math.floor(n) && i < n + 1); i++) {
       const x = rnd(v.x0, v.x1), y = rnd(v.y0, v.y1), g = groundAt(x, y);
       if (g === SF.ROAD || g === SF.PAVED || g === SF.SIDEWALK || g === SF.BRIDGE || g === SF.WATER) this.ripples.push({ x, y, t: 0 });
@@ -1026,6 +1030,7 @@ Weather.buildPuddles = function () {
       const lat = dirt ? side * (11 + R() * 14) : side * (e.hw - 9 - R() * 12);
       const x = e.h ? e.a.x + s : e.a.x - lat, y = e.h ? e.a.y + lat : e.a.y + s;
       const along = (dirt ? 14 : 16) + R() * 18, across = 6 + R() * 6;
+      if (hash2(x | 0, y | 0) < 0.1) continue; // 10% menos poças
       put({ x, y, rx: e.h ? along : across, ry: e.h ? across : along, mud: dirt, cool: 0, ph: R() * 10 });
     }
   }
@@ -1067,7 +1072,7 @@ Weather.updatePlayer = function (dt, pl) {
     if (dx * dx + dy * dy > 1 || p.cool > 0) continue;
     const sp = pl.speed; if (sp < 30) continue;
     p.cool = 0.6; p.wave = 1;
-    const n = Math.min(26, 6 + sp / 18);
+    const n = Math.min(17, 4 + sp / 28); // espirro 35% mais leve
     for (let i = 0; i < n; i++) {
       const a = Math.atan2(pl.vy, pl.vx) + (chance(0.5) ? 1 : -1) * rnd(1.1, 1.9), v = rnd(60, 140) + sp * 0.25;
       Particles.emit(p.mud ? 'mud' : 'water', pl.x + rnd(-8, 8), pl.y + rnd(-8, 8), Math.cos(a) * v, Math.sin(a) * v, rnd(0.35, 0.7), p.mud ? 3 : 3.5);

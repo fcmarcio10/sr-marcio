@@ -852,9 +852,9 @@ function comunidadeBlock(R) {
       const floors = rndi(1, 3);
       const roofType = pick(['laje', 'laje', 'tijolo', 'amianto', 'laje']);
       const b = addBuilding(x, y, x + w, y + rh, 16 + floors * 11 + rnd(0, 4), { style: 'house', front: row === 0 ? 'N' : 'S', roofType, roofColor: roofType === 'amianto' ? '#a7a9a4' : '#8f8b84', wall, lit: rnd(0.3, 0.75) });
-      b.brick = brick; b.varal = chance(0.4); b.dish = chance(0.35);
+      b.brick = brick; b.varal = chance(0.368); b.dish = chance(0.322); // 8% menos detalhe nas casinhas
       if (chance(0.5)) addGraffiti(b);
-      if (chance(0.25)) addLight(x + w / 2, y + rh + 4, 45, 0.6, 'warm');
+      if (chance(0.23)) addLight(x + w / 2, y + rh + 4, 45, 0.6, 'warm');
       x += w + (chance(0.22) ? rndi(10, 14) : 1);
     }
     y += rh + (chance(0.5) ? rndi(10, 14) : 2);
@@ -1371,6 +1371,18 @@ function pruneRoadTrees() {
     if (onRoad) { t.removed = true; if (t.col) { t.col.x = t.col.y = -1e6; t.col.r = 0; t.col.tag = 'none'; t.col.brk = null; } n++; }
   }
   World.tall = World.tall.filter((t) => !t.removed);
+  return n;
+}
+// tira 20% das árvores do jogo (escolhidas pela posição, sem sorteio: o resto do mapa não muda)
+function thinTrees() {
+  let n = 0;
+  for (const t of World.tall) if (t.kind === 'tree' && !t.removed && hash2((t.x * 7) | 0, (t.y * 3) | 0) < 0.2) {
+    t.removed = true; n++;
+    if (t.col) { t.col.x = t.col.y = -1e6; t.col.r = 0; t.col.tag = 'none'; t.col.brk = null; }
+  }
+  World.tall = World.tall.filter((t) => !t.removed);
+  // tira as árvores removidas da lista de desenho (nem entram na conta do quadro)
+  for (let i = 0; i < rendGrid.cells.length; i++) { const a = rendGrid.cells[i]; if (a && a.some((o) => o.removed)) rendGrid.cells[i] = a.filter((o) => !o.removed); }
   return n;
 }
 function markReflections() {

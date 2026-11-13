@@ -771,7 +771,7 @@ Traffic.spawnRing = function (v, inside) {
     if ((e.T.id === 'dirt' || e.T.id === 'road') && !chance(0.3)) continue; // estradas da roça recebem bem menos
     const car = new AICar(e, dir, s, lane, trafficModelFor(e));
     if (!car.allowed(e)) { car.release(); continue; }
-    car.off = 0; car.acc = 0;
+    car.hideT = 0; car.simT = 0; // (off = faixa e acc = aceleração do carro: não mexer)
     this.cars.push(car);
     return car;
   }
@@ -793,8 +793,8 @@ Traffic.update = function (dt, now, cx, cy, view) {
   const v = view && view.x1 > view.x0 ? view : Cam.view;
   // na tela (e logo antes de entrar): cálculo completo; fora: 4x menos vezes
   for (const c of this.cars) {
-    if (trInView(c, v, 160)) { if (c.acc) { c.update(c.acc + dt, now); c.acc = 0; } else c.update(dt, now); c.off = 0; }
-    else { c.acc = (c.acc || 0) + dt; if (c.acc >= TR_SLOW) { c.update(c.acc, now); c.acc = 0; } if (!trInView(c, v, 40)) c.off = (c.off || 0) + dt; }
+    if (trInView(c, v, 160)) { if (c.simT) { c.update(c.simT + dt, now); c.simT = 0; } else c.update(dt, now); c.hideT = 0; }
+    else { c.simT = (c.simT || 0) + dt; if (c.simT >= TR_SLOW) { c.update(c.simT, now); c.simT = 0; } if (!trInView(c, v, 40)) c.hideT = (c.hideT || 0) + dt; }
   }
   // vigia anti-travamento: carro parado tempo demais sem ser por sinal vermelho nem pelo jogador
   for (const c of this.cars) {
@@ -810,7 +810,7 @@ Traffic.update = function (dt, now, cx, cy, view) {
   for (const c of this.cars) {
     if (c.dead) continue;
     const fora = !trInView(c, v, 40), indoEmbora = fora && (c.x - mx0) * Math.cos(c.a) + (c.y - my0) * Math.sin(c.a) > 0;
-    if (indoEmbora || c.off > TR_GONE || !trInView(c, v, TR_RING + 30)) { c.release(); c.dead = true; }
+    if (indoEmbora || c.hideT > TR_GONE || !trInView(c, v, TR_RING + 30)) { c.release(); c.dead = true; }
   }
   if (this.cars.some((c) => c.dead)) this.cars = this.cars.filter((c) => !c.dead);
   this.timer -= dt;
@@ -904,7 +904,8 @@ class Animal {
 Animals.build = function () {
   RNG = mulberry32(777);
   this.list.length = 0;
-  for (const d of World.animalsDef) for (let i = 0; i < d.n; i++) { const a = new Animal(d.type, d.rect); if (d.look) Object.assign(a, d.look); this.list.push(a); }
+  // 35% menos pedestres (os boleiros da pelada são à parte)
+  for (const d of World.animalsDef) for (let i = 0, n = d.type === 'person' ? Math.round(d.n * 0.65) : d.n; i < n; i++) { const a = new Animal(d.type, d.rect); if (d.look) Object.assign(a, d.look); this.list.push(a); }
 };
 // só mexe quem está na tela ou bem perto dela (o resto fica parado, ninguém vê)
 function nearView(x, y, m) { const v = Cam.view; return v && v.x1 > v.x0 ? x > v.x0 - m && x < v.x1 + m && y > v.y0 - m && y < v.y1 + m : Math.abs(x - Cam.x) < 1200 && Math.abs(y - Cam.y) < 900; }

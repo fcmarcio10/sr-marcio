@@ -1186,3 +1186,9 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
   border-radius: 3px; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6); animation: evoIn 0.25s ease-out; pointer-events: none; }
 #cam-prev canvas { display: block; width: 100%; height: auto; border-radius: 2px; background: #0a1008; }
 #cam-prev .cp-cap { font-family: var(--f-cond); font-weight: 700; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: #e9edf5; margin-top: 6px; }
+
+/* ---------- GPS e painel do carro 5% menores; botão do celular centralizado em cima do GPS ---------- */
+#hud-minimap { transform: scale(0.95); transform-origin: left bottom; }
+#hud-dash { transform: scale(0.95); transform-origin: right bottom; }
+#hud-phone { left: 128px; bottom: 252px; transform: translateX(-50%); }
+@media (max-height: 640px) { #hud-phone { left: 100px; bottom: 196px; } }

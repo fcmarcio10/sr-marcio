@@ -22,6 +22,16 @@ function startPlay() {
   UI.region = null; UI.last = {};
   Game.autosaveT = 30;
   updateHudVisibility();
+  // primeira vez no jogo: o Seu Zé manda um áudio de boas-vindas no zap (toca sozinho uma vez)
+  if (!Profile.welcomed) {
+    Profile.welcomed = true;
+    setTimeout(() => {
+      if (Game.mode !== 'play') { Profile.welcomed = false; return; }
+      const m = charVoice('boas_vindas');
+      if (m && m.voice) VoicePlayer.play(m);
+      saveGame();
+    }, 9500);
+  }
 }
 // tela de carregamento entre o menu e o jogo, com dica
 function withTransit(fn) {
@@ -223,7 +233,7 @@ async function boot() {
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
-  pruneRoadTrees();
+  pruneRoadTrees(); thinTrees();
   buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();
   buildMapImage();

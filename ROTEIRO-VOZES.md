@@ -25,6 +25,7 @@ Os áudios dos passageiros chegam no **chat do PegaAí**. Os dos personagens (Se
 |---|---|---|---|
 | `ze_nao.mp3` | Seu Zé (oficina) | Sergio Funny | [suspira] Rapá, de novo? Ainda tem fiado pendurado aqui! Fiado é igual sogra: uma vez a gente aguenta, duas já é abuso. Acerta comigo que eu vou voando! |
 | `biu_socorro.mp3` | Seu Biu (bananas) | Thiago - Warm and inviting | [desesperado] Ô meu patrão, a carreta tombou! Tá banana pra todo lado, parece feira depois de terremoto! Me ajuda aqui, pelo amor de Deus, que eu pago cada caixa! |
+| `boas_vindas.mp3` | Seu Zé (boas-vindas, 1ª vez no jogo) | Sergio Funny | [animado, acolhedor] Ô meu filho, seja bem-vindo a São Gambiarra! Aqui é o Seu Zé, da oficina. Pegou a chave do carro? Então bora rodar: corrida no PegaAí, frete, e foge dos buracos, que aqui tem mais buraco que queijo suíço. [ri] Bateu? Vem na oficina que eu ajeito. Vai com Deus, e devagar, viu? |
 | `banco_atraso.mp3` | Banestresse (robô do banco) | Lucinda - Earthy and Wise | [voz de atendente eletrônica, calma demais] Olá. Aqui é a assistente virtual do Banestresse. Identificamos uma parcela em atraso. Os juros já estão trabalhando por você. Tenha uma ótima noite. |
 
 ## Observações

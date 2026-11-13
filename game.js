@@ -1344,9 +1344,9 @@ function comunidadeBlock(R) {
       const floors = rndi(1, 3);
       const roofType = pick(['laje', 'laje', 'tijolo', 'amianto', 'laje']);
       const b = addBuilding(x, y, x + w, y + rh, 16 + floors * 11 + rnd(0, 4), { style: 'house', front: row === 0 ? 'N' : 'S', roofType, roofColor: roofType === 'amianto' ? '#a7a9a4' : '#8f8b84', wall, lit: rnd(0.3, 0.75) });
-      b.brick = brick; b.varal = chance(0.4); b.dish = chance(0.35);
+      b.brick = brick; b.varal = chance(0.368); b.dish = chance(0.322); // 8% menos detalhe nas casinhas
       if (chance(0.5)) addGraffiti(b);
-      if (chance(0.25)) addLight(x + w / 2, y + rh + 4, 45, 0.6, 'warm');
+      if (chance(0.23)) addLight(x + w / 2, y + rh + 4, 45, 0.6, 'warm');
       x += w + (chance(0.22) ? rndi(10, 14) : 1);
     }
     y += rh + (chance(0.5) ? rndi(10, 14) : 2);
@@ -1863,6 +1863,18 @@ function pruneRoadTrees() {
     if (onRoad) { t.removed = true; if (t.col) { t.col.x = t.col.y = -1e6; t.col.r = 0; t.col.tag = 'none'; t.col.brk = null; } n++; }
   }
   World.tall = World.tall.filter((t) => !t.removed);
+  return n;
+}
+// tira 20% das árvores do jogo (escolhidas pela posição, sem sorteio: o resto do mapa não muda)
+function thinTrees() {
+  let n = 0;
+  for (const t of World.tall) if (t.kind === 'tree' && !t.removed && hash2((t.x * 7) | 0, (t.y * 3) | 0) < 0.2) {
+    t.removed = true; n++;
+    if (t.col) { t.col.x = t.col.y = -1e6; t.col.r = 0; t.col.tag = 'none'; t.col.brk = null; }
+  }
+  World.tall = World.tall.filter((t) => !t.removed);
+  // tira as árvores removidas da lista de desenho (nem entram na conta do quadro)
+  for (let i = 0; i < rendGrid.cells.length; i++) { const a = rendGrid.cells[i]; if (a && a.some((o) => o.removed)) rendGrid.cells[i] = a.filter((o) => !o.removed); }
   return n;
 }
 function markReflections() {
@@ -3170,7 +3182,7 @@ function drawWheel(ctx, x, y, len, wid, steer, roll, rim) {
   ctx.fillStyle = '#0d0d0f'; ctx.beginPath(); rrect(ctx, -len / 2, -wid / 2, len, wid, 1.6); ctx.fill();
   ctx.fillStyle = '#2c2c31';
   const ph = ((roll || 0) % 3 + 3) % 3;
-  for (let s = -len / 2 + ph; s < len / 2; s += 3) ctx.fillRect(s, -wid / 2, 1, wid);
+  ctx.beginPath(); for (let s = -len / 2 + ph; s < len / 2; s += 3) ctx.rect(s, -wid / 2, 1, wid); ctx.fill(); // banda do pneu numa pincelada
   if (rim) { ctx.fillStyle = rim; ctx.beginPath(); rrect(ctx, -len * 0.3, -wid * 0.3, len * 0.6, wid * 0.6, 1); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(-len * 0.3, -wid * 0.3, len * 0.6, wid * 0.15); }
   ctx.restore();
 }
@@ -3220,7 +3232,7 @@ function drawLightsFR(ctx, hl, hw, o, m) {
   if (m && m.boxy) {
     // grade de frisos e faróis retangulares, lanternas em bloco
     ctx.fillStyle = '#141416'; ctx.fillRect(hl - 2.4, -hw + 5.4, 2.2, hw * 2 - 10.8);
-    ctx.fillStyle = '#5a5c62'; for (let y = -hw + 6.4; y < hw - 5.4; y += 2) ctx.fillRect(hl - 2.2, y, 1.8, 0.7);
+    ctx.fillStyle = '#5a5c62'; ctx.beginPath(); for (let y = -hw + 6.4; y < hw - 5.4; y += 2) ctx.rect(hl - 2.2, y, 1.8, 0.7); ctx.fill();
     ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8';
     ctx.fillRect(hl - 2.8, -hw + 1.2, 2.6, 4.2); ctx.fillRect(hl - 2.8, hw - 5.4, 2.6, 4.2);
     ctx.fillStyle = '#e8a33a'; ctx.fillRect(hl - 2.6, -hw + 0.6, 1.6, 0.9); ctx.fillRect(hl - 2.6, hw - 1.5, 1.6, 0.9);
@@ -3272,14 +3284,14 @@ function drawCar(ctx, m, color, o) {
     ctx.fillStyle = shade(color, -0.12);
     for (const x of [xf, xr]) for (const sy of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x, sy * (hw - 1.4), 5.6, 2.6, 0, 0, TAU); ctx.fill(); }
     ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(hl * 0.25, -0.6, hl * 0.6, 1.2);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)'; for (let i = 0; i < 4; i++) ctx.fillRect(-hl + 7 + i * 1.8, -4, 0.9, 8);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); for (let i = 0; i < 4; i++) ctx.rect(-hl + 7 + i * 1.8, -4, 0.9, 8); ctx.fill();
     drawLightsFR(ctx, hl, hw, o, m);
   }
   if (m.bed !== undefined) {
     const bx = L * m.bed;
     ctx.fillStyle = '#1e1e21'; ctx.fillRect(-hl + 2.2, -hw + 2.4, bx + hl - 2.2, W - 4.8);
     ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    for (let x = -hl + 5; x < bx - 1; x += 4) ctx.fillRect(x, -hw + 3, 1.2, W - 6);
+    ctx.beginPath(); for (let x = -hl + 5; x < bx - 1; x += 4) ctx.rect(x, -hw + 3, 1.2, W - 6); ctx.fill();
     ctx.fillStyle = o.cargo ? '#c9a46a' : 'transparent';
     if (o.cargo) { ctx.fillRect(-hl + 5, -hw + 4.5, 10, 7); ctx.fillStyle = '#a88450'; ctx.fillRect(-hl + 5, -hw + 4.5 + 7.5, 10, 6); }
   }
@@ -4367,7 +4379,7 @@ Traffic.spawnRing = function (v, inside) {
     if ((e.T.id === 'dirt' || e.T.id === 'road') && !chance(0.3)) continue; // estradas da roça recebem bem menos
     const car = new AICar(e, dir, s, lane, trafficModelFor(e));
     if (!car.allowed(e)) { car.release(); continue; }
-    car.off = 0; car.acc = 0;
+    car.hideT = 0; car.simT = 0; // (off = faixa e acc = aceleração do carro: não mexer)
     this.cars.push(car);
     return car;
   }
@@ -4389,8 +4401,8 @@ Traffic.update = function (dt, now, cx, cy, view) {
   const v = view && view.x1 > view.x0 ? view : Cam.view;
   // na tela (e logo antes de entrar): cálculo completo; fora: 4x menos vezes
   for (const c of this.cars) {
-    if (trInView(c, v, 160)) { if (c.acc) { c.update(c.acc + dt, now); c.acc = 0; } else c.update(dt, now); c.off = 0; }
-    else { c.acc = (c.acc || 0) + dt; if (c.acc >= TR_SLOW) { c.update(c.acc, now); c.acc = 0; } if (!trInView(c, v, 40)) c.off = (c.off || 0) + dt; }
+    if (trInView(c, v, 160)) { if (c.simT) { c.update(c.simT + dt, now); c.simT = 0; } else c.update(dt, now); c.hideT = 0; }
+    else { c.simT = (c.simT || 0) + dt; if (c.simT >= TR_SLOW) { c.update(c.simT, now); c.simT = 0; } if (!trInView(c, v, 40)) c.hideT = (c.hideT || 0) + dt; }
   }
   // vigia anti-travamento: carro parado tempo demais sem ser por sinal vermelho nem pelo jogador
   for (const c of this.cars) {
@@ -4406,7 +4418,7 @@ Traffic.update = function (dt, now, cx, cy, view) {
   for (const c of this.cars) {
     if (c.dead) continue;
     const fora = !trInView(c, v, 40), indoEmbora = fora && (c.x - mx0) * Math.cos(c.a) + (c.y - my0) * Math.sin(c.a) > 0;
-    if (indoEmbora || c.off > TR_GONE || !trInView(c, v, TR_RING + 30)) { c.release(); c.dead = true; }
+    if (indoEmbora || c.hideT > TR_GONE || !trInView(c, v, TR_RING + 30)) { c.release(); c.dead = true; }
   }
   if (this.cars.some((c) => c.dead)) this.cars = this.cars.filter((c) => !c.dead);
   this.timer -= dt;
@@ -4500,7 +4512,8 @@ class Animal {
 Animals.build = function () {
   RNG = mulberry32(777);
   this.list.length = 0;
-  for (const d of World.animalsDef) for (let i = 0; i < d.n; i++) { const a = new Animal(d.type, d.rect); if (d.look) Object.assign(a, d.look); this.list.push(a); }
+  // 35% menos pedestres (os boleiros da pelada são à parte)
+  for (const d of World.animalsDef) for (let i = 0, n = d.type === 'person' ? Math.round(d.n * 0.65) : d.n; i < n; i++) { const a = new Animal(d.type, d.rect); if (d.look) Object.assign(a, d.look); this.list.push(a); }
 };
 // só mexe quem está na tela ou bem perto dela (o resto fica parado, ninguém vê)
 function nearView(x, y, m) { const v = Cam.view; return v && v.x1 > v.x0 ? x > v.x0 - m && x < v.x1 + m && y > v.y0 - m && y < v.y1 + m : Math.abs(x - Cam.x) < 1200 && Math.abs(y - Cam.y) < 900; }
@@ -7608,6 +7621,7 @@ function wsTrim() {
   WS_CHECK = frameNo + 120;
   for (const [k, E] of WS_CACHE) if (frameNo - E.u > 90) WS_CACHE.delete(k);
 }
+const FAVELA_RK = { feurosa: 1, carapina: 1, novarosa: 1, flexal: 1, saopedro: 1, terravermelha: 1 };
 const EM_BATCH = { on: false, norm: null, big: null, n: 0 };
 const WIN_STYLES = { house: 1, farmhouse: 1, office: 2, tower: 2, church: 2, apart: 2, colonial: 4, shop: 3, workshop: 3, garage: 3, kiosk: 3 };
 function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
@@ -8134,6 +8148,9 @@ function drawTallEmissive(ctx, o) {
       const hex = lightHex(o.col);
       ctx.drawImage(glowSprite(hex), o.hx + ox - 16, o.hy + oy - 16, 32, 32);
       ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 5, o.hy + oy - 5, 10, 10);
+      // mariposas rodando a lâmpada: só em 30% dos postes das favelas
+      if (o.moth === undefined) o.moth = !!FAVELA_RK[regionKeyAt(o.x, o.y)] && hash2(o.x | 0, o.y | 0) < 0.3;
+      if (o.moth && Settings.quality !== 'baixa') { ctx.fillStyle = 'rgba(255,240,200,0.75)'; for (let i = 0; i < 3; i++) { const a = Game.time * (3 + i) + i * 2.1 + o.x * 0.01; ctx.fillRect(o.hx + ox + Math.cos(a) * (7 + i * 3), o.hy + oy + Math.sin(a * 1.3) * (6 + i * 2), 1.2, 1.2); } }
       break;
     }
     case 'tlight': {
@@ -8235,7 +8252,7 @@ Weather.update = function (dt) {
   // relâmpago e trovão no temporal
   if (this.rain > 0.6) { this.thunderT -= dt; if (this.thunderT <= 0) { this.thunderT = rnd(14, 32); Cam.flash = Math.max(Cam.flash, 0.55); const d = rnd(0.4, 2); setTimeout(() => AudioSys.thunder(d), d * 1000); } }
   // gotas na tela (espaço da tela)
-  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 90 : Settings.quality === 'alta' ? 420 : 240));
+  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 81 : Settings.quality === 'alta' ? 378 : 216)); // 10% menos gotas
   // câmera olhando de cima: a gota cai na direção do chão, então na tela ela "afunda" em direção ao centro,
   // encolhendo e ficando mais fina até bater no chão (onde vira respingo)
   const newDrop = (d, z) => { const R = Math.hypot(SCREEN_W, SCREEN_H) * 0.62; d.a = Math.random() * TAU; d.r = Math.sqrt(Math.random()) * R; d.z = z; d.life = rnd(0.3, 0.55); d.l = rnd(0.025, 0.055); return d; };
@@ -8245,7 +8262,7 @@ Weather.update = function (dt) {
   for (const d of this.drops) { d.z -= dt / d.life; if (d.z <= 0) newDrop(d, 1); }
   // respingos no chão (espaço do mundo)
   if (Settings.quality !== 'baixa' && this.rain > 0.05) {
-    const v = Cam.view, n = this.rain * 60 * dt;
+    const v = Cam.view, n = this.rain * 54 * dt;
     for (let i = 0; i < n || (Math.random() < n - Math.floor(n) && i < n + 1); i++) {
       const x = rnd(v.x0, v.x1), y = rnd(v.y0, v.y1), g = groundAt(x, y);
       if (g === SF.ROAD || g === SF.PAVED || g === SF.SIDEWALK || g === SF.BRIDGE || g === SF.WATER) this.ripples.push({ x, y, t: 0 });
@@ -8269,6 +8286,7 @@ Weather.buildPuddles = function () {
       const lat = dirt ? side * (11 + R() * 14) : side * (e.hw - 9 - R() * 12);
       const x = e.h ? e.a.x + s : e.a.x - lat, y = e.h ? e.a.y + lat : e.a.y + s;
       const along = (dirt ? 14 : 16) + R() * 18, across = 6 + R() * 6;
+      if (hash2(x | 0, y | 0) < 0.1) continue; // 10% menos poças
       put({ x, y, rx: e.h ? along : across, ry: e.h ? across : along, mud: dirt, cool: 0, ph: R() * 10 });
     }
   }
@@ -8310,7 +8328,7 @@ Weather.updatePlayer = function (dt, pl) {
     if (dx * dx + dy * dy > 1 || p.cool > 0) continue;
     const sp = pl.speed; if (sp < 30) continue;
     p.cool = 0.6; p.wave = 1;
-    const n = Math.min(26, 6 + sp / 18);
+    const n = Math.min(17, 4 + sp / 28); // espirro 35% mais leve
     for (let i = 0; i < n; i++) {
       const a = Math.atan2(pl.vy, pl.vx) + (chance(0.5) ? 1 : -1) * rnd(1.1, 1.9), v = rnd(60, 140) + sp * 0.25;
       Particles.emit(p.mud ? 'mud' : 'water', pl.x + rnd(-8, 8), pl.y + rnd(-8, 8), Math.cos(a) * v, Math.sin(a) * v, rnd(0.35, 0.7), p.mud ? 3 : 3.5);
@@ -9342,6 +9360,7 @@ const CHAR_VOICES = {
   ze_fiado: { from: 'Seu Zé (Oficina)', text: 'Ô meu filho, cadê o meu dinheiro? A caderneta já tá com cheiro de mofo! Paga o fiado aí que eu sou amigo, mas não sou de ferro, bicho!' },
   ze_nao: { from: 'Seu Zé (Oficina)', text: 'Rapá, de novo? Ainda tem fiado pendurado aqui! Fiado é igual sogra: uma vez a gente aguenta, duas já é abuso. Acerta comigo que eu vou voando!' },
   biu_socorro: { from: 'Seu Biu (Bananas)', text: 'Ô meu patrão, a carreta tombou! Tá banana pra todo lado, parece feira depois de terremoto! Me ajuda aqui, pelo amor de Deus, que eu pago cada caixa!' },
+  boas_vindas: { from: 'Seu Zé (Oficina)', text: 'Ô meu filho, seja bem-vindo a São Gambiarra! Aqui é o Seu Zé, da oficina. Pegou a chave do carro? Então bora rodar: corrida no PegaAí, frete, e foge dos buracos, que aqui tem mais buraco que queijo suíço. Bateu? Vem na oficina que eu ajeito. Vai com Deus, e devagar, viu?' },
   banco_atraso: { from: 'Banestresse', text: 'Olá. Aqui é a assistente virtual do Banestresse. Identificamos uma parcela em atraso. Os juros já estão trabalhando por você. Tenha uma ótima noite.' },
 };
 function charVoice(key, from, fallbackText) {
@@ -10138,6 +10157,16 @@ function startPlay() {
   UI.region = null; UI.last = {};
   Game.autosaveT = 30;
   updateHudVisibility();
+  // primeira vez no jogo: o Seu Zé manda um áudio de boas-vindas no zap (toca sozinho uma vez)
+  if (!Profile.welcomed) {
+    Profile.welcomed = true;
+    setTimeout(() => {
+      if (Game.mode !== 'play') { Profile.welcomed = false; return; }
+      const m = charVoice('boas_vindas');
+      if (m && m.voice) VoicePlayer.play(m);
+      saveGame();
+    }, 9500);
+  }
 }
 // tela de carregamento entre o menu e o jogo, com dica
 function withTransit(fn) {
@@ -10339,7 +10368,7 @@ async function boot() {
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
-  pruneRoadTrees();
+  pruneRoadTrees(); thinTrees();
   buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();
   buildMapImage();

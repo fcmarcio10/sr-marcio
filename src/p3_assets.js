@@ -860,7 +860,7 @@ function drawWheel(ctx, x, y, len, wid, steer, roll, rim) {
   ctx.fillStyle = '#0d0d0f'; ctx.beginPath(); rrect(ctx, -len / 2, -wid / 2, len, wid, 1.6); ctx.fill();
   ctx.fillStyle = '#2c2c31';
   const ph = ((roll || 0) % 3 + 3) % 3;
-  for (let s = -len / 2 + ph; s < len / 2; s += 3) ctx.fillRect(s, -wid / 2, 1, wid);
+  ctx.beginPath(); for (let s = -len / 2 + ph; s < len / 2; s += 3) ctx.rect(s, -wid / 2, 1, wid); ctx.fill(); // banda do pneu numa pincelada
   if (rim) { ctx.fillStyle = rim; ctx.beginPath(); rrect(ctx, -len * 0.3, -wid * 0.3, len * 0.6, wid * 0.6, 1); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(-len * 0.3, -wid * 0.3, len * 0.6, wid * 0.15); }
   ctx.restore();
 }
@@ -910,7 +910,7 @@ function drawLightsFR(ctx, hl, hw, o, m) {
   if (m && m.boxy) {
     // grade de frisos e faróis retangulares, lanternas em bloco
     ctx.fillStyle = '#141416'; ctx.fillRect(hl - 2.4, -hw + 5.4, 2.2, hw * 2 - 10.8);
-    ctx.fillStyle = '#5a5c62'; for (let y = -hw + 6.4; y < hw - 5.4; y += 2) ctx.fillRect(hl - 2.2, y, 1.8, 0.7);
+    ctx.fillStyle = '#5a5c62'; ctx.beginPath(); for (let y = -hw + 6.4; y < hw - 5.4; y += 2) ctx.rect(hl - 2.2, y, 1.8, 0.7); ctx.fill();
     ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8';
     ctx.fillRect(hl - 2.8, -hw + 1.2, 2.6, 4.2); ctx.fillRect(hl - 2.8, hw - 5.4, 2.6, 4.2);
     ctx.fillStyle = '#e8a33a'; ctx.fillRect(hl - 2.6, -hw + 0.6, 1.6, 0.9); ctx.fillRect(hl - 2.6, hw - 1.5, 1.6, 0.9);
@@ -962,14 +962,14 @@ function drawCar(ctx, m, color, o) {
     ctx.fillStyle = shade(color, -0.12);
     for (const x of [xf, xr]) for (const sy of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x, sy * (hw - 1.4), 5.6, 2.6, 0, 0, TAU); ctx.fill(); }
     ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(hl * 0.25, -0.6, hl * 0.6, 1.2);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)'; for (let i = 0; i < 4; i++) ctx.fillRect(-hl + 7 + i * 1.8, -4, 0.9, 8);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); for (let i = 0; i < 4; i++) ctx.rect(-hl + 7 + i * 1.8, -4, 0.9, 8); ctx.fill();
     drawLightsFR(ctx, hl, hw, o, m);
   }
   if (m.bed !== undefined) {
     const bx = L * m.bed;
     ctx.fillStyle = '#1e1e21'; ctx.fillRect(-hl + 2.2, -hw + 2.4, bx + hl - 2.2, W - 4.8);
     ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    for (let x = -hl + 5; x < bx - 1; x += 4) ctx.fillRect(x, -hw + 3, 1.2, W - 6);
+    ctx.beginPath(); for (let x = -hl + 5; x < bx - 1; x += 4) ctx.rect(x, -hw + 3, 1.2, W - 6); ctx.fill();
     ctx.fillStyle = o.cargo ? '#c9a46a' : 'transparent';
     if (o.cargo) { ctx.fillRect(-hl + 5, -hw + 4.5, 10, 7); ctx.fillStyle = '#a88450'; ctx.fillRect(-hl + 5, -hw + 4.5 + 7.5, 10, 6); }
   }

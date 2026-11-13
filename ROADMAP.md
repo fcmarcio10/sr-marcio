@@ -55,6 +55,10 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
   - Garagem sem textos dispensáveis. Luz das janelas da cidade toda numa pincelada; Praça da Bagunça e quadra do samba com menos gente. Favela 11–18% mais leve.
   - Trânsito: no máximo ~5 carros na tela, faixa de nascimento menor, carro indo embora some na hora.
 
+- [x] **Mais cortes e HUD**
+  - Corrigido: carros andando no meio da faixa. Mariposas só em 30% dos postes das favelas; −20% árvores; −35% pedestres; chuva e poças −10%; espirro −35%; carros −28% de pinceladas sem perder detalhe; casinhas −8% de detalhe.
+  - GPS e painel do carro 5% menores, botão do celular em cima do GPS, sem o texto "Q · Celular". Áudio de boas-vindas do Seu Zé na primeira vez.
+
 ## Próximos
 
 1. **História em capítulos** — missões contadas pelo WhatsApp, com personagens fixos (Seu Zé, o primo enrolado, um cliente misterioso, o dono do ferro-velho). Cada capítulo libera bairro, carro ou oficina nova. Ex.: buscar uma encomenda em Vila Véia e descobrir que é a moqueca roubada do concurso de Camburiso.
