@@ -52,7 +52,7 @@
   T.useRail = function (R, speed, opt) {
     R.s = opt.skip || 0; R.v = opt.v0 !== undefined ? opt.v0 : speed; R.speed = speed; T.rail = R;
     const p0 = T.at(R, R.s), p1 = T.at(R, R.s + 10);
-    player.place(p0[0], p0[1], Math.atan2(p1[1] - p0[1], p1[0] - p0[0]));
+    R.re = !!opt.re; player.place(p0[0], p0[1], Math.atan2(p1[1] - p0[1], p1[0] - p0[0]) + (R.re ? Math.PI : 0));
     Cam.x = p0[0]; Cam.y = p0[1]; Cam.zoom = screenZoomBase() * (Settings.zoom || 140) / 100;
     Traffic.fill(Cam.x, Cam.y); forceGround = true;
     return R;
@@ -74,10 +74,10 @@
     if (R.stopAt !== undefined && R.s >= R.stopAt) v = 0;
     R.v += Math.max(-520 * dt, Math.min(240 * dt, v - R.v));
     R.s += R.v * dt;
-    const q0 = T.at(R, R.s), q1 = T.at(R, R.s + 10), a = Math.atan2(q1[1] - q0[1], q1[0] - q0[0]);
+    const q0 = T.at(R, R.s), q1 = T.at(R, R.s + 10), a = Math.atan2(q1[1] - q0[1], q1[0] - q0[0]) + (R.re ? Math.PI : 0);
     p.steer = Math.max(-0.5, Math.min(0.5, angDiff(a, p.a) / Math.max(dt, 1e-3) * 0.06));
     p.x = q0[0]; p.y = q0[1]; p.px = p.x; p.py = p.y; p.a = a;
-    p.vx = Math.cos(a) * R.v; p.vy = Math.sin(a) * R.v;
+    p.vx = Math.cos(a) * R.v * (R.re ? -1 : 1); p.vy = Math.sin(a) * R.v * (R.re ? -1 : 1);
     p.rpm = 1100 + (R.v % 140) * 30; p.gear = 1 + Math.min(4, Math.floor(R.v / 140)); p.thr = R.v < v ? 1 : 0; p.braking = R.v > v + 25;
     p.roll = (p.roll || 0) + R.v * dt * 0.25; p.lean = 0; p.drift = 0; p.slip = 0; p.surface = groundAt(p.x, p.y);
     // lombada: o Opalha rebaixado raspa o fundo e solta faísca (como no jogo)
@@ -149,7 +149,7 @@
     T.f++;
     if (T.onFrame) T.onFrame(T.f);
     T.cine();
-    for (const t of document.querySelectorAll('#toasts .toast')) if (/Nova mensagem|Racha contra|Evento:/.test(t.textContent)) t.remove(); // avisos que não interessam no trailer
+    { const ft = T.filtroToast === undefined ? /Nova mensagem|Racha contra|Evento:/ : T.filtroToast; if (ft) for (const t of document.querySelectorAll('#toasts .toast')) if (ft.test(t.textContent)) t.remove(); } // avisos que não interessam no trailer
     if (T.rec && player) T.log.motor.push([T.gf0 + T.f - 1, Math.round(player.speed), +sl.toFixed(3)]);
     const c = T.cap, capEl = ov.querySelector('.tr-cap');
     if (c) { const o = T.fade(T.f, c.f0, c.f1); capEl.style.opacity = o; capEl.style.transform = `translateX(${(1 - o) * -40}px)`; } else capEl.style.opacity = 0;
