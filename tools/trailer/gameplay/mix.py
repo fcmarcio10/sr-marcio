@@ -28,6 +28,10 @@ lp, hp, bp, tt, noise, midi = G['lp'], G['hp'], G['bp'], G['tt'], G['noise'], G[
 rng = np.random.default_rng(11)
 
 BPM = 130; BEAT = 60 / BPM; BAR = 4 * BEAT; STEP = BEAT / 4
+def media(x, k):  # média móvel rápida (soma acumulada)
+    c = np.cumsum(np.concatenate([[0.0], x])); h = k // 2
+    i0 = np.clip(np.arange(len(x)) - h, 0, len(x)); i1 = np.clip(np.arange(len(x)) + k - h, 0, len(x))
+    return (c[i1] - c[i0]) / np.maximum(1, i1 - i0)
 def ler(path, gan=1.0):
     raw = subprocess.run(['ffmpeg', '-loglevel', 'error', '-i', path, '-ac', '2', '-ar', str(SR), '-f', 'f32le', '-'], capture_output=True, check=True).stdout
     return np.frombuffer(raw, np.float32).reshape(-1, 2).T.astype(np.float64) * gan
@@ -77,6 +81,11 @@ def compasso(b, estilo):
             for s in (3, 7, 11, 15): poe(mus['bat'], chocalho(), t0 + s * STEP, 0.8, -0.3)
             if b % 2: poe(mus['bat'], hat(), t0 + 14.5 * STEP, 0.22, 0.25)
         poe(mus['harm'], rhodes(ch, BAR * 0.95), t0, 1.0)
+        # variação a cada 8 compassos: dedilhado no piano e chimbal aberto (não cansa no trecho longo)
+        if estilo == 'trampo' and (b // 8) % 2 == 1:
+            for k2, s2 in enumerate((0, 3, 6, 10, 12)): poe(mus['mel'], rhodes((ch[k2 % 4] * 2,), STEP * 2), t0 + s2 * STEP, 0.55, 0.2 if k2 % 2 else -0.2)
+            poe(mus['bat'], hat(True), t0 + 14 * STEP, 0.25, -0.2)
+        if estilo == 'trampo' and b % 8 == 7: poe(mus['bat'], tom(260), t0 + 13 * STEP, 0.3); poe(mus['bat'], tom(220), t0 + 14 * STEP, 0.3); poe(mus['bat'], tom(180), t0 + 15 * STEP, 0.3)
         poe(mus['baixo'], bass808(raiz, BAR * 0.45), t0, 0.7)
         poe(mus['baixo'], bass808(raiz * (1.5 if estilo == 'trampo' else 1), BAR * 0.25), t0 + 10 * STEP, 0.55)
     elif estilo in ('baile', 'fecha'):
@@ -134,7 +143,7 @@ volc = np.ones(N)
 for c in L['cenas']:
     v = c.get('musica');
     if v is not None: volc[int(c['f0'] / 60 * SR):int((c['f0'] + c['n']) / 60 * SR)] = v
-k = int(0.25 * SR); volc = np.convolve(volc, np.ones(k) / k, mode='same')
+volc = media(volc, int(0.25 * SR))
 musica *= volc
 
 # ---------------- vozes: narração e vozes do jogo ----------------
@@ -155,7 +164,7 @@ for c in L['cenas']:
             poe(fx, {'pop': pop, 'tecla': tecla}.get(a[0], pop)(), f / 60, 1.0)
 # envelope de fala (para abaixar a música e o jogo)
 mono = np.abs(voz).mean(axis=0); k = int(0.03 * SR)
-env = np.convolve(mono, np.ones(k) / k, mode='same'); env = env / max(1e-9, np.percentile(env[env > 1e-4], 95) if (env > 1e-4).any() else 1)
+env = media(mono, k); env = env / max(1e-9, np.percentile(env[env > 1e-4], 95) if (env > 1e-4).any() else 1)
 env = np.clip(env * 1.6, 0, 1)
 # ataque rápido, soltura lenta
 sm = np.zeros(N); a_, r_ = np.exp(-1 / (0.02 * SR)), np.exp(-1 / (0.45 * SR)); v = 0.0

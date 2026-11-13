@@ -153,14 +153,15 @@ const cenas = [
   /* ================= OFICINA, POSTO E BANCO ================= */
   { nome: '20-oficina', seg: 0.2 + D('g21') + 0.5, antes: 10, estilo: 'trampo',
     setup: `TR.reset({ hud: true, toasts: true, time: 20 * 60 + 40 }); Act.delivery = null; Profile.current = 'brasa'; player.setCar('brasa'); TR.hook();
-      Profile.damage = 42; Profile.zones = { f: 0.6, r: 0.25, l: 0.45, rt: 0.1, seed: 3 }; Profile.money = 90; Profile.fiado = null;
+      Profile.damage = 42; Profile.zones = { f: 0.6, r: 0.25, l: 0.45, rt: 0.1, seed: 3 }; Profile.money = 90; Profile.fiado = null; Profile.visited = World.shops.map((x) => x.id);
       const of = World.shops.find((x) => x.kind === 'oficina'); TR.chegar(of.x, of.y, ${s(0.5)}, 150);
       const fb = () => [...document.querySelectorAll('#dialog-buttons button')].find((b) => /fiado/i.test(b.textContent));
       TR.em([[${s(0.9)}, () => TR.tecla('KeyE', 'E', 'oficina')], [${s(6.5)}, () => TR.destacar(fb(), 'fiado', TR.f, TR.f + 60, false)], [${s(7.6)}, () => TR.tocar(fb())]]);` },
   { nome: '21-posto', seg: 0.2 + D('g22') + 0.4, antes: 10, estilo: 'trampo',
     setup: `TR.reset({ hud: true, toasts: true, time: 20 * 60 + 42 }); Profile.fuel = 28; Profile.dirt = 0.85; Profile.money = 640; Profile.damage = 0;
-      const ps = World.shops.find((x) => x.kind === 'posto' && x.wash); TR.chegar(ps.x, ps.y, ${s(0.4)}, 150, { entra: true });
-      TR.em([[${s(0.6)}, () => TR.tecla('KeyE', 'E', 'posto')], [${s(1.3)}, () => TR.botao(/Encher o tanque/)], [${s(3.0)}, () => TR.botao(/Lavar o carro/)], [${s(5.0)}, () => TR.botao(/café/)]]);` },
+      Profile.visited = World.shops.map((x) => x.id); const ps = World.shops.find((x) => x.kind === 'posto' && x.wash); TR.chegar(ps.x, ps.y, ${s(0.3)}, 230, { entra: true });
+      TR.cada = () => { if (TR.rec && TR.f < ${s(2.4)}) TR.apertarE('posto'); };
+      TR.em([[${s(2.7)}, () => TR.botao(/Encher o tanque/)], [${s(3.9)}, () => TR.botao(/Lavar o carro/)], [${s(5.6)}, () => TR.botao(/café/)]]);` },
   { nome: '22a-emprestimo', seg: 0.2 + 5.5, antes: 10, estilo: 'trampo',
     setup: `TR.reset({ hud: true, toasts: true, bigPhone: true, time: 20 * 60 + 44 }); Profile.loan = null; Profile.money = 120; TR.drive(1500, 1260, 2600, 1260, 0, { lane: 24, v0: 0 });
       TR.em([
@@ -181,10 +182,10 @@ const cenas = [
 
   /* ================= EVENTOS ================= */
   { nome: '23a-convite', seg: 0.2 + 5.5, antes: 30, estilo: 'baile',
-    setup: `TR.reset({ hud: true, toasts: true, time: 20 * 60 + 46 }); Profile.loan = null; Profile.money = 980; TR.drive(500, 2100, 3000, 2100, 190, { lane: 24 });
+    setup: `TR.reset({ hud: true, toasts: true, time: 20 * 60 + 46 }); Profile.loan = null; Profile.money = 980; TR.drive(500, 3300, 1900, 3300, 190, { lane: 24 });
       TR.em([[${s(1.5)}, () => { for (let i = 0; i < 60; i++) { Events.clear(); if (Events.spawn('noivo')) break; } Events.cur.life = 1e9; }], [${s(4.1)}, () => TR.tecla('KeyY', 'Y', 'aceitar')]]);` },
   { nome: '23b-noivo', seg: 2.6, antes: 0, estilo: 'baile',
-    setup: `const E = Events.cur; TR.chegar(E.pick.x, E.pick.y, ${s(0.8)}, 200); TR.em([[${s(1.1)}, () => TR.tecla('KeyE', 'E', 'levar o noivo')]]);` },
+    setup: `const E = Events.cur; TR.chegar(E.pick.x, E.pick.y, ${s(0.8)}, 200); TR.cada = () => { if (TR.rec && TR.f > ${s(0.9)}) TR.apertarE('levar o noivo'); }; TR.em([]);` },
   { nome: '23c-igreja', seg: 0.2 + D('g24') - 5.5 - 2.6 + 0.9, antes: 0, estilo: 'baile',
     setup: `const E = Events.cur; E.left = 30; TR.chegar(E.dest.x, E.dest.y, ${s(0.6)}, 200);` },
   { nome: '24a-biu', seg: 0.3 + D('g25') + 0.6 + D('biu_socorro') + 0.5 + 2.8, antes: 10, estilo: 'baile', musica: 0.6,
@@ -195,8 +196,7 @@ const cenas = [
         [${s(3.0)}, () => TR.tocar('#phone-body [data-app="msgs"]')],
         [${s(3.4)}, () => TR.tocar('#phone-body [data-chat="' + BIU + '"]')],
         [${s(3.8)}, () => TR.tocar('#phone-body .wa-voice')],
-        [${s(14.2)}, () => TR.tocar('#phone-body [data-reply="0"]')],
-        [${s(16.0)}, () => TR.tocar('#phone-body .wa-loc')],
+        [${s(14.2)}, () => { TR.tocar('#phone-body [data-reply="0"]'); TR.cada = () => { const l = document.querySelector('#phone-body .wa-loc'); if (TR.rec && l && !TR._locFeito) { TR._locFeito = true; setTimeout(() => TR.tocar(l), 500); } }; }],
       ]);` },
   { nome: '24b-bananas', seg: 0.2 + D('g26') + 0.4, antes: 0, estilo: 'baile',
     setup: `Screens.closeAll(); document.body.classList.remove('tr-bigphone'); TR.legDir = 0; const E = Events.cur; E.stage = 'collect';
@@ -229,7 +229,9 @@ const cenas = [
       TR.em([[${s(0.7)}, () => { TR.tecla('KeyE', 'E', 'percurso'); R.speed = 300; }]]);` },
   { nome: '28b-baliza', seg: D('g30') - 3.8 + 0.7, antes: 0, estilo: 'baile',
     setup: `TR.reset({ hud: true, toasts: true, time: 20 * 60 + 53 }); const v = World.parkSpots.find((x) => x.id === 'central_3_9');
-      const R = TR.makeRail([[v.x - Math.cos(v.a) * 75, v.y - Math.sin(v.a) * 75], [v.x, v.y]], 0); TR.useRail(R, 95, { v0: 95, re: true }); TR.fixo(v.x, v.y, 2.3, 2.5);` },
+      const R = TR.makeRail([[v.x - Math.cos(v.a) * 110, v.y - Math.sin(v.a) * 110], [v.x + Math.cos(v.a) * 60, v.y + Math.sin(v.a) * 60]], 0);
+      let sc = 0, bd = 1e9; for (let q = 0; q < R.len; q += 1) { const p = TR.at(R, q), d = Math.hypot(p[0] - v.x, p[1] - v.y); if (d < bd) { bd = d; sc = q; } }
+      TR.useRail(R, 90, { v0: 90, re: true, skip: Math.max(0, sc - 70) }); R.stopAt = sc - 7; TR.fixo(v.x, v.y, 2.3, 2.5);` },
 
   /* ================= GARAGEM, PAREDÃO E FINAL ================= */
   { nome: '29-garagem', seg: 0.2 + D('g31') + 0.6, antes: 6, estilo: 'fecha',

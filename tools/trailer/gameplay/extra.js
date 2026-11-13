@@ -91,7 +91,7 @@
     if (L) { const sp = leg.querySelector('span'); if (sp.dataset.k !== L.k) { sp.innerHTML = L.html; sp.dataset.k = L.k; } leg.style.opacity = 1; leg.style.right = (T.legDir || 0) + 'px'; } else leg.style.opacity = 0;
   };
   const _limpa = T.limpaGags;
-  T.limpaGags = function () { _limpa(); T.onFrame = null; T.cc = null; T.slow = 1; T.freezeAt = undefined; if (canvas) canvas.style.filter = ''; for (const a of T.aneis) a.d.remove(); T.aneis = []; T.keyT = -1; T.chap = null; key.style.opacity = 0; if (T.fixos) T.fixos.clear(); T.escolha = null; T.cada = null; T.sorte = false; T.legDir = 0; };
+  T.limpaGags = function () { _limpa(); T.onFrame = null; T.cc = null; T.slow = 1; T.freezeAt = undefined; if (canvas) canvas.style.filter = ''; for (const a of T.aneis) a.d.remove(); T.aneis = []; T.keyT = -1; T.chap = null; key.style.opacity = 0; if (T.fixos) T.fixos.clear(); T.escolha = null; T.cada = null; T.sorte = false; T.legDir = 0; T._eFeito = false; T._locFeito = false; };
 
   /* ---------- cruzar a divisa entre dois bairros (a placa do bairro aparece no quadro fHit) ---------- */
   T.cruzar = function (para, fHit, speed, opt) {
@@ -184,6 +184,8 @@
     }
     return R;
   };
+  // aperta E só quando o jogo mostra o aviso de interação (e nenhum diálogo aberto)
+  T.apertarE = function (rotulo) { if (Act.prompt && !Screens.current && !T._eFeito) { T._eFeito = true; T.tecla('KeyE', 'E', rotulo); } };
   // fecha o celular só se estiver aberto (tocar num frete já fecha sozinho)
   T.fecharCel = function () { if (Screens.current === 'screen-phone') T.tecla('KeyQ', 'Q', 'fechar'); T.legDir = 0; };
   // trava o sorteio de uma lista do jogo num item (ex.: a fala do passageiro), sem mexer no resto
