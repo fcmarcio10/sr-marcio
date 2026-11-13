@@ -96,7 +96,9 @@ const cenas = [
   { nome: '12-busca', seg: 0.2 + D('g12') + 0.5, antes: 0, estilo: 'trampo',
     setup: `TR.fixar(FALAS_EMBARQUE, 5); const R = Act.ride; TR.chegar(R.pick.x, R.pick.y, ${s(3.7)}, 240);` },
   { nome: '13a-emocao', seg: 3.6, antes: 0, estilo: 'trampo',
-    setup: `const R = Act.ride; const r = TR.drive(R.pick.x, R.pick.y, R.dest.x, R.dest.y, 280, { lane: 24 }); r.s = Math.min(200, r.len / 3); r.v = 280;` },
+    // passeio com o passageiro, para longe do destino (o carro só chega lá na cena 14)
+    setup: `const R = Act.ride; const tx = clamp(R.pick.x - (R.dest.x - R.pick.x) * 3, 400, WORLD_W - 400), ty = clamp(R.pick.y - (R.dest.y - R.pick.y) * 3, 400, WORLD_H - 400);
+      const r = TR.drive(R.pick.x, R.pick.y, tx, ty, 280, { lane: 24 }); r.s = Math.min(150, r.len / 4); r.v = 280;` },
   { nome: '13b-hidrante', seg: 1.9, antes: 0, estilo: 'trampo',
     setup: `TR.fixar(FALAS_BATIDA, 1); TR.batidaCarro(40, 250, 'hatch');` },
   { nome: '13c-lixeira', seg: 1.9, antes: 0, estilo: 'trampo',

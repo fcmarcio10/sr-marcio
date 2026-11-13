@@ -153,7 +153,7 @@
   // toca o botão cujo texto bate com a expressão (diálogo da loja, celular)
   T.botao = function (re, sel) { const b = [...document.querySelectorAll(sel || '#dialog-buttons button, #phone-body button')].find((x) => re.test(x.textContent)); if (!b) console.warn('sem botão', re); return b ? T.tocar(b) : false; };
   // agenda de ações por quadro (só durante a gravação): [[quadro, função], ...]
-  T.em = function (lista) { TR.onFrame = (f) => { if (TR.cada) TR.cada(f); if (!TR.rec) return; for (const [q, fn] of lista) if (f === q) fn(f); }; };
+  T.em = function (lista) { TR.onFrame = (f) => { if (TR.cada) TR.cada(f); if (!TR.rec) return; for (const [q, fn] of lista) if (f === q) { try { fn(f); } catch (e) { console.warn('ação do quadro ' + q + ' falhou: ' + e.message); } } }; };
   // bate na traseira de um carro parado no trânsito (batida de verdade: a física do jogo conta o impacto)
   T.batidaCarro = function (fHit, speed, modelo, perto) {
     const [px, py] = perto || [player.x, player.y], D = speed / 60 * fHit + 20;
