@@ -22,7 +22,7 @@ O dono do projeto fala português e não é técnico: responda em português sim
 ## Vozes (ElevenLabs)
 
 - Vozes ficam em `audio/*.mp3` (já comprimidas). O nome do arquivo é a chave em `VOICE_LINES` / `CHAR_VOICES` (`src/p66_career.js`).
-- Faltam as 4 dos personagens em `ROTEIRO-VOZES.md` (inclui `boas_vindas`, áudio do Seu Zé na 1ª vez no jogo, `Profile.welcomed`) (nome do arquivo, voz e texto com as marcações de emoção). Gerar uma por vez com o modelo `eleven_v4`, baixar o `content_url` (host `elevenlabsusercontent.com` liberado no ambiente "sr-marcio"), comprimir com ffmpeg e rodar o build.
+- Todas as 19 vozes do jogo já têm áudio (as 4 dos personagens foram geradas com o plano pago: `ze_nao`, `biu_socorro`, `boas_vindas`, `banco_atraso`). Para uma voz nova: gerar com `eleven_v4`, baixar o `content_url` (host `elevenlabsusercontent.com` liberado no ambiente "sr-marcio"), comprimir com ffmpeg (mono, 24 kHz, 40 kbps) em `audio/` e rodar o build.
 - As contas grátis (antiga e principal) foram bloqueadas por "atividade incomum"; a conta conectada agora tem créditos pagos (as falas do trailer foram geradas assim, ~60 a 100 créditos por fala). Gerar uma por vez (`generations_count: 1`). O plano grátis não permite uso comercial (o crédito está na tela de Créditos). `tools/tests/tv.js` lista quais vozes já têm áudio.
 - Passageiros falam pelo **chat do PegaAí** (estilo app de corrida). Personagens fixos (Seu Zé, Seu Biu, Banestresse) falam pelo **WhatsApp**. Gente de evento (noivo, motorista do carro quebrado) **não** manda mensagem no WhatsApp: o agradecimento aparece só na tela. Configuração "Mensagens dos personagens": Áudio (só português) ou Texto.
 

@@ -110,7 +110,8 @@
   T.hook = function () {
     if (player._tr) return;
     const orig = player.update.bind(player);
-    player.update = function (dt, inp) { if (T.rail) T.railStep(this, dt); else orig(dt, inp); };
+    // T.manual: direção "de verdade" (física do jogo) com comandos do roteiro: (f) => { thr, brk, steer, hb }
+    player.update = function (dt, inp) { if (T.rail) T.railStep(this, dt); else if (T.manual) orig(dt, Object.assign({ thr: false, brk: false, steer: 0, hb: false }, T.manual(T.f, this))); else orig(dt, inp); };
     player._tr = true;
   };
 
@@ -158,7 +159,7 @@
   // prepara uma cena nova: limpa eventos, celular, legenda, e liga o trilho
   T.reset = function (opt) {
     opt = opt || {};
-    T.f = 0; T.cap = null; T.onFrame = null; T.blackO = 0; T.logoO = 0; T.rail = null;
+    T.f = 0; T.cap = null; T.onFrame = null; T.blackO = 0; T.logoO = 0; T.rail = null; T.manual = null;
     T.flash0 = opt.flash || 0; T.charBottom = opt.charBottom; T.slow = 1; T.freezeAt = undefined; T.cc = null; T.sub = null; T.punch = null; T.char = null; T.flash = opt.flash || 0; T.lb = opt.lb !== undefined ? opt.lb : T.lb || 0;
     canvas.style.filter = '';
     Screens.closeAll(); Events.clear(); Events.spawnT = 1e9; Act.race = null; Act.ride = null; Act.delivery = null; Act.gps = null; Act.waypoint = null;

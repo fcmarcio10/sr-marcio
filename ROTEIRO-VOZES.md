@@ -3,7 +3,7 @@
 Gere cada fala no ElevenLabs (modelo **Eleven v4**, que entende as marcações entre colchetes).
 Baixe em **MP3** e salve com **exatamente o nome do arquivo** da tabela. Depois é só me mandar os arquivos.
 
-Já estão no jogo: `xingo1`, `xingo2`, `xingo3`, `vip`, `mudanca`, `demora`, `aero`.
+Todas as vozes desta lista já estão no jogo (as 4 dos personagens foram geradas no plano pago).
 
 Os áudios dos passageiros chegam no **chat do PegaAí**. Os dos personagens (Seu Zé, Seu Biu, Banestresse) chegam no **WhatsApp**.
 
