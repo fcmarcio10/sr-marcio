@@ -45,7 +45,7 @@ const cenas = [
   { nome: 'a04e-pagode', seg: 1.6, antes: 30, estilo: 'rola', musica: 0.55,
     setup: `TR.reset({ time: 23 * 60 + 30 }); const pc = World.pracaBagunca; TR.drive(400, 7525, 3300, 7525, 150, { lane: 25 }); TR.fixo(pc.x - 40, pc.y + 20, 1.9, 2.2, 1220, 6990);` },
   { nome: 'a04f-fazenda', seg: 3.6, antes: 20, estilo: 'rola',
-    setup: `TR.reset({ hud: true, time: 18 * 60 + 25 }); ${claro} const f = World.shops.find((x) => x.kind === 'fazenda'); TR.chegar(f.x, f.y, ${s(3.0)}, 200); TR.follow(1.5, 1.85, 0.12);` },
+    setup: `TR.reset({ hud: true, time: 18 * 60 + 25, camOff: [0, 90] }); ${claro} const f = World.shops.find((x) => x.kind === 'fazenda'); TR.chegar(f.x, f.y, ${s(3.0)}, 200); TR.follow(1.5, 1.85, 0.12);` },
 
   /* ================= A NOSSA CARA: CHUVA, LOMBADA E PARDAL ================= */
   { nome: 'a05a-chuva', seg: 3.9, antes: 60, estilo: 'rola',
