@@ -837,12 +837,16 @@ function comunidadeBlock(R) {
   for (let x = R.x0 + 6; x < R.x1 - 60; x += rndi(70, 110)) gl.push({ x, text: chance(0.5) ? pick(MURO_FRASES) : pick(PIXOS), color: pick(['#111111', '#f2f2ea', '#c8241c', '#1d4f9c', '#2a9d8f', '#f4c430']), mural: chance(0.25) });
   addWall(R.x0, R.y1 + 1, R.x1, R.y1 + 5, pick(['#d8d0c0', '#c9b79c', '#e2d2b6', '#b8b0a2']), {});
   const cols = ['#e9c46a', '#f4a261', '#2a9d8f', '#e76f51', '#8ecae6', '#f1efe8', '#b5603a', '#b5603a', '#c06a40', '#9bc53d', '#ff99c8'];
+  // casas um pouco maiores e em menor número (metade): mesma cara de comunidade, bem mais leve.
+  // As casas usam um sorteio só delas; o sorteio do mapa avança igual ao de antes (comunidadeSorteioAntigo),
+  // assim o resto da cidade continua exatamente no mesmo lugar.
+  const RG = RNG; RNG = mulberry32(((R.x0 | 0) * 73856093 ^ (R.y0 | 0) * 19349663) >>> 0);
   let y = R.y0 + 4, row = 0;
   while (y < R.y1 - 30) {
-    const rh = Math.min(rndi(34, 50), R.y1 - 4 - y);
+    const rh = Math.min(rndi(44, 64), R.y1 - 4 - y);
     let x = R.x0 + 4;
     while (x < R.x1 - 24) {
-      const w = Math.min(rndi(26, 46), R.x1 - 4 - x);
+      const w = Math.min(rndi(38, 64), R.x1 - 4 - x);
       if (w < 20) break;
       const wall = pick(cols), brick = wall === '#b5603a' || wall === '#c06a40';
       const floors = rndi(1, 3);
@@ -856,10 +860,28 @@ function comunidadeBlock(R) {
     y += rh + (chance(0.5) ? rndi(10, 14) : 2);
     row++;
   }
+  RNG = RG;
+  comunidadeSorteioAntigo(R, cols);
+  rnd(); rnd(); // as duas cordas de bandeirinha que existiam aqui (tiradas: pesavam)
   const cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2;
-  addFlags(R.x0 + 30, cy - 40, R.x1 - 30, cy + 20, true);
-  addFlags(R.x0 + 30, cy + 40, R.x1 - 30, cy - 20, true);
   addLight(cx, cy, 160, 0.5, 'sodium');
+}
+// repete, sem construir nada, os sorteios que as casinhas antigas faziam (na mesma ordem)
+function comunidadeSorteioAntigo(R, cols) {
+  let y = R.y0 + 4;
+  while (y < R.y1 - 30) {
+    const rh = Math.min(rndi(34, 50), R.y1 - 4 - y);
+    let x = R.x0 + 4;
+    while (x < R.x1 - 24) {
+      const w = Math.min(rndi(26, 46), R.x1 - 4 - x);
+      if (w < 20) break;
+      pick(cols); rndi(1, 3); pick([0, 0, 0, 0, 0]); rnd(0, 4); rnd(0.3, 0.75); // cor, andares, telhado, altura, janelas
+      chance(0.4); chance(0.35); chance(0.5); // varal, antena, pichação
+      if (chance(0.25)) rnd(); // poste de luz
+      x += w + (chance(0.22) ? rndi(10, 14) : 1);
+    }
+    y += rh + (chance(0.5) ? rndi(10, 14) : 2);
+  }
 }
 function shopLotBuilder(def) { return (F, ro) => shopBuilding(F, def, ro); }
 
@@ -1077,7 +1099,7 @@ function buildRoadProps() {
       World.trafficPoles.push(pole);
     }
   }
-  // placas PARE nos cruzamentos sem semáforo da cidade
+  // PARE pintado no chão nos cruzamentos sem semáforo da cidade (as placas foram tiradas: pesavam)
   for (const n of World.nodes) {
     if (n.light || n.edges.length < 3 || n.x > 4700) continue;
     for (const e of n.edges) {
@@ -1085,11 +1107,6 @@ function buildRoadProps() {
       const out = e.a === n ? 1 : -1, dx = e.dx * out, dy = e.dy * out;
       const clear = e.a === n ? e.clearA : e.clearB;
       const rx = dy, ry = -dx;
-      const px = n.x + dx * (clear - 14) + rx * (e.hw + 12), py = n.y + dy * (clear - 14) + ry * (e.hw + 12);
-      if (areaBlocked(px - 5, py - 5, px + 5, py + 5)) continue;
-      const sgn = { kind: 'sign', x: px, y: py, h: 28, t: 'stop' };
-      addTall(sgn, px - 30, py - 30, px + 30, py + 30);
-      addCircCol(px, py, 2.5, 'pole').brk = { kind: 'tall', obj: sgn };
       // faixa "PARE" pintada
       const tx = n.x + dx * (clear + 14) + rx * (e.hw * 0.5), ty = n.y + dy * (clear + 14) + ry * (e.hw * 0.5);
       bake(tx - 30, ty - 30, tx + 30, ty + 30, 5.5, (g) => { g.save(); g.translate(tx, ty); g.rotate(Math.atan2(-dy, -dx) + Math.PI / 2); g.fillStyle = 'rgba(235,235,225,0.75)'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('PARE', 0, 0); g.restore(); });
@@ -1699,10 +1716,7 @@ function buildLitoral() {
   // ---- a orla: calçadão, areia e mar, só do lado da cidade grande ----
   // calçadão e areia dos dois lados da foz do rio (o rio continua desaguando no mar)
   const rL = riverCX(8880) - riverHW(8880) - 30, rR = riverCX(8880) + riverHW(8880) + 30;
-  // embaixo da Serra (Feio Rosa, Cara-Pintada, Nova Prosa e Flexão): mata fechada descendo até o mar
-  forest(230, 8760, ORLA_X0, SEA_Y - 4);
   decal(ORLA_X0 - 60, SAND_Y - 20, ORLA_X0 + 40, SEA_Y + 20, 'sand');
-  for (const [x, y, r, h] of [[ORLA_X0 + 30, SAND_Y + 40, 46, 30], [ORLA_X0 + 2, SEA_Y - 8, 34, 20], [ORLA_X0 + 80, SEA_Y + 6, 22, 12]]) addRock(x, y, r, h); // pedras onde a praia começa
   for (const [a, b] of [[ORLA_X0, rL], [rR, 8790]]) { decal(a, CALC_Y, b, SAND_Y, 'plaza'); decal(a, SAND_Y, b, SEA_Y + 20, 'sand'); }
   gFill(0, SEA_Y, WORLD_W, WORLD_H, SF.WATER);
   for (let x = 0; x < WORLD_W; x += 512) bake(x, SEA_Y - 30, x + 512, WORLD_H, 2, (g) => drawSea(g, x, x + 512));
@@ -1712,6 +1726,13 @@ function buildLitoral() {
   bake(8180, 8990, 8790, 9180, 3, (g) => drawShip(g, 8190, 8995, 590, 170));
   addRectCol(8190, 8995, 8780, 9165, 'bld');
   addCrane(8130, 9020, 140, Math.PI * 0.5); addCrane(7830, 9020, 140, Math.PI * 0.5);
+  // a orla antiga ia de ponta a ponta: repete os sorteios dela para o resto do mapa (postes, árvores das
+  // ruas, orelhões...) continuar exatamente no mesmo lugar; a orla nova usa um sorteio só dela
+  orlaSorteioAntigo();
+  const RG = RNG; RNG = mulberry32(8830);
+  // embaixo da Serra (Feio Rosa, Cara-Pintada, Nova Prosa e Flexão): mata fechada descendo até o mar
+  forest(230, 8760, ORLA_X0, SEA_Y - 4);
+  for (const [x, y, r, h] of [[ORLA_X0 + 30, SAND_Y + 40, 46, 30], [ORLA_X0 + 2, SEA_Y - 8, 34, 20], [ORLA_X0 + 80, SEA_Y + 6, 22, 12]]) addRock(x, y, r, h); // pedras onde a praia começa
   // postes, coqueiros e quiosques na beira-mar
   for (let x = ORLA_X0 + 110; x < 8700; x += 230) {
     if (Math.abs(x - riverCX(8830)) < 220 || (x > 7760 && x < 8200)) continue;
@@ -1729,6 +1750,7 @@ function buildLitoral() {
     const yRoad = x < 4600 ? 8700 + RT.street.lanes[0] : 8700 + RT.avenue.lanes[1];
     addShop({ kind: 'bar', name: full, x, y: yRoad, bld: b, color: col, region: 'orla', pickup: true, items: ['Porção de camarão', 'Água de coco', 'Moqueca na panela de barro', 'Isopor de gelo'] });
   }
+  RNG = RG;
   // posto de salva-vidas, rede de vôlei e barcos na areia
   for (const x of [6600]) { addBuilding(x - 14, SAND_Y + 40, x + 14, SAND_Y + 68, 30, { style: 'kiosk', roofType: 'flat', roofColor: '#d62828', wall: '#f2f2ea', lit: 0.6, sign: 'SALVA-VIDAS', signColor: '#ff4d4d' }); }
   for (const x of [5000, 7000]) bake(x - 50, SAND_Y + 30, x + 50, SAND_Y + 90, 6, (g) => drawNet(g, x, SAND_Y + 60));
@@ -1740,6 +1762,19 @@ function buildLitoral() {
     World.animalsDef.push({ type: 'person', n: Math.round(10 * k), rect: [a, SAND_Y + 20, b, SEA_Y - 30] });
     World.animalsDef.push({ type: 'dog', n: Math.max(1, Math.round(3 * k)), rect: [a + 200, SAND_Y + 20, b - 200, SEA_Y - 30] });
   }
+}
+// sorteios que a orla antiga (de ponta a ponta) fazia, na mesma ordem, sem construir nada
+function orlaSorteioAntigo() {
+  for (let x = 400; x < 8700; x += 230) {
+    if (Math.abs(x - riverCX(8830)) < 220 || (x > 7760 && x < 8200)) continue;
+    rnd(); // luz do poste
+    if (chance(0.8)) { // coqueiro (só sorteava a variação se cabia no lugar)
+      const px = x + 70 + rnd(-20, 20), py = SAND_Y + rnd(20, 70); rnd(0.9, 1.25);
+      const gt = groundAt(px, py);
+      if (!(gt === SF.ROAD || gt === SF.DIRT || gt === SF.WATER || gt === SF.BRIDGE || gt === SF.SIDEWALK) && !areaBlocked(px - 6, py - 6, px + 6, py + 6)) rndi(0, 2);
+    }
+  }
+  for (let x = 650; x < 7600; x += 980) { if (Math.abs(x - riverCX(8900)) < 300) continue; rnd(); rnd(); rnd(); } // quiosques: 2 mesas e a luz
 }
 // desenhos do litoral (assados no chão)
 function drawSea(g, x0, x1) {

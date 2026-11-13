@@ -47,6 +47,10 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
   - Trânsito estilo GTA: carro nasce fora da borda da tela vindo pra dentro, some depois de 4 s fora da tela, trecho cheio não recebe carro novo. De 32 para 4 a 8 carros simulados, com mais carro por pedaço de tela.
   - Pessoas, animais e peladas só se mexem na tela. GPS 20% mais perto e sem carros. Praia só do lado da cidade grande.
 
+- [x] **Enxugada geral**
+  - Sem placas de PARE (ficam a faixa e as letras), sem mariposas nos postes, sem bandeirinhas cruzando os quarteirões de comunidade; casinhas da comunidade maiores e em metade do número (2.102 → 1.573 construções). Contêineres e casarões viram adesivos; parede sem janela acesa não gasta luz.
+  - Um asfalto só (−4% de detalhe) e bloquete só na favela (−7%). Pinceladas por quadro: −24% a −43% nos bairros da cidade.
+
 ## Próximos
 
 1. **História em capítulos** — missões contadas pelo WhatsApp, com personagens fixos (Seu Zé, o primo enrolado, um cliente misterioso, o dono do ferro-velho). Cada capítulo libera bairro, carro ou oficina nova. Ex.: buscar uma encomenda em Vila Véia e descobrir que é a moqueca roubada do concurso de Camburiso.

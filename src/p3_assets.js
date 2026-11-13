@@ -29,15 +29,16 @@ function buildPatterns() {
     speck(g, s, R, 700, ['#33512a', '#45693a', '#4e733a', '#5d7a3a', '#2c4724'], 1, 2.5);
     for (let i = 0; i < 14; i++) { g.fillStyle = 'rgba(30,50,20,0.35)'; g.beginPath(); g.arc(R() * s, R() * s, 3 + R() * 5, 0, TAU); g.fill(); }
   });
-  PSRC.asphalt = tex(128, '#33353b', (g, s, R) => speck(g, s, R, 1500, ['#2b2d32', '#3b3e44', '#43464d', '#2f3136', '#4b4d52'], 1, 1.8));
-  // bloquete de concreto (paver), muito usado nas ruas de bairro da Grande Vitória e da Serra
+  // asfalto: um só para o jogo todo (4% menos detalhe que antes)
+  PSRC.asphalt = tex(128, '#33353b', (g, s, R) => speck(g, s, R, 1440, ['#2b2d32', '#3b3e44', '#43464d', '#2f3136', '#4b4d52'], 1, 1.8));
+  // bloquete de concreto (paver): só nas ruas de comunidade (7% menos detalhe que antes)
   PSRC.bloquete = tex(64, '#5f5e5a', (g, s, R) => {
     for (let y = 0; y < s; y += 6) for (let x = ((y / 6) % 2) * 6 - 6; x < s; x += 12) {
       const t = R(); g.fillStyle = t < 0.3 ? '#77756f' : t < 0.6 ? '#6e6c66' : t < 0.85 ? '#81807a' : '#68665f';
       g.fillRect(x + 0.6, y + 0.6, 10.8, 4.8);
       g.fillStyle = 'rgba(255,255,255,0.06)'; g.fillRect(x + 0.6, y + 0.6, 10.8, 1);
     }
-    for (let i = 0; i < 40; i++) { g.fillStyle = 'rgba(30,30,28,0.25)'; g.fillRect(R() * s, R() * s, 1.5, 1.5); }
+    for (let i = 0; i < 37; i++) { g.fillStyle = 'rgba(30,30,28,0.25)'; g.fillRect(R() * s, R() * s, 1.5, 1.5); }
   });
   // pedra portuguesa em ondas (calçadão), preto e branco
   PSRC.portuguesa = tex(128, '#d9d5ca', (g, s, R) => {
@@ -253,7 +254,8 @@ function drawStallLines(g, x0, y0, x1, y1, vert) {
 function edgeLocal(g, e) { g.save(); g.translate(e.a.x, e.a.y); if (!e.h) g.rotate(Math.PI / 2); }
 // cara de rua capixaba: bloquete nos bairros, asfalto remendado nas avenidas,
 // calçadão de pedra portuguesa no Centrão e meio-fio caiado de branco
-const PAVER_REGIONS = { vila: 0.65, saopedro: 0.75, terravermelha: 0.75, feurosa: 0.7, carapina: 0.7, novarosa: 0.7, flexal: 0.7, jardim: 0.35, industrial: 0.3 };
+// bloquete só na favela (Serra e os morros de São Pedreiro e Terra Amarelou); no resto, asfalto
+const PAVER_REGIONS = { saopedro: 0.75, terravermelha: 0.75, feurosa: 0.7, carapina: 0.7, novarosa: 0.7, flexal: 0.7 };
 function edgePave(e) {
   if (e.pave) return e.pave;
   if (!e.T.asphalt || e.T.id !== 'street' || e.bridge) return (e.pave = 'asphalt');
@@ -288,8 +290,8 @@ function drawEdgeBase(g, e) {
     const R = mulberry32(e.id * 977 + 13);
     // trilhas de pneu escurecidas, manchas de óleo e bloquetes afundados/remendados com cimento
     g.fillStyle = 'rgba(25,25,28,0.16)'; for (const y of [-hw * 0.55, -hw * 0.3, hw * 0.3, hw * 0.55]) g.fillRect(0, y - 3, L, 6);
-    for (let i = 0; i < L / 120; i++) { g.fillStyle = 'rgba(15,15,18,0.28)'; g.beginPath(); g.ellipse(R() * L, (R() - 0.5) * hw * 1.4, 4 + R() * 6, 3 + R() * 4, 0, 0, TAU); g.fill(); }
-    for (let i = 0; i < L / 300; i++) { g.fillStyle = R() < 0.5 ? 'rgba(150,148,140,0.75)' : 'rgba(40,40,42,0.45)'; g.fillRect(R() * L, (R() - 0.5) * hw * 1.5, 10 + R() * 18, 6 + R() * 10); }
+    for (let i = 0; i < L / 129; i++) { g.fillStyle = 'rgba(15,15,18,0.28)'; g.beginPath(); g.ellipse(R() * L, (R() - 0.5) * hw * 1.4, 4 + R() * 6, 3 + R() * 4, 0, 0, TAU); g.fill(); }
+    for (let i = 0; i < L / 323; i++) { g.fillStyle = R() < 0.5 ? 'rgba(150,148,140,0.75)' : 'rgba(40,40,42,0.45)'; g.fillRect(R() * L, (R() - 0.5) * hw * 1.5, 10 + R() * 18, 6 + R() * 10); }
     g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(0, -hw, L, 3); g.fillRect(0, hw - 3, L, 3);
   } else if (T.asphalt) {
     g.fillStyle = pat(g, 'asphalt'); g.fillRect(0, -hw, L, hw * 2);
@@ -297,18 +299,18 @@ function drawEdgeBase(g, e) {
     const R = mulberry32(e.id * 977 + 13);
     // remendos de asfalto (operação tapa-buraco) e desgaste nas trilhas de roda
     g.fillStyle = 'rgba(0,0,0,0.07)'; for (const y of [-hw * 0.6, -hw * 0.25, hw * 0.25, hw * 0.6]) g.fillRect(0, y - 3.5, L, 7);
-    for (let i = 0; i < L / 180; i++) {
+    for (let i = 0; i < L / 188; i++) {
       const s = R() * L, y = (R() - 0.5) * hw * 1.5, w = 16 + R() * 34, h = 10 + R() * 16;
       g.fillStyle = R() < 0.55 ? '#25272b' : '#3f4146'; g.fillRect(s, y, w, h);
       g.strokeStyle = 'rgba(10,10,12,0.5)'; g.lineWidth = 1; g.strokeRect(s, y, w, h);
     }
-    for (let i = 0; i < L / 260; i++) {
+    for (let i = 0; i < L / 271; i++) {
       const s = R() * L, y = (R() - 0.5) * hw * 1.6;
       g.fillStyle = R() < 0.5 ? 'rgba(20,20,24,0.35)' : 'rgba(80,80,85,0.25)';
       g.fillRect(s, y, 14 + R() * 30, 6 + R() * 12);
     }
     g.strokeStyle = 'rgba(15,15,18,0.45)'; g.lineWidth = 1;
-    for (let i = 0; i < L / 320; i++) {
+    for (let i = 0; i < L / 333; i++) {
       let s = R() * L, y = (R() - 0.5) * hw * 1.7;
       g.beginPath(); g.moveTo(s, y);
       for (let k = 0; k < 5; k++) { s += 4 + R() * 7; y += (R() - 0.5) * 6; g.lineTo(s, y); }

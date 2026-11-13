@@ -313,7 +313,7 @@ function bldOffset(b) {
    Paredes iguais (mesma cor, tamanho, lado e janelas acesas) usam a mesma imagem, então quase
    não se pinta nada novo enquanto você anda. O desenho é o mesmo de antes. */
 let WS_BAKE = 1, WS_LEN = 0, WS_K = 1.6, WS_CHECK = 0;
-const WS_H = 40, WS_MAX = 110, WS_CACHE = new Map();
+const WS_H = 40, WS_MAX = 260, WS_CACHE = new Map();
 const WS_BASE = { ctx: null, z: 1, zs: 1, tx: 0, ty: 0 };
 function wallFlickT(b) { return Math.floor(Game.time * 0.5 + ((b.seed * 0.618) % 1)); }
 function wsUse(ctx, b) { return ctx === WS_BASE.ctx && b.x1 - b.x0 <= WS_MAX && b.y1 - b.y0 <= WS_MAX; }
@@ -382,6 +382,7 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
   const big = ws === 3 && front;
   const lit = emissive ? null : new Path2D(), dark = emissive ? null : new Path2D(), em = emissive ? new Path2D() : null;
   const tflick = wallFlickT(b);
+  let nLit = 0, nDark = 0;
   for (let f = 0; f < floors; f++) {
     const f0 = big ? 0.08 : (f + 0.28) / floors, f1 = big ? 0.62 : (f + 0.74) / floors;
     for (let c = 0; c < cols; c++) {
@@ -391,6 +392,7 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
       if (!big && hsh < 0.04) on = hash2(b.seed + tflick, c) < 0.7;
       const P = emissive ? (on ? em : null) : (on ? lit : dark);
       if (!P) continue;
+      if (on) nLit++; else nDark++;
       P.moveTo(ax + ex * s0 + ox * f0, ay + ey * s0 + oy * f0);
       P.lineTo(ax + ex * s1 + ox * f0, ay + ey * s1 + oy * f0);
       P.lineTo(ax + ex * s1 + ox * f1, ay + ey * s1 + oy * f1);
@@ -398,10 +400,11 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
       P.closePath();
     }
   }
-  if (emissive) { ctx.fillStyle = big ? 'rgba(255,214,150,0.5)' : 'rgba(255,186,105,0.55)'; ctx.fill(em); }
+  // só pinta se tiver janela daquele tipo (parede sem janela acesa não gasta nada)
+  if (emissive) { if (nLit) { ctx.fillStyle = big ? 'rgba(255,214,150,0.5)' : 'rgba(255,186,105,0.55)'; ctx.fill(em); } }
   else {
-    ctx.fillStyle = '#18202b'; ctx.fill(dark);
-    ctx.fillStyle = big ? '#f3dcb0' : '#f0c47a'; ctx.fill(lit);
+    if (nDark) { ctx.fillStyle = '#18202b'; ctx.fill(dark); }
+    if (nLit) { ctx.fillStyle = big ? '#f3dcb0' : '#f0c47a'; ctx.fill(lit); }
   }
   if (!emissive && ws !== 2 && front && !big) {
     const s0 = 0.45, s1 = 0.55;
@@ -589,7 +592,7 @@ function drawTall(ctx, o) {
       if (o.style === 'arm') ctx.lineTo(o.hx + ox, o.hy + oy);
       ctx.stroke();
       if (o.style === 'globe') { ctx.fillStyle = o.broken ? '#555' : '#eef3ff'; ctx.beginPath(); ctx.arc(o.hx + ox, o.hy + oy, 4.5, 0, TAU); ctx.fill(); }
-      else { ctx.fillStyle = '#5c6066'; ctx.beginPath(); ctx.ellipse(o.hx + ox, o.hy + oy, 6, 3.5, Math.atan2(o.hy - o.y, o.hx - o.x), 0, TAU); ctx.fill(); ctx.fillStyle = o.broken ? '#333' : '#fff1c8'; ctx.beginPath(); ctx.arc(o.hx + ox, o.hy + oy, 2.2, 0, TAU); ctx.fill(); }
+      else { ctx.fillStyle = '#5c6066'; ctx.beginPath(); ctx.ellipse(o.hx + ox, o.hy + oy, 6, 3.5, Math.atan2(o.hy - o.y, o.hx - o.x), 0, TAU); ctx.fill(); if (o.broken) { ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(o.hx + ox, o.hy + oy, 2.2, 0, TAU); ctx.fill(); } } // lâmpada acesa: o brilho por cima já mostra
       break;
     }
     case 'tlight': {
@@ -886,8 +889,6 @@ function drawTallEmissive(ctx, o) {
       const hex = lightHex(o.col);
       ctx.drawImage(glowSprite(hex), o.hx + ox - 16, o.hy + oy - 16, 32, 32);
       ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 5, o.hy + oy - 5, 10, 10);
-      // mariposas rodando a lâmpada
-      if (Settings.quality !== 'baixa') { ctx.fillStyle = 'rgba(255,240,200,0.75)'; for (let i = 0; i < 3; i++) { const a = Game.time * (3 + i) + i * 2.1 + o.x * 0.01; ctx.fillRect(o.hx + ox + Math.cos(a) * (7 + i * 3), o.hy + oy + Math.sin(a * 1.3) * (6 + i * 2), 1.2, 1.2); } }
       break;
     }
     case 'tlight': {

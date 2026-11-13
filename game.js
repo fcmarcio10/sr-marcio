@@ -1329,12 +1329,16 @@ function comunidadeBlock(R) {
   for (let x = R.x0 + 6; x < R.x1 - 60; x += rndi(70, 110)) gl.push({ x, text: chance(0.5) ? pick(MURO_FRASES) : pick(PIXOS), color: pick(['#111111', '#f2f2ea', '#c8241c', '#1d4f9c', '#2a9d8f', '#f4c430']), mural: chance(0.25) });
   addWall(R.x0, R.y1 + 1, R.x1, R.y1 + 5, pick(['#d8d0c0', '#c9b79c', '#e2d2b6', '#b8b0a2']), {});
   const cols = ['#e9c46a', '#f4a261', '#2a9d8f', '#e76f51', '#8ecae6', '#f1efe8', '#b5603a', '#b5603a', '#c06a40', '#9bc53d', '#ff99c8'];
+  // casas um pouco maiores e em menor número (metade): mesma cara de comunidade, bem mais leve.
+  // As casas usam um sorteio só delas; o sorteio do mapa avança igual ao de antes (comunidadeSorteioAntigo),
+  // assim o resto da cidade continua exatamente no mesmo lugar.
+  const RG = RNG; RNG = mulberry32(((R.x0 | 0) * 73856093 ^ (R.y0 | 0) * 19349663) >>> 0);
   let y = R.y0 + 4, row = 0;
   while (y < R.y1 - 30) {
-    const rh = Math.min(rndi(34, 50), R.y1 - 4 - y);
+    const rh = Math.min(rndi(44, 64), R.y1 - 4 - y);
     let x = R.x0 + 4;
     while (x < R.x1 - 24) {
-      const w = Math.min(rndi(26, 46), R.x1 - 4 - x);
+      const w = Math.min(rndi(38, 64), R.x1 - 4 - x);
       if (w < 20) break;
       const wall = pick(cols), brick = wall === '#b5603a' || wall === '#c06a40';
       const floors = rndi(1, 3);
@@ -1348,10 +1352,28 @@ function comunidadeBlock(R) {
     y += rh + (chance(0.5) ? rndi(10, 14) : 2);
     row++;
   }
+  RNG = RG;
+  comunidadeSorteioAntigo(R, cols);
+  rnd(); rnd(); // as duas cordas de bandeirinha que existiam aqui (tiradas: pesavam)
   const cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2;
-  addFlags(R.x0 + 30, cy - 40, R.x1 - 30, cy + 20, true);
-  addFlags(R.x0 + 30, cy + 40, R.x1 - 30, cy - 20, true);
   addLight(cx, cy, 160, 0.5, 'sodium');
+}
+// repete, sem construir nada, os sorteios que as casinhas antigas faziam (na mesma ordem)
+function comunidadeSorteioAntigo(R, cols) {
+  let y = R.y0 + 4;
+  while (y < R.y1 - 30) {
+    const rh = Math.min(rndi(34, 50), R.y1 - 4 - y);
+    let x = R.x0 + 4;
+    while (x < R.x1 - 24) {
+      const w = Math.min(rndi(26, 46), R.x1 - 4 - x);
+      if (w < 20) break;
+      pick(cols); rndi(1, 3); pick([0, 0, 0, 0, 0]); rnd(0, 4); rnd(0.3, 0.75); // cor, andares, telhado, altura, janelas
+      chance(0.4); chance(0.35); chance(0.5); // varal, antena, pichação
+      if (chance(0.25)) rnd(); // poste de luz
+      x += w + (chance(0.22) ? rndi(10, 14) : 1);
+    }
+    y += rh + (chance(0.5) ? rndi(10, 14) : 2);
+  }
 }
 function shopLotBuilder(def) { return (F, ro) => shopBuilding(F, def, ro); }
 
@@ -1569,7 +1591,7 @@ function buildRoadProps() {
       World.trafficPoles.push(pole);
     }
   }
-  // placas PARE nos cruzamentos sem semáforo da cidade
+  // PARE pintado no chão nos cruzamentos sem semáforo da cidade (as placas foram tiradas: pesavam)
   for (const n of World.nodes) {
     if (n.light || n.edges.length < 3 || n.x > 4700) continue;
     for (const e of n.edges) {
@@ -1577,11 +1599,6 @@ function buildRoadProps() {
       const out = e.a === n ? 1 : -1, dx = e.dx * out, dy = e.dy * out;
       const clear = e.a === n ? e.clearA : e.clearB;
       const rx = dy, ry = -dx;
-      const px = n.x + dx * (clear - 14) + rx * (e.hw + 12), py = n.y + dy * (clear - 14) + ry * (e.hw + 12);
-      if (areaBlocked(px - 5, py - 5, px + 5, py + 5)) continue;
-      const sgn = { kind: 'sign', x: px, y: py, h: 28, t: 'stop' };
-      addTall(sgn, px - 30, py - 30, px + 30, py + 30);
-      addCircCol(px, py, 2.5, 'pole').brk = { kind: 'tall', obj: sgn };
       // faixa "PARE" pintada
       const tx = n.x + dx * (clear + 14) + rx * (e.hw * 0.5), ty = n.y + dy * (clear + 14) + ry * (e.hw * 0.5);
       bake(tx - 30, ty - 30, tx + 30, ty + 30, 5.5, (g) => { g.save(); g.translate(tx, ty); g.rotate(Math.atan2(-dy, -dx) + Math.PI / 2); g.fillStyle = 'rgba(235,235,225,0.75)'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('PARE', 0, 0); g.restore(); });
@@ -2191,10 +2208,7 @@ function buildLitoral() {
   // ---- a orla: calçadão, areia e mar, só do lado da cidade grande ----
   // calçadão e areia dos dois lados da foz do rio (o rio continua desaguando no mar)
   const rL = riverCX(8880) - riverHW(8880) - 30, rR = riverCX(8880) + riverHW(8880) + 30;
-  // embaixo da Serra (Feio Rosa, Cara-Pintada, Nova Prosa e Flexão): mata fechada descendo até o mar
-  forest(230, 8760, ORLA_X0, SEA_Y - 4);
   decal(ORLA_X0 - 60, SAND_Y - 20, ORLA_X0 + 40, SEA_Y + 20, 'sand');
-  for (const [x, y, r, h] of [[ORLA_X0 + 30, SAND_Y + 40, 46, 30], [ORLA_X0 + 2, SEA_Y - 8, 34, 20], [ORLA_X0 + 80, SEA_Y + 6, 22, 12]]) addRock(x, y, r, h); // pedras onde a praia começa
   for (const [a, b] of [[ORLA_X0, rL], [rR, 8790]]) { decal(a, CALC_Y, b, SAND_Y, 'plaza'); decal(a, SAND_Y, b, SEA_Y + 20, 'sand'); }
   gFill(0, SEA_Y, WORLD_W, WORLD_H, SF.WATER);
   for (let x = 0; x < WORLD_W; x += 512) bake(x, SEA_Y - 30, x + 512, WORLD_H, 2, (g) => drawSea(g, x, x + 512));
@@ -2204,6 +2218,13 @@ function buildLitoral() {
   bake(8180, 8990, 8790, 9180, 3, (g) => drawShip(g, 8190, 8995, 590, 170));
   addRectCol(8190, 8995, 8780, 9165, 'bld');
   addCrane(8130, 9020, 140, Math.PI * 0.5); addCrane(7830, 9020, 140, Math.PI * 0.5);
+  // a orla antiga ia de ponta a ponta: repete os sorteios dela para o resto do mapa (postes, árvores das
+  // ruas, orelhões...) continuar exatamente no mesmo lugar; a orla nova usa um sorteio só dela
+  orlaSorteioAntigo();
+  const RG = RNG; RNG = mulberry32(8830);
+  // embaixo da Serra (Feio Rosa, Cara-Pintada, Nova Prosa e Flexão): mata fechada descendo até o mar
+  forest(230, 8760, ORLA_X0, SEA_Y - 4);
+  for (const [x, y, r, h] of [[ORLA_X0 + 30, SAND_Y + 40, 46, 30], [ORLA_X0 + 2, SEA_Y - 8, 34, 20], [ORLA_X0 + 80, SEA_Y + 6, 22, 12]]) addRock(x, y, r, h); // pedras onde a praia começa
   // postes, coqueiros e quiosques na beira-mar
   for (let x = ORLA_X0 + 110; x < 8700; x += 230) {
     if (Math.abs(x - riverCX(8830)) < 220 || (x > 7760 && x < 8200)) continue;
@@ -2221,6 +2242,7 @@ function buildLitoral() {
     const yRoad = x < 4600 ? 8700 + RT.street.lanes[0] : 8700 + RT.avenue.lanes[1];
     addShop({ kind: 'bar', name: full, x, y: yRoad, bld: b, color: col, region: 'orla', pickup: true, items: ['Porção de camarão', 'Água de coco', 'Moqueca na panela de barro', 'Isopor de gelo'] });
   }
+  RNG = RG;
   // posto de salva-vidas, rede de vôlei e barcos na areia
   for (const x of [6600]) { addBuilding(x - 14, SAND_Y + 40, x + 14, SAND_Y + 68, 30, { style: 'kiosk', roofType: 'flat', roofColor: '#d62828', wall: '#f2f2ea', lit: 0.6, sign: 'SALVA-VIDAS', signColor: '#ff4d4d' }); }
   for (const x of [5000, 7000]) bake(x - 50, SAND_Y + 30, x + 50, SAND_Y + 90, 6, (g) => drawNet(g, x, SAND_Y + 60));
@@ -2232,6 +2254,19 @@ function buildLitoral() {
     World.animalsDef.push({ type: 'person', n: Math.round(10 * k), rect: [a, SAND_Y + 20, b, SEA_Y - 30] });
     World.animalsDef.push({ type: 'dog', n: Math.max(1, Math.round(3 * k)), rect: [a + 200, SAND_Y + 20, b - 200, SEA_Y - 30] });
   }
+}
+// sorteios que a orla antiga (de ponta a ponta) fazia, na mesma ordem, sem construir nada
+function orlaSorteioAntigo() {
+  for (let x = 400; x < 8700; x += 230) {
+    if (Math.abs(x - riverCX(8830)) < 220 || (x > 7760 && x < 8200)) continue;
+    rnd(); // luz do poste
+    if (chance(0.8)) { // coqueiro (só sorteava a variação se cabia no lugar)
+      const px = x + 70 + rnd(-20, 20), py = SAND_Y + rnd(20, 70); rnd(0.9, 1.25);
+      const gt = groundAt(px, py);
+      if (!(gt === SF.ROAD || gt === SF.DIRT || gt === SF.WATER || gt === SF.BRIDGE || gt === SF.SIDEWALK) && !areaBlocked(px - 6, py - 6, px + 6, py + 6)) rndi(0, 2);
+    }
+  }
+  for (let x = 650; x < 7600; x += 980) { if (Math.abs(x - riverCX(8900)) < 300) continue; rnd(); rnd(); rnd(); } // quiosques: 2 mesas e a luz
 }
 // desenhos do litoral (assados no chão)
 function drawSea(g, x0, x1) {
@@ -2304,15 +2339,16 @@ function buildPatterns() {
     speck(g, s, R, 700, ['#33512a', '#45693a', '#4e733a', '#5d7a3a', '#2c4724'], 1, 2.5);
     for (let i = 0; i < 14; i++) { g.fillStyle = 'rgba(30,50,20,0.35)'; g.beginPath(); g.arc(R() * s, R() * s, 3 + R() * 5, 0, TAU); g.fill(); }
   });
-  PSRC.asphalt = tex(128, '#33353b', (g, s, R) => speck(g, s, R, 1500, ['#2b2d32', '#3b3e44', '#43464d', '#2f3136', '#4b4d52'], 1, 1.8));
-  // bloquete de concreto (paver), muito usado nas ruas de bairro da Grande Vitória e da Serra
+  // asfalto: um só para o jogo todo (4% menos detalhe que antes)
+  PSRC.asphalt = tex(128, '#33353b', (g, s, R) => speck(g, s, R, 1440, ['#2b2d32', '#3b3e44', '#43464d', '#2f3136', '#4b4d52'], 1, 1.8));
+  // bloquete de concreto (paver): só nas ruas de comunidade (7% menos detalhe que antes)
   PSRC.bloquete = tex(64, '#5f5e5a', (g, s, R) => {
     for (let y = 0; y < s; y += 6) for (let x = ((y / 6) % 2) * 6 - 6; x < s; x += 12) {
       const t = R(); g.fillStyle = t < 0.3 ? '#77756f' : t < 0.6 ? '#6e6c66' : t < 0.85 ? '#81807a' : '#68665f';
       g.fillRect(x + 0.6, y + 0.6, 10.8, 4.8);
       g.fillStyle = 'rgba(255,255,255,0.06)'; g.fillRect(x + 0.6, y + 0.6, 10.8, 1);
     }
-    for (let i = 0; i < 40; i++) { g.fillStyle = 'rgba(30,30,28,0.25)'; g.fillRect(R() * s, R() * s, 1.5, 1.5); }
+    for (let i = 0; i < 37; i++) { g.fillStyle = 'rgba(30,30,28,0.25)'; g.fillRect(R() * s, R() * s, 1.5, 1.5); }
   });
   // pedra portuguesa em ondas (calçadão), preto e branco
   PSRC.portuguesa = tex(128, '#d9d5ca', (g, s, R) => {
@@ -2528,7 +2564,8 @@ function drawStallLines(g, x0, y0, x1, y1, vert) {
 function edgeLocal(g, e) { g.save(); g.translate(e.a.x, e.a.y); if (!e.h) g.rotate(Math.PI / 2); }
 // cara de rua capixaba: bloquete nos bairros, asfalto remendado nas avenidas,
 // calçadão de pedra portuguesa no Centrão e meio-fio caiado de branco
-const PAVER_REGIONS = { vila: 0.65, saopedro: 0.75, terravermelha: 0.75, feurosa: 0.7, carapina: 0.7, novarosa: 0.7, flexal: 0.7, jardim: 0.35, industrial: 0.3 };
+// bloquete só na favela (Serra e os morros de São Pedreiro e Terra Amarelou); no resto, asfalto
+const PAVER_REGIONS = { saopedro: 0.75, terravermelha: 0.75, feurosa: 0.7, carapina: 0.7, novarosa: 0.7, flexal: 0.7 };
 function edgePave(e) {
   if (e.pave) return e.pave;
   if (!e.T.asphalt || e.T.id !== 'street' || e.bridge) return (e.pave = 'asphalt');
@@ -2563,8 +2600,8 @@ function drawEdgeBase(g, e) {
     const R = mulberry32(e.id * 977 + 13);
     // trilhas de pneu escurecidas, manchas de óleo e bloquetes afundados/remendados com cimento
     g.fillStyle = 'rgba(25,25,28,0.16)'; for (const y of [-hw * 0.55, -hw * 0.3, hw * 0.3, hw * 0.55]) g.fillRect(0, y - 3, L, 6);
-    for (let i = 0; i < L / 120; i++) { g.fillStyle = 'rgba(15,15,18,0.28)'; g.beginPath(); g.ellipse(R() * L, (R() - 0.5) * hw * 1.4, 4 + R() * 6, 3 + R() * 4, 0, 0, TAU); g.fill(); }
-    for (let i = 0; i < L / 300; i++) { g.fillStyle = R() < 0.5 ? 'rgba(150,148,140,0.75)' : 'rgba(40,40,42,0.45)'; g.fillRect(R() * L, (R() - 0.5) * hw * 1.5, 10 + R() * 18, 6 + R() * 10); }
+    for (let i = 0; i < L / 129; i++) { g.fillStyle = 'rgba(15,15,18,0.28)'; g.beginPath(); g.ellipse(R() * L, (R() - 0.5) * hw * 1.4, 4 + R() * 6, 3 + R() * 4, 0, 0, TAU); g.fill(); }
+    for (let i = 0; i < L / 323; i++) { g.fillStyle = R() < 0.5 ? 'rgba(150,148,140,0.75)' : 'rgba(40,40,42,0.45)'; g.fillRect(R() * L, (R() - 0.5) * hw * 1.5, 10 + R() * 18, 6 + R() * 10); }
     g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(0, -hw, L, 3); g.fillRect(0, hw - 3, L, 3);
   } else if (T.asphalt) {
     g.fillStyle = pat(g, 'asphalt'); g.fillRect(0, -hw, L, hw * 2);
@@ -2572,18 +2609,18 @@ function drawEdgeBase(g, e) {
     const R = mulberry32(e.id * 977 + 13);
     // remendos de asfalto (operação tapa-buraco) e desgaste nas trilhas de roda
     g.fillStyle = 'rgba(0,0,0,0.07)'; for (const y of [-hw * 0.6, -hw * 0.25, hw * 0.25, hw * 0.6]) g.fillRect(0, y - 3.5, L, 7);
-    for (let i = 0; i < L / 180; i++) {
+    for (let i = 0; i < L / 188; i++) {
       const s = R() * L, y = (R() - 0.5) * hw * 1.5, w = 16 + R() * 34, h = 10 + R() * 16;
       g.fillStyle = R() < 0.55 ? '#25272b' : '#3f4146'; g.fillRect(s, y, w, h);
       g.strokeStyle = 'rgba(10,10,12,0.5)'; g.lineWidth = 1; g.strokeRect(s, y, w, h);
     }
-    for (let i = 0; i < L / 260; i++) {
+    for (let i = 0; i < L / 271; i++) {
       const s = R() * L, y = (R() - 0.5) * hw * 1.6;
       g.fillStyle = R() < 0.5 ? 'rgba(20,20,24,0.35)' : 'rgba(80,80,85,0.25)';
       g.fillRect(s, y, 14 + R() * 30, 6 + R() * 12);
     }
     g.strokeStyle = 'rgba(15,15,18,0.45)'; g.lineWidth = 1;
-    for (let i = 0; i < L / 320; i++) {
+    for (let i = 0; i < L / 333; i++) {
       let s = R() * L, y = (R() - 0.5) * hw * 1.7;
       g.beginPath(); g.moveTo(s, y);
       for (let k = 0; k < 5; k++) { s += 4 + R() * 7; y += (R() - 0.5) * 6; g.lineTo(s, y); }
@@ -7520,7 +7557,7 @@ function bldOffset(b) {
    Paredes iguais (mesma cor, tamanho, lado e janelas acesas) usam a mesma imagem, então quase
    não se pinta nada novo enquanto você anda. O desenho é o mesmo de antes. */
 let WS_BAKE = 1, WS_LEN = 0, WS_K = 1.6, WS_CHECK = 0;
-const WS_H = 40, WS_MAX = 110, WS_CACHE = new Map();
+const WS_H = 40, WS_MAX = 260, WS_CACHE = new Map();
 const WS_BASE = { ctx: null, z: 1, zs: 1, tx: 0, ty: 0 };
 function wallFlickT(b) { return Math.floor(Game.time * 0.5 + ((b.seed * 0.618) % 1)); }
 function wsUse(ctx, b) { return ctx === WS_BASE.ctx && b.x1 - b.x0 <= WS_MAX && b.y1 - b.y0 <= WS_MAX; }
@@ -7589,6 +7626,7 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
   const big = ws === 3 && front;
   const lit = emissive ? null : new Path2D(), dark = emissive ? null : new Path2D(), em = emissive ? new Path2D() : null;
   const tflick = wallFlickT(b);
+  let nLit = 0, nDark = 0;
   for (let f = 0; f < floors; f++) {
     const f0 = big ? 0.08 : (f + 0.28) / floors, f1 = big ? 0.62 : (f + 0.74) / floors;
     for (let c = 0; c < cols; c++) {
@@ -7598,6 +7636,7 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
       if (!big && hsh < 0.04) on = hash2(b.seed + tflick, c) < 0.7;
       const P = emissive ? (on ? em : null) : (on ? lit : dark);
       if (!P) continue;
+      if (on) nLit++; else nDark++;
       P.moveTo(ax + ex * s0 + ox * f0, ay + ey * s0 + oy * f0);
       P.lineTo(ax + ex * s1 + ox * f0, ay + ey * s1 + oy * f0);
       P.lineTo(ax + ex * s1 + ox * f1, ay + ey * s1 + oy * f1);
@@ -7605,10 +7644,11 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
       P.closePath();
     }
   }
-  if (emissive) { ctx.fillStyle = big ? 'rgba(255,214,150,0.5)' : 'rgba(255,186,105,0.55)'; ctx.fill(em); }
+  // só pinta se tiver janela daquele tipo (parede sem janela acesa não gasta nada)
+  if (emissive) { if (nLit) { ctx.fillStyle = big ? 'rgba(255,214,150,0.5)' : 'rgba(255,186,105,0.55)'; ctx.fill(em); } }
   else {
-    ctx.fillStyle = '#18202b'; ctx.fill(dark);
-    ctx.fillStyle = big ? '#f3dcb0' : '#f0c47a'; ctx.fill(lit);
+    if (nDark) { ctx.fillStyle = '#18202b'; ctx.fill(dark); }
+    if (nLit) { ctx.fillStyle = big ? '#f3dcb0' : '#f0c47a'; ctx.fill(lit); }
   }
   if (!emissive && ws !== 2 && front && !big) {
     const s0 = 0.45, s1 = 0.55;
@@ -7796,7 +7836,7 @@ function drawTall(ctx, o) {
       if (o.style === 'arm') ctx.lineTo(o.hx + ox, o.hy + oy);
       ctx.stroke();
       if (o.style === 'globe') { ctx.fillStyle = o.broken ? '#555' : '#eef3ff'; ctx.beginPath(); ctx.arc(o.hx + ox, o.hy + oy, 4.5, 0, TAU); ctx.fill(); }
-      else { ctx.fillStyle = '#5c6066'; ctx.beginPath(); ctx.ellipse(o.hx + ox, o.hy + oy, 6, 3.5, Math.atan2(o.hy - o.y, o.hx - o.x), 0, TAU); ctx.fill(); ctx.fillStyle = o.broken ? '#333' : '#fff1c8'; ctx.beginPath(); ctx.arc(o.hx + ox, o.hy + oy, 2.2, 0, TAU); ctx.fill(); }
+      else { ctx.fillStyle = '#5c6066'; ctx.beginPath(); ctx.ellipse(o.hx + ox, o.hy + oy, 6, 3.5, Math.atan2(o.hy - o.y, o.hx - o.x), 0, TAU); ctx.fill(); if (o.broken) { ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(o.hx + ox, o.hy + oy, 2.2, 0, TAU); ctx.fill(); } } // lâmpada acesa: o brilho por cima já mostra
       break;
     }
     case 'tlight': {
@@ -8093,8 +8133,6 @@ function drawTallEmissive(ctx, o) {
       const hex = lightHex(o.col);
       ctx.drawImage(glowSprite(hex), o.hx + ox - 16, o.hy + oy - 16, 32, 32);
       ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 5, o.hy + oy - 5, 10, 10);
-      // mariposas rodando a lâmpada
-      if (Settings.quality !== 'baixa') { ctx.fillStyle = 'rgba(255,240,200,0.75)'; for (let i = 0; i < 3; i++) { const a = Game.time * (3 + i) + i * 2.1 + o.x * 0.01; ctx.fillRect(o.hx + ox + Math.cos(a) * (7 + i * 3), o.hy + oy + Math.sin(a * 1.3) * (6 + i * 2), 1.2, 1.2); } }
       break;
     }
     case 'tlight': {
