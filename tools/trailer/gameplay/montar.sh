@@ -14,7 +14,7 @@ with open('saida/lista.txt', 'w') as f:
         for q in fs: f.write("file '../%s/%s'\nduration 0.0166667\n" % (d, q))
 EOF
 [ -n "$SO_SOM" ] && [ -f saida/video.mp4 ] || ffmpeg -y -loglevel error -f concat -safe 0 -i saida/lista.txt -vf "fps=60,format=yuv420p" -c:v libx264 -preset slow -crf 21 -movflags +faststart saida/video.mp4
-node som_jogo.js
+[ -n "$PULA_JOGO" ] && [ -f saida/jogo.wav ] || node som_jogo.js
 python3 mix.py
 ffmpeg -y -loglevel error -i saida/video.mp4 -i saida/mix.wav -af "loudnorm=I=-14:TP=-1.0:LRA=11" -c:v copy -c:a aac -b:a 256k -shortest -movflags +faststart saida/br-night-drive-gameplay.mp4
 ls -la saida/br-night-drive-gameplay.mp4

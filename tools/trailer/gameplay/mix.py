@@ -167,12 +167,16 @@ mono = np.abs(voz).mean(axis=0); k = int(0.03 * SR)
 env = media(mono, k); env = env / max(1e-9, np.percentile(env[env > 1e-4], 95) if (env > 1e-4).any() else 1)
 env = np.clip(env * 1.6, 0, 1)
 # ataque rápido, soltura lenta
-sm = np.zeros(N); a_, r_ = np.exp(-1 / (0.02 * SR)), np.exp(-1 / (0.45 * SR)); v = 0.0
+sm = np.zeros(N); a_, r_ = np.exp(-64 / (0.03 * SR)), np.exp(-64 / (0.5 * SR)); v = 0.0  # por bloco de 64 amostras
 for i in range(0, N, 64):
     e = env[i]; v = a_ * v + (1 - a_) * e if e > v else r_ * v + (1 - r_) * e; sm[i:i + 64] = v
 jogo = ler(os.path.join(AQ, 'saida', 'jogo.wav')) if os.path.exists(os.path.join(AQ, 'saida', 'jogo.wav')) else np.zeros((2, N))
 jogo = np.pad(jogo, ((0, 0), (0, max(0, N - jogo.shape[1]))))[:, :N]
-mix = musica * 0.42 * (1 - 0.72 * sm) + jogo * 1.15 * (1 - 0.45 * sm) + voz * 1.0 + fx * 0.9
+mix = musica * 0.12 * (1 - 0.8 * sm) + jogo * 0.75 * (1 - 0.7 * sm) + voz * 1.0 + fx * 0.9  # voz ~12 dB acima do fundo
+if os.environ.get('STEMS'):
+    fundo = musica * 0.12 * (1 - 0.8 * sm) + jogo * 0.75 * (1 - 0.7 * sm) + fx * 0.9
+    for nome, st in (('st_voz', voz), ('st_fundo', fundo), ('st_mus', musica), ('st_jogo', jogo), ('st_env', np.vstack([sm, sm]))):
+        subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-f', 'f32le', '-ar', str(SR), '-ac', '2', '-i', '-', os.path.join(AQ, 'saida', nome + '.wav')], input=st.T.astype(np.float32).tobytes(), check=True)
 mix = hp(mix, 30)
 mix = np.tanh(mix * 1.15) / np.tanh(1.15)
 f0 = int((TOTAL - 0.6) * SR); mix[:, f0:] *= np.linspace(1, 0, N - f0) ** 1.5
