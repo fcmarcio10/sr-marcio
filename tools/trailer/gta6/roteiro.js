@@ -77,7 +77,7 @@ module.exports = {
     /* ---------- REFRÃO (cortes rápidos, nomes dos personagens) ---------- */
     { nome: '15-largada', bars: 1, antes: 0,
       setup: `TR.reset({ lb: 0, hud: true, time: 23 * 60 + 40 }); Profile.damage = 0; ${racha(0, '(TR.n - 6) / 60')}
-        TR.fixo(r.start[0] + 70, r.start[1] + 8, 2.2, 2.5); TR.nome('Zé do Canecão', 'Dono do racha · nunca perdeu (segundo ele)', 10, TR.n - 2);` },
+        TR.fixo(player.x + 70, player.y + 20, 2.2, 2.5); TR.nome('Zé do Canecão', 'Dono do racha · nunca perdeu (segundo ele)', 10, TR.n - 2);` },
     { nome: '16-vai', bars: 1, antes: 0, motor: true, sfx: [{ t: 0, s: 'impacto' }, { t: 0.04, s: 'pneu' }],
       setup: `TR.flash0 = 0.9; TR.slow = 1; TR.lb = 0; TR.nmo = null; TR.follow(1.75, 1.45, 0.22);` },
     { nome: '17-moqueca', bars: 1.5, antes: 40, motor: true,
