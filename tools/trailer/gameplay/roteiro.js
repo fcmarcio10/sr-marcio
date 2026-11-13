@@ -102,9 +102,9 @@ const cenas = [
   { nome: '13b-hidrante', seg: 1.9, antes: 0, estilo: 'trampo',
     setup: `TR.fixar(FALAS_BATIDA, 1); TR.batidaCarro(40, 250, 'hatch');` },
   { nome: '13c-lixeira', seg: 1.9, antes: 0, estilo: 'trampo',
-    setup: `TR.fixar(FALAS_BATIDA, 2); TR.batidaCarro(35, 250, 'van', [player.x + 900, player.y]);` },
+    setup: `TR.fixar(FALAS_BATIDA, 2); TR.batidaCarro(35, 250, 'van', [player.x + 900, player.y]); TR.cada = (f) => { if (f % 8 === 0) { const c = Traffic.cars[0]; console.warn('DBG f' + f + ' carros ' + Traffic.cars.length + (c ? ' d=' + Math.round(Math.hypot(c.x - player.x, c.y - player.y)) + ' v=' + Math.round(c.v) + ' dead=' + !!c.dead + ' st=' + c.state : '') + ' pv=' + Math.round(player.speed) + ' dano=' + Profile.damage.toFixed(1)); } };` },
   { nome: '13d-cerca', seg: 0.2 + D('g13') - 3.6 - 1.9 - 1.9 + 0.6, antes: 0, estilo: 'trampo',
-    setup: `TR.fixar(FALAS_BATIDA, 0); TR.batidaCarro(30, 250, 'taxi', [player.x, player.y + 900]);` },
+    setup: `TR.fixar(FALAS_BATIDA, 0); TR.batidaCarro(30, 250, 'taxi', [player.x, player.y + 900]); TR.cada = (f) => { if (f % 8 === 0) { const c = Traffic.cars[0]; console.warn('DBG f' + f + ' carros ' + Traffic.cars.length + (c ? ' d=' + Math.round(Math.hypot(c.x - player.x, c.y - player.y)) + ' v=' + Math.round(c.v) + ' dead=' + !!c.dead + ' st=' + c.state : '') + ' pv=' + Math.round(player.speed) + ' dano=' + Profile.damage.toFixed(1)); } };` },
   { nome: '14-chegada', seg: 0.2 + D('g14') + 0.4, antes: 0, estilo: 'trampo',
     setup: `const R = Act.ride; R.t = 5; TR.ultima = R; Profile.damage = Math.min(Profile.damage, 30); TR.chegar(R.dest.x, R.dest.y, ${s(0.4)}, 170);
       TR.em([[${s(1.4)}, () => { __VT.timers = __VT.timers.filter((t) => !String(t.fn).includes('angryVoice')); Act.rideOnline = false; Act.rideT = 1e9; }]]);` },

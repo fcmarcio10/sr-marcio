@@ -28,7 +28,8 @@
   }
   // áudios de voz de verdade (passageiro, Seu Biu...)
   const _vp = VoicePlayer.play, _vst = VoicePlayer.stop;
-  VoicePlayer.play = function (m) { if (T.rec && m && m.voice) T.som.push([T.quadro(), 'VOZ', [m.voice.clip]]); return _vp.apply(this, arguments); };
+  // o áudio de verdade entra na montagem; aqui o <audio> do navegador fica mudo e o fim segue o relógio da gravação
+  VoicePlayer.play = function (m) { if (T.rec && m && m.voice) T.som.push([T.quadro(), 'VOZ', [m.voice.clip]]); const r = _vp.apply(this, arguments); if (this.a) { try { this.a.onended = null; this.a.pause(); } catch (e) {} this.a = null; } return r; };
   VoicePlayer.stop = function () { if (T.rec && this.msg) T.som.push([T.quadro(), 'VOZ_PARA', []]); return _vst.apply(this, arguments); };
 
   /* ---------- camadas: toque, tecla, destaque e legenda ---------- */
