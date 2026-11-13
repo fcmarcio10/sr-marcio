@@ -365,6 +365,20 @@ function wsTrim() {
   WS_CHECK = frameNo + 120;
   for (const [k, E] of WS_CACHE) if (frameNo - E.u > 90) WS_CACHE.delete(k);
 }
+// brilho do poste já com o núcleo branco somado (mesma conta da luz: soma)
+const LAMP_GLOW = new Map();
+function lampGlowSprite(hex) {
+  let c = LAMP_GLOW.get(hex);
+  if (!c) { c = makeCanvas(64, 64); const g = c.getContext('2d'); g.globalCompositeOperation = 'lighter'; g.drawImage(glowSprite(hex), 0, 0, 64, 64); g.drawImage(glowSprite('#ffffff'), 22, 22, 20, 20); LAMP_GLOW.set(hex, c); }
+  return c;
+}
+// o objeto aparece na tela? (com a inclinação 2.5D, que nunca passa de 0,9x a altura) — fora da tela não desenha nada
+function tallVisible(o, v) {
+  if (o.kind === 'bld') { const m = o.h * 0.9 + (o.sign ? 60 : 6); return !(o.x1 + m < v.x0 || o.x0 - m > v.x1 || o.y1 + m < v.y0 || o.y0 - m > v.y1); }
+  if (o.kind === 'tree') { const m = 34 * o.size + o.h * 0.9; return o.x + m > v.x0 && o.x - m < v.x1 && o.y + m > v.y0 && o.y - m < v.y1; }
+  if (o.kind === 'lamp') { const m = o.h * 0.9 + 18; return Math.max(o.x, o.hx) + m > v.x0 && Math.min(o.x, o.hx) - m < v.x1 && Math.max(o.y, o.hy) + m > v.y0 && Math.min(o.y, o.hy) - m < v.y1; }
+  return true;
+}
 const FAVELA_RK = { feurosa: 1, carapina: 1, novarosa: 1, flexal: 1, saopedro: 1, terravermelha: 1 };
 const EM_BATCH = { on: false, norm: null, big: null, n: 0 };
 const WIN_STYLES = { house: 1, farmhouse: 1, office: 2, tower: 2, church: 2, apart: 2, colonial: 4, shop: 3, workshop: 3, garage: 3, kiosk: 3 };
@@ -652,22 +666,22 @@ function drawTall(ctx, o) {
     case 'wires': {
       ctx.strokeStyle = 'rgba(16,16,18,0.8)'; ctx.lineWidth = 0.9;
       const P = o.pts;
+      ctx.beginPath(); // os 3 fios e os "gatos" numa pincelada só
       for (let w = 0; w < 3; w++) {
-        ctx.beginPath();
         for (let i = 0; i < P.length - 1; i++) {
           const [ax, ay] = P[i], [bx, by] = P[i + 1];
           const [aox, aoy] = offAt(ax, ay, o.h - w * 4), [box, boy] = offAt(bx, by, o.h - w * 4);
           const x0 = ax + aox, y0 = ay + aoy, x1 = bx + box, y1 = by + boy;
           ctx.moveTo(x0, y0); ctx.quadraticCurveTo((x0 + x1) / 2, (y0 + y1) / 2 + 14 + w * 3, x1, y1);
         }
-        ctx.stroke();
       }
       // "gato" emaranhado em alguns postes
       for (let i = 0; i < P.length; i++) {
         if (hash2(i, o.seed * 1000 | 0) > 0.3) continue;
         const [ax, ay] = P[i], [aox, aoy] = offAt(ax, ay, o.h - 4);
-        ctx.beginPath(); ctx.ellipse(ax + aox + 3, ay + aoy + 4, 5, 3, 0.4, 0, TAU); ctx.ellipse(ax + aox - 2, ay + aoy + 6, 3.5, 2.5, -0.3, 0, TAU); ctx.stroke();
+        ctx.moveTo(ax + aox + 8, ay + aoy + 4); ctx.ellipse(ax + aox + 3, ay + aoy + 4, 5, 3, 0.4, 0, TAU); ctx.moveTo(ax + aox + 1.5, ay + aoy + 6); ctx.ellipse(ax + aox - 2, ay + aoy + 6, 3.5, 2.5, -0.3, 0, TAU);
       }
+      ctx.stroke();
       break;
     }
     case 'flags': {
@@ -889,9 +903,7 @@ function drawTallEmissive(ctx, o) {
     case 'lamp': {
       if (o.broken) { if (o.light && o.light.dieAt && Game.time < o.light.dieAt && Math.random() < 0.5) { const [ox, oy] = offAt(o.hx, o.hy, o.h); ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 8, o.hy + oy - 8, 16, 16); } return; }
       const [ox, oy] = offAt(o.hx, o.hy, o.h);
-      const hex = lightHex(o.col);
-      ctx.drawImage(glowSprite(hex), o.hx + ox - 16, o.hy + oy - 16, 32, 32);
-      ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 5, o.hy + oy - 5, 10, 10);
+      ctx.drawImage(lampGlowSprite(lightHex(o.col)), o.hx + ox - 16, o.hy + oy - 16, 32, 32); // luz + núcleo branco juntos
       // mariposas rodando a lâmpada: só em 30% dos postes das favelas
       if (o.moth === undefined) o.moth = !!FAVELA_RK[regionKeyAt(o.x, o.y)] && hash2(o.x | 0, o.y | 0) < 0.3;
       if (o.moth && Settings.quality !== 'baixa') { ctx.fillStyle = 'rgba(255,240,200,0.75)'; for (let i = 0; i < 3; i++) { const a = Game.time * (3 + i) + i * 2.1 + o.x * 0.01; ctx.fillRect(o.hx + ox + Math.cos(a) * (7 + i * 3), o.hy + oy + Math.sin(a * 1.3) * (6 + i * 2), 1.2, 1.2); } }
@@ -1118,11 +1130,14 @@ const Fireflies = { list: [] };
 function updateFireflies(dt) {
   const R = REGIONS[regionKeyAt(Cam.x, Cam.y)];
   const want = R.rural > 0.5 && Settings.quality !== 'baixa' ? (Settings.quality === 'alta' ? 85 : 45) : 0;
-  while (Fireflies.list.length < want) Fireflies.list.push({ x: Cam.x + rnd(-900, 900), y: Cam.y + rnd(-600, 600), ph: rnd(TAU), vx: rnd(-8, 8), vy: rnd(-8, 8) });
-  if (Fireflies.list.length > want) Fireflies.list.length = want;
+  // vagalumes só na área da tela (antes ficavam espalhados bem além dela)
+  const v = Cam.view, hw = v && v.x1 > v.x0 ? (v.x1 - v.x0) / 2 + 40 : 900, hh = v && v.x1 > v.x0 ? (v.y1 - v.y0) / 2 + 40 : 600;
+  const wantN = Math.round(want * Math.min(1, (hw * hh) / (900 * 600))); // mesma quantidade por pedaço de tela
+  while (Fireflies.list.length < wantN) Fireflies.list.push({ x: Cam.x + rnd(-hw, hw), y: Cam.y + rnd(-hh, hh), ph: rnd(TAU), vx: rnd(-8, 8), vy: rnd(-8, 8) });
+  if (Fireflies.list.length > wantN) Fireflies.list.length = wantN;
   for (const f of Fireflies.list) {
     f.ph += dt; f.x += (f.vx + Math.sin(f.ph * 0.7) * 6) * dt; f.y += (f.vy + Math.cos(f.ph * 0.9) * 6) * dt;
-    if (Math.abs(f.x - Cam.x) > 1000 || Math.abs(f.y - Cam.y) > 700) { f.x = Cam.x + rnd(-900, 900); f.y = Cam.y + rnd(-600, 600); }
+    if (Math.abs(f.x - Cam.x) > hw + 60 || Math.abs(f.y - Cam.y) > hh + 60) { f.x = Cam.x + rnd(-hw, hw); f.y = Cam.y + rnd(-hh, hh); }
   }
 }
 // força do farol do jogador: frente amassada deixa o farol fraco e piscando
@@ -1487,7 +1502,7 @@ function render() {
   // objetos altos ordenados por distância à câmera (longe primeiro)
   rendGrid.query(view.x0 - 170, view.y0 - 170, view.x1 + 170, view.y1 + 170, _rq);
   _talls.length = 0;
-  for (const o of _rq) { const ox = o.cx !== undefined ? o.cx : o.x, oy = o.cy !== undefined ? o.cy : o.y; o._d = (ox - cx) * (ox - cx) + (oy - cy) * (oy - cy); _talls.push(o); }
+  for (const o of _rq) { if (!tallVisible(o, view)) continue; const ox = o.cx !== undefined ? o.cx : o.x, oy = o.cy !== undefined ? o.cy : o.y; o._d = (ox - cx) * (ox - cx) + (oy - cy) * (oy - cy); _talls.push(o); }
   _talls.sort((a, b) => b._d - a._d);
   pm('tallsQuery');
   for (const o of _talls) drawTall(ctx, o);
@@ -1578,6 +1593,19 @@ function mapIcon(g, x, y, kind, s) {
   }
   g.restore();
 }
+// ícone pronto (imagem) por tipo e tamanho: colar 1 imagem em vez de redesenhar 5 a 9 formas por quadro
+const ICON_CACHE = new Map();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => ICON_CACHE.clear()); // P e ? usam a fonte do jogo
+function mapIconSprite(kind, s, px) {
+  const key = kind + '|' + s + '|' + px.toFixed(2);
+  let c = ICON_CACHE.get(key);
+  if (!c) {
+    const r = Math.ceil(6 * s * px) + 2; c = makeCanvas(r * 2, r * 2);
+    const g = c.getContext('2d'); g.translate(r, r); g.scale(px, px); mapIcon(g, 0, 0, kind, s);
+    ICON_CACHE.set(key, c);
+  }
+  return c;
+}
 function shopIconKind(s) { return s.kind === 'garagem' ? 'home' : s.kind === 'posto' ? 'fuel' : s.kind === 'oficina' ? 'repair' : s.pickup && !Act.delivery ? 'job' : 'shop'; }
 const mmCanvas = document.getElementById('minimap'), mm = mmCanvas.getContext('2d');
 function drawMinimap() {
@@ -1600,7 +1628,7 @@ function drawMinimap() {
     mm.strokeStyle = '#ffcc2e'; mm.lineWidth = 5 / scale * k * 0.5; mm.lineJoin = 'round';
     mm.beginPath(); Act.gps.pts.forEach((p, i) => (i ? mm.lineTo(p[0], p[1]) : mm.moveTo(p[0], p[1]))); mm.stroke();
   }
-  const ic = (x, y, kind) => { mm.save(); mm.translate(x, y); mm.rotate(-rot); mm.scale(1 / scale * k * 1.05, 1 / scale * k * 1.05); mapIcon(mm, 0, 0, kind, 1.1); mm.restore(); };
+  const ic = (x, y, kind) => { const sp = mapIconSprite(kind, 1.1, k * 1.05); mm.save(); mm.translate(x, y); mm.rotate(-rot); mm.scale(1 / scale, 1 / scale); mm.drawImage(sp, -sp.width / 2, -sp.height / 2); mm.restore(); };
   for (const s of World.shops) ic(s.x, s.y, shopIconKind(s));
   if (Socorro.job) ic(Socorro.job.x, Socorro.job.y, 'repair');
   { const ep = Events.mapPoint(); if (ep) ic(ep[0], ep[1], 'event'); }
@@ -1725,7 +1753,7 @@ class MapView {
       g.beginPath(); Act.gps.pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
       g.strokeStyle = 'rgba(5,7,11,0.9)'; g.lineWidth = 9 * k; g.stroke(); g.strokeStyle = '#ffcc2e'; g.lineWidth = 5.5 * k; g.stroke();
     }
-    const ic = (x, y, kind) => { if (x < x0 || x > x1 || y < y0 || y > y1) return; g.save(); g.translate(x, y); g.scale(k * 1.35, k * 1.35); mapIcon(g, 0, 0, kind, 1.2); g.restore(); };
+    const ic = (x, y, kind) => { if (x < x0 || x > x1 || y < y0 || y > y1) return; const sp = mapIconSprite(kind, 1.2, k * 1.35); g.drawImage(sp, x - sp.width / 2, y - sp.height / 2); };
     for (const p of World.pois) ic(p.x, p.y, Profile.discovered.includes(p.id) ? 'poi' : 'unknown');
     for (const sp of World.parkSpots) if (!Profile.parks[sp.id]) ic(sp.x, sp.y, 'park');
     for (const r2 of World.races) ic(r2.start[0], r2.start[1], 'race');
@@ -1802,8 +1830,12 @@ function drawBigMap() {
 
 /* ---------- velocímetro ---------- */
 const spCanvas = document.getElementById('speedo'), spx = spCanvas.getContext('2d');
+let SPEEDO_KEY = '';
 function drawSpeedo() {
   if (!player) return;
+  // só redesenha quando muda alguma coisa que aparece (parado, não gasta nada)
+  const key = Math.round(player.speed * 0.3) + '|' + Math.round(player.rpm / 60) + '|' + player.gear + '|' + (player.speed < 4 && !Keys.KeyW && !Keys.ArrowUp) + '|' + !!player.highBeam + '|' + spCanvas.width;
+  if (key === SPEEDO_KEY) return; SPEEDO_KEY = key;
   const W = spCanvas.width, H = spCanvas.height, k = W / 220;
   spx.setTransform(1, 0, 0, 1, 0, 0); spx.clearRect(0, 0, W, H);
   spx.scale(k, k);
@@ -1819,10 +1851,15 @@ function drawSpeedo() {
   spx.strokeStyle = gr; spx.lineWidth = 9;
   if (f > 0.002) { spx.beginPath(); spx.arc(cx, cy, R, a0, a0 + (a1 - a0) * f); spx.stroke(); }
   spx.lineCap = 'butt';
-  for (let v = 0; v <= maxK; v += 20) {
-    const a = a0 + (a1 - a0) * v / maxK, big = v % 40 === 0;
+  for (const big of [true, false]) { // risquinhos grandes e pequenos: uma pincelada cada grupo
     spx.strokeStyle = big ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)'; spx.lineWidth = big ? 2 : 1;
-    spx.beginPath(); spx.moveTo(cx + Math.cos(a) * (R - 12), cy + Math.sin(a) * (R - 12)); spx.lineTo(cx + Math.cos(a) * (R - (big ? 20 : 16)), cy + Math.sin(a) * (R - (big ? 20 : 16))); spx.stroke();
+    spx.beginPath();
+    for (let v = 0; v <= maxK; v += 20) {
+      if ((v % 40 === 0) !== big) continue;
+      const a = a0 + (a1 - a0) * v / maxK;
+      spx.moveTo(cx + Math.cos(a) * (R - 12), cy + Math.sin(a) * (R - 12)); spx.lineTo(cx + Math.cos(a) * (R - (big ? 20 : 16)), cy + Math.sin(a) * (R - (big ? 20 : 16)));
+    }
+    spx.stroke();
   }
   const rf = clamp((player.rpm - 600) / 6400, 0, 1);
   spx.strokeStyle = rf > 0.85 ? '#ff5f7a' : 'rgba(255,255,255,0.45)'; spx.lineWidth = 3;

@@ -420,7 +420,7 @@ function evDriveAway(E, dt) {
 }
 function evQuebrado(E, dt, prompt, busy, busyMsg) {
   const p = player, sp = p.speed, d = Math.hypot(E.x - p.x, E.y - p.y);
-  if (E.smoke >= 0 && chance(dt * 3)) Particles.emit('smoke', E.x + Math.cos(E.a) * 16, E.y + Math.sin(E.a) * 16, rnd(-8, 8), rnd(-20, -8), rnd(1, 2), 7);
+  if (E.smoke >= 0 && nearView(E.x, E.y, 80) && chance(dt * 3)) Particles.emit('smoke', E.x + Math.cos(E.a) * 16, E.y + Math.sin(E.a) * 16, rnd(-8, 8), rnd(-20, -8), rnd(1, 2), 7);
   if (E.stage === 'wait') {
     if (d < 95) {
       const txt = { bateria: 'Ajudar ' + E.who + ': chupeta na bateria', pneu: 'Ajudar ' + E.who + ': trocar o pneu furado', gasolina: 'Ajudar ' + E.who + ': ficou sem gasolina' }[E.kind];
@@ -558,11 +558,15 @@ function evFesta(E, dt, prompt, busy, busyMsg) {
 }
 function evFestaAnim(E, dt) {
   const p = player;
+  if (!nearView(E.x, E.y, 260)) { festaMusic(E, dt, p); return; } // fora da tela: só a música de longe (nada se mexe à toa)
+  festaMusic(E, dt, p);
   // a quadrilha gira em volta da fogueira
   const t = Game.time * (E.party ? 1.1 : 0.55);
   E.dancers.forEach((d, i) => { const r = 44 + (i % 2) * 14, a2 = d.ph + t * (i % 2 ? -1 : 1); d.x = E.x + Math.cos(a2) * r; d.y = E.y + Math.sin(a2) * r * 0.8; d.a = a2 + Math.PI / 2; });
   if (chance(dt * 6)) Particles.emit('flame', E.x + rnd(-6, 6), E.y + rnd(-4, 4), rnd(-10, 10), rnd(-40, -20), rnd(0.3, 0.6), 4);
-  // forró baixinho quando você está perto
+}
+// forró baixinho quando você está perto (toca mesmo sem a festa aparecer na tela)
+function festaMusic(E, dt, p) {
   E.musT = (E.musT || 0) - dt;
   if (E.musT <= 0 && Math.hypot(E.x - p.x, E.y - p.y) < 600 && AudioSys.ok) {
     E.musT = 1.6;

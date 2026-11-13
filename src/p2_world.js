@@ -835,19 +835,29 @@ function comunidadeBlock(R) {
   // muro grafitado virado para a rua (face sul)
   const gl = [];
   for (let x = R.x0 + 6; x < R.x1 - 60; x += rndi(70, 110)) gl.push({ x, text: chance(0.5) ? pick(MURO_FRASES) : pick(PIXOS), color: pick(['#111111', '#f2f2ea', '#c8241c', '#1d4f9c', '#2a9d8f', '#f4c430']), mural: chance(0.25) });
-  addWall(R.x0, R.y1 + 1, R.x1, R.y1 + 5, pick(['#d8d0c0', '#c9b79c', '#e2d2b6', '#b8b0a2']), {});
+  // viela de terra de cima a baixo (de uma rua à outra): só cabe gente, carro não passa
+  const VW = 16, vx = Math.round(R.x0 + (R.x1 - R.x0) * (0.38 + 0.24 * hash2(R.x0 | 0, R.y0 | 0)));
+  const wallCol = pick(['#d8d0c0', '#c9b79c', '#e2d2b6', '#b8b0a2']);
+  addWall(R.x0, R.y1 + 1, vx, R.y1 + 5, wallCol, {}); addWall(vx + VW, R.y1 + 1, R.x1, R.y1 + 5, wallCol, {}); // muro aberto na saída da viela
   const cols = ['#e9c46a', '#f4a261', '#2a9d8f', '#e76f51', '#8ecae6', '#f1efe8', '#b5603a', '#b5603a', '#c06a40', '#9bc53d', '#ff99c8'];
-  // casas um pouco maiores e em menor número (metade): mesma cara de comunidade, bem mais leve.
+  // casas maiores e em menor número, com vielas no meio: mesma cara de comunidade, bem mais leve.
   // As casas usam um sorteio só delas; o sorteio do mapa avança igual ao de antes (comunidadeSorteioAntigo),
   // assim o resto da cidade continua exatamente no mesmo lugar.
   const RG = RNG; RNG = mulberry32(((R.x0 | 0) * 73856093 ^ (R.y0 | 0) * 19349663) >>> 0);
+  decal(vx, R.y0, vx + VW, R.y1 + 6, 'earth', { z: 1.2 });
+  const midY = (R.y0 + R.y1) / 2; let ewDone = false;
   let y = R.y0 + 4, row = 0;
   while (y < R.y1 - 30) {
-    const rh = Math.min(rndi(44, 64), R.y1 - 4 - y);
+    let rh = Math.min(rndi(54, 76), R.y1 - 4 - y);
+    if (R.y1 - 4 - (y + rh) < 46) rh = R.y1 - 4 - y; // última fileira vai até o fim (sem sobrar terreno vazio)
     let x = R.x0 + 4;
     while (x < R.x1 - 24) {
-      const w = Math.min(rndi(38, 64), R.x1 - 4 - x);
-      if (w < 20) break;
+      if (x + 20 > vx && x < vx + VW + 1) { x = vx + VW + 1; continue; } // pula a viela
+      let w = Math.min(rndi(48, 78), R.x1 - 4 - x);
+      if (x < vx && x + w > vx - 1) w = vx - 1 - x; // a casa termina antes da viela
+      else if (x < vx && vx - 1 - (x + w) < 24) w = vx - 1 - x; // encosta na viela
+      else if (R.x1 - 4 - (x + w) < 24) w = R.x1 - 4 - x; // última casa da fileira vai até o fim
+      if (w < 20) { if (x < vx) { x = vx + VW + 1; continue; } break; }
       const wall = pick(cols), brick = wall === '#b5603a' || wall === '#c06a40';
       const floors = rndi(1, 3);
       const roofType = pick(['laje', 'laje', 'tijolo', 'amianto', 'laje']);
@@ -857,10 +867,13 @@ function comunidadeBlock(R) {
       if (chance(0.23)) addLight(x + w / 2, y + rh + 4, 45, 0.6, 'warm');
       x += w + (chance(0.22) ? rndi(10, 14) : 1);
     }
-    y += rh + (chance(0.5) ? rndi(10, 14) : 2);
+    // viela atravessando de um lado ao outro, no meio do quarteirão
+    if (!ewDone && y + rh > midY && y + rh < R.y1 - 60) { ewDone = true; chance(0.5); decal(R.x0, y + rh, R.x1, y + rh + VW, 'earth', { z: 1.2 }); y += rh + VW; }
+    else y += rh + (chance(0.5) ? rndi(10, 14) : 2);
     row++;
   }
   RNG = RG;
+  World.animalsDef.push({ type: 'person', n: 3, rect: [vx + 3, R.y0 + 10, vx + VW - 3, R.y1 - 10] }); // gente passando na viela
   comunidadeSorteioAntigo(R, cols);
   rnd(); rnd(); // as duas cordas de bandeirinha que existiam aqui (tiradas: pesavam)
   const cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2;

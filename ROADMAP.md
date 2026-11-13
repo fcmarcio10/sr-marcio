@@ -59,6 +59,11 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
   - Corrigido: carros andando no meio da faixa. Mariposas só em 30% dos postes das favelas; −20% árvores; −35% pedestres; chuva e poças −10%; espirro −35%; carros −28% de pinceladas sem perder detalhe; casinhas −8% de detalhe.
   - GPS e painel do carro 5% menores, botão do celular em cima do GPS, sem o texto "Q · Celular". Áudio de boas-vindas do Seu Zé na primeira vez.
 
+- [x] **Pinceladas juntas, vielas e nada fora da tela**
+  - Ícones do GPS, brilho dos postes, fios, pernas/patas, velocímetro: menos pinceladas com o mesmo visual.
+  - Favela com 34% menos casas e vielas de terra de rua a rua. Construções, árvores e postes fora da tela não são desenhados; festa e vagalumes só perto da tela.
+  - Quadro inteiro em Cara-Pintada: 2.599 → 1.637 pinceladas.
+
 ## Próximos
 
 1. **História em capítulos** — missões contadas pelo WhatsApp, com personagens fixos (Seu Zé, o primo enrolado, um cliente misterioso, o dono do ferro-velho). Cada capítulo libera bairro, carro ou oficina nova. Ex.: buscar uma encomenda em Vila Véia e descobrir que é a moqueca roubada do concurso de Camburiso.

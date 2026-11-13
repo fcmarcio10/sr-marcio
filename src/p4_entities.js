@@ -1015,7 +1015,7 @@ function drawAnimal(ctx, an) {
       const sw = an.v > 0 ? Math.sin(an.phase) * 2.4 : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
       if (dancing) ctx.rotate(Math.sin(Game.time * 4.5 + an.seed * 9) * 0.35);
       ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(1.5, 2, 4, 5, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = an.pants; ctx.fillRect(-1 + sw * 0.5, -2.6, 2.6, 1.8); ctx.fillRect(-1 - sw * 0.5, 0.8, 2.6, 1.8);
+      ctx.fillStyle = an.pants; ctx.beginPath(); ctx.rect(-1 + sw * 0.5, -2.6, 2.6, 1.8); ctx.rect(-1 - sw * 0.5, 0.8, 2.6, 1.8); ctx.fill();
       ctx.fillStyle = an.skin; ctx.beginPath(); ctx.arc(sw, -4.6, 1.2, 0, TAU); ctx.arc(-sw, 4.6, 1.2, 0, TAU); ctx.fill();
       // na chuva: uns de guarda-chuva, outros de capa de chuva com capuz (os boleiros da pelada não ligam)
       const rk = ((an.seed || 0.37) * 7.31) % 1, wetP = Weather.rain > 0.12 && an.team === undefined && !an.seuze;
@@ -1042,12 +1042,13 @@ function drawAnimal(ctx, an) {
       const horse = an.type === 'horse';
       const L = horse ? 13 : 13, W = horse ? 5.5 : 7.5;
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(3, 4, L + 2, W + 1.5, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#2a2420';
-      for (const [lx, ly, ph] of [[8, -W + 0.5, 0], [8, W - 0.5, Math.PI], [-8, -W + 0.5, Math.PI], [-8, W - 0.5, 0]]) ctx.fillRect(lx + Math.sin(an.phase + ph) * (an.v ? 2 : 0) - 1.5, ly - 1.2, 3, 2.4);
+      ctx.fillStyle = '#2a2420'; ctx.beginPath();
+      for (const [lx, ly, ph] of [[8, -W + 0.5, 0], [8, W - 0.5, Math.PI], [-8, -W + 0.5, Math.PI], [-8, W - 0.5, 0]]) ctx.rect(lx + Math.sin(an.phase + ph) * (an.v ? 2 : 0) - 1.5, ly - 1.2, 3, 2.4);
+      ctx.fill();
       ctx.fillStyle = an.col; ctx.beginPath(); ctx.ellipse(0, 0, L, W, 0, 0, TAU); ctx.fill();
       if (!horse && an.col === '#ece7dc') {
         ctx.fillStyle = '#26211e';
-        for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(-8 + hash2(i, an.seed * 100 | 0) * 15, (hash2(i + 9, an.seed * 100 | 0) - 0.5) * W * 1.3, 2.5 + hash2(i, 3) * 2, 2 + hash2(i, 4) * 1.5, 0, 0, TAU); ctx.fill(); }
+        ctx.beginPath(); for (let i = 0; i < 4; i++) { const ex = -8 + hash2(i, an.seed * 100 | 0) * 15, rx = 2.5 + hash2(i, 3) * 2; ctx.moveTo(ex + rx, (hash2(i + 9, an.seed * 100 | 0) - 0.5) * W * 1.3); ctx.ellipse(ex, (hash2(i + 9, an.seed * 100 | 0) - 0.5) * W * 1.3, rx, 2 + hash2(i, 4) * 1.5, 0, 0, TAU); } ctx.fill();
       }
       if (horse) { ctx.fillStyle = shade(an.col, -0.45); ctx.fillRect(2, -1, 11, 2); }
       const hx = graze ? L + 3 + Math.sin(an.phase * 0.5) * 1 : L + 2;
@@ -1069,8 +1070,9 @@ function drawAnimal(ctx, an) {
     }
     case 'dog': {
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(2, 2.5, 8, 4, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = shade(an.col, -0.3);
-      for (const [lx, ly, ph] of [[4, -3, 0], [4, 3, Math.PI], [-4, -3, Math.PI], [-4, 3, 0]]) ctx.fillRect(lx + Math.sin(an.phase + ph) * (an.v ? 1.8 : 0) - 1, ly - 0.9, 2, 1.8);
+      ctx.fillStyle = shade(an.col, -0.3); ctx.beginPath();
+      for (const [lx, ly, ph] of [[4, -3, 0], [4, 3, Math.PI], [-4, -3, Math.PI], [-4, 3, 0]]) ctx.rect(lx + Math.sin(an.phase + ph) * (an.v ? 1.8 : 0) - 1, ly - 0.9, 2, 1.8);
+      ctx.fill();
       ctx.fillStyle = an.col; ctx.beginPath(); ctx.ellipse(0, 0, 6.5, 3.2, 0, 0, TAU); ctx.fill();
       ctx.beginPath(); ctx.arc(6.5, 0, 2.8, 0, TAU); ctx.fill();
       ctx.fillStyle = shade(an.col, -0.35); ctx.beginPath(); ctx.ellipse(5.5, -2.6, 1.6, 1, 0.5, 0, TAU); ctx.ellipse(5.5, 2.6, 1.6, 1, -0.5, 0, TAU); ctx.fill();
@@ -1128,7 +1130,7 @@ const Particles = {
       if (p.type === 'steam' || p.type === 'exhaust') { ctx.globalAlpha = t * (p.type === 'steam' ? 0.35 : 0.18); ctx.fillStyle = p.type === 'steam' ? '#f0f4f8' : '#9a9a9a'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); continue; }
       ctx.globalAlpha = t * (p.type === 'dust' ? 0.35 : p.type === 'mud' ? 0.75 : p.type === 'water' ? 0.45 : 0.28);
       ctx.fillStyle = p.type === 'dust' ? '#9a7e5a' : p.type === 'mud' ? '#4e3220' : p.type === 'water' ? '#b9d6e6' : '#c8c8c8';
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); // (uma por uma: a fumaça fica mais densa onde se sobrepõe)
     }
     ctx.globalAlpha = 1;
   },

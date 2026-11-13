@@ -1327,19 +1327,29 @@ function comunidadeBlock(R) {
   // muro grafitado virado para a rua (face sul)
   const gl = [];
   for (let x = R.x0 + 6; x < R.x1 - 60; x += rndi(70, 110)) gl.push({ x, text: chance(0.5) ? pick(MURO_FRASES) : pick(PIXOS), color: pick(['#111111', '#f2f2ea', '#c8241c', '#1d4f9c', '#2a9d8f', '#f4c430']), mural: chance(0.25) });
-  addWall(R.x0, R.y1 + 1, R.x1, R.y1 + 5, pick(['#d8d0c0', '#c9b79c', '#e2d2b6', '#b8b0a2']), {});
+  // viela de terra de cima a baixo (de uma rua à outra): só cabe gente, carro não passa
+  const VW = 16, vx = Math.round(R.x0 + (R.x1 - R.x0) * (0.38 + 0.24 * hash2(R.x0 | 0, R.y0 | 0)));
+  const wallCol = pick(['#d8d0c0', '#c9b79c', '#e2d2b6', '#b8b0a2']);
+  addWall(R.x0, R.y1 + 1, vx, R.y1 + 5, wallCol, {}); addWall(vx + VW, R.y1 + 1, R.x1, R.y1 + 5, wallCol, {}); // muro aberto na saída da viela
   const cols = ['#e9c46a', '#f4a261', '#2a9d8f', '#e76f51', '#8ecae6', '#f1efe8', '#b5603a', '#b5603a', '#c06a40', '#9bc53d', '#ff99c8'];
-  // casas um pouco maiores e em menor número (metade): mesma cara de comunidade, bem mais leve.
+  // casas maiores e em menor número, com vielas no meio: mesma cara de comunidade, bem mais leve.
   // As casas usam um sorteio só delas; o sorteio do mapa avança igual ao de antes (comunidadeSorteioAntigo),
   // assim o resto da cidade continua exatamente no mesmo lugar.
   const RG = RNG; RNG = mulberry32(((R.x0 | 0) * 73856093 ^ (R.y0 | 0) * 19349663) >>> 0);
+  decal(vx, R.y0, vx + VW, R.y1 + 6, 'earth', { z: 1.2 });
+  const midY = (R.y0 + R.y1) / 2; let ewDone = false;
   let y = R.y0 + 4, row = 0;
   while (y < R.y1 - 30) {
-    const rh = Math.min(rndi(44, 64), R.y1 - 4 - y);
+    let rh = Math.min(rndi(54, 76), R.y1 - 4 - y);
+    if (R.y1 - 4 - (y + rh) < 46) rh = R.y1 - 4 - y; // última fileira vai até o fim (sem sobrar terreno vazio)
     let x = R.x0 + 4;
     while (x < R.x1 - 24) {
-      const w = Math.min(rndi(38, 64), R.x1 - 4 - x);
-      if (w < 20) break;
+      if (x + 20 > vx && x < vx + VW + 1) { x = vx + VW + 1; continue; } // pula a viela
+      let w = Math.min(rndi(48, 78), R.x1 - 4 - x);
+      if (x < vx && x + w > vx - 1) w = vx - 1 - x; // a casa termina antes da viela
+      else if (x < vx && vx - 1 - (x + w) < 24) w = vx - 1 - x; // encosta na viela
+      else if (R.x1 - 4 - (x + w) < 24) w = R.x1 - 4 - x; // última casa da fileira vai até o fim
+      if (w < 20) { if (x < vx) { x = vx + VW + 1; continue; } break; }
       const wall = pick(cols), brick = wall === '#b5603a' || wall === '#c06a40';
       const floors = rndi(1, 3);
       const roofType = pick(['laje', 'laje', 'tijolo', 'amianto', 'laje']);
@@ -1349,10 +1359,13 @@ function comunidadeBlock(R) {
       if (chance(0.23)) addLight(x + w / 2, y + rh + 4, 45, 0.6, 'warm');
       x += w + (chance(0.22) ? rndi(10, 14) : 1);
     }
-    y += rh + (chance(0.5) ? rndi(10, 14) : 2);
+    // viela atravessando de um lado ao outro, no meio do quarteirão
+    if (!ewDone && y + rh > midY && y + rh < R.y1 - 60) { ewDone = true; chance(0.5); decal(R.x0, y + rh, R.x1, y + rh + VW, 'earth', { z: 1.2 }); y += rh + VW; }
+    else y += rh + (chance(0.5) ? rndi(10, 14) : 2);
     row++;
   }
   RNG = RG;
+  World.animalsDef.push({ type: 'person', n: 3, rect: [vx + 3, R.y0 + 10, vx + VW - 3, R.y1 - 10] }); // gente passando na viela
   comunidadeSorteioAntigo(R, cols);
   rnd(); rnd(); // as duas cordas de bandeirinha que existiam aqui (tiradas: pesavam)
   const cx = (R.x0 + R.x1) / 2, cy = (R.y0 + R.y1) / 2;
@@ -4623,7 +4636,7 @@ function drawAnimal(ctx, an) {
       const sw = an.v > 0 ? Math.sin(an.phase) * 2.4 : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
       if (dancing) ctx.rotate(Math.sin(Game.time * 4.5 + an.seed * 9) * 0.35);
       ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(1.5, 2, 4, 5, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = an.pants; ctx.fillRect(-1 + sw * 0.5, -2.6, 2.6, 1.8); ctx.fillRect(-1 - sw * 0.5, 0.8, 2.6, 1.8);
+      ctx.fillStyle = an.pants; ctx.beginPath(); ctx.rect(-1 + sw * 0.5, -2.6, 2.6, 1.8); ctx.rect(-1 - sw * 0.5, 0.8, 2.6, 1.8); ctx.fill();
       ctx.fillStyle = an.skin; ctx.beginPath(); ctx.arc(sw, -4.6, 1.2, 0, TAU); ctx.arc(-sw, 4.6, 1.2, 0, TAU); ctx.fill();
       // na chuva: uns de guarda-chuva, outros de capa de chuva com capuz (os boleiros da pelada não ligam)
       const rk = ((an.seed || 0.37) * 7.31) % 1, wetP = Weather.rain > 0.12 && an.team === undefined && !an.seuze;
@@ -4650,12 +4663,13 @@ function drawAnimal(ctx, an) {
       const horse = an.type === 'horse';
       const L = horse ? 13 : 13, W = horse ? 5.5 : 7.5;
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(3, 4, L + 2, W + 1.5, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#2a2420';
-      for (const [lx, ly, ph] of [[8, -W + 0.5, 0], [8, W - 0.5, Math.PI], [-8, -W + 0.5, Math.PI], [-8, W - 0.5, 0]]) ctx.fillRect(lx + Math.sin(an.phase + ph) * (an.v ? 2 : 0) - 1.5, ly - 1.2, 3, 2.4);
+      ctx.fillStyle = '#2a2420'; ctx.beginPath();
+      for (const [lx, ly, ph] of [[8, -W + 0.5, 0], [8, W - 0.5, Math.PI], [-8, -W + 0.5, Math.PI], [-8, W - 0.5, 0]]) ctx.rect(lx + Math.sin(an.phase + ph) * (an.v ? 2 : 0) - 1.5, ly - 1.2, 3, 2.4);
+      ctx.fill();
       ctx.fillStyle = an.col; ctx.beginPath(); ctx.ellipse(0, 0, L, W, 0, 0, TAU); ctx.fill();
       if (!horse && an.col === '#ece7dc') {
         ctx.fillStyle = '#26211e';
-        for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(-8 + hash2(i, an.seed * 100 | 0) * 15, (hash2(i + 9, an.seed * 100 | 0) - 0.5) * W * 1.3, 2.5 + hash2(i, 3) * 2, 2 + hash2(i, 4) * 1.5, 0, 0, TAU); ctx.fill(); }
+        ctx.beginPath(); for (let i = 0; i < 4; i++) { const ex = -8 + hash2(i, an.seed * 100 | 0) * 15, rx = 2.5 + hash2(i, 3) * 2; ctx.moveTo(ex + rx, (hash2(i + 9, an.seed * 100 | 0) - 0.5) * W * 1.3); ctx.ellipse(ex, (hash2(i + 9, an.seed * 100 | 0) - 0.5) * W * 1.3, rx, 2 + hash2(i, 4) * 1.5, 0, 0, TAU); } ctx.fill();
       }
       if (horse) { ctx.fillStyle = shade(an.col, -0.45); ctx.fillRect(2, -1, 11, 2); }
       const hx = graze ? L + 3 + Math.sin(an.phase * 0.5) * 1 : L + 2;
@@ -4677,8 +4691,9 @@ function drawAnimal(ctx, an) {
     }
     case 'dog': {
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(2, 2.5, 8, 4, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = shade(an.col, -0.3);
-      for (const [lx, ly, ph] of [[4, -3, 0], [4, 3, Math.PI], [-4, -3, Math.PI], [-4, 3, 0]]) ctx.fillRect(lx + Math.sin(an.phase + ph) * (an.v ? 1.8 : 0) - 1, ly - 0.9, 2, 1.8);
+      ctx.fillStyle = shade(an.col, -0.3); ctx.beginPath();
+      for (const [lx, ly, ph] of [[4, -3, 0], [4, 3, Math.PI], [-4, -3, Math.PI], [-4, 3, 0]]) ctx.rect(lx + Math.sin(an.phase + ph) * (an.v ? 1.8 : 0) - 1, ly - 0.9, 2, 1.8);
+      ctx.fill();
       ctx.fillStyle = an.col; ctx.beginPath(); ctx.ellipse(0, 0, 6.5, 3.2, 0, 0, TAU); ctx.fill();
       ctx.beginPath(); ctx.arc(6.5, 0, 2.8, 0, TAU); ctx.fill();
       ctx.fillStyle = shade(an.col, -0.35); ctx.beginPath(); ctx.ellipse(5.5, -2.6, 1.6, 1, 0.5, 0, TAU); ctx.ellipse(5.5, 2.6, 1.6, 1, -0.5, 0, TAU); ctx.fill();
@@ -4736,7 +4751,7 @@ const Particles = {
       if (p.type === 'steam' || p.type === 'exhaust') { ctx.globalAlpha = t * (p.type === 'steam' ? 0.35 : 0.18); ctx.fillStyle = p.type === 'steam' ? '#f0f4f8' : '#9a9a9a'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); continue; }
       ctx.globalAlpha = t * (p.type === 'dust' ? 0.35 : p.type === 'mud' ? 0.75 : p.type === 'water' ? 0.45 : 0.28);
       ctx.fillStyle = p.type === 'dust' ? '#9a7e5a' : p.type === 'mud' ? '#4e3220' : p.type === 'water' ? '#b9d6e6' : '#c8c8c8';
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); // (uma por uma: a fumaça fica mais densa onde se sobrepõe)
     }
     ctx.globalAlpha = 1;
   },
@@ -6532,7 +6547,7 @@ function evDriveAway(E, dt) {
 }
 function evQuebrado(E, dt, prompt, busy, busyMsg) {
   const p = player, sp = p.speed, d = Math.hypot(E.x - p.x, E.y - p.y);
-  if (E.smoke >= 0 && chance(dt * 3)) Particles.emit('smoke', E.x + Math.cos(E.a) * 16, E.y + Math.sin(E.a) * 16, rnd(-8, 8), rnd(-20, -8), rnd(1, 2), 7);
+  if (E.smoke >= 0 && nearView(E.x, E.y, 80) && chance(dt * 3)) Particles.emit('smoke', E.x + Math.cos(E.a) * 16, E.y + Math.sin(E.a) * 16, rnd(-8, 8), rnd(-20, -8), rnd(1, 2), 7);
   if (E.stage === 'wait') {
     if (d < 95) {
       const txt = { bateria: 'Ajudar ' + E.who + ': chupeta na bateria', pneu: 'Ajudar ' + E.who + ': trocar o pneu furado', gasolina: 'Ajudar ' + E.who + ': ficou sem gasolina' }[E.kind];
@@ -6670,11 +6685,15 @@ function evFesta(E, dt, prompt, busy, busyMsg) {
 }
 function evFestaAnim(E, dt) {
   const p = player;
+  if (!nearView(E.x, E.y, 260)) { festaMusic(E, dt, p); return; } // fora da tela: só a música de longe (nada se mexe à toa)
+  festaMusic(E, dt, p);
   // a quadrilha gira em volta da fogueira
   const t = Game.time * (E.party ? 1.1 : 0.55);
   E.dancers.forEach((d, i) => { const r = 44 + (i % 2) * 14, a2 = d.ph + t * (i % 2 ? -1 : 1); d.x = E.x + Math.cos(a2) * r; d.y = E.y + Math.sin(a2) * r * 0.8; d.a = a2 + Math.PI / 2; });
   if (chance(dt * 6)) Particles.emit('flame', E.x + rnd(-6, 6), E.y + rnd(-4, 4), rnd(-10, 10), rnd(-40, -20), rnd(0.3, 0.6), 4);
-  // forró baixinho quando você está perto
+}
+// forró baixinho quando você está perto (toca mesmo sem a festa aparecer na tela)
+function festaMusic(E, dt, p) {
   E.musT = (E.musT || 0) - dt;
   if (E.musT <= 0 && Math.hypot(E.x - p.x, E.y - p.y) < 600 && AudioSys.ok) {
     E.musT = 1.6;
@@ -7621,6 +7640,20 @@ function wsTrim() {
   WS_CHECK = frameNo + 120;
   for (const [k, E] of WS_CACHE) if (frameNo - E.u > 90) WS_CACHE.delete(k);
 }
+// brilho do poste já com o núcleo branco somado (mesma conta da luz: soma)
+const LAMP_GLOW = new Map();
+function lampGlowSprite(hex) {
+  let c = LAMP_GLOW.get(hex);
+  if (!c) { c = makeCanvas(64, 64); const g = c.getContext('2d'); g.globalCompositeOperation = 'lighter'; g.drawImage(glowSprite(hex), 0, 0, 64, 64); g.drawImage(glowSprite('#ffffff'), 22, 22, 20, 20); LAMP_GLOW.set(hex, c); }
+  return c;
+}
+// o objeto aparece na tela? (com a inclinação 2.5D, que nunca passa de 0,9x a altura) — fora da tela não desenha nada
+function tallVisible(o, v) {
+  if (o.kind === 'bld') { const m = o.h * 0.9 + (o.sign ? 60 : 6); return !(o.x1 + m < v.x0 || o.x0 - m > v.x1 || o.y1 + m < v.y0 || o.y0 - m > v.y1); }
+  if (o.kind === 'tree') { const m = 34 * o.size + o.h * 0.9; return o.x + m > v.x0 && o.x - m < v.x1 && o.y + m > v.y0 && o.y - m < v.y1; }
+  if (o.kind === 'lamp') { const m = o.h * 0.9 + 18; return Math.max(o.x, o.hx) + m > v.x0 && Math.min(o.x, o.hx) - m < v.x1 && Math.max(o.y, o.hy) + m > v.y0 && Math.min(o.y, o.hy) - m < v.y1; }
+  return true;
+}
 const FAVELA_RK = { feurosa: 1, carapina: 1, novarosa: 1, flexal: 1, saopedro: 1, terravermelha: 1 };
 const EM_BATCH = { on: false, norm: null, big: null, n: 0 };
 const WIN_STYLES = { house: 1, farmhouse: 1, office: 2, tower: 2, church: 2, apart: 2, colonial: 4, shop: 3, workshop: 3, garage: 3, kiosk: 3 };
@@ -7908,22 +7941,22 @@ function drawTall(ctx, o) {
     case 'wires': {
       ctx.strokeStyle = 'rgba(16,16,18,0.8)'; ctx.lineWidth = 0.9;
       const P = o.pts;
+      ctx.beginPath(); // os 3 fios e os "gatos" numa pincelada só
       for (let w = 0; w < 3; w++) {
-        ctx.beginPath();
         for (let i = 0; i < P.length - 1; i++) {
           const [ax, ay] = P[i], [bx, by] = P[i + 1];
           const [aox, aoy] = offAt(ax, ay, o.h - w * 4), [box, boy] = offAt(bx, by, o.h - w * 4);
           const x0 = ax + aox, y0 = ay + aoy, x1 = bx + box, y1 = by + boy;
           ctx.moveTo(x0, y0); ctx.quadraticCurveTo((x0 + x1) / 2, (y0 + y1) / 2 + 14 + w * 3, x1, y1);
         }
-        ctx.stroke();
       }
       // "gato" emaranhado em alguns postes
       for (let i = 0; i < P.length; i++) {
         if (hash2(i, o.seed * 1000 | 0) > 0.3) continue;
         const [ax, ay] = P[i], [aox, aoy] = offAt(ax, ay, o.h - 4);
-        ctx.beginPath(); ctx.ellipse(ax + aox + 3, ay + aoy + 4, 5, 3, 0.4, 0, TAU); ctx.ellipse(ax + aox - 2, ay + aoy + 6, 3.5, 2.5, -0.3, 0, TAU); ctx.stroke();
+        ctx.moveTo(ax + aox + 8, ay + aoy + 4); ctx.ellipse(ax + aox + 3, ay + aoy + 4, 5, 3, 0.4, 0, TAU); ctx.moveTo(ax + aox + 1.5, ay + aoy + 6); ctx.ellipse(ax + aox - 2, ay + aoy + 6, 3.5, 2.5, -0.3, 0, TAU);
       }
+      ctx.stroke();
       break;
     }
     case 'flags': {
@@ -8145,9 +8178,7 @@ function drawTallEmissive(ctx, o) {
     case 'lamp': {
       if (o.broken) { if (o.light && o.light.dieAt && Game.time < o.light.dieAt && Math.random() < 0.5) { const [ox, oy] = offAt(o.hx, o.hy, o.h); ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 8, o.hy + oy - 8, 16, 16); } return; }
       const [ox, oy] = offAt(o.hx, o.hy, o.h);
-      const hex = lightHex(o.col);
-      ctx.drawImage(glowSprite(hex), o.hx + ox - 16, o.hy + oy - 16, 32, 32);
-      ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 5, o.hy + oy - 5, 10, 10);
+      ctx.drawImage(lampGlowSprite(lightHex(o.col)), o.hx + ox - 16, o.hy + oy - 16, 32, 32); // luz + núcleo branco juntos
       // mariposas rodando a lâmpada: só em 30% dos postes das favelas
       if (o.moth === undefined) o.moth = !!FAVELA_RK[regionKeyAt(o.x, o.y)] && hash2(o.x | 0, o.y | 0) < 0.3;
       if (o.moth && Settings.quality !== 'baixa') { ctx.fillStyle = 'rgba(255,240,200,0.75)'; for (let i = 0; i < 3; i++) { const a = Game.time * (3 + i) + i * 2.1 + o.x * 0.01; ctx.fillRect(o.hx + ox + Math.cos(a) * (7 + i * 3), o.hy + oy + Math.sin(a * 1.3) * (6 + i * 2), 1.2, 1.2); } }
@@ -8374,11 +8405,14 @@ const Fireflies = { list: [] };
 function updateFireflies(dt) {
   const R = REGIONS[regionKeyAt(Cam.x, Cam.y)];
   const want = R.rural > 0.5 && Settings.quality !== 'baixa' ? (Settings.quality === 'alta' ? 85 : 45) : 0;
-  while (Fireflies.list.length < want) Fireflies.list.push({ x: Cam.x + rnd(-900, 900), y: Cam.y + rnd(-600, 600), ph: rnd(TAU), vx: rnd(-8, 8), vy: rnd(-8, 8) });
-  if (Fireflies.list.length > want) Fireflies.list.length = want;
+  // vagalumes só na área da tela (antes ficavam espalhados bem além dela)
+  const v = Cam.view, hw = v && v.x1 > v.x0 ? (v.x1 - v.x0) / 2 + 40 : 900, hh = v && v.x1 > v.x0 ? (v.y1 - v.y0) / 2 + 40 : 600;
+  const wantN = Math.round(want * Math.min(1, (hw * hh) / (900 * 600))); // mesma quantidade por pedaço de tela
+  while (Fireflies.list.length < wantN) Fireflies.list.push({ x: Cam.x + rnd(-hw, hw), y: Cam.y + rnd(-hh, hh), ph: rnd(TAU), vx: rnd(-8, 8), vy: rnd(-8, 8) });
+  if (Fireflies.list.length > wantN) Fireflies.list.length = wantN;
   for (const f of Fireflies.list) {
     f.ph += dt; f.x += (f.vx + Math.sin(f.ph * 0.7) * 6) * dt; f.y += (f.vy + Math.cos(f.ph * 0.9) * 6) * dt;
-    if (Math.abs(f.x - Cam.x) > 1000 || Math.abs(f.y - Cam.y) > 700) { f.x = Cam.x + rnd(-900, 900); f.y = Cam.y + rnd(-600, 600); }
+    if (Math.abs(f.x - Cam.x) > hw + 60 || Math.abs(f.y - Cam.y) > hh + 60) { f.x = Cam.x + rnd(-hw, hw); f.y = Cam.y + rnd(-hh, hh); }
   }
 }
 // força do farol do jogador: frente amassada deixa o farol fraco e piscando
@@ -8743,7 +8777,7 @@ function render() {
   // objetos altos ordenados por distância à câmera (longe primeiro)
   rendGrid.query(view.x0 - 170, view.y0 - 170, view.x1 + 170, view.y1 + 170, _rq);
   _talls.length = 0;
-  for (const o of _rq) { const ox = o.cx !== undefined ? o.cx : o.x, oy = o.cy !== undefined ? o.cy : o.y; o._d = (ox - cx) * (ox - cx) + (oy - cy) * (oy - cy); _talls.push(o); }
+  for (const o of _rq) { if (!tallVisible(o, view)) continue; const ox = o.cx !== undefined ? o.cx : o.x, oy = o.cy !== undefined ? o.cy : o.y; o._d = (ox - cx) * (ox - cx) + (oy - cy) * (oy - cy); _talls.push(o); }
   _talls.sort((a, b) => b._d - a._d);
   pm('tallsQuery');
   for (const o of _talls) drawTall(ctx, o);
@@ -8834,6 +8868,19 @@ function mapIcon(g, x, y, kind, s) {
   }
   g.restore();
 }
+// ícone pronto (imagem) por tipo e tamanho: colar 1 imagem em vez de redesenhar 5 a 9 formas por quadro
+const ICON_CACHE = new Map();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => ICON_CACHE.clear()); // P e ? usam a fonte do jogo
+function mapIconSprite(kind, s, px) {
+  const key = kind + '|' + s + '|' + px.toFixed(2);
+  let c = ICON_CACHE.get(key);
+  if (!c) {
+    const r = Math.ceil(6 * s * px) + 2; c = makeCanvas(r * 2, r * 2);
+    const g = c.getContext('2d'); g.translate(r, r); g.scale(px, px); mapIcon(g, 0, 0, kind, s);
+    ICON_CACHE.set(key, c);
+  }
+  return c;
+}
 function shopIconKind(s) { return s.kind === 'garagem' ? 'home' : s.kind === 'posto' ? 'fuel' : s.kind === 'oficina' ? 'repair' : s.pickup && !Act.delivery ? 'job' : 'shop'; }
 const mmCanvas = document.getElementById('minimap'), mm = mmCanvas.getContext('2d');
 function drawMinimap() {
@@ -8856,7 +8903,7 @@ function drawMinimap() {
     mm.strokeStyle = '#ffcc2e'; mm.lineWidth = 5 / scale * k * 0.5; mm.lineJoin = 'round';
     mm.beginPath(); Act.gps.pts.forEach((p, i) => (i ? mm.lineTo(p[0], p[1]) : mm.moveTo(p[0], p[1]))); mm.stroke();
   }
-  const ic = (x, y, kind) => { mm.save(); mm.translate(x, y); mm.rotate(-rot); mm.scale(1 / scale * k * 1.05, 1 / scale * k * 1.05); mapIcon(mm, 0, 0, kind, 1.1); mm.restore(); };
+  const ic = (x, y, kind) => { const sp = mapIconSprite(kind, 1.1, k * 1.05); mm.save(); mm.translate(x, y); mm.rotate(-rot); mm.scale(1 / scale, 1 / scale); mm.drawImage(sp, -sp.width / 2, -sp.height / 2); mm.restore(); };
   for (const s of World.shops) ic(s.x, s.y, shopIconKind(s));
   if (Socorro.job) ic(Socorro.job.x, Socorro.job.y, 'repair');
   { const ep = Events.mapPoint(); if (ep) ic(ep[0], ep[1], 'event'); }
@@ -8981,7 +9028,7 @@ class MapView {
       g.beginPath(); Act.gps.pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
       g.strokeStyle = 'rgba(5,7,11,0.9)'; g.lineWidth = 9 * k; g.stroke(); g.strokeStyle = '#ffcc2e'; g.lineWidth = 5.5 * k; g.stroke();
     }
-    const ic = (x, y, kind) => { if (x < x0 || x > x1 || y < y0 || y > y1) return; g.save(); g.translate(x, y); g.scale(k * 1.35, k * 1.35); mapIcon(g, 0, 0, kind, 1.2); g.restore(); };
+    const ic = (x, y, kind) => { if (x < x0 || x > x1 || y < y0 || y > y1) return; const sp = mapIconSprite(kind, 1.2, k * 1.35); g.drawImage(sp, x - sp.width / 2, y - sp.height / 2); };
     for (const p of World.pois) ic(p.x, p.y, Profile.discovered.includes(p.id) ? 'poi' : 'unknown');
     for (const sp of World.parkSpots) if (!Profile.parks[sp.id]) ic(sp.x, sp.y, 'park');
     for (const r2 of World.races) ic(r2.start[0], r2.start[1], 'race');
@@ -9058,8 +9105,12 @@ function drawBigMap() {
 
 /* ---------- velocímetro ---------- */
 const spCanvas = document.getElementById('speedo'), spx = spCanvas.getContext('2d');
+let SPEEDO_KEY = '';
 function drawSpeedo() {
   if (!player) return;
+  // só redesenha quando muda alguma coisa que aparece (parado, não gasta nada)
+  const key = Math.round(player.speed * 0.3) + '|' + Math.round(player.rpm / 60) + '|' + player.gear + '|' + (player.speed < 4 && !Keys.KeyW && !Keys.ArrowUp) + '|' + !!player.highBeam + '|' + spCanvas.width;
+  if (key === SPEEDO_KEY) return; SPEEDO_KEY = key;
   const W = spCanvas.width, H = spCanvas.height, k = W / 220;
   spx.setTransform(1, 0, 0, 1, 0, 0); spx.clearRect(0, 0, W, H);
   spx.scale(k, k);
@@ -9075,10 +9126,15 @@ function drawSpeedo() {
   spx.strokeStyle = gr; spx.lineWidth = 9;
   if (f > 0.002) { spx.beginPath(); spx.arc(cx, cy, R, a0, a0 + (a1 - a0) * f); spx.stroke(); }
   spx.lineCap = 'butt';
-  for (let v = 0; v <= maxK; v += 20) {
-    const a = a0 + (a1 - a0) * v / maxK, big = v % 40 === 0;
+  for (const big of [true, false]) { // risquinhos grandes e pequenos: uma pincelada cada grupo
     spx.strokeStyle = big ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)'; spx.lineWidth = big ? 2 : 1;
-    spx.beginPath(); spx.moveTo(cx + Math.cos(a) * (R - 12), cy + Math.sin(a) * (R - 12)); spx.lineTo(cx + Math.cos(a) * (R - (big ? 20 : 16)), cy + Math.sin(a) * (R - (big ? 20 : 16))); spx.stroke();
+    spx.beginPath();
+    for (let v = 0; v <= maxK; v += 20) {
+      if ((v % 40 === 0) !== big) continue;
+      const a = a0 + (a1 - a0) * v / maxK;
+      spx.moveTo(cx + Math.cos(a) * (R - 12), cy + Math.sin(a) * (R - 12)); spx.lineTo(cx + Math.cos(a) * (R - (big ? 20 : 16)), cy + Math.sin(a) * (R - (big ? 20 : 16)));
+    }
+    spx.stroke();
   }
   const rf = clamp((player.rpm - 600) / 6400, 0, 1);
   spx.strokeStyle = rf > 0.85 ? '#ff5f7a' : 'rgba(255,255,255,0.45)'; spx.lineWidth = 3;
