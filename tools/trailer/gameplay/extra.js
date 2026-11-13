@@ -7,7 +7,7 @@
   T.filtroToast = null; // na gameplay todos os avisos do jogo aparecem
   // reset da gameplay: placa do bairro ligada e o dinheiro de verdade (o do trailer enchia o bolso)
   const _reset = T.reset;
-  const st0 = document.createElement('style'); st0.textContent = '#phone-body [data-app="trapaca"]{display:none!important}body.gp-soplaca #hud{visibility:visible!important}body.gp-soplaca #hud>*:not(#region-banner){visibility:hidden!important}'; document.head.appendChild(st0);
+  const st0 = document.createElement('style'); st0.textContent = '#toasts{transform:scale(1.55);transform-origin:top right}#phone-body [data-app="trapaca"]{display:none!important}body.gp-soplaca #hud{visibility:visible!important}body.gp-soplaca #hud>*:not(#region-banner){visibility:hidden!important}'; document.head.appendChild(st0);
   T.reset = function (opt) { const m = Profile.money; _reset(opt); Profile.money = m; const rb = document.getElementById('region-banner'); if (rb) rb.style.display = ''; document.body.classList.toggle('gp-soplaca', !!(opt && opt.placa)); };
   /* ---------- quadro global (para os sons caírem no quadro certo do vídeo) ---------- */
   const _vs = V.step;
@@ -154,6 +154,21 @@
   T.botao = function (re, sel) { const b = [...document.querySelectorAll(sel || '#dialog-buttons button, #phone-body button')].find((x) => re.test(x.textContent)); if (!b) console.warn('sem botão', re); return b ? T.tocar(b) : false; };
   // agenda de ações por quadro (só durante a gravação): [[quadro, função], ...]
   T.em = function (lista) { TR.onFrame = (f) => { if (TR.cada) TR.cada(f); if (!TR.rec) return; for (const [q, fn] of lista) if (f === q) fn(f); }; };
+  // bate na traseira de um carro parado no trânsito (batida de verdade: a física do jogo conta o impacto)
+  T.batidaCarro = function (fHit, speed, modelo, perto) {
+    const [px, py] = perto || [player.x, player.y], D = speed / 60 * fHit + 20;
+    const es = World.edges.filter((e) => (e.T.id === 'street' || e.T.id === 'avenue') && e.len > D + 260).sort((a, b) => Math.hypot((a.a.x + a.b.x) / 2 - px, (a.a.y + a.b.y) / 2 - py) - Math.hypot((b.a.x + b.b.x) / 2 - px, (b.a.y + b.b.y) / 2 - py));
+    const e = es[0]; if (!e) return null;
+    for (const c of Traffic.cars) { c.release && c.release(); c.dead = true; } Traffic.cars = [];
+    const c = new AICar(e, 1, Math.min(e.len - 120, D + 140), 0, modelo || 'hatch');
+    c.cruise = 0; c.v = 0; c.acc = 0; c.pose(); Traffic.cars.push(c);
+    const x0 = c.x - Math.cos(c.a) * D, y0 = c.y - Math.sin(c.a) * D;
+    T.rail = null; player.place(x0, y0, c.a); player.vx = Math.cos(c.a) * speed; player.vy = Math.sin(c.a) * speed;
+    Cam.x = x0; Cam.y = y0; forceGround = true;
+    let bateu = -1; const d0 = Profile.damage;
+    T.manual = (f, p) => { c.cruise = 0; if (bateu < 0 && (Profile.damage > d0 + 0.3 || Math.hypot(c.x - p.x, c.y - p.y) < (c.m.L + p.m.L) / 2 + 2)) bateu = f; return bateu < 0 ? { thr: true } : { brk: p.speed > 12 }; };
+    return c;
+  };
   // chega até (x, y) e para perto do quadro fStop
   T.chegar = function (x, y, fStop, speed, opt) { return T.toward(x, y, Math.max(90, speed * (fStop / 60 - 0.55)), speed, opt); };
   // trava o sorteio de uma lista do jogo num item (ex.: a fala do passageiro), sem mexer no resto
