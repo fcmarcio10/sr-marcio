@@ -32,17 +32,20 @@ console.log('trechos:', TRECHOS.map(([a, b]) => a.toFixed(2) + '-' + b.toFixed(2
   await b.close();
   // 2) junta os trechos (vídeo e som, com uma emenda suave no som) e monta a tela em pé
   const V = path.join(AQ, 'saida', 'br-night-drive-anuncio.mp4');
+  // cada trecho entra como uma entrada separada (corte rápido na leitura, sem guardar o vídeo inteiro na memória)
+  const ent = [], n = TRECHOS.length;
   let f = '', cat = '';
   TRECHOS.forEach(([a, z], k) => {
-    const d = (z - a).toFixed(3);
-    f += `[0:v]trim=${a.toFixed(3)}:${z.toFixed(3)},setpts=PTS-STARTPTS[v${k}];[0:a]atrim=${a.toFixed(3)}:${z.toFixed(3)},asetpts=PTS-STARTPTS,afade=t=in:d=0.08,afade=t=out:st=${(z - a - 0.12).toFixed(3)}:d=0.12[a${k}];`;
+    ent.push('-ss', a.toFixed(3), '-t', (z - a).toFixed(3), '-i', V);
+    f += `[${k}:v]setpts=PTS-STARTPTS[v${k}];[${k}:a]asetpts=PTS-STARTPTS,afade=t=in:d=0.08,afade=t=out:st=${(z - a - 0.12).toFixed(3)}:d=0.12[a${k}];`;
     cat += `[v${k}][a${k}]`;
   });
-  f += `${cat}concat=n=${TRECHOS.length}:v=1:a=1[v][a];`;
-  f += `[v]split[v1][v2];[v1]scale=-2:1920,crop=1080:1920,boxblur=28:2,eq=brightness=-0.22:saturation=1.2[fundo];[v2]scale=1080:-2[meio];`;
-  f += `[fundo][meio]overlay=0:(H-h)/2[base];[base][1:v]overlay=0:0,format=yuv420p[out]`;
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', V, '-i', path.join(AQ, 'saida', 'shorts_moldura.png'), '-filter_complex', f,
-    '-map', '[out]', '-map', '[a]', '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart',
+  f += `${cat}concat=n=${n}:v=1:a=1[v][a];`;
+  // fundo: o próprio vídeo pequeno, borrado e escurecido, esticado para a tela em pé
+  f += `[v]split[v1][v2];[v1]scale=180:320:force_original_aspect_ratio=increase,crop=180:320,boxblur=8:2,eq=brightness=-0.22:saturation=1.2,scale=1080:1920[fundo];[v2]scale=1080:-2[meio];`;
+  f += `[fundo][meio]overlay=0:(H-h)/2[base];[base][${n}:v]overlay=0:0,format=yuv420p[out]`;
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...ent, '-i', path.join(AQ, 'saida', 'shorts_moldura.png'), '-filter_complex', f,
+    '-map', '[out]', '-map', '[a]', '-r', '60', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart',
     path.join(AQ, 'saida', 'br-night-drive-shorts.mp4')], { stdio: 'inherit' });
   console.log('saida/br-night-drive-shorts.mp4 pronto');
 })();
