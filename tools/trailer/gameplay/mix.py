@@ -6,6 +6,7 @@
 #     trampo = o mesmo groove com mais movimento (mecânicas, celular, oficina)
 #     baile  = funk (o batidão do paredão) para eventos e racha
 #     fecha  = funk com melodia, até o logo
+#     oitenta = sintetizador anos 80 (abertura e final do vídeo do YouTube)
 #   + som original do jogo (saida/jogo.wav, feito pelo som_jogo.js)
 #   + vozes do jogo que tocaram na gravação (audio/*.mp3, no quadro em que o celular tocou)
 #   + narração (narra/final/gXX.wav)
@@ -66,6 +67,20 @@ def tecla():  # clique de tecla
     t = tt(0.06); n = len(t)
     return (hp(noise(n), 2500) * np.exp(-t * 160) + np.sin(2 * np.pi * 420 * t) * np.exp(-t * 90) * 0.4) * 0.22
 
+# anos 80 (abertura e final do vídeo do YouTube): baixo de serra pulsando, arpejo de 16 avos e caixa com eco cortado
+def serra_baixo(f, dur):
+    t = tt(dur); s = (2 * ((t * f) % 1) - 1) + (2 * ((t * f * 1.005) % 1) - 1)
+    a = np.minimum(1, t / 0.004) * np.clip((dur - t) / 0.02, 0, 1)
+    return (lp(s, 900) * 0.35 + np.sin(2 * np.pi * f * t) * 0.5) * a * 0.5
+def arpejo80(f):
+    t = tt(STEP * 1.6); s = np.sign(np.sin(2 * np.pi * f * t)) * 0.6 + (2 * ((t * f * 2) % 1) - 1) * 0.25
+    return lp(s, 3200) * np.minimum(1, t / 0.003) * np.exp(-t * 10) * 0.12
+def caixa80():
+    t = tt(0.35); n = len(t)
+    corpo = np.sin(2 * np.pi * 190 * t) * np.exp(-t * 25) * 0.5 + bp(noise(n), 1500, 8000) * np.exp(-t * 14) * 0.6
+    sala = bp(noise(n), 800, 6000) * 0.25 * np.clip((0.3 - t) / 0.03, 0, 1) * (0.6 + 0.4 * np.exp(-t * 4))
+    return (corpo + sala) * 0.55
+
 # acordes em Lá menor: Am9 · Fmaj7 · Cmaj7 · G6 (piano) e as fundamentais (baixo)
 ACS = [((220, 261.63, 329.63, 493.88), 55.0), ((174.61, 220, 261.63, 329.63), 43.65), ((261.63, 329.63, 392.0, 493.88), 65.41), ((196.0, 246.94, 293.66, 329.63), 49.0)]
 def ac(barra): return ACS[int(barra) % 4]
@@ -102,6 +117,14 @@ def compasso(b, estilo):
         if estilo == 'fecha':
             MEL = [[(0, 69, 3), (3, 72, 3), (6, 76, 2), (8, 74, 4), (12, 72, 2), (14, 69, 2)], [(0, 67, 3), (3, 69, 3), (6, 72, 2), (8, 76, 6), (14, 74, 2)]]
             for s, m, d in MEL[b % 2]: poe(mus['mel'], lead(midi(m), d * STEP), t0 + s * STEP, 0.6, 0.15)
+    elif estilo == 'oitenta':
+        for s in (0, 4, 8, 12): poe(mus['bat'], kick() * 0.85, t0 + s * STEP, 0.8); kicks.append(t0 + s * STEP)
+        for s in (4, 12): poe(mus['bat'], caixa80(), t0 + s * STEP, 0.75)
+        for s in range(0, 16, 2): poe(mus['bat'], hat(), t0 + s * STEP, 0.18 if s % 4 else 0.12, 0.25)
+        for s in range(0, 16, 2): poe(mus['baixo'], serra_baixo(raiz * 2, STEP * 1.8), t0 + s * STEP, 0.6)
+        ordem = (0, 1, 2, 3, 2, 1, 0, 2, 1, 3, 2, 1, 0, 1, 2, 3)
+        for s in range(16): poe(mus['mel'], arpejo80(ch[ordem[s]] * 2), t0 + s * STEP, 0.8, 0.25 if s % 2 else -0.25)
+        if b % 2 == 0: poe(mus['harm'], pad(ch[:3], 2 * BAR, 1800), t0, 0.8)
     elif estilo == 'abre':
         if b % 2 == 0: poe(mus['harm'], pad(ch[:3], 2 * BAR, 900), t0, 0.9)
         poe(mus['baixo'], bass808(raiz, BAR * 0.9) * 0.6, t0, 0.5)
