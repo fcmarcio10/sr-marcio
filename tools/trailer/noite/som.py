@@ -184,7 +184,7 @@ if os.path.exists(jw):
     sr_j, x = wavfile.read(jw); x = x.astype(float).T / 32768.0
     if x.ndim == 1: x = np.vstack([x, x])
     n = min(N, x.shape[1]); jogo[:, :n] = x[:, :n]
-    jogo /= max(1e-9, np.sqrt(np.mean(jogo ** 2))) / 0.06  # nível parecido com o da música
+    jogo /= max(1e-9, np.sqrt(np.mean(jogo ** 2))) / 0.085  # nível parecido com o da música
 else: print('AVISO: sem saida/jogo.wav (rode o som_jogo.js)')
 
 # ---------------- falas ----------------
