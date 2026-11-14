@@ -111,7 +111,10 @@ function rideFinish(R) {
   gainXP(stars * 4 + { comum: 0, aero: 15, mudanca: 15, vip: 30 }[R.type]);
   if (R.type === 'aero' && late) setTimeout(() => toast(R.name, '"Perdi o voo! Agora vou de ônibus pra Vitorinha, com galinha no colo."', 'bad'), 1200);
   if (stars <= 2) setTimeout(() => angryVoice(R, late), rnd(6000, 12000));
-  else if (stars === 5) setTimeout(() => pgMsg(R, R.type === 'vip' ? 'Serviço impecável. Vou te recomendar pro meu círculo de amigos. E olha que meu círculo é exclusivo.' : pick(['Valeu pela corrida, motorista! Nota 5!', 'Corrida top, chegou rapidinho!', 'Melhor motorista de São Gambiarra, bicho!'])), 7000);
+  else if (stars === 5) setTimeout(() => {
+    if (R.type !== 'vip' && Math.random() < 0.45) happyVoice(R);
+    else pgMsg(R, R.type === 'vip' ? 'Serviço impecável. Vou te recomendar pro meu círculo de amigos. E olha que meu círculo é exclusivo.' : pick(['Valeu pela corrida, motorista! Nota 5!', 'Corrida top, chegou rapidinho!', 'Melhor motorista de São Gambiarra, bicho!', 'Bah, que corrida tri! Valeu, tchê!', 'Oxe, chegou foi ligeiro! Nota 5, visse?', 'Uai, nem senti os buracos, sô!', 'Égua, que motorista pai d\'égua!']));
+  }, 7000);
   saveGame();
 }
 
@@ -133,6 +136,17 @@ const VOICE_LINES = [
   { clip: 'p_sofa', g: 'm', when: 'mudanca', text: 'Meu sofá chegou com mais buraco que a BR depois da chuva! Rasgou tudo, mermão! Um prejuízo daqueles!' },
   { clip: 'p_aviao', g: 'f', when: 'aero', text: 'O avião foi embora e eu fiquei aqui olhando pro céu igual bobo. Valeu, piloto de fogão!' },
   { clip: 'p_vip2', g: 'm', when: 'vip', text: 'Olha, eu moro na parte chique de Camburiso, tá? Lá ninguém anda nesse sacolejo. Que experiência mais cafona, bicho.' },
+  // sotaques de vários cantos do Brasil
+  { clip: 'p_uai', g: 'm', when: 'hits3', text: 'Uai, sô! Cê bateu esse trem três vezes e ainda quer cinco estrelas? Nem minha vó dirige assim, uai! Uma estrela, e olhe lá!' },
+  { clip: 'p_bah', g: 'f', when: 'hits', text: 'Bah, tchê! Que barbaridade de corrida! Quase derramei o chimarrão inteiro no colo. Uma estrela pra ti, e olhe lá!' },
+  { clip: 'p_oxe', g: 'f', when: 'hits', text: 'Oxente, meu filho! Tu acha que eu sou saco de cimento, é? Nunca vi barbeiragem desse tamanho, visse? Uma estrela, e já é muito!' },
+  { clip: 'p_meu', g: 'm', when: 'late', text: 'Meu, que rolê demorado! Mais lento que avenida às seis da tarde em dia de chuva. Uma estrela pra você, mano. Sem ressentimento, tá?' },
+  { clip: 'p_caraca', g: 'm', when: 'mudanca', text: 'Caraca, mermão! Minha televisão chegou parecendo arte moderna! Agora vou ter que assistir novela em formato de sanfona!' },
+  { clip: 'p_egua', g: 'f', when: 'late', text: 'Égua, mana! Demorou tanto que deu tempo de tomar um açaí, fazer uma tapioca e ainda lavar a louça! Uma estrela, e é de presente!' },
+  // cliente feliz (corrida de 5 estrelas)
+  { clip: 'p_top1', g: 'f', when: 'top', text: 'Motorista nota mil! Chegou rapidinho, carro cheiroso e ainda tava tocando a Rádio Gambiarra. Cinco estrelas e um beijo!' },
+  { clip: 'p_top2', g: 'm', when: 'top', text: 'Ô trem bão, sô! Corrida macia que nem pão de queijo quentinho. Cinco estrelas procê, viu? Deus te abençoe!' },
+  { clip: 'p_top3', g: 'm', when: 'top', text: 'Aí sim, mano! Dirigiu igual piloto de Fórmula 1, mas sem bater em nada! Cinco estrelas, e ainda vou te dar gorjeta!' },
 ];
 // áudios dos personagens do jogo (clip opcional; sem clip o celular lê o texto)
 const CHAR_VOICES = {
@@ -161,11 +175,19 @@ function angryVoice(R, late) {
   pgMsg(R, L.text, { clip: L.clip, dur: (VOICE_CLIPS[L.clip] && VOICE_CLIPS[L.clip].dur) || Math.max(5, Math.round(L.text.length / 14)) });
   Profile.angry = (Profile.angry || 0) + 1;
 }
+// áudio de cliente feliz (corrida de 5 estrelas); passageira recebe voz de mulher quando tem
+function happyVoice(R) {
+  let opts = VOICE_LINES.filter((l) => l.when === 'top');
+  const g = genderOf(R.name), same = opts.filter((l) => l.g === g);
+  if (same.length) opts = same;
+  const L = pick(opts);
+  pgMsg(R, L.text, { clip: L.clip, dur: (VOICE_CLIPS[L.clip] && VOICE_CLIPS[L.clip].dur) || Math.max(5, Math.round(L.text.length / 14)) });
+}
 const FEM = /^(Dona|Thaís|Bia|Kelly|Vó|Professora|Influencer|Deputada|Tia|Jéssica|Rayane)/;
 function genderOf(name) { return FEM.test(name) ? 'f' : 'm'; }
 const VoicePlayer = { a: null, msg: null, t0: 0 };
 VoicePlayer.play = function (m) {
-  this.stop();
+  this.stop(); Radio.stop(); // áudio do zap ou do PegaAí corta o DJ
   const vol = clamp(((Settings.master !== undefined ? Settings.master : 80) / 100), 0, 1);
   this.msg = m; this.t0 = performance.now(); m.voice.heard = true;
   const c = VOICE_CLIPS[m.voice.clip];
@@ -189,6 +211,88 @@ VoicePlayer.tick = function () {
   if (k >= 1 && !this.a) { this.stop(); return; }
   requestAnimationFrame(() => this.tick());
 };
+
+/* ---------- Rádio Gambiarra FM 171,1: o DJ Biruta entra no ar de vez em quando ----------
+   Volume em Configurações (Rádio); tecla F liga (chama o DJ na hora) e desliga.
+   Não toca junto com áudio do zap/PegaAí, com o paredão ligado nem na contagem do racha. */
+const RADIO = [
+  { clip: 'radio_01', tag: 'Abertura', text: 'Alôôô, motorista da madrugada! Tá ligado na Rádio Gambiarra FM, cento e setenta e um vírgula um: a rádio que não te engana... muito! Aqui é o DJ Biruta, e a noite é nossa!' },
+  { clip: 'radio_02', tag: 'Previsão do tempo', text: 'Previsão do tempo pra São Gambiarra: céu nublado, noventa por cento de chance de chuva e cem por cento de chance de buraco na pista! Leva o guarda-chuva e o macaco, que o pneu vai furar!' },
+  { clip: 'radio_03', tag: 'Plantão do futebol', text: 'Plantão do futebol! O Vasco ligou aqui pra rádio querendo ser vice também no nosso concurso de piadas. Calma, torcedor vascaíno, é brincadeira! Vice também sobe no pódio... ali do ladinho.' },
+  { clip: 'radio_04', tag: 'Pergunta do ouvinte', text: 'Pergunta do ouvinte: o Palmeiras tem Mundial? A produção foi conferir e... a ligação caiu! E um abraço pro torcedor corintiano que ainda tá pagando o estádio no carnê!' },
+  { clip: 'radio_05', tag: 'Plantão do futebol', text: 'Atenção, torcedor do Flamengo: aquele cheirinho de título voltou! Ah, não... é o churrasquinho da esquina. E o Botafogo ganhou de virada do próprio azar. Coisas que só acontecem com o Botafogo!' },
+  { clip: 'radio_06', tag: 'Futebol pelo Brasil', text: 'Lá em Minas, o Galo cantou de madrugada e acordou até o torcedor do Cruzeiro. E no Sul, gremista e colorado dividiram um chimarrão em paz... mentira, isso nunca aconteceu!' },
+  { clip: 'radio_07', tag: 'Boletim do trânsito', text: 'Boletim do trânsito: a Ponte Nova continua em obras desde mil novecentos e oitenta e sete. Previsão de entrega: ano que vem. Que ano? Ninguém sabe, meu amigo!' },
+  { clip: 'radio_08', tag: 'Oferta da madrugada', text: 'Oferta da madrugada na Borracharia Furou, Chamou! Você fura o pneu e eles já sabem o seu nome. Atendimento vinte e cinco horas por dia, porque vinte e quatro é pouco!' },
+  { clip: 'radio_09', tag: 'Horóscopo do motorista', text: 'Horóscopo do motorista! Áries: cuidado com o pardal. Touro: sua cara-metade tá na próxima corrida do PegaAí. Escorpião... freia, Escorpião! Freia!' },
+  { clip: 'radio_10', tag: 'Você sabia?', text: 'Você sabia? Se juntar todos os buracos de São Gambiarra, dá pra fazer uma piscina olímpica! A prefeitura disse que é a piscina mais democrática do Brasil: todo mundo cai!' },
+  { clip: 'radio_11', tag: 'Reclame', text: 'PegaAí: o aplicativo que te pega aí... e te larga ali! Recebeu uma estrela? Relaxa, que o passageiro também levou uma do motorista!' },
+  { clip: 'radio_12', tag: 'Futebol pelo Brasil', text: 'Notícia boa da Bahia: o torcedor do Bahia e o do Vitória fizeram as pazes... pra brigar de novo sobre quem faz o melhor acarajé. E o torcedor do São Paulo ligou dizendo que é soberano. Soberano de quê? Ele desligou!' },
+  { clip: 'radio_13', tag: 'Recado do Seu Zé', text: 'Recado do Seu Zé da oficina: quem tá devendo fiado, a caderneta tá de olho! E quem não tá devendo... bate o carro aí que ele te dá desconto! Palavra do Seu Zé, não da rádio, tá?' },
+  { clip: 'radio_14', tag: 'Vinheta', text: 'Rádio Gambiarra FM: tocando o terror na madrugada desde... ontem! Não sai daí, que o DJ Biruta já volta com mais besteira!' },
+];
+const Radio = { a: null, cur: null, t: 25, k: 0, dur: 0, bag: [], first: true, held: false, line: -1, parts: null };
+Radio.off = function () { return !!Settings.radioOff || !((Settings.radio === undefined ? 70 : Settings.radio) > 0); };
+Radio.vol = function () { return clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp((Settings.radio === undefined ? 70 : Settings.radio) / 100, 0, 1); };
+Radio.next = function () {
+  if (this.first) { this.first = false; return RADIO[0]; }
+  if (!this.bag.length) {
+    this.bag = RADIO.slice(1);
+    for (let i = this.bag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]]; }
+    if (this.last && this.bag[this.bag.length - 1] === this.last) this.bag.unshift(this.bag.pop()); // não repete o último
+  }
+  return (this.last = this.bag.pop());
+};
+Radio.play = function (S) {
+  this.stop();
+  const c = VOICE_CLIPS[S.clip];
+  this.cur = S; this.k = 0; this.dur = c ? c.dur : Math.max(6, S.text.length / 14); this.line = -1;
+  // legenda: uma frase por vez, no tempo proporcional ao tamanho
+  const fr = S.text.split(/(?<=[.!?])\s+/), tot = S.text.length; let acc = 0;
+  this.parts = fr.map((f) => { const o = { f, k0: acc / tot }; acc += f.length + 1; return o; });
+  if (c) { try { this.a = new Audio(c.src); this.a.volume = this.vol(); this.a.play().catch(() => {}); this.a.onended = () => this.stop(); } catch (e) { this.a = null; } }
+  const el = $('hud-radio');
+  if (el) { $('hr-tag').textContent = S.tag; $('hr-txt').textContent = ''; el.classList.remove('hidden'); }
+};
+Radio.stop = function () {
+  if (this.a) { try { this.a.pause(); } catch (e) {} this.a.onended = null; this.a = null; }
+  if (this.cur) { this.cur = null; this.t = rnd(55, 95); }
+  this.held = false;
+  const el = $('hud-radio'); if (el) el.classList.add('hidden');
+};
+Radio.toggle = function () {
+  if (this.cur) { this.stop(); Settings.radioOff = true; saveSettings(); toast('Rádio desligada', 'Aperte F para chamar o DJ Biruta de novo.', 'info'); return; }
+  Settings.radioOff = false; if (!(Settings.radio > 0)) Settings.radio = 70;
+  saveSettings(); syncSettingsUI();
+  Som.on = false; VoicePlayer.stop();
+  this.play(this.next());
+};
+document.addEventListener('click', (e) => { if (e.target && e.target.closest && e.target.closest('#hud-radio')) Radio.toggle(); }); // tocar no letreiro desliga
+Radio.update = function (dt) {
+  const sc = Screens.current;
+  const hold = Game.mode !== 'play' || Game.state === 'menu' || sc === 'screen-pause' || sc === 'screen-settings' || sc === 'screen-main' || sc === 'screen-credits';
+  if (this.cur) {
+    if (this.a) {
+      if (hold && !this.a.paused) { this.a.pause(); this.held = true; }
+      else if (!hold && this.held) { this.held = false; this.a.play().catch(() => {}); }
+    }
+    if (hold) return;
+    if (this.off() || Som.on) { this.stop(); return; }
+    this.k = this.a && this.a.currentTime > 0 ? this.a.currentTime : this.k + dt;
+    if (this.a) this.a.volume = this.vol();
+    if (this.k > this.dur + 1.5) { this.stop(); return; }
+    const kk = this.k / Math.max(1, this.dur);
+    let i = 0; while (i + 1 < this.parts.length && this.parts[i + 1].k0 <= kk) i++;
+    if (i !== this.line) { this.line = i; $('hr-txt').textContent = this.parts[i].f; }
+    return;
+  }
+  if (hold || Game.state !== 'playing' || this.off()) return;
+  this.t -= dt;
+  if (this.t > 0) return;
+  if (VoicePlayer.msg || Som.on || (Act.race && Act.race.count > 0)) { this.t = 8; return; }
+  this.play(this.next());
+};
+
 function voiceBubble(m, fmtT) {
   if (!m.vid) m.vid = 'v' + Math.floor(Math.random() * 1e9);
   const n = 34, bars = []; let s = m.vid.length * 7.3;

@@ -37,6 +37,7 @@
   <div id="hud-minimap" class="glass">
     <canvas id="minimap" width="440" height="440"></canvas>
   </div>
+  <div id="hud-radio" class="glass hidden" title="Rádio (F)"><div class="hr-top"><span class="hr-eq"><i></i><i></i><i></i><i></i></span><b>Rádio Gambiarra FM 171,1</b><em>DJ Biruta</em></div><div class="hr-sub"><span id="hr-tag"></span><span id="hr-txt"></span></div></div>
   <button id="hud-phone" class="glass" title="Celular (Q)"><span class="hp-ico"></span>Celular <kbd>Q</kbd><i id="hud-phone-badge" class="hidden"></i></button>
 
   <div id="hud-dash" class="glass">
@@ -79,7 +80,7 @@
       <button class="mbtn" data-act="credits">CRÉDITOS</button>
       <button class="mbtn desk-only hidden" data-act="quit">SAIR DO JOGO</button>
     </nav>
-    <div class="main-foot"><span><kbd>W A S D</kbd>Dirigir</span><span><kbd>Espaço</kbd>Freio de mão</span><span><kbd>E</kbd>Interagir</span><span><kbd>Q</kbd>Celular</span><span><kbd>H</kbd>Farol</span><span><kbd>B</kbd>Som</span><span><kbd>ESC</kbd>Pausa</span></div>
+    <div class="main-foot"><span><kbd>W A S D</kbd>Dirigir</span><span><kbd>Espaço</kbd>Freio de mão</span><span><kbd>E</kbd>Interagir</span><span><kbd>Q</kbd>Celular</span><span><kbd>H</kbd>Farol</span><span><kbd>B</kbd>Som</span><span><kbd>F</kbd>Rádio</span><span><kbd>ESC</kbd>Pausa</span></div>
     <div class="main-ver">v<span class="game-ver">1.8.0</span></div>
   </div>
 </div>
@@ -109,6 +110,7 @@
       <label class="set-row"><span>Motor e efeitos</span><input type="range" min="0" max="100" data-set="engine"><b></b></label>
       <label class="set-row"><span>Ambiente noturno</span><input type="range" min="0" max="100" data-set="ambient"><b></b></label>
       <label class="set-row"><span>Interface</span><input type="range" min="0" max="100" data-set="ui"><b></b></label>
+      <label class="set-row"><span>Rádio (DJ Biruta)</span><input type="range" min="0" max="100" data-set="radio"><b></b></label>
       <div class="set-section">VÍDEO</div>
       <div class="set-row"><span>Qualidade gráfica</span>
         <div class="seg" data-seg="quality">
@@ -143,6 +145,8 @@
         <div><kbd>L</kbd> Farol alto</div>
         <div><kbd>Q</kbd> Celular e mapa</div>
         <div><kbd>C</kbd> Altura da câmera</div>
+        <div><kbd>B</kbd> Paredão</div>
+        <div><kbd>F</kbd> Rádio</div>
         <div><kbd>R</kbd> Reposicionar</div>
         <div><kbd>ESC</kbd> Pausar</div>
       </div>
@@ -188,7 +192,7 @@
       <p><b>Design, programação e arte</b><br>Desenvolvido inteiramente em HTML5 Canvas, CSS3 e JavaScript puro.</p>
       <p><b>Gráficos</b><br>Todos os veículos, construções, animais e efeitos de luz são desenhados proceduralmente em tempo real — nenhuma imagem externa.</p>
       <p><b>Fontes</b><br>Anton e Barlow, licença livre SIL Open Font License 1.1.</p>
-      <p><b>Vozes</b><br>Mensagens de voz geradas com ElevenLabs.</p>
+      <p><b>Vozes</b><br>Mensagens de voz e o DJ Biruta da Rádio Gambiarra FM gerados com ElevenLabs.</p>
       <p><b>Áudio</b><br>Motor, pneus, grilos, cidade e interface sintetizados com a Web Audio API.</p>
       <p><b>Veículos</b><br>Modelos originais inspirados em carros populares brasileiros, com nomes de zoeira (Fort, Volks Vagão, Fiá, Chevrolé…). Nenhum logotipo real — é tudo paródia.</p>
       <p class="dim">Dirija com calma. A noite é longa.</p>

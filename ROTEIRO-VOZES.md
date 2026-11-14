@@ -3,7 +3,7 @@
 Gere cada fala no ElevenLabs (modelo **Eleven v4**, que entende as marcações entre colchetes).
 Baixe em **MP3** e salve com **exatamente o nome do arquivo** da tabela. Depois é só me mandar os arquivos.
 
-Todas as vozes desta lista já estão no jogo (as 4 dos personagens foram geradas no plano pago).
+Todas as vozes desta lista já estão no jogo (as dos personagens, as dos sotaques, as de cliente feliz e as da rádio foram geradas no plano pago).
 
 Os áudios dos passageiros chegam no **chat do PegaAí**. Os dos personagens (Seu Zé, Seu Biu, Banestresse) chegam no **WhatsApp**.
 
@@ -18,6 +18,20 @@ Os áudios dos passageiros chegam no **chat do PegaAí**. Os dos personagens (Se
 | `p_sofa.mp3` | Eduardo Norte do Paraná | [revoltado] Meu sofá chegou com mais buraco que a BR depois da chuva! Rasgou tudo, mermão! Um prejuízo daqueles! |
 | `p_aviao.mp3` | Bianca - Quirky and Animated | [sarcástica] O avião foi embora e eu fiquei aqui olhando pro céu igual boba. Valeu, piloto de fogão! |
 | `p_vip2.mp3` | Nick Storyteller Prime | [esnobe] Olha, eu moro na parte chique de Camburiso, tá? Lá ninguém anda nesse sacolejo. Que experiência mais cafona, bicho. |
+| `p_uai.mp3` | Anderson - Sotaque Mineiro | [indignado] Uai, sô! Cê bateu esse trem três vezes e ainda quer cinco estrelas? Nem minha vó dirige assim, uai! Uma estrela, e olhe lá! |
+| `p_bah.mp3` | Gaucha SouthOfBrazil | [indignada] Bah, tchê! Que barbaridade de corrida! Quase derramei o chimarrão inteiro no colo. Uma estrela pra ti, e olhe lá! |
+| `p_oxe.mp3` | Lucinda - Earthy and Wise | [irritada] Oxente, meu filho! Tu acha que eu sou saco de cimento, é? Nunca vi barbeiragem desse tamanho, visse? Uma estrela, e já é muito! |
+| `p_meu.mp3` | Felipe Leão | [impaciente] Meu, que rolê demorado! Mais lento que avenida às seis da tarde em dia de chuva. Uma estrela pra você, mano. Sem ressentimento, tá? |
+| `p_caraca.mp3` | Phelipe Carioca | [revoltado] Caraca, mermão! Minha televisão chegou parecendo arte moderna! Agora vou ter que assistir novela em formato de sanfona! |
+| `p_egua.mp3` | Bianca - Quirky and Animated | [irônica] Égua, mana! Demorou tanto que deu tempo de tomar um açaí, fazer uma tapioca e ainda lavar a louça! Uma estrela, e é de presente! |
+
+### Cliente feliz (corrida de 5 estrelas, quase metade das vezes)
+
+| Arquivo | Voz | Texto |
+|---|---|---|
+| `p_top1.mp3` | Dani | [feliz] Motorista nota mil! Chegou rapidinho, carro cheiroso e ainda tava tocando a Rádio Gambiarra. Cinco estrelas e um beijo! |
+| `p_top2.mp3` | Anderson - Sotaque Mineiro | [satisfeito] Ô trem bão, sô! Corrida macia que nem pão de queijo quentinho. Cinco estrelas procê, viu? Deus te abençoe! |
+| `p_top3.mp3` | Felipe Leão | [empolgado] Aí sim, mano! Dirigiu igual piloto de Fórmula 1, mas sem bater em nada! Cinco estrelas, e ainda vou te dar gorjeta! |
 
 ## Personagens do jogo
 
@@ -27,6 +41,27 @@ Os áudios dos passageiros chegam no **chat do PegaAí**. Os dos personagens (Se
 | `biu_socorro.mp3` | Seu Biu (bananas) | Thiago - Warm and inviting | [desesperado] Ô meu patrão, a carreta tombou! Tá banana pra todo lado, parece feira depois de terremoto! Me ajuda aqui, pelo amor de Deus, que eu pago cada caixa! |
 | `boas_vindas.mp3` | Seu Zé (boas-vindas, 1ª vez no jogo) | Sergio Funny | [animado, acolhedor] Ô meu filho, seja bem-vindo a São Gambiarra! Aqui é o Seu Zé, da oficina. Pegou a chave do carro? Então bora rodar: corrida no PegaAí, frete, e foge dos buracos, que aqui tem mais buraco que queijo suíço. [ri] Bateu? Vem na oficina que eu ajeito. Vai com Deus, e devagar, viu? |
 | `banco_atraso.mp3` | Banestresse (robô do banco) | Lucinda - Earthy and Wise | [voz de atendente eletrônica, calma demais] Olá. Aqui é a assistente virtual do Banestresse. Identificamos uma parcela em atraso. Os juros já estão trabalhando por você. Tenha uma ótima noite. |
+
+## Rádio Gambiarra FM 171,1 (DJ Biruta)
+
+Voz: **Eddy Miller** (locutor). Projeto do ElevenLabs "BR Night Drive - Rádio Gambiarra FM e passageiros novos" (também tem as falas com sotaque e de cliente feliz). Os textos ficam em `RADIO` (`src/p66_career.js`); a legenda na tela mostra uma frase por vez.
+
+| Arquivo | Quadro | Texto |
+|---|---|---|
+| `radio_01.mp3` | Abertura (sempre a primeira) | Alôôô, motorista da madrugada! Tá ligado na Rádio Gambiarra FM, cento e setenta e um vírgula um: a rádio que não te engana... muito! Aqui é o DJ Biruta, e a noite é nossa! |
+| `radio_02.mp3` | Previsão do tempo | Céu nublado, noventa por cento de chance de chuva e cem por cento de chance de buraco na pista! |
+| `radio_03.mp3` | Plantão do futebol | O Vasco ligou querendo ser vice também no concurso de piadas. Vice também sobe no pódio... ali do ladinho. |
+| `radio_04.mp3` | Pergunta do ouvinte | O Palmeiras tem Mundial? A ligação caiu! E um abraço pro corintiano que ainda tá pagando o estádio no carnê! |
+| `radio_05.mp3` | Plantão do futebol | Cheirinho de título do Flamengo... é o churrasquinho da esquina. O Botafogo ganhou de virada do próprio azar. |
+| `radio_06.mp3` | Futebol pelo Brasil | O Galo acordou o cruzeirense; gremista e colorado dividiram um chimarrão em paz... mentira! |
+| `radio_07.mp3` | Boletim do trânsito | A Ponte Nova está em obras desde 1987. Previsão de entrega: ano que vem. Que ano? |
+| `radio_08.mp3` | Oferta da madrugada | Borracharia Furou, Chamou: atendimento vinte e cinco horas por dia. |
+| `radio_09.mp3` | Horóscopo do motorista | Áries: cuidado com o pardal. Escorpião... freia, Escorpião! |
+| `radio_10.mp3` | Você sabia? | Os buracos de São Gambiarra dão uma piscina olímpica: a mais democrática do Brasil, todo mundo cai! |
+| `radio_11.mp3` | Reclame | PegaAí: o aplicativo que te pega aí... e te larga ali! |
+| `radio_12.mp3` | Futebol pelo Brasil | Bahia e Vitória fizeram as pazes pra brigar pelo acarajé; o são-paulino ligou dizendo que é soberano... e desligou! |
+| `radio_13.mp3` | Recado do Seu Zé | Quem tá devendo fiado, a caderneta tá de olho! |
+| `radio_14.mp3` | Vinheta | Tocando o terror na madrugada desde... ontem! |
 
 ## Observações
 

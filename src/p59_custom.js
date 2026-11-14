@@ -80,6 +80,7 @@ Som.toggle = function () {
   if (!player || !carKit(player.car.id).sound) { toast('Sem paredão', 'Instale o som na garagem (Personalizar > Som).', 'info'); return; }
   if (carLife().bat <= 0) { toast('Bateria arriada', 'Sem bateria, sem som.', 'bad'); return; }
   this.on = !this.on; this.step = 0; this.t = 0;
+  if (this.on) Radio.stop(); // paredão ligado: o DJ sai do ar
   toast(this.on ? 'Som ligado' : 'Som desligado', '', 'info');
 };
 Som.update = function (dt) {

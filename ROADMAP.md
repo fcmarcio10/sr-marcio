@@ -64,6 +64,10 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
   - Favela com 34% menos casas e vielas de terra de rua a rua. Construções, árvores e postes fora da tela não são desenhados; festa e vagalumes só perto da tela.
   - Quadro inteiro em Cara-Pintada: 2.599 → 1.637 pinceladas.
 
+- [x] **Rádio Gambiarra FM e falas novas**
+  - DJ Biruta (14 vinhetas: previsão do tempo com buraco, plantão do futebol com piada de Vasco, Palmeiras, Corinthians, Flamengo, Botafogo, Galo, Cruzeiro, Grêmio, Inter, Bahia, Vitória e São Paulo, horóscopo do motorista, borracharia, recado do Seu Zé). Tecla F e volume próprio.
+  - Passageiros com sotaque (mineiro, gaúcha, nordestina, paulista, carioca, paraense) e áudio de cliente feliz nas corridas de 5 estrelas.
+
 ## Próximos
 
 1. **História em capítulos** — missões contadas pelo WhatsApp, com personagens fixos (Seu Zé, o primo enrolado, um cliente misterioso, o dono do ferro-velho). Cada capítulo libera bairro, carro ou oficina nova. Ex.: buscar uma encomenda em Vila Véia e descobrir que é a moqueca roubada do concurso de Camburiso.
@@ -72,7 +76,7 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
 
 ## Depois, se quiser
 
-- Rádio com locutor de zoeira (só falas, sem música).
+- Mais quadros na rádio (resultado de racha do jogador, recado do Seu Biu, música de verdade com licença).
 - Corridas contra outros carros com ranking.
 - Polícia de volta, feita do jeito certo (o sistema atual está desligado com `POLICE_ENABLED = false`).
 

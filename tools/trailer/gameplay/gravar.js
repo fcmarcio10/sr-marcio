@@ -38,7 +38,7 @@ for (let i = 0; i < legendas.length - 1; i++) legendas[i].b = Math.min(legendas[
   await p.addInitScript({ path: path.join(TRD, 'relogio.js') });
   await p.goto('file://' + path.join(TRD, '..', 'tests', 'wrapped.html'));
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 60000 });
-  await p.evaluate(() => { localStorage.clear(); Settings.quality = 'alta'; Settings.msgMode = 'audio'; resize(); });
+  await p.evaluate(() => { localStorage.clear(); Settings.quality = 'alta'; Settings.msgMode = 'audio'; Settings.radioOff = true; /* rádio do DJ fora dos vídeos */ resize(); });
   await p.click('[data-act="play"]'); await p.waitForTimeout(10500); // espera o áudio de boas-vindas (9,5 s) disparar antes de ligar o relógio controlado
   const ok = await p.evaluate(() => AudioSys.ok);
   if (!ok) console.log('AVISO: o som do jogo não ligou (AudioSys.ok = false)');

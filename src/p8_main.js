@@ -7,7 +7,7 @@ const NIGHT_START = 19 * 60 + 30, NIGHT_END = 29 * 60;
 
 function startPlay() {
   AudioSys.init();
-  Act.reset(); Events.reset(); CarLife.reset(); Som.on = false;
+  Act.reset(); Events.reset(); CarLife.reset(); Som.on = false; Radio.stop();
   player = new Player(Profile.current);
   let pos = World.home;
   const sp = Profile.pos;
@@ -81,7 +81,7 @@ function saveGame() {
 function toMenu() {
   Game.mode = 'menu';
   player = null;
-  Act.reset(); Events.reset(); CarLife.reset(); Som.on = false;
+  Act.reset(); Events.reset(); CarLife.reset(); Som.on = false; Radio.stop();
   Screens.closeAll();
   Screens.open('screen-main');
   AudioSys.hornOn = false;
@@ -119,6 +119,7 @@ function handleKeys() {
       case 'KeyQ': Phone.open('home'); break;
       case 'KeyH': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
       case 'KeyB': Som.toggle(); break;
+      case 'KeyF': Radio.toggle(); break;
       case 'KeyL': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
       case 'KeyC': { // troca a altura da câmera: 1 → 2 → 3 → 1
         Settings.cam = String(Settings.cam % 3 + 1); Settings.zoom = CAM_LEVELS[Settings.cam]; saveSettings(); syncSettingsUI();
@@ -177,6 +178,7 @@ function frame(now) {
     updateFireflies(dt);
     Weather.update(dt);
   } else accT = 0;
+  Radio.update(dt);
   AudioSys.hornOn = Game.state === 'playing' && !!key.horn();
   render();
   updateHUD(dt);

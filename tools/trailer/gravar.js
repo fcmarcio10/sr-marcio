@@ -28,7 +28,7 @@ if (GTA) {
   await p.addInitScript({ path: path.join(__dirname, 'relogio.js') });
   await p.goto('file://' + path.join(__dirname, '..', 'tests', 'wrapped.html'));
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 60000 });
-  await p.evaluate(() => { localStorage.clear(); Settings.quality = 'alta'; Settings.msgMode = 'texto'; resize(); });
+  await p.evaluate(() => { localStorage.clear(); Settings.quality = 'alta'; Settings.msgMode = 'texto'; Settings.radioOff = true; /* rádio do DJ fora dos vídeos */ resize(); });
   await p.click('[data-act="play"]'); await p.waitForTimeout(7800);
   // carro do trailer (depois de entrar, senão o jogo carrega um perfil novo por cima):
   // Opalha vermelho metálico, rebaixado, aerofólio, tala larga, neon azul e paredão
