@@ -9,7 +9,7 @@ const F = require('./narra/falas.json');
 const D = (id) => F[id].dur;
 const s = (t) => Math.round(t * 60); // segundos -> quadro
 const sem = `for (const c of Traffic.cars) if (c.model === 'police') { c.release(); c.dead = true; } Traffic.cars = Traffic.cars.filter((c) => !c.dead);`;
-const claro = `canvas.style.filter = 'contrast(1.06) saturate(1.2) brightness(1.3)';`; // fazenda (é escura no jogo)
+const claro = `canvas.style.filter = 'contrast(1.06) saturate(1.2) brightness(1.45)';`; // fazenda (é escura no jogo)
 const poca = (frente) => `if (!Weather.puddleGrid) Weather.buildPuddles(); { const R = TR.rail, q = TR.at(R, R.s + ${frente}), p = { x: q[0], y: q[1], rx: 26, ry: 10, mud: false, cool: 0, ph: 1 }; const C = Weather.puddleCell, k = Math.floor(p.x / C) + ',' + Math.floor(p.y / C); if (!Weather.puddleGrid.has(k)) Weather.puddleGrid.set(k, []); Weather.puddleGrid.get(k).push(p); }`;
 const opala = `Profile.current = 'brasa'; player.setCar('brasa'); TR.hook();`;
 const gasCar = `Profile.current = 'gas'; player.setCar('gas'); TR.hook();`;
@@ -20,10 +20,10 @@ const racha = (skip) => `${sem} const r = World.rachas.find((x) => x.id === 'arr
 const chatPg = (rid, voz) => `[${s(0.3)}, () => { TR.tecla('KeyQ', 'Q', 'celular'); TR.legDir = 760; }],
   [${s(0.8)}, () => TR.tocar('#phone-body [data-app="pegaai"]')],
   [${s(1.25)}, () => TR.tocar('#phone-body [data-pgtab="msgs"]')],
-  [${s(1.7)}, () => TR.tocar('#phone-body [data-pgchat="' + ${rid} + '"]')],
+  [${s(1.7)}, () => TR.tocar('#phone-body [data-pgchat="r${rid}"]')],
   [${s(voz)}, () => TR.tocar('#phone-body .wa-voice')],`;
 // passageiro que reclama por áudio (a fala escolhida é a do arquivo pedido)
-const bravo = (rid, nome, tipo, hits, clip) => `{ const R = { rid: ${rid}, name: '${nome}', type: '${tipo}', hits: ${hits}, t: 0 }; TR.escolha = (a) => (Array.isArray(a) ? a.find((x) => x && x.clip === '${clip}') : undefined); angryVoice(R, false); TR.escolha = null; }`;
+const bravo = (rid, nome, tipo, hits, clip) => `{ const R = { rid: 'r${rid}', name: '${nome}', type: '${tipo}', hits: ${hits}, t: 0 }; TR.escolha = (a) => (Array.isArray(a) ? a.find((x) => x && x.clip === '${clip}') : undefined); angryVoice(R, false); TR.escolha = null; }`;
 
 const cenas = [
   /* ================= TRAILER RÁPIDO (sem narração) ================= */
@@ -110,10 +110,10 @@ const cenas = [
       document.getElementById('toasts').innerHTML = '';
       TR.em([${chatPg(703, 2.3)}]);` },
   { nome: 'c11-mineiro', seg: 0.2 + D('g10') + 0.4 + D('p_uai') + 0.5, antes: 0, estilo: 'trampo', musica: 0.6,
-    setup: `TR.em([[${s(0.5)}, () => TR.tocar('#phone-body [data-pgback="1"]')], [${s(1.4)}, () => TR.tocar('#phone-body [data-pgchat="701"]')],
+    setup: `TR.em([[${s(0.5)}, () => TR.tocar('#phone-body [data-pgback="1"]')], [${s(1.4)}, () => TR.tocar('#phone-body [data-pgchat="r701"]')],
       [${s(0.2 + D('g10') + 0.4)}, () => TR.tocar('#phone-body .wa-voice')]]);` },
   { nome: 'c12-gaucha', seg: 0.2 + D('g11') + 0.5 + D('p_bah') + 0.5, antes: 0, estilo: 'trampo', musica: 0.6,
-    setup: `TR.em([[${s(0.4)}, () => TR.tocar('#phone-body [data-pgback="1"]')], [${s(1.2)}, () => TR.tocar('#phone-body [data-pgchat="702"]')],
+    setup: `TR.em([[${s(0.4)}, () => TR.tocar('#phone-body [data-pgback="1"]')], [${s(1.2)}, () => TR.tocar('#phone-body [data-pgchat="r702"]')],
       [${s(0.2 + D('g11') + 0.5)}, () => TR.tocar('#phone-body .wa-voice')]]);` },
   { nome: 'c13a-estrela', seg: 4.2, antes: 30, estilo: 'trampo',
     setup: `TR.reset({ hud: true, time: 20 * 60 + 24 }); ${opala} Profile.damage = 30; Profile.zones = { f: 0.5, r: 0.2, l: 0.3, rt: 0.1, seed: 3 }; TR.drive(500, 2100, 2700, 2100, 160, { lane: 24 }); TR.follow(2.4, 2.2, 0.1);
@@ -121,7 +121,7 @@ const cenas = [
   { nome: 'c13b-categorias', seg: 0.2 + D('g12') - 4.2 + 0.3, antes: 10, estilo: 'trampo',
     setup: `TR.reset({ hud: true, toasts: true, bigPhone: true, time: 20 * 60 + 50 }); ${opala} TR.drive(900, 2100, 2600, 2100, 0, { lane: 24, v0: 0 }); const C = career(); C.lvl = 7; C.acc = { comum: true, aero: true, mudanca: true, vip: true };
       const anel = (id, nome) => () => TR.destacar('#phone-body [data-rcat="' + id + '"]', nome, TR.f, TR.f + 150, false);
-      TR.em([[${s(0.2)}, () => { TR.tecla('KeyQ', 'Q', 'celular'); TR.legDir = 760; }], [${s(0.8)}, () => TR.tocar('#phone-body [data-app="pegaai"]')],
+      TR.em([[${s(0.2)}, () => { TR.tecla('KeyQ', 'Q', 'celular'); TR.legDir = 760; }], [${s(0.8)}, () => TR.tocar('#phone-body [data-app="pegaai"]')], [${s(1.5)}, () => TR.tocar('#phone-body [data-pgtab="drv"]')],
         [${s(2.4)}, anel('aero', 'aeroporto')], [${s(4.2)}, anel('vip', 'VIP')], [${s(6.0)}, anel('mudanca', 'mudança')]]);` },
   { nome: 'c13c-mudanca', seg: 2.3 + D('mudanca') + 0.5, antes: 0, estilo: 'trampo', musica: 0.6,
     setup: `TR.reset({ hud: true, bigPhone: true, time: 21 * 60 + 5 }); ${opala} TR.drive(900, 2100, 2600, 2100, 0, { lane: 24, v0: 0 }); Act.ride = null;

@@ -10,7 +10,12 @@
     T.grade(opt.grade === undefined ? 0.16 : opt.grade);
     canvas.style.filter = opt.filtro || 'contrast(1.05) saturate(1.12) brightness(1.03)';
     if (!opt.radio) { Settings.radioOff = true; if (window.Radio) Radio.stop(); }
+    Profile.rachaMsg = true; // sem o convite de racha do Zé do Canecão pipocando nas cenas
+    if (typeof Phone !== 'undefined') { Phone.pgTab = 'drv'; Phone.pgChat = null; }
   };
+  // cena que continua a anterior (sem reset): o letreiro, o aviso e as estrelinhas da cena de antes não voltam
+  const _limpa = T.limpaGags;
+  T.limpaGags = function () { _limpa(); T.ho = null; T.no = null; T.tn = null; T.ra = null; };
   // DJ no ar: o letreiro da Rádio Gambiarra FM com a legenda; o áudio entra na montagem (mudo = só o letreiro)
   T.dj = function (clip, mudo) {
     const S = RADIO.find((r) => r.clip === clip) || RADIO_VINHETAS.find((r) => r.clip === clip); if (!S) return;
