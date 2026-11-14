@@ -28,7 +28,7 @@ function ensurePhoneData() {
   if (!Profile.msgs) {
     Profile.msgs = [];
     addMsg('Seu Zé (Oficina)', 'Bem-vindo a São Gambiarra!',
-      'Aqui é o Seu Zé, da oficina. Você chegou em São Gambiarra, no Espírito Santo, uma cidade que nunca dorme. Seu Gou Quadrado tá na garagem da Vila Sem Pressa.\n\n' +
+      'Aqui é o Seu Zé, da oficina. Você chegou em São Gambiarra, uma cidade que nunca dorme. Seu Gou Quadrado tá na garagem da Vila Sem Pressa.\n\n' +
       'Pra ganhar a vida por aqui:\n• Entregas: pare em frente aos comércios com marcador amarelo e aperte E.\n• App PegaAí: fique online e leve passageiros pela cidade.\n• App Fretes: com uma picape ou caminhão de trabalho (a picape é a mais barata), faça fretes de carga, gás, combustível, entulho e reboque.\n• Percursos: bandeiras azuis no mapa, com medalhas.\n• Racha: depois das 22h, os rachas da madrugada pagam a aposta em dobro. Só cuidado: se a viatura vir, é multa.\n\n' +
       'Abasteça no posto, conserte aqui comigo quando bater e cuidado com o pardal nas avenidas. Q abre o celular, e o mapa fica no app Mapa.\n\nBoa noite e vai com Deus!', true);
   }
@@ -325,14 +325,14 @@ const ACHIEVEMENTS_ALL = [
   { id: 'entrega10', name: 'Motoboy honorário', desc: 'Complete 10 entregas ou fretes.', goal: 10, val: () => Profile.deliveries || 0, prize: 250 },
   { id: 'corrida1', name: 'Bem-vindo ao PegaAí', desc: 'Faça sua primeira corrida no PegaAí.', goal: 1, val: () => Profile.rides || 0, prize: 50 },
   { id: 'corrida25', name: 'Motorista cinco estrelas', desc: 'Complete 25 corridas no PegaAí.', goal: 25, val: () => Profile.rides || 0, prize: 400 },
-  { id: 'turista', name: 'Turista capixaba', desc: 'Descubra 5 pontos de interesse.', goal: 5, val: () => (Profile.discovered || []).length, prize: 100 },
+  { id: 'turista', name: 'Turista acidental', desc: 'Descubra 5 pontos de interesse.', goal: 5, val: () => (Profile.discovered || []).length, prize: 100 },
   { id: 'explorador', name: 'Conhece cada canto', desc: 'Descubra todos os pontos de interesse.', goal: () => World.pois.length, val: () => (Profile.discovered || []).length, prize: 600 },
   { id: 'ouro', name: 'Medalha de ouro', desc: 'Ganhe ouro em um percurso cronometrado.', goal: 1, val: () => Object.values(Profile.races || {}).filter((r) => r.medal === 3).length, prize: 150 },
   { id: 'reiouro', name: 'Rei dos percursos', desc: 'Ouro em todos os percursos.', goal: () => World.races.length, val: () => Object.values(Profile.races || {}).filter((r) => r.medal === 3).length, prize: 800 },
   { id: 'racha1', name: 'Primeiro racha', desc: 'Ganhe um racha de madrugada.', goal: 1, val: () => Profile.rachaWins || 0, prize: 150 },
   { id: 'racha5', name: 'Lenda da madrugada', desc: 'Ganhe 5 rachas.', goal: 5, val: () => Profile.rachaWins || 0, prize: 500 },
   { id: 'km10', name: 'Pé na estrada', desc: 'Rode 10 km por São Gambiarra.', goal: 10, val: kmRodados, prize: 100, unit: ' km' },
-  { id: 'km100', name: 'Rodou o ES inteiro', desc: 'Rode 100 km.', goal: 100, val: kmRodados, prize: 600, unit: ' km' },
+  { id: 'km100', name: 'Rodou a cidade inteira', desc: 'Rode 100 km.', goal: 100, val: kmRodados, prize: 600, unit: ' km' },
   { id: 'veloz', name: 'Radar nem viu', desc: 'Passe dos 180 km/h.', goal: 180, val: () => Profile.topSpeed || 0, prize: 150, unit: ' km/h' },
   { id: 'drift', name: 'Rei do drift', desc: 'Derrape de lado por 20 segundos no total.', goal: 20, val: () => Profile.driftT || 0, prize: 200, unit: ' s' },
   { id: 'vaga', name: 'Baliza perfeita', desc: 'Estacione em 3 vagas marcadas.', goal: 3, val: () => Object.keys(Profile.parks || {}).length, prize: 150 },
@@ -377,7 +377,7 @@ const Achievements = {
 };
 
 /* ---------- interface do celular ---------- */
-/* ---------- celular Pera: papéis de parede capixabas, ícones e ajustes ---------- */
+/* ---------- celular Pera: papéis de parede da cidade, ícones e ajustes ---------- */
 const PERA_LOGO = '<svg class="pera-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.4c-1.7 0-2.7 1.4-3 3.1C8.7 11.2 5.8 12.6 5.8 16.2c0 3.4 2.8 5.6 6.2 5.6s6.2-2.2 6.2-5.6c0-3.6-2.9-5-3.2-6.7-.3-1.7-1.3-3.1-3-3.1z" fill="currentColor"/><path d="M12 6.4c0-1.6.4-2.9 1.3-3.8" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M13.1 4.3c1.6-1.5 3.6-1.4 4.6-.8-1 1.7-3 2.3-4.6.8z" fill="currentColor"/></svg>';
 // ícones minimalistas: um símbolo de traço branco sobre cor sólida
 const _ln = (d) => `<g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</g>`;
@@ -397,14 +397,14 @@ function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
   return `<button class="ph-app" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge ? `<i class="ph-badge">${badge}</i>` : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
 }
-// papéis de parede: paisagens do Espírito Santo desenhadas em SVG
+// papéis de parede: paisagens de São Gambiarra e arredores, desenhadas em SVG
 const WALLS = [
   { id: 'penha', name: 'Convento da Pena', place: 'Vila Véia' },
   { id: 'ponte', name: 'Terceira Ponte e Meia', place: 'Vitorinha' },
   { id: 'pedra', name: 'Pedra Azulejo', place: 'Domingos Martelo' },
   { id: 'camburi', name: 'Praia de Camburiso', place: 'Vitorinha' },
   { id: 'dunas', name: 'Dunas de Ita-Unhas', place: 'Conceição da Barraca' },
-  { id: 'bandeira', name: 'Trabalha e Confia', place: 'Bandeira capixaba' },
+  { id: 'estrada', name: 'Estrada da Madrugada', place: 'Rodovia BR-101 e Pouco' },
 ];
 const _wallCache = {};
 function wallSVG(id) {
@@ -465,18 +465,22 @@ function wallSVG(id) {
       <path d="M0 430 C80 390 150 400 210 440" stroke="#d8cfd0" stroke-opacity="0.5" fill="none"/><path d="M0 500 C70 470 140 480 200 510" stroke="#efe2d6" stroke-opacity="0.5" fill="none"/>
       <path d="M232 500 C236 470 238 456 246 440" stroke="#2a2440" stroke-width="3" fill="none"/><path d="M246 440 l-12 4 M246 440 l12 2 M246 440 l-6 -10 M246 440 l8 -9" stroke="#2a2440" stroke-width="2.5" stroke-linecap="round"/>`;
       break;
-    default:
-      g = `<defs>${grad('b', [[0, '#16408a'], [1, '#2a62c4']], 0)}${grad('p', [[0, '#e07aa6'], [1, '#f2a8c6']], 0)}</defs>
-      <rect width="300" height="600" fill="#f4f4f0"/>
-      <path d="M0 0 H300 V170 L0 290Z" fill="url(#b)"/><path d="M0 390 L300 270 V600 H0Z" fill="url(#p)"/>
-      <path d="M0 290 L300 170" stroke="#fff" stroke-width="2"/>
-      <text x="150" y="312" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#16408a" transform="rotate(-21.8 150 312)" letter-spacing="2">TRABALHA E CONFIA</text>
-      ${stars(40, 160, 0.5)}`;
+    default: // 'estrada': rodovia de madrugada com a cidade acesa no horizonte
+      g = `<defs>${grad('s', [[0, '#04061a'], [0.5, '#141a46'], [0.78, '#4a2a6a'], [1, '#b8506e']], 1)}${grad('r', [[0, '#151a2c'], [1, '#232a40']], 1)}</defs>
+      <rect width="300" height="600" fill="url(#s)"/>${stars(90, 300, 1)}<circle cx="236" cy="110" r="18" fill="#f4efd6"/>
+      <path d="M0 362 h18 v-34 h14 v20 h12 v-52 h18 v66 h12 v-28 h20 v30 h16 v-44 h14 v44 h22 v-24 h16 v-60 h20 v84 h14 v-36 h22 v20 h18 v-30 h20 v42 H0Z" fill="#0b1030"/>
+      ${lights(80, 300, 360, ['#ffd37a', '#bfe3ff', '#ff9a4a'])}
+      <rect y="360" width="300" height="240" fill="#070a16"/>
+      <path d="M136 360 H164 L300 600 H0Z" fill="url(#r)"/>
+      <path d="M136 360 L0 600 M164 360 L300 600" stroke="#e8e2c0" stroke-opacity="0.55" stroke-width="2"/>
+      ${Array.from({ length: 9 }, (_, i) => { const t = i / 9, y = 362 + t * t * 238, h = 4 + t * 26, w = 1 + t * 5; return `<rect x="${(150 - w / 2).toFixed(1)}" y="${y.toFixed(0)}" width="${w.toFixed(1)}" height="${h.toFixed(0)}" fill="#f4c430" opacity="${(0.5 + t * 0.4).toFixed(2)}"/>`; }).join('')}
+      <circle cx="144" cy="384" r="1.8" fill="#ff3b3b"/><circle cx="152" cy="384" r="1.8" fill="#ff3b3b"/><circle cx="148" cy="384" r="7" fill="#ff3b3b" opacity="0.15"/>
+      <path d="M95 600 L140 470 H160 L205 600Z" fill="#ffe9a0" opacity="0.07"/>`;
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 600" preserveAspectRatio="xMidYMid slice">${g}</svg>`;
 }
 function wallURL(id) { if (!_wallCache[id]) _wallCache[id] = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(wallSVG(id)) + '")'; return _wallCache[id]; }
-function phoneCfg() { if (!Profile.phone) Profile.phone = { wall: 'auto', notif: true, sounds: true, lastSave: null }; return Profile.phone; }
+function phoneCfg() { if (!Profile.phone) Profile.phone = { wall: 'auto', notif: true, sounds: true, lastSave: null }; if (Profile.phone.wall === 'bandeira') Profile.phone.wall = 'estrada'; return Profile.phone; }
 function phoneTone(f, d, v, delay) { if (phoneCfg().sounds) AudioSys.tone(f, d, 'sine', v, 'ui', null, delay); }
 const PERA_OS = '18.4';
 
@@ -503,7 +507,7 @@ const Phone = {
       const W = WALLS.find((w) => w.id === this.wall) || WALLS[0];
       const hr = Math.floor(Profile.time / 60) % 24, temp = Math.round(27 - ((hr + 24 - 19) % 24) * 0.55 - Weather.rain * 4), wl = Weather.label();
       const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
-      html = `<div class="ph-lock"><div class="ph-date">São Gambiarra · ES</div><div class="ph-time">${clockStr()}</div></div>` +
+      html = `<div class="ph-lock"><div class="ph-date">São Gambiarra</div><div class="ph-time">${clockStr()}</div></div>` +
         `<div class="ph-widgets"><div class="ph-wid wid-sky${Weather.rain > 0.15 ? ' rain' : ''}"><small>São Gambiarra</small><b>${temp}°</b><span>${wl || (hr >= 19 || hr < 5 ? 'Noite abafada' : 'Céu limpo')}</span><span class="wid-sub">Máx. 31° Mín. 21°</span></div>` +
         `<button class="ph-wid wid-money" data-app="carteira"><small>Carteira</small><b>R$ ${fmtMoney(Profile.money)}</b><span>${Profile.deliveries || 0} entregas · ${Profile.rides || 0} corridas</span><span class="wid-sub">${job ? H(job) : dest ? 'Destino: ' + H(dest) : 'Nenhum serviço ativo'}</span></button></div>` +
         '<div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id)).join('') + '</div>' +
@@ -511,7 +515,7 @@ const Phone = {
         '<div class="ph-dock">' + ['mapa', 'msgs', 'pegaai', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
-        `<div class="aj-group"><div class="aj-prof"><span class="aj-ava">${PERA_LOGO}</span><div><b>Motorista de São Gambiarra</b><small>Pera ID · Nuvem Capixaba</small></div></div></div>` +
+        `<div class="aj-group"><div class="aj-prof"><span class="aj-ava">${PERA_LOGO}</span><div><b>Motorista de São Gambiarra</b><small>Pera ID · Nuvem Gambiarra</small></div></div></div>` +
         '<div class="aj-group">' + row('aj-wall', 'Papel de parede', cfg.wall === 'auto' ? 'Variado' : (WALLS.find((w) => w.id === cfg.wall) || WALLS[0]).name) + tog('notif', 'Notificações') + tog('sounds', 'Sons do celular') + '</div>' +
         '<div class="aj-group">' + row('aj-sobre', 'Sobre') + row('aj-update', 'Atualização de Software') + '</div>' +
         `<div class="aj-group"><button class="aj-row aj-save" data-act2="save"><span>Salvar jogo</span></button></div><p class="aj-foot">${cfg.lastSave ? 'Último salvamento às ' + H(cfg.lastSave) + ' (horário do jogo).' : 'O jogo também salva sozinho a cada 30 segundos.'}</p>`;
@@ -523,7 +527,7 @@ const Phone = {
       const free = 256 - 41 - Math.min(60, Math.floor((Profile.distance || 0) / 90000));
       html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Sobre</div><div class="aj-hero">' + PERA_LOGO + '<b>Pera 15 Pro</b></div>' +
         '<div class="aj-group">' + row(null, 'Nome', 'Pera do Motorista') + row(null, 'Versão do PeraOS', PERA_OS) + row(null, 'Modelo', 'Pera 15 Pro') + row(null, 'Operadora', 'Moqueca Tel 5G') + row(null, 'BR Night Drive', 'v' + GAME_VERSION) + '</div>' +
-        '<div class="aj-group">' + row(null, 'Capacidade', '256 GB') + row(null, 'Disponível', free + ' GB') + row(null, 'Apps', '7') + row(null, 'Número de série', 'PR027ES' + (1000 + ((Profile.earned || 0) % 9000))) + '</div>';
+        '<div class="aj-group">' + row(null, 'Capacidade', '256 GB') + row(null, 'Disponível', free + ' GB') + row(null, 'Apps', '7') + row(null, 'Número de série', 'PR0800SG' + (1000 + ((Profile.earned || 0) % 9000))) + '</div>';
     } else if (this.app === 'aj-update') {
       const chk = performance.now() - (this.updT || 0) < 1600;
       html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Atualização</div><div class="aj-hero big">' + PERA_LOGO +

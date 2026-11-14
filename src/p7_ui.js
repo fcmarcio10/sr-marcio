@@ -404,7 +404,7 @@ function drawGaragePreview(dt) {
 function openShopDialog(s) {
   if (s.kind === 'garagem') { Garage.sel = Profile.current; Screens.open('screen-garage'); AudioSys.click(); return; }
   visitShop(s);
-  const KIND = { batalhao: 'SEGURANÇA PÚBLICA', paneleiras: 'ARTESANATO CAPIXABA', posto: 'POSTO DE COMBUSTÍVEL', oficina: 'OFICINA MECÂNICA', moquecaria: 'MOQUECARIA', farmacia: 'FARMÁCIA', padaria: 'PADARIA', mercado: 'MERCADO', lanchonete: 'LANCHONETE', bar: 'BAR', floricultura: 'FLORICULTURA', hotel: 'HOTEL', churrascaria: 'CHURRASCARIA', borracharia: 'BORRACHARIA', sitio: 'SÍTIO', fazenda: 'FAZENDA' };
+  const KIND = { batalhao: 'SEGURANÇA PÚBLICA', paneleiras: 'ARTESANATO', posto: 'POSTO DE COMBUSTÍVEL', oficina: 'OFICINA MECÂNICA', moquecaria: 'MOQUECARIA', farmacia: 'FARMÁCIA', padaria: 'PADARIA', mercado: 'MERCADO', lanchonete: 'LANCHONETE', bar: 'BAR', floricultura: 'FLORICULTURA', hotel: 'HOTEL', churrascaria: 'CHURRASCARIA', borracharia: 'BORRACHARIA', sitio: 'SÍTIO', fazenda: 'FAZENDA' };
   $('dialog-kind').textContent = KIND[s.kind] || 'ESTABELECIMENTO';
   $('dialog-title').textContent = s.name;
   $('dialog-text').textContent = SHOP_TEXT[s.kind] || '';

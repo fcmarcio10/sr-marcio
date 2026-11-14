@@ -11,11 +11,11 @@ Os áudios dos passageiros chegam no **chat do PegaAí**. Os dos personagens (Se
 
 | Arquivo | Voz sugerida | Texto |
 |---|---|---|
-| `p_bicho.mp3` | Marcio Brasil Brasileiro | [bravo] Ô bicho, que corrida foi essa? Pocou meu joelho no banco da frente! Vou dar uma estrela e olhe lá, mermão! |
-| `p_ahla.mp3` | Bianca - Quirky and Animated | [indignada] Ah lá, ah lá! Bateu de novo! Tô passando mal paca nesse carro. Me deixa aqui que eu vou a pé! |
-| `p_moqueca.mp3` | Thiago - Warm and inviting | [irritado] Rapá, tu pegou todo buraco de São Gambiarra. Minha moqueca chegou virada dentro da panela de barro. Moqueca é capixaba, o resto é peixada, mas a minha virou sopa! |
+| `p_bicho.mp3` | Marcio Brasil Brasileiro | [bravo] Ô bicho, que corrida foi essa? Quase quebrei o joelho no banco da frente! Vou dar uma estrela e olhe lá, mermão! |
+| `p_ahla.mp3` | Bianca - Quirky and Animated | [indignada] Ai, meu Deus! Bateu de novo! Tô passando mal demais nesse carro. Me deixa aqui que eu vou a pé! |
+| `p_moqueca.mp3` | Thiago - Warm and inviting | [irritado] Rapá, tu pegou todo buraco de São Gambiarra. Minha moqueca chegou virada dentro da panela. Era o almoço de domingo da família, e agora virou sopa! |
 | `p_tartaruga.mp3` | Lucinda - Earthy and Wise | [impaciente] Ô meu querido, eu pedi um carro e chegou uma tartaruga! Já dava pra ter ido de canoa pelo Rio Jururu. Que isso, bicho! |
-| `p_sofa.mp3` | Eduardo Norte do Paraná | [revoltado] Meu sofá chegou com mais buraco que a BR depois da chuva! Pocou tudo, mermão! Paca de prejuízo! |
+| `p_sofa.mp3` | Eduardo Norte do Paraná | [revoltado] Meu sofá chegou com mais buraco que a BR depois da chuva! Rasgou tudo, mermão! Um prejuízo daqueles! |
 | `p_aviao.mp3` | Bianca - Quirky and Animated | [sarcástica] O avião foi embora e eu fiquei aqui olhando pro céu igual boba. Valeu, piloto de fogão! |
 | `p_vip2.mp3` | Nick Storyteller Prime | [esnobe] Olha, eu moro na parte chique de Camburiso, tá? Lá ninguém anda nesse sacolejo. Que experiência mais cafona, bicho. |
 

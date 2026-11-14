@@ -61,7 +61,7 @@ function newGameNow() {
   Profile = newProfile();
   startPlay();
   saveGame();
-  setTimeout(() => toast('Bem-vindo a São Gambiarra, ES', 'A noite é sua. Explore à vontade — pare nos comércios e aperte E para pegar entregas.', 'info'), 600);
+  setTimeout(() => toast('Bem-vindo a São Gambiarra', 'A noite é sua. Explore à vontade — pare nos comércios e aperte E para pegar entregas.', 'info'), 600);
   Profile.tut = 0; Tutorial.t = 0; Tutorial.d0 = Profile.distance || 0;
 }
 function continueGame() {

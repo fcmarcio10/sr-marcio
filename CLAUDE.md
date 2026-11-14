@@ -1,6 +1,7 @@
 # BR Night Drive — guia para o Claude
 
-Jogo de direção noturna top-down 2.5D em HTML5 Canvas + JS puro, na cidade fictícia de São Gambiarra (ES).
+Jogo de direção em mundo aberto (de madrugada, top-down 2.5D) em HTML5 Canvas + JS puro, na cidade brasileira inventada de São Gambiarra.
+**Não é um "GTA" e não tem foco no Espírito Santo** (decisão do dono, nov/2026): o jogo e a divulgação não citam GTA, "Espírito Santo", "capixaba" nem gírias capixabas; os nomes dos lugares (bairros, placas, papéis de parede) ficam.
 O dono do projeto fala português e não é técnico: responda em português simples, sem jargão.
 
 ## Como montar
@@ -26,14 +27,14 @@ O dono do projeto fala português e não é técnico: responda em português sim
 ## Vozes (ElevenLabs)
 
 - Vozes ficam em `audio/*.mp3` (já comprimidas). O nome do arquivo é a chave em `VOICE_LINES` / `CHAR_VOICES` (`src/p66_career.js`).
-- Todas as 19 vozes do jogo já têm áudio (as 4 dos personagens foram geradas com o plano pago: `ze_nao`, `biu_socorro`, `boas_vindas`, `banco_atraso`). Para uma voz nova: gerar com `eleven_v4`, baixar o `content_url` (host `elevenlabsusercontent.com` liberado no ambiente "sr-marcio"), comprimir com ffmpeg (mono, 24 kHz, 40 kbps) em `audio/` e rodar o build.
+- Todas as 19 vozes do jogo já têm áudio (as 4 dos personagens foram geradas com o plano pago: `ze_nao`, `biu_socorro`, `boas_vindas`, `banco_atraso`). Em nov/2026 `p_bicho`, `p_ahla`, `p_moqueca` e `p_sofa` foram regravadas sem gíria capixaba (projeto do ElevenLabs "BR Night Drive - Passageiros (falas sem gíria capixaba)", mesmas vozes). Para uma voz nova: gerar com `eleven_v4`, baixar o `content_url` (host `elevenlabsusercontent.com` liberado no ambiente "sr-marcio"), comprimir com ffmpeg (mono, 24 kHz, 40 kbps) em `audio/` e rodar o build.
 - As contas grátis (antiga e principal) foram bloqueadas por "atividade incomum"; a conta conectada agora tem créditos pagos (as falas do trailer foram geradas assim, ~60 a 100 créditos por fala). Gerar uma por vez (`generations_count: 1`). O plano grátis não permite uso comercial (o crédito está na tela de Créditos). `tools/tests/tv.js` lista quais vozes já têm áudio.
 - Passageiros falam pelo **chat do PegaAí** (estilo app de corrida). Personagens fixos (Seu Zé, Seu Biu, Banestresse) falam pelo **WhatsApp**. Gente de evento (noivo, motorista do carro quebrado) **não** manda mensagem no WhatsApp: o agradecimento aparece só na tela. Configuração "Mensagens dos personagens": Áudio (só português) ou Texto.
 
 ## Regras e preferências do dono
 
 - Sem emojis como visual. Sem imagens externas (tudo desenhado no código). Fontes embutidas (Anton e Barlow, licença OFL).
-- Nomes de zoeira/paródia (cidades e marcas), humor brasileiro e gírias capixabas.
+- Nomes de zoeira/paródia (cidades e marcas) e humor brasileiro geral (nada de "pocar", "paca", "ah lá", "capixaba"; "bicho", "rapá", "mermão" pode).
 - Câmera: 3 alturas (1 = 140% padrão, 2 = 135%, 3 = 130%); nada passa de 130%, nem correndo. Gráfico padrão: Alto.
 - Trânsito enxuto: nasce numa faixa pequena (240) fora da borda, sempre vindo pra tela; some ao sair da tela indo embora, após 2,5 s fora dela ou ao sair da faixa. No máximo ~5 carros na tela e 9 no total. GPS sem carros. Praia só do lado da cidade grande (embaixo da Serra é mata).
 - **Mapa montado por sorteio numa sequência só** (`RNG` em `p1_core.js`): mudar quantos sorteios uma parte faz embaralha tudo o que vem depois (lojas, postes, árvores). Ao mexer na montagem, use sorteio próprio na parte nova e repita os sorteios antigos — ver `comunidadeSorteioAntigo` e `orlaSorteioAntigo` (`p2_world.js`).

@@ -389,8 +389,8 @@ function addShop(def) {
 }
 
 /* ============================ LOTES E QUARTEIRÕES ============================ */
-const MURO_FRASES = ['FÉ EM DEUS', 'DEUS É FIEL', 'JESUS TE AMA', 'NÃO JOGUE LIXO', 'ALUGA-SE', 'VENDE-SE', 'RESPEITA AS MINA', 'SAUDADE ETERNA', 'MAIS AMOR', 'PAZ NA QUEBRADA', 'FAVELA VIVE', 'CRIA DO MORRO', 'SÓ OS CRIA', 'VAI DAR CERTO', 'O MORRO É TALENTO', 'CAPIXABA COM ORGULHO', 'ESTUDA, MOLEQUE', 'FAZ O BEM', 'TÁ PAGO', 'SORRIA, VOCÊ ESTÁ NO 027'];
-const PIXOS = ['CREW 027', 'OS GAMBIARRA', 'NOIS', 'ZN 027', 'LOKOS', 'PIXO ES', 'LAJE CREW', '027 SKATE', 'MANOS DA SERRA ELÉTRICA', 'TINTA FRESCA'];
+const MURO_FRASES = ['FÉ EM DEUS', 'DEUS É FIEL', 'JESUS TE AMA', 'NÃO JOGUE LIXO', 'ALUGA-SE', 'VENDE-SE', 'RESPEITA AS MINA', 'SAUDADE ETERNA', 'MAIS AMOR', 'PAZ NA QUEBRADA', 'FAVELA VIVE', 'CRIA DO MORRO', 'SÓ OS CRIA', 'VAI DAR CERTO', 'O MORRO É TALENTO', 'DA QUEBRADA COM ORGULHO', 'ESTUDA, MOLEQUE', 'FAZ O BEM', 'TÁ PAGO', 'SORRIA, VOCÊ ESTÁ NO MORRO'];
+const PIXOS = ['CREW SG', 'OS GAMBIARRA', 'NOIS', 'ZN SG', 'LOKOS', 'PIXO SG', 'LAJE CREW', 'SG SKATE', 'MANOS DA SERRA ELÉTRICA', 'TINTA FRESCA'];
 function addGraffiti(b, kind) {
   return; // pichações removidas (custavam muito desempenho)
   kind = kind || (chance(0.45) ? 'frase' : chance(0.6) ? 'pixo' : 'mural');
@@ -906,7 +906,7 @@ function buildCity() {
     '2,1': 'plaza', '3,1': 'parking', '4,2': 'posto', '5,1': 'oficina', '5,3': 'tower', '0,5': 'soccer', '3,7': 'school',
   };
   const shopsDowntown = {
-    '1,2': { 0: { kind: 'moquecaria', name: 'Moquecaria Panela de Barro', sign: 'MOQUECA', color: '#ff5f3d', h: 32, pickup: true, items: ['Moqueca capixaba', 'Torta capixaba', 'Panela de moqueca'], tables: true }, 3: { kind: 'farmacia', name: 'Farmácia Dorme Bem', sign: 'FARMÁCIA', color: '#3dff8a', h: 34, pickup: true, items: ['Remédios', 'Encomenda da farmácia'] } },
+    '1,2': { 0: { kind: 'moquecaria', name: 'Moquecaria Panela de Barro', sign: 'MOQUECA', color: '#ff5f3d', h: 32, pickup: true, items: ['Moqueca de peixe', 'Torta de palmito', 'Panela de moqueca'], tables: true }, 3: { kind: 'farmacia', name: 'Farmácia Dorme Bem', sign: 'FARMÁCIA', color: '#3dff8a', h: 34, pickup: true, items: ['Remédios', 'Encomenda da farmácia'] } },
     '0,0': { 1: { kind: 'hotel', name: 'Hotel Dorme e Acorda', sign: 'HOTEL', color: '#c56bff', h: 70, wall: '#c9c2b4' } },
   };
   const resSpecial = {
@@ -1352,7 +1352,7 @@ function buildHighwayStrip() {
   addShop({ kind: 'borracharia', name: 'Borracharia Furou, Chamou', x: 4240, y: 6200 - 21, bld: bb, color: '#ffd24a', region: 'rodovia' });
   scatterTrees(4035, 5400, 4515, 5900, 8, ['round', 'mango', 'palm']);
   // outdoors
-  const ads = [['MOQUECA É CAPIXABA', 'O RESTO É PEIXADA'], ['DIRIJA DE BOA, MANO', 'A NOITE É LONGA'], ['RÁDIO GAMBIARRA FM', '171,1'], ['BOI NA BRASA', 'RODÍZIO ATÉ CAIR'], ['CAFÉ CONILON DO ES', 'ACORDA ATÉ DEFUNTO'], ['POSTO ESTRELA CADENTE', 'ABERTO 25H']];
+  const ads = [['MOQUECA DA DONA PENHA', 'A MELHOR DA CIDADE'], ['DIRIJA DE BOA, MANO', 'A NOITE É LONGA'], ['RÁDIO GAMBIARRA FM', '171,1'], ['BOI NA BRASA', 'RODÍZIO ATÉ CAIR'], ['CAFÉ COADO NA HORA', 'ACORDA ATÉ DEFUNTO'], ['POSTO ESTRELA CADENTE', 'ABERTO 25H']];
   let ai = 0;
   for (const x of [900, 3400, 5000, 6900, 8200]) {
     const bx = x, by = x > 4700 ? 6320 : 6080;
@@ -1441,7 +1441,7 @@ function buildFesta() {
   const lines = [[1530, 1180, 1980, 1380], [1530, 1380, 1980, 1180], [380, 3380, 770, 3760], [380, 3760, 770, 3380], [7860, 1150, 8140, 1270], [7860, 1270, 8140, 1150], [7960, 4500, 8220, 4620], [7960, 4620, 8220, 4500]];
   for (const [a, b, c, d] of lines) addFlags(a, b, c, d, true);
 }
-function buildCapixaba() {
+function buildMarcosDaCidade() {
   // Morro do Convento da Pinha (no alto, com vista para a cidade)
   const hx = 8100, hy = 560;
   decal(hx - 300, hy - 240, hx + 300, hy + 240, 'hill', { z: 1.2 });
@@ -1457,7 +1457,7 @@ function buildCapixaba() {
   addLight(4760, 3275, 110, 0.9, 'warm', { shop: true });
   for (let i = 0; i < 5; i++) addProp('pot', 4745, 3250 + i * 14, { col: 'circ', cr: 5, R: 10 });
   addShop({ kind: 'paneleiras', name: 'Galpão das Paneleiras', x: 4600 + RT.street.lanes[0], y: 3275, bld: pb, color: '#ff9a4a', region: 'rio', pickup: true, items: ['Panela de barro grande', 'Jogo de panelas de barro', 'Moquequeira de barro'] });
-  // placas verdes de rodovia com cidades do ES
+  // placas verdes de rodovia com as cidades vizinhas
   const signs = [[1180, 'VITORINHA 25', 'VILA VÉIA 31'], [3300, 'GUARAPARIU 58', 'ANCHIETA DE PERTO 80'], [6900, 'PEDRA AZULEJO 92', 'DOMINGOS MARTELO 70'], [8200, 'CACHOEIRO DE ITAPEMIRIM-MIRIM 136', 'LINHA RES 135']];
   for (const [x, a, b] of signs) {
     const y = HWY_Y - RT.highway.w / 2 - 14;
@@ -1577,7 +1577,7 @@ function buildActivitiesData() {
   markReflections();
   buildDepots();
   buildRachas();
-  buildCapixaba();
+  buildMarcosDaCidade();
   buildFesta();
   const P = (id, name, x, y, desc) => World.pois.push({ id, name, x, y, r: 170, desc });
   P('praca', 'Praça da Matriz', 1756, 1260, 'O coração do Centrão, com a fonte, a igreja e o pipoqueiro.');
@@ -1595,7 +1595,7 @@ function buildActivitiesData() {
   P('escola', 'Escola Estadual', 2420, 4900, 'A quadra iluminada da escola do bairro.');
   P('convento', 'Convento da Pinha', 8100, 600, 'Lá do alto dá pra ver São Gambiarra inteira. Romaria em abril.');
   P('ponte3', 'Terceira Ponte e Meia', riverCX(1500), 1500, 'Concreto, vento forte e vista do Rio Jururu.');
-  P('paneleiras', 'Galpão das Paneleiras', 4830, 3275, 'Panelas de barro feitas à mão, do jeitinho capixaba.');
+  P('paneleiras', 'Galpão das Paneleiras', 4830, 3275, 'Panelas de barro feitas à mão, do jeito antigo.');
   P('feira', 'Feira da Roça', 860, 5830, 'Pastel, caldo de cana e banana a preço de domingo.');
   P('orlacamburi', 'Orla de Camburiso', 6900, 8900, 'Calçadão de pedra portuguesa, quiosque aberto e o barulho do mar a noite inteira.');
   P('barra', 'Barra do Jururuzinho', riverCX(8800), 8780, 'Onde o Rio Jururu encontra o mar. Os pescadores juram que o peixe era deste tamanho.');
@@ -1735,7 +1735,7 @@ function buildLitoral() {
   { const R = litRect(2, 2); decal(R.x0, R.y0, R.x1, R.y1, 'concrete');
     const b = addBuilding(R.x0 + 30, R.y0 + 30, R.x1 - 30, R.y0 + 200, 46, { style: 'warehouse', roofType: 'corrugated', roofColor: '#7d8a96', wall: '#c9d0d6', lit: 0.5, sign: 'PORTO DO TUBARÃO BANGUELA', signColor: '#59e0ff', front: 'S' });
     for (let i = 0; i < 5; i++) addParkedCar(R.x0 + 60 + i * 80, R.y1 - 70, Math.PI / 2, pick(['truck', 'bau', 'tanker']), '#e8e8e8');
-    addShop({ kind: 'porto', name: 'Porto do Tubarão Banguela', x: (R.x0 + R.x1) / 2, y: 8700 - RT.avenue.lanes[1], bld: b, color: '#59e0ff', region: 'porto', pickup: true, items: ['Contêiner de café capixaba', 'Pelotas de minério', 'Bloco de granito', 'Caixas de chocolate de Vianinha'] });
+    addShop({ kind: 'porto', name: 'Porto do Tubarão Banguela', x: (R.x0 + R.x1) / 2, y: 8700 - RT.avenue.lanes[1], bld: b, color: '#59e0ff', region: 'porto', pickup: true, items: ['Contêiner de café', 'Pelotas de minério', 'Bloco de granito', 'Caixas de chocolate de Vianinha'] });
     World.porto = { x: (R.x0 + R.x1) / 2, y: (R.y0 + R.y1) / 2 };
   }
   // ---- a orla: calçadão, areia e mar, só do lado da cidade grande ----
@@ -1764,7 +1764,7 @@ function buildLitoral() {
     addLamp(x, CALC_Y + 10, x, CALC_Y + 10, 'white', { style: 'globe', h: 32, r: 120, i: 0.75 });
     if (chance(0.8)) addTree(x + 70 + rnd(-20, 20), SAND_Y + rnd(20, 70), 'palm', rnd(0.9, 1.25));
   }
-  const KIOSKS = [['SIRI NA LATA', '#ff6b4a', 'Quiosque Siri na Lata'], ['ÁGUA DE COCO', '#3cff8f', 'Quiosque Água de Coco Gelada'], ['SOL E MOQUECA', '#ffd23f', 'Quiosque Sol e Moqueca'], ['CAMARÃO QUE DORME', '#ff9ed2', 'Quiosque Camarão que Dorme'], ['DO CAPIXABA', '#59e0ff', 'Quiosque do Capixaba'], ['PASTEL DE ARRAIA', '#ffb547', 'Quiosque Pastel de Arraia'], ['CHOPP DA MARÉ', '#f4f1e0', 'Quiosque Chopp da Maré']];
+  const KIOSKS = [['SIRI NA LATA', '#ff6b4a', 'Quiosque Siri na Lata'], ['ÁGUA DE COCO', '#3cff8f', 'Quiosque Água de Coco Gelada'], ['SOL E MOQUECA', '#ffd23f', 'Quiosque Sol e Moqueca'], ['CAMARÃO QUE DORME', '#ff9ed2', 'Quiosque Camarão que Dorme'], ['DO GORDO', '#59e0ff', 'Quiosque do Gordo'], ['PASTEL DE ARRAIA', '#ffb547', 'Quiosque Pastel de Arraia'], ['CHOPP DA MARÉ', '#f4f1e0', 'Quiosque Chopp da Maré']];
   let ki = 0;
   for (let x = ORLA_X0 + 290; x < 7600; x += 900) {
     if (Math.abs(x - riverCX(8900)) < 300) continue;
@@ -1773,7 +1773,7 @@ function buildLitoral() {
     for (const dx of [-50, 50]) addProp('table', x + dx, y0 + 22, { col: 'circ', cr: 5, c: '#f4c430', R: 12 });
     addLight(x, y0 - 6, 110, 0.9, col, { shop: true });
     const yRoad = x < 4600 ? 8700 + RT.street.lanes[0] : 8700 + RT.avenue.lanes[1];
-    addShop({ kind: 'bar', name: full, x, y: yRoad, bld: b, color: col, region: 'orla', pickup: true, items: ['Porção de camarão', 'Água de coco', 'Moqueca na panela de barro', 'Isopor de gelo'] });
+    addShop({ kind: 'bar', name: full, x, y: yRoad, bld: b, color: col, region: 'orla', pickup: true, items: ['Porção de camarão', 'Água de coco', 'Moqueca na panela', 'Isopor de gelo'] });
   }
   RNG = RG;
   // posto de salva-vidas, rede de vôlei e barcos na areia

@@ -715,7 +715,7 @@ Traffic.randomEdge = function () {
   while (lo < hi) { const mid = (lo + hi) >> 1; if (this.cum[mid] < r) lo = mid + 1; else hi = mid; }
   return World.edges[lo];
 };
-/* ---------- trânsito só em volta da tela (estilo GTA) ----------
+/* ---------- trânsito só em volta da tela (estilo jogo de mundo aberto) ----------
    Carro nasce logo fora da borda da tela e entra andando. Carro que fica fora da tela por alguns
    segundos é apagado. Fora da tela, quem ainda existe é calculado 4x menos vezes. Se um trecho já
    está cheio (engarrafamento), não chega carro novo ali. */

@@ -37,7 +37,7 @@ TEXTO = {
 }
 # vozes do próprio jogo que tocam na gameplay (arquivo em audio/, quem fala, texto do jogo)
 JOGO = {
- 'p_moqueca': ('Marcão', 'Rapá, tu pegou todo buraco de São Gambiarra. Minha moqueca chegou virada dentro da panela de barro. Moqueca é capixaba, o resto é peixada, mas a minha virou sopa!'),
+ 'p_moqueca': ('Marcão', 'Rapá, tu pegou todo buraco de São Gambiarra. Minha moqueca chegou virada dentro da panela. Era o almoço de domingo da família, e agora virou sopa!'),
  'biu_socorro': ('Seu Biu', 'Ô meu patrão, a carreta tombou! Tá banana pra todo lado, parece feira depois de terremoto! Me ajuda aqui, pelo amor de Deus, que eu pago cada caixa!'),
 }
 

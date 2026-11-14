@@ -57,7 +57,7 @@ function buildPatterns() {
     g.fillStyle = '#76756f';
     for (let i = 0; i < s; i += 16) { g.fillRect(i, 0, 1, s); g.fillRect(0, i, s, 1); }
   });
-  // barro vermelho do interior capixaba, com cascalho
+  // barro vermelho do interior, com cascalho
   PSRC.dirt = tex(128, '#8a5a3c', (g, s, R) => {
     speck(g, s, R, 1100, ['#7c4f34', '#956345', '#a06e4c', '#6e462f', '#ab7a56', '#83563a'], 1, 3);
     for (let i = 0; i < 70; i++) { g.fillStyle = R() < 0.5 ? 'rgba(190,170,140,0.55)' : 'rgba(120,110,100,0.5)'; g.beginPath(); g.arc(R() * s, R() * s, 0.8 + R() * 1.4, 0, TAU); g.fill(); }
@@ -252,7 +252,7 @@ function drawStallLines(g, x0, y0, x1, y1, vert) {
 
 /* ============================ RUAS ============================ */
 function edgeLocal(g, e) { g.save(); g.translate(e.a.x, e.a.y); if (!e.h) g.rotate(Math.PI / 2); }
-// cara de rua capixaba: bloquete nos bairros, asfalto remendado nas avenidas,
+// cara de rua brasileira: bloquete nos bairros, asfalto remendado nas avenidas,
 // calçadão de pedra portuguesa no Centrão e meio-fio caiado de branco
 // bloquete só na favela (Serra e os morros de São Pedreiro e Terra Amarelou); no resto, asfalto
 const PAVER_REGIONS = { saopedro: 0.75, terravermelha: 0.75, feurosa: 0.7, carapina: 0.7, novarosa: 0.7, flexal: 0.7 };

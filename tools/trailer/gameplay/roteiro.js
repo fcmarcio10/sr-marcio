@@ -133,8 +133,8 @@ const cenas = [
   /* ================= ENTREGA E FRETE ================= */
   { nome: '17a-moquecaria', seg: 0.2 + 7.84, antes: 10, estilo: 'trampo',
     setup: `TR.reset({ hud: true, toasts: true, time: 20 * 60 + 52 }); const C = career(); C.lvl = 3; C.xp = 20; C.ratings = [2]; Act.ride = null; Act.rideOnline = false;
-      const sh = World.shops.find((x) => x.kind === 'moquecaria'); TR.fixar(sh.items, 'Moqueca capixaba'); TR.chegar(sh.x, sh.y, ${s(2.0)}, 200);
-      TR.em([[${s(5.6)}, () => TR.tecla('KeyE', 'E', 'pegar entrega')], [${s(6.9)}, () => TR.botao(/Moqueca capixaba/)]]);` },
+      const sh = World.shops.find((x) => x.kind === 'moquecaria'); TR.fixar(sh.items, 'Moqueca de peixe'); TR.chegar(sh.x, sh.y, ${s(2.0)}, 200);
+      TR.em([[${s(5.6)}, () => TR.tecla('KeyE', 'E', 'pegar entrega')], [${s(6.9)}, () => TR.botao(/Moqueca de peixe/)]]);` },
   { nome: '17b-entregue', seg: D('g18') - 7.84 + 0.6, antes: 0, estilo: 'trampo',
     setup: `const d = Act.delivery; d.t = 4; TR.chegar(d.dest.x, d.dest.y, ${s(1.2)}, 200);` },
   { nome: '18-fretes', seg: 0.2 + D('g19') + 0.4, antes: 10, estilo: 'trampo',

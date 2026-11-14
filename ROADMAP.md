@@ -44,7 +44,7 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
 
 - [x] **Câmera mais perto e trânsito em volta da tela**
   - Câmera em 3 alturas (140/135/130%) com prévia nas configurações; tecla C troca. Gráfico Alto por padrão.
-  - Trânsito estilo GTA: carro nasce fora da borda da tela vindo pra dentro, some depois de 4 s fora da tela, trecho cheio não recebe carro novo. De 32 para 4 a 8 carros simulados, com mais carro por pedaço de tela.
+  - Trânsito estilo mundo aberto: carro nasce fora da borda da tela vindo pra dentro, some depois de 4 s fora da tela, trecho cheio não recebe carro novo. De 32 para 4 a 8 carros simulados, com mais carro por pedaço de tela.
   - Pessoas, animais e peladas só se mexem na tela. GPS 20% mais perto e sem carros. Praia só do lado da cidade grande.
 
 - [x] **Enxugada geral**

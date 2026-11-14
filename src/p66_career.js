@@ -4,7 +4,7 @@
    A nota no PegaAí (média das últimas 30 corridas) e o nível liberam corridas melhores:
    Aeroporto, Mudança e VIP. Cliente mal atendido manda áudio xingando no WhatsApp. */
 const LEVEL_MAX = 30;
-const LEVEL_TITLES = [[1, 'Motorista de primeira viagem'], [3, 'Barbeiro em recuperação'], [5, 'Motorista de aplicativo'], [8, 'Conhece todo atalho'], [12, 'Rei da BR-101'], [16, 'Lenda da madrugada'], [20, 'Taxista honorário'], [25, 'Patrimônio capixaba'], [30, 'Dono das ruas de São Gambiarra']];
+const LEVEL_TITLES = [[1, 'Motorista de primeira viagem'], [3, 'Barbeiro em recuperação'], [5, 'Motorista de aplicativo'], [8, 'Conhece todo atalho'], [12, 'Rei da BR-101'], [16, 'Lenda da madrugada'], [20, 'Taxista honorário'], [25, 'Patrimônio da cidade'], [30, 'Dono das ruas de São Gambiarra']];
 function xpNeed(L) { return 120 + 80 * (L - 1); }
 function career() {
   if (!Profile.career) Profile.career = { lvl: 1, xp: 0, ratings: [], acc: { comum: true, aero: true, mudanca: true, vip: true } };
@@ -41,7 +41,7 @@ const RIDE_TYPES = {
   mudanca: { name: 'PegaAí Mudança', mult: 1.8, lvl: 3, rating: 0, w: 1.3, desc: 'Precisa de Kombo, picape ou Unho com escada. Carga frágil: cada batida quebra alguma coisa.' },
   vip: { name: 'PegaAí VIP', mult: 2.4, lvl: 5, rating: 4.5, w: 1.1, desc: 'Cliente exigente: carro limpo e inteiro, sem batida e sem demora. Paga muito bem.' },
 };
-const VIPS = ['Doutor Valdemar', 'Influencer Kamylla', 'Deputada Rosimeire', 'Empresário Juvenal', 'Jogador do Desportiva', 'Cantor de Pagode Thiaguinho Capixaba', 'Desembargador Otacílio'];
+const VIPS = ['Doutor Valdemar', 'Influencer Kamylla', 'Deputada Rosimeire', 'Empresário Juvenal', 'Jogador do Gambiarra FC', 'Cantor de Pagode Thiaguinho do Morro', 'Desembargador Otacílio'];
 const MUDANCA_ITENS = ['a geladeira', 'a TV de 50 polegadas', 'o espelho da vó', 'a cristaleira', 'o aquário', 'a máquina de lavar', 'o vaso de planta da sogra'];
 const AERO_FALAS = ['"Meu voo sai daqui a pouco, pelo amor de Deus, corre!"', '"Esqueci o passaporte... não, achei! Bora, bora!"', '"Se eu perder esse voo, a lua de mel acaba antes de começar."'];
 const VIP_FALAS = ['"Ar no 21, por favor. Nem 20, nem 22."', '"Evite buracos. Meu terno custou mais que esse carro."', '"Você tem água com gás? Não? Hum."'];
@@ -125,12 +125,12 @@ const VOICE_LINES = [
   { clip: 'mudanca', g: 'f', when: 'mudanca', text: 'Minha geladeira chegou parecendo uma sanfona! Minha sogra vai me matar... e depois eu te mato! Brincadeira. Ou não.' },
   { clip: 'demora', g: 'm', when: 'late', text: 'Demorou tanto que eu fiquei mais velho dentro desse carro. Cheguei atrasado e ainda com torcicolo. Uma estrela, e olhe lá!' },
   { clip: 'aero', g: 'm', when: 'aero', text: 'Perdi o voo! PERDI O VOO! Agora vou ter que ir pra Vitorinha de ônibus, com galinha no colo. Obrigado, viu, campeão!' },
-  // com gírias capixabas
-  { clip: 'p_bicho', g: 'm', when: 'hits', text: 'Ô bicho, que corrida foi essa? Pocou meu joelho no banco da frente! Vou dar uma estrela e olhe lá, mermão!' },
-  { clip: 'p_ahla', g: 'f', when: 'hits3', text: 'Ah lá, ah lá! Bateu de novo! Tô passando mal paca nesse carro. Me deixa aqui que eu vou a pé!' },
-  { clip: 'p_moqueca', g: 'm', when: 'hits', text: 'Rapá, tu pegou todo buraco de São Gambiarra. Minha moqueca chegou virada dentro da panela de barro. Moqueca é capixaba, o resto é peixada, mas a minha virou sopa!' },
+  // mais falas
+  { clip: 'p_bicho', g: 'm', when: 'hits', text: 'Ô bicho, que corrida foi essa? Quase quebrei o joelho no banco da frente! Vou dar uma estrela e olhe lá, mermão!' },
+  { clip: 'p_ahla', g: 'f', when: 'hits3', text: 'Ai, meu Deus! Bateu de novo! Tô passando mal demais nesse carro. Me deixa aqui que eu vou a pé!' },
+  { clip: 'p_moqueca', g: 'm', when: 'hits', text: 'Rapá, tu pegou todo buraco de São Gambiarra. Minha moqueca chegou virada dentro da panela. Era o almoço de domingo da família, e agora virou sopa!' },
   { clip: 'p_tartaruga', g: 'f', when: 'late', text: 'Ô meu querido, eu pedi um carro e chegou uma tartaruga! Já dava pra ter ido de canoa pelo Rio Jururu. Que isso, bicho!' },
-  { clip: 'p_sofa', g: 'm', when: 'mudanca', text: 'Meu sofá chegou com mais buraco que a BR depois da chuva! Pocou tudo, mermão! Paca de prejuízo!' },
+  { clip: 'p_sofa', g: 'm', when: 'mudanca', text: 'Meu sofá chegou com mais buraco que a BR depois da chuva! Rasgou tudo, mermão! Um prejuízo daqueles!' },
   { clip: 'p_aviao', g: 'f', when: 'aero', text: 'O avião foi embora e eu fiquei aqui olhando pro céu igual bobo. Valeu, piloto de fogão!' },
   { clip: 'p_vip2', g: 'm', when: 'vip', text: 'Olha, eu moro na parte chique de Camburiso, tá? Lá ninguém anda nesse sacolejo. Que experiência mais cafona, bicho.' },
 ];

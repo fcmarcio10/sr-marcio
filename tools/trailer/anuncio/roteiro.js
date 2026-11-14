@@ -108,8 +108,8 @@ const cenas = [
   /* ================= ENTREGA, FRETE E GÁS ================= */
   { nome: 'a11a-moqueca', seg: 2.5, antes: 10, estilo: 'trampo',
     setup: `TR.reset({ hud: true, toasts: true, time: 20 * 60 + 52 }); Screens.closeAll(); document.body.classList.remove('tr-bigphone'); const C = career(); C.lvl = 3; C.xp = 20; C.ratings = [2]; Act.ride = null; Act.rideOnline = false;
-      const sh = World.shops.find((x) => x.kind === 'moquecaria'); TR.fixar(sh.items, 'Moqueca capixaba'); TR.chegar(sh.x, sh.y, ${s(0.6)}, 200);
-      TR.em([[${s(0.8)}, () => TR.tecla('KeyE', 'E', 'pegar entrega')], [${s(1.8)}, () => TR.botao(/Moqueca capixaba/)]]);` },
+      const sh = World.shops.find((x) => x.kind === 'moquecaria'); TR.fixar(sh.items, 'Moqueca de peixe'); TR.chegar(sh.x, sh.y, ${s(0.6)}, 200);
+      TR.em([[${s(0.8)}, () => TR.tecla('KeyE', 'E', 'pegar entrega')], [${s(1.8)}, () => TR.botao(/Moqueca de peixe/)]]);` },
   { nome: 'a11b-fretes', seg: 1.7, antes: 10, estilo: 'trampo',
     setup: `TR.reset({ hud: true, toasts: true, bigPhone: true, time: 20 * 60 + 54 }); Act.delivery = null; Profile.current = 'gas'; player.setCar('gas'); TR.hook();
       const d = World.depots.gas, ne = nearestEdge(d.x, d.y), e = ne.e; const x = e.a.x + e.dx * ne.s, y = e.a.y + e.dy * ne.s;
