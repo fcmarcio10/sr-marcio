@@ -1352,7 +1352,7 @@ function buildHighwayStrip() {
   addShop({ kind: 'borracharia', name: 'Borracharia Furou, Chamou', x: 4240, y: 6200 - 21, bld: bb, color: '#ffd24a', region: 'rodovia' });
   scatterTrees(4035, 5400, 4515, 5900, 8, ['round', 'mango', 'palm']);
   // outdoors
-  const ads = [['MOQUECA DA DONA PENHA', 'A MELHOR DA CIDADE'], ['DIRIJA DE BOA, MANO', 'A NOITE É LONGA'], ['RÁDIO GAMBIARRA FM', '171,1'], ['BOI NA BRASA', 'RODÍZIO ATÉ CAIR'], ['CAFÉ COADO NA HORA', 'ACORDA ATÉ DEFUNTO'], ['POSTO ESTRELA CADENTE', 'ABERTO 25H']];
+  const ads = [['MOQUECA DA DONA PENHA', 'A MELHOR DA CIDADE'], ['DIRIJA DE BOA, MANO', 'A NOITE É LONGA'], ['RÁDIO GAMBIARRA FM', '171,1'], ['BOI NA BRASA', 'RODÍZIO ATÉ CAIR'], ['PÃO DE QUEIJO DA TIA', 'UAI, QUE TREM BÃO, SÔ'], ['POSTO ESTRELA CADENTE', 'ABERTO 25H']];
   let ai = 0;
   for (const x of [900, 3400, 5000, 6900, 8200]) {
     const bx = x, by = x > 4700 ? 6320 : 6080;

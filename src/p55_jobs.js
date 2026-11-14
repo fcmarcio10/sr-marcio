@@ -1,7 +1,7 @@
 /* ============================ CELULAR, PROFISSÕES, APP DE MOTORISTA E RACHA ============================ */
-const PASSAGEIROS = ['Dona Cida', 'Seu Jorge', 'Thaís', 'Juninho', 'Pastor Elias', 'Dona Penha', 'Marcão', 'Bia da Farmácia', 'Tio Zezinho', 'Kelly', 'Rafa do Bloco', 'Vó Lurdes', 'Diego Entregador', 'Professora Solange'];
-const FALAS_EMBARQUE = ['"Boa noite, moço! Pode ir pela avenida que é mais rápido."', '"Liga o ar aí, por favor?"', '"Tô atrasada pro plantão, vai com fé!"', '"Nossa, esse carro é raiz, hein?"', '"Me deixa na porta, que tá escuro."', '"Pode botar um pagodinho no rádio?"'];
-const FALAS_BATIDA = ['"Ô motorista, devagar!"', '"Jesus amado, quase morri!"', '"Vou dar uma estrela pra você, viu?"', '"Eita! Cuidado aí!"'];
+const PASSAGEIROS = ['Dona Cida', 'Seu Jorge', 'Thaís', 'Juninho', 'Pastor Elias', 'Dona Penha', 'Marcão', 'Bia da Farmácia', 'Tio Zezinho', 'Kelly', 'Rafa do Bloco', 'Vó Lurdes', 'Diego Entregador', 'Professora Solange', 'Painho Raimundo', 'Guri Matheus', 'Tonho Mineiro', 'Chicó do Sertão', 'Dona Socorro', 'Mano Wellington'];
+const FALAS_EMBARQUE = ['"Boa noite, moço! Pode ir pela avenida que é mais rápido."', '"Liga o ar aí, por favor?"', '"Tô atrasada pro plantão, vai com fé!"', '"Nossa, esse carro é raiz, hein?"', '"Me deixa na porta, que tá escuro."', '"Pode botar um pagodinho no rádio?"', '"Uai, sô, esse trem é rebaixado demais da conta!"', '"Bah, tchê, que frio! Liga o ar quente aí, guri."', '"Oxente, motorista! Tu é ligeiro, hein? Gostei, visse?"', '"Égua, mano, que carro massa!"', '"Ô, meu, vai pela avenida que é mais rápido. Confia."', '"Caraca, mermão, esse som é sinistro!"'];
+const FALAS_BATIDA = ['"Ô motorista, devagar!"', '"Jesus amado, quase morri!"', '"Vou dar uma estrela pra você, viu?"', '"Eita! Cuidado aí!"', '"Oxe! Tá querendo me matar, é?"', '"Bah, que barbaridade, tchê!"', '"Uai! Cê tá doido, sô?"', '"Égua, quase que eu vou pro céu antes da hora!"', '"Caraca, mermão, pegou de jeito!"', '"Meu, que rolê tenso!"'];
 const JOB_TYPES = {
   pickup: { name: 'Frete de picape', items: ['Sacos de cimento', 'Mudança pequena', 'Tijolos baianos', 'Geladeira usada', 'Móveis da vó'], mult: 1.35 },
   bau: { name: 'Carga de baú', items: ['Carga de bebidas', 'Caixas de mercadoria', 'Eletrodomésticos', 'Engradados de refrigerante'], mult: 2.2 },
@@ -397,13 +397,14 @@ function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
   return `<button class="ph-app" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge ? `<i class="ph-badge">${badge}</i>` : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
 }
-// papéis de parede: paisagens de São Gambiarra e arredores, desenhadas em SVG
+// papéis de parede: paisagens de São Gambiarra e arredores (e a bandeira), desenhadas em SVG
 const WALLS = [
   { id: 'penha', name: 'Convento da Pena', place: 'Vila Véia' },
   { id: 'ponte', name: 'Terceira Ponte e Meia', place: 'Vitorinha' },
   { id: 'pedra', name: 'Pedra Azulejo', place: 'Domingos Martelo' },
   { id: 'camburi', name: 'Praia de Camburiso', place: 'Vitorinha' },
   { id: 'dunas', name: 'Dunas de Ita-Unhas', place: 'Conceição da Barraca' },
+  { id: 'bandeira', name: 'Trabalha e Confia', place: 'Bandeira capixaba' },
   { id: 'estrada', name: 'Estrada da Madrugada', place: 'Rodovia BR-101 e Pouco' },
 ];
 const _wallCache = {};
@@ -465,6 +466,14 @@ function wallSVG(id) {
       <path d="M0 430 C80 390 150 400 210 440" stroke="#d8cfd0" stroke-opacity="0.5" fill="none"/><path d="M0 500 C70 470 140 480 200 510" stroke="#efe2d6" stroke-opacity="0.5" fill="none"/>
       <path d="M232 500 C236 470 238 456 246 440" stroke="#2a2440" stroke-width="3" fill="none"/><path d="M246 440 l-12 4 M246 440 l12 2 M246 440 l-6 -10 M246 440 l8 -9" stroke="#2a2440" stroke-width="2.5" stroke-linecap="round"/>`;
       break;
+    case 'bandeira':
+      g = `<defs>${grad('b', [[0, '#16408a'], [1, '#2a62c4']], 0)}${grad('p', [[0, '#e07aa6'], [1, '#f2a8c6']], 0)}</defs>
+      <rect width="300" height="600" fill="#f4f4f0"/>
+      <path d="M0 0 H300 V170 L0 290Z" fill="url(#b)"/><path d="M0 390 L300 270 V600 H0Z" fill="url(#p)"/>
+      <path d="M0 290 L300 170" stroke="#fff" stroke-width="2"/>
+      <text x="150" y="312" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#16408a" transform="rotate(-21.8 150 312)" letter-spacing="2">TRABALHA E CONFIA</text>
+      ${stars(40, 160, 0.5)}`;
+      break;
     default: // 'estrada': rodovia de madrugada com a cidade acesa no horizonte
       g = `<defs>${grad('s', [[0, '#04061a'], [0.5, '#141a46'], [0.78, '#4a2a6a'], [1, '#b8506e']], 1)}${grad('r', [[0, '#151a2c'], [1, '#232a40']], 1)}</defs>
       <rect width="300" height="600" fill="url(#s)"/>${stars(90, 300, 1)}<circle cx="236" cy="110" r="18" fill="#f4efd6"/>
@@ -480,7 +489,7 @@ function wallSVG(id) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 600" preserveAspectRatio="xMidYMid slice">${g}</svg>`;
 }
 function wallURL(id) { if (!_wallCache[id]) _wallCache[id] = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(wallSVG(id)) + '")'; return _wallCache[id]; }
-function phoneCfg() { if (!Profile.phone) Profile.phone = { wall: 'auto', notif: true, sounds: true, lastSave: null }; if (Profile.phone.wall === 'bandeira') Profile.phone.wall = 'estrada'; return Profile.phone; }
+function phoneCfg() { if (!Profile.phone) Profile.phone = { wall: 'auto', notif: true, sounds: true, lastSave: null }; return Profile.phone; }
 function phoneTone(f, d, v, delay) { if (phoneCfg().sounds) AudioSys.tone(f, d, 'sine', v, 'ui', null, delay); }
 const PERA_OS = '18.4';
 

@@ -44,7 +44,7 @@ function onPlayerImpact(imp) {
   Cam.shake = Math.max(Cam.shake, 3 + k * 12);
   const hx = player.hitX || player.x, hy = player.hitY || player.y;
   for (let i = 0; i < 4 + k * 12; i++) Particles.emit('spark', hx, hy, rnd(-220, 220), rnd(-220, 220), rnd(0.2, 0.5), 2);
-  if (k > 0.45 && chance(0.6)) { const f = pick([['Eita!', 'Isso vai doer no bolso…'], ['Ô, rapá!', 'Olha a lataria, sô!'], ['Que isso, maluco?', 'Seu Zé vai ter trabalho.'], ['Vixe!', 'Bateu feio.']]); toast(f[0], f[1], 'bad'); }
+  if (k > 0.45 && chance(0.6)) { const f = pick([['Eita!', 'Isso vai doer no bolso…'], ['Ô, rapá!', 'Olha a lataria, sô!'], ['Que isso, maluco?', 'Seu Zé vai ter trabalho.'], ['Vixe!', 'Bateu feio.'], ['Bah!', 'Que barbaridade, tchê.'], ['Oxente!', 'Arrebentou foi tudo!'], ['Uai!', 'Esse trem amassou, sô.'], ['Égua!', 'Doeu até em mim.'], ['Caraca!', 'Pegou de jeito, mermão.']]); toast(f[0], f[1], 'bad'); }
   const zone = addZoneDamage(Profile.zones || (Profile.zones = { f: 0, r: 0, l: 0, rt: 0 }), player, hx, hy, kd);
   Debris.spill(hx, hy, k, player.color, zone);
   if ((zone === 'l' || zone === 'rt') && k > 0.45 && chance(0.6)) Particles.emit('hubcap', hx, hy, rnd(-140, 140), rnd(-140, 140), 2.6, 3);

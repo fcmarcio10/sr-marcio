@@ -1848,7 +1848,7 @@ function buildHighwayStrip() {
   addShop({ kind: 'borracharia', name: 'Borracharia Furou, Chamou', x: 4240, y: 6200 - 21, bld: bb, color: '#ffd24a', region: 'rodovia' });
   scatterTrees(4035, 5400, 4515, 5900, 8, ['round', 'mango', 'palm']);
   // outdoors
-  const ads = [['MOQUECA DA DONA PENHA', 'A MELHOR DA CIDADE'], ['DIRIJA DE BOA, MANO', 'A NOITE É LONGA'], ['RÁDIO GAMBIARRA FM', '171,1'], ['BOI NA BRASA', 'RODÍZIO ATÉ CAIR'], ['CAFÉ COADO NA HORA', 'ACORDA ATÉ DEFUNTO'], ['POSTO ESTRELA CADENTE', 'ABERTO 25H']];
+  const ads = [['MOQUECA DA DONA PENHA', 'A MELHOR DA CIDADE'], ['DIRIJA DE BOA, MANO', 'A NOITE É LONGA'], ['RÁDIO GAMBIARRA FM', '171,1'], ['BOI NA BRASA', 'RODÍZIO ATÉ CAIR'], ['PÃO DE QUEIJO DA TIA', 'UAI, QUE TREM BÃO, SÔ'], ['POSTO ESTRELA CADENTE', 'ABERTO 25H']];
   let ai = 0;
   for (const x of [900, 3400, 5000, 6900, 8200]) {
     const bx = x, by = x > 4700 ? 6320 : 6080;
@@ -4863,7 +4863,7 @@ function onPlayerImpact(imp) {
   Cam.shake = Math.max(Cam.shake, 3 + k * 12);
   const hx = player.hitX || player.x, hy = player.hitY || player.y;
   for (let i = 0; i < 4 + k * 12; i++) Particles.emit('spark', hx, hy, rnd(-220, 220), rnd(-220, 220), rnd(0.2, 0.5), 2);
-  if (k > 0.45 && chance(0.6)) { const f = pick([['Eita!', 'Isso vai doer no bolso…'], ['Ô, rapá!', 'Olha a lataria, sô!'], ['Que isso, maluco?', 'Seu Zé vai ter trabalho.'], ['Vixe!', 'Bateu feio.']]); toast(f[0], f[1], 'bad'); }
+  if (k > 0.45 && chance(0.6)) { const f = pick([['Eita!', 'Isso vai doer no bolso…'], ['Ô, rapá!', 'Olha a lataria, sô!'], ['Que isso, maluco?', 'Seu Zé vai ter trabalho.'], ['Vixe!', 'Bateu feio.'], ['Bah!', 'Que barbaridade, tchê.'], ['Oxente!', 'Arrebentou foi tudo!'], ['Uai!', 'Esse trem amassou, sô.'], ['Égua!', 'Doeu até em mim.'], ['Caraca!', 'Pegou de jeito, mermão.']]); toast(f[0], f[1], 'bad'); }
   const zone = addZoneDamage(Profile.zones || (Profile.zones = { f: 0, r: 0, l: 0, rt: 0 }), player, hx, hy, kd);
   Debris.spill(hx, hy, k, player.color, zone);
   if ((zone === 'l' || zone === 'rt') && k > 0.45 && chance(0.6)) Particles.emit('hubcap', hx, hy, rnd(-140, 140), rnd(-140, 140), 2.6, 3);
@@ -5472,9 +5472,9 @@ Police.bust = function () {
   showDialog({ kind: 'POLÍCIA MILITAR', title: 'Você foi detido', text: 'Multa de R$ ' + fmtMoney(fine) + ' (' + '★'.repeat(lvl) + ') e R$ ' + fmtMoney(tow) + ' do guincho. Pago: R$ ' + fmtMoney(total) + '. Seu carro foi levado para o pátio do Batalhão da PM. "Na próxima, é cadeia, hein, cidadão!"', buttons: [['Entendi', () => closeDialog()]] });
 };
 /* ============================ CELULAR, PROFISSÕES, APP DE MOTORISTA E RACHA ============================ */
-const PASSAGEIROS = ['Dona Cida', 'Seu Jorge', 'Thaís', 'Juninho', 'Pastor Elias', 'Dona Penha', 'Marcão', 'Bia da Farmácia', 'Tio Zezinho', 'Kelly', 'Rafa do Bloco', 'Vó Lurdes', 'Diego Entregador', 'Professora Solange'];
-const FALAS_EMBARQUE = ['"Boa noite, moço! Pode ir pela avenida que é mais rápido."', '"Liga o ar aí, por favor?"', '"Tô atrasada pro plantão, vai com fé!"', '"Nossa, esse carro é raiz, hein?"', '"Me deixa na porta, que tá escuro."', '"Pode botar um pagodinho no rádio?"'];
-const FALAS_BATIDA = ['"Ô motorista, devagar!"', '"Jesus amado, quase morri!"', '"Vou dar uma estrela pra você, viu?"', '"Eita! Cuidado aí!"'];
+const PASSAGEIROS = ['Dona Cida', 'Seu Jorge', 'Thaís', 'Juninho', 'Pastor Elias', 'Dona Penha', 'Marcão', 'Bia da Farmácia', 'Tio Zezinho', 'Kelly', 'Rafa do Bloco', 'Vó Lurdes', 'Diego Entregador', 'Professora Solange', 'Painho Raimundo', 'Guri Matheus', 'Tonho Mineiro', 'Chicó do Sertão', 'Dona Socorro', 'Mano Wellington'];
+const FALAS_EMBARQUE = ['"Boa noite, moço! Pode ir pela avenida que é mais rápido."', '"Liga o ar aí, por favor?"', '"Tô atrasada pro plantão, vai com fé!"', '"Nossa, esse carro é raiz, hein?"', '"Me deixa na porta, que tá escuro."', '"Pode botar um pagodinho no rádio?"', '"Uai, sô, esse trem é rebaixado demais da conta!"', '"Bah, tchê, que frio! Liga o ar quente aí, guri."', '"Oxente, motorista! Tu é ligeiro, hein? Gostei, visse?"', '"Égua, mano, que carro massa!"', '"Ô, meu, vai pela avenida que é mais rápido. Confia."', '"Caraca, mermão, esse som é sinistro!"'];
+const FALAS_BATIDA = ['"Ô motorista, devagar!"', '"Jesus amado, quase morri!"', '"Vou dar uma estrela pra você, viu?"', '"Eita! Cuidado aí!"', '"Oxe! Tá querendo me matar, é?"', '"Bah, que barbaridade, tchê!"', '"Uai! Cê tá doido, sô?"', '"Égua, quase que eu vou pro céu antes da hora!"', '"Caraca, mermão, pegou de jeito!"', '"Meu, que rolê tenso!"'];
 const JOB_TYPES = {
   pickup: { name: 'Frete de picape', items: ['Sacos de cimento', 'Mudança pequena', 'Tijolos baianos', 'Geladeira usada', 'Móveis da vó'], mult: 1.35 },
   bau: { name: 'Carga de baú', items: ['Carga de bebidas', 'Caixas de mercadoria', 'Eletrodomésticos', 'Engradados de refrigerante'], mult: 2.2 },
@@ -5870,13 +5870,14 @@ function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
   return `<button class="ph-app" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge ? `<i class="ph-badge">${badge}</i>` : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
 }
-// papéis de parede: paisagens de São Gambiarra e arredores, desenhadas em SVG
+// papéis de parede: paisagens de São Gambiarra e arredores (e a bandeira), desenhadas em SVG
 const WALLS = [
   { id: 'penha', name: 'Convento da Pena', place: 'Vila Véia' },
   { id: 'ponte', name: 'Terceira Ponte e Meia', place: 'Vitorinha' },
   { id: 'pedra', name: 'Pedra Azulejo', place: 'Domingos Martelo' },
   { id: 'camburi', name: 'Praia de Camburiso', place: 'Vitorinha' },
   { id: 'dunas', name: 'Dunas de Ita-Unhas', place: 'Conceição da Barraca' },
+  { id: 'bandeira', name: 'Trabalha e Confia', place: 'Bandeira capixaba' },
   { id: 'estrada', name: 'Estrada da Madrugada', place: 'Rodovia BR-101 e Pouco' },
 ];
 const _wallCache = {};
@@ -5938,6 +5939,14 @@ function wallSVG(id) {
       <path d="M0 430 C80 390 150 400 210 440" stroke="#d8cfd0" stroke-opacity="0.5" fill="none"/><path d="M0 500 C70 470 140 480 200 510" stroke="#efe2d6" stroke-opacity="0.5" fill="none"/>
       <path d="M232 500 C236 470 238 456 246 440" stroke="#2a2440" stroke-width="3" fill="none"/><path d="M246 440 l-12 4 M246 440 l12 2 M246 440 l-6 -10 M246 440 l8 -9" stroke="#2a2440" stroke-width="2.5" stroke-linecap="round"/>`;
       break;
+    case 'bandeira':
+      g = `<defs>${grad('b', [[0, '#16408a'], [1, '#2a62c4']], 0)}${grad('p', [[0, '#e07aa6'], [1, '#f2a8c6']], 0)}</defs>
+      <rect width="300" height="600" fill="#f4f4f0"/>
+      <path d="M0 0 H300 V170 L0 290Z" fill="url(#b)"/><path d="M0 390 L300 270 V600 H0Z" fill="url(#p)"/>
+      <path d="M0 290 L300 170" stroke="#fff" stroke-width="2"/>
+      <text x="150" y="312" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#16408a" transform="rotate(-21.8 150 312)" letter-spacing="2">TRABALHA E CONFIA</text>
+      ${stars(40, 160, 0.5)}`;
+      break;
     default: // 'estrada': rodovia de madrugada com a cidade acesa no horizonte
       g = `<defs>${grad('s', [[0, '#04061a'], [0.5, '#141a46'], [0.78, '#4a2a6a'], [1, '#b8506e']], 1)}${grad('r', [[0, '#151a2c'], [1, '#232a40']], 1)}</defs>
       <rect width="300" height="600" fill="url(#s)"/>${stars(90, 300, 1)}<circle cx="236" cy="110" r="18" fill="#f4efd6"/>
@@ -5953,7 +5962,7 @@ function wallSVG(id) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 600" preserveAspectRatio="xMidYMid slice">${g}</svg>`;
 }
 function wallURL(id) { if (!_wallCache[id]) _wallCache[id] = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(wallSVG(id)) + '")'; return _wallCache[id]; }
-function phoneCfg() { if (!Profile.phone) Profile.phone = { wall: 'auto', notif: true, sounds: true, lastSave: null }; if (Profile.phone.wall === 'bandeira') Profile.phone.wall = 'estrada'; return Profile.phone; }
+function phoneCfg() { if (!Profile.phone) Profile.phone = { wall: 'auto', notif: true, sounds: true, lastSave: null }; return Profile.phone; }
 function phoneTone(f, d, v, delay) { if (phoneCfg().sounds) AudioSys.tone(f, d, 'sine', v, 'ui', null, delay); }
 const PERA_OS = '18.4';
 
@@ -6159,6 +6168,8 @@ const EV_CARONAS = [
   { name: 'Surfista Kauã', col: '#29b6c9', pants: '#f2a03a', lines: ['"Mano, o mar em Camburiso tá flat, mas a resenha tá boa."', '"Já pegou onda em Guarapariu? Lá é outro nível, brother."', '"Esse carro tem lugar pra prancha? Não? Tranquilo, tô de boa."'], bye: '"Valeu, brother! Aloha, São Gambiarra!"' },
   { name: 'Seu Geraldo do Queijo', col: '#7a8a3a', pants: '#3a3a2e', lines: ['"Esse queijo aqui é de Domingos Martelo, curado no capricho."', '"Quer provar? Não, né, tá dirigindo. Mais tarde."', '"Minas tem queijo, mas o daqui da serra é melhor. Fala baixo."'], bye: '"Deixei um pedaço de queijo no banco de trás. Presente!"' },
   { name: 'Mochileiro Hans', col: '#d8452e', pants: '#2b3a55', lines: ['"Ô, Vitorinha é por aqui? Eu fala português pouquinho."', '"Moqueca daqui é a melhor do mundo. Eu provou três vez."', '"Aqui todo mundo fala \'uai, sô\'? Não? Só \'é nóis\'?"'], bye: '"Obrigado, amigo! Muito tchau!"' },
+  { name: 'Gaúcho Valdir', col: '#4a7a3a', pants: '#3a2a1e', lines: ['"Bah, tchê! Saí de Porto Alegre pra ver o mar e me perdi na BR."', '"Aceita um chimarrão? Não? Então tá, guri, mais pra mim."', '"Aqui chamam isso de frio? Isso é verão lá no Sul!"'], bye: '"Valeu, tchê! Tu é tri legal!"' },
+  { name: 'Painho Raimundo', col: '#f2b134', pants: '#2e3a4a', lines: ['"Oxente, motorista! Vim da Bahia atrás de acarajé e me deram pastel de vento."', '"Ô, painho, devagar, que eu tô com o coração na boca!"', '"Se tu dirigir assim lá em Salvador, vira lenda, visse?"'], bye: '"Valeu, meu rei! Axé pra você e pro seu carro!"' },
   { name: 'Vó Cotinha', col: '#c46bb0', pants: '#4a3a5a', lines: ['"Meu filho, tô atrasada pro bingo da paróquia!"', '"No meu tempo isso aqui era tudo mato, sabia?"', '"Você é casado? Tenho uma neta solteira, viu?"'], bye: '"Brigada, meu querido. Toma aqui uma bala de coco."' },
 ];
 const EV_NOIVO_FALAS = ['"Ela vai me matar! Acelera, pelo amor de Deus!"', '"Tô suando nesse terno. Liga o ar, por favor!"', '"Se eu chegar atrasado, a sogra nunca mais me perdoa."', '"O padre já mandou três mensagens. TRÊS!"', '"Cuidado com o buraco, que a aliança tá no bolso!"'];
@@ -7194,7 +7205,7 @@ const KIT_CATS = [
   { id: 'finish', name: 'Acabamento', car: true, opts: [['normal', 'Brilho de fábrica', 0], ['metal', 'Metálico', 350], ['fosco', 'Fosco', 400]] },
   { id: 'wheels', name: 'Rodas', car: true, opts: [['serie', 'De série', 0], ['cromada', 'Cromada', 450], ['esportiva', 'Esportiva vermelha', 550], ['preta', 'Preta fosca', 500], ['dourada', 'Dourada ostentação', 900], ['tala', 'Tala larga', 750]] },
   { id: 'tint', name: 'Insulfilm', car: true, opts: [[0, 'Sem insulfilm', 0], [1, 'Claro', 150], [2, 'Médio', 220], [3, 'Limousine', 300]] },
-  { id: 'sticker', name: 'Adesivo', car: true, opts: [['', 'Nenhum', 0], ['DEUS É FIEL', 'Deus é fiel', 50], ['NÃO SOU DE VITORINHA', 'Não sou de Vitorinha', 50], ['FILHO FEIO NÃO TEM PAI', 'Filho feio não tem pai', 50], ['100% GAMBIARRA', '100% gambiarra', 50], ['SE BEBER, CHAME O SEU ZÉ', 'Se beber, chame o Seu Zé', 50]] },
+  { id: 'sticker', name: 'Adesivo', car: true, opts: [['', 'Nenhum', 0], ['DEUS É FIEL', 'Deus é fiel', 50], ['NÃO SOU DE VITORINHA', 'Não sou de Vitorinha', 50], ['FILHO FEIO NÃO TEM PAI', 'Filho feio não tem pai', 50], ['100% GAMBIARRA', '100% gambiarra', 50], ['SE BEBER, CHAME O SEU ZÉ', 'Se beber, chame o Seu Zé', 50], ['BAH, TCHÊ', 'Bah, tchê', 50], ['OXENTE', 'Oxente', 50], ['UAI, SÔ', 'Uai, sô', 50], ['ÉGUA, MANO', 'Égua, mano', 50]] },
   { id: 'hood', name: 'Desenho', car: true, opts: [['', 'Nenhum', 0], ['chamas', 'Chamas no capô', 300], ['faixas', 'Faixas de rally', 250], ['n27', 'Número 27 no teto', 200]] },
   { id: 'neon', name: 'Neon', car: false, opts: [['', 'Sem neon', 0], ['#22d1ff', 'Azul', 600], ['#ff2bd6', 'Rosa', 600], ['#39ff6a', 'Verde', 600], ['#b84dff', 'Roxo', 600], ['#ffcc2e', 'Amarelo', 600]] },
   { id: 'low', name: 'Suspensão', car: true, opts: [[false, 'Original', 0], [true, 'Rebaixada', 800]] },
@@ -9331,7 +9342,7 @@ const RIDE_TYPES = {
   mudanca: { name: 'PegaAí Mudança', mult: 1.8, lvl: 3, rating: 0, w: 1.3, desc: 'Precisa de Kombo, picape ou Unho com escada. Carga frágil: cada batida quebra alguma coisa.' },
   vip: { name: 'PegaAí VIP', mult: 2.4, lvl: 5, rating: 4.5, w: 1.1, desc: 'Cliente exigente: carro limpo e inteiro, sem batida e sem demora. Paga muito bem.' },
 };
-const VIPS = ['Doutor Valdemar', 'Influencer Kamylla', 'Deputada Rosimeire', 'Empresário Juvenal', 'Jogador do Gambiarra FC', 'Cantor de Pagode Thiaguinho do Morro', 'Desembargador Otacílio'];
+const VIPS = ['Doutor Valdemar', 'Influencer Kamylla', 'Deputada Rosimeire', 'Empresário Juvenal', 'Jogador do Gambiarra FC', 'Cantor de Pagode Thiaguinho do Morro', 'Desembargador Otacílio', 'Fazendeiro do Agro de Goiás', 'Influencer de Floripa', 'Cantor de Sertanejo Universitário Repetente'];
 const MUDANCA_ITENS = ['a geladeira', 'a TV de 50 polegadas', 'o espelho da vó', 'a cristaleira', 'o aquário', 'a máquina de lavar', 'o vaso de planta da sogra'];
 const AERO_FALAS = ['"Meu voo sai daqui a pouco, pelo amor de Deus, corre!"', '"Esqueci o passaporte... não, achei! Bora, bora!"', '"Se eu perder esse voo, a lua de mel acaba antes de começar."'];
 const VIP_FALAS = ['"Ar no 21, por favor. Nem 20, nem 22."', '"Evite buracos. Meu terno custou mais que esse carro."', '"Você tem água com gás? Não? Hum."'];
@@ -9490,7 +9501,7 @@ function voiceBubble(m, fmtT) {
 /* ---------- chat do PegaAí (estilo app de corrida, separado do WhatsApp) ----------
    Passageiro não fica com o seu contato: a conversa é dentro do app, uma por corrida. */
 const PG_PICKUP = {
-  comum: ['Oi! Tô na frente do portão azul.', 'Pode buzinar que eu desço.', 'Tô de camisa amarela, perto da esquina.', 'Já tô na calçada, moço!'],
+  comum: ['Oi! Tô na frente do portão azul.', 'Pode buzinar que eu desço.', 'Tô de camisa amarela, perto da esquina.', 'Já tô na calçada, moço!', 'Oxe, demora não, viu? Tô na esquina.', 'Uai, tô te esperando aqui na porta, sô.', 'Bah, tô aqui de cuia na mão, tchê. Não tem erro.', 'Égua, tô de boné vermelho, pai d\'égua!', 'Mano, tô na frente da padaria, chega mais.'],
   aero: ['Oi! Tô com duas malas, cabe aí?', 'Corre que meu voo não espera, por favor!'],
   mudanca: ['As caixas já tão na calçada!', 'Traz espaço que a geladeira é grande, hein.'],
   vip: ['Estou aguardando. Sem buzina, por favor.', 'Prefiro que não converse durante o trajeto. Obrigado.'],

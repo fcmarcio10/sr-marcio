@@ -41,7 +41,7 @@ const RIDE_TYPES = {
   mudanca: { name: 'PegaAí Mudança', mult: 1.8, lvl: 3, rating: 0, w: 1.3, desc: 'Precisa de Kombo, picape ou Unho com escada. Carga frágil: cada batida quebra alguma coisa.' },
   vip: { name: 'PegaAí VIP', mult: 2.4, lvl: 5, rating: 4.5, w: 1.1, desc: 'Cliente exigente: carro limpo e inteiro, sem batida e sem demora. Paga muito bem.' },
 };
-const VIPS = ['Doutor Valdemar', 'Influencer Kamylla', 'Deputada Rosimeire', 'Empresário Juvenal', 'Jogador do Gambiarra FC', 'Cantor de Pagode Thiaguinho do Morro', 'Desembargador Otacílio'];
+const VIPS = ['Doutor Valdemar', 'Influencer Kamylla', 'Deputada Rosimeire', 'Empresário Juvenal', 'Jogador do Gambiarra FC', 'Cantor de Pagode Thiaguinho do Morro', 'Desembargador Otacílio', 'Fazendeiro do Agro de Goiás', 'Influencer de Floripa', 'Cantor de Sertanejo Universitário Repetente'];
 const MUDANCA_ITENS = ['a geladeira', 'a TV de 50 polegadas', 'o espelho da vó', 'a cristaleira', 'o aquário', 'a máquina de lavar', 'o vaso de planta da sogra'];
 const AERO_FALAS = ['"Meu voo sai daqui a pouco, pelo amor de Deus, corre!"', '"Esqueci o passaporte... não, achei! Bora, bora!"', '"Se eu perder esse voo, a lua de mel acaba antes de começar."'];
 const VIP_FALAS = ['"Ar no 21, por favor. Nem 20, nem 22."', '"Evite buracos. Meu terno custou mais que esse carro."', '"Você tem água com gás? Não? Hum."'];
@@ -200,7 +200,7 @@ function voiceBubble(m, fmtT) {
 /* ---------- chat do PegaAí (estilo app de corrida, separado do WhatsApp) ----------
    Passageiro não fica com o seu contato: a conversa é dentro do app, uma por corrida. */
 const PG_PICKUP = {
-  comum: ['Oi! Tô na frente do portão azul.', 'Pode buzinar que eu desço.', 'Tô de camisa amarela, perto da esquina.', 'Já tô na calçada, moço!'],
+  comum: ['Oi! Tô na frente do portão azul.', 'Pode buzinar que eu desço.', 'Tô de camisa amarela, perto da esquina.', 'Já tô na calçada, moço!', 'Oxe, demora não, viu? Tô na esquina.', 'Uai, tô te esperando aqui na porta, sô.', 'Bah, tô aqui de cuia na mão, tchê. Não tem erro.', 'Égua, tô de boné vermelho, pai d\'égua!', 'Mano, tô na frente da padaria, chega mais.'],
   aero: ['Oi! Tô com duas malas, cabe aí?', 'Corre que meu voo não espera, por favor!'],
   mudanca: ['As caixas já tão na calçada!', 'Traz espaço que a geladeira é grande, hein.'],
   vip: ['Estou aguardando. Sem buzina, por favor.', 'Prefiro que não converse durante o trajeto. Obrigado.'],
