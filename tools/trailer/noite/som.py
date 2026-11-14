@@ -217,3 +217,8 @@ mix /= max(1e-9, np.abs(mix).max()) / 0.92
 os.makedirs(os.path.join(AQUI, 'saida'), exist_ok=True)
 wavfile.write(os.path.join(AQUI, 'saida', 'trilha.wav'), SR, (mix.T * 32767).astype(np.int16))
 print('trilha: %.2f s (%d compassos), %d bumbos, %d falas' % (DUR, NBARS, len(kicks), len(info.get('falas', []))))
+if os.environ.get('DEBUG'):
+    rms = lambda x: 20 * np.log10(np.sqrt(np.mean(x ** 2)) + 1e-9)
+    on = env > 0.5
+    for nome, x in (('musica', musica * 0.78 * (1 - 0.7 * env)), ('efeitos', efeitos * (1 - 0.45 * env)), ('jogo', jogo * (1 - 0.55 * env)), ('voz', voz)):
+        print('%-8s com fala %6.1f dB | sem fala %6.1f dB' % (nome, rms(x[:, on]), rms(x[:, ~on])))
