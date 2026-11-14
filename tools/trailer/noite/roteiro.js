@@ -89,8 +89,9 @@ module.exports = {
         TR.drive(4400, 6221, 700, 6221, 430, { lane: 21 }); TR.follow(1.45, 1.25, 0.25);
         TR.notif('tel', 'Dona Neide', 'cliente do gás · ligando...', 4, 270);` },
     { nome: '11-entrega', bars: 2, antes: 20, motor: true,
-      setup: `TR.reset({ lb: 0, hud: true, toasts: true, time: 22 * 60 + 51 }); ${caminhaoGas} startJob(genJob('gas')); const J = Act.delivery; J.stage = 'deliver'; GasJingle.t = 0;
-        TR.toward(J.dest.x, J.dest.y, 380, 230); TR.follow(2.0, 2.3, 0.1);
+      setup: `TR.reset({ lb: 0, hud: true, time: 22 * 60 + 51 }); ${caminhaoGas} startJob(genJob('gas')); const J = Act.delivery; J.stage = 'deliver'; GasJingle.t = 0;
+        const dx = J.dest.x, dy = J.dest.y; J.dest = { x: dx + 6000, y: dy + 6000 }; // o jogo não conclui a entrega sozinho (a piada é o atraso)
+        TR.toward(dx, dy, 380, 230); TR.follow(2.0, 2.3, 0.1);
         TR.carimbo('Entregue', 'só 1 minutinho atrasado', '#3ee07a', 120, TR.n, '50%', '40%', -7);
         TR.em([[112, () => { Act.delivery = null; pay(85, 'Frete de gás · entregue'); }]]);` },
 
