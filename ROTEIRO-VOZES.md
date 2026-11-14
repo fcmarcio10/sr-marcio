@@ -63,6 +63,24 @@ Voz: **Eddy Miller** (locutor). Projeto do ElevenLabs "BR Night Drive - Rádio G
 | `radio_13.mp3` | Recado do Seu Zé | Quem tá devendo fiado, a caderneta tá de olho! |
 | `radio_14.mp3` | Vinheta | Tocando o terror na madrugada desde... ontem! |
 
+### Programação contínua (segunda leva)
+
+Projeto do ElevenLabs "BR Night Drive - Rádio Gambiarra FM (programação contínua)". Textos completos em `RADIO` (`src/p66_career.js`).
+
+| Arquivo | Voz | Quadro |
+|---|---|---|
+| `radio_15` a `radio_38` | Eddy Miller (DJ Biruta) | Oficina do Seu Zé, preço da gasolina nos postos, alerta de chuva (só com chuva), roça e fazenda imitando sotaque mineiro (`radio_18`, `radio_19` Rali da Vaca Atolada, `radio_20` Sítio Bota Fé), comerciais do PegaAí e da garagem, caminhão do gás, recado do racha, Banestresse, banana do Seu Biu na BR, Feira do Rolo, futebol (Fluminense e Santos, Vasco de novo, Remo e Paysandu, Ceará e Fortaleza), buraco Claudinho na BR, Convento da Pena e Pedra Azulejo, café no Posto Estrela Cadente, ouvinte que caiu, horóscopo 2, noite seca (só sem chuva), lava-jato, Saci pedindo carona |
+| `radio_v1` a `radio_v4` | Eddy Miller | Vinhetas curtas ("Gambiarra FM! Cento e setenta e um vírgula um!", "a rádio que pega até debaixo da ponte", "DJ Biruta na área", "dá um tapa no rádio que ela volta") |
+| `radio_ze` | Sergio Funny (Seu Zé) | Comercial da Oficina do Seu Zé |
+| `radio_biu` | Thiago (Seu Biu) | Comercial da banana do Seu Biu |
+| `radio_banco` | Lucinda (Banestresse) | Comercial do Banestresse |
+| `radio_posto` | Felipe Leão | Comercial do Posto Tanque Cheio |
+| `radio_pegaai` | Dani | Comercial do PegaAí |
+| `radio_tonho` | Anderson (mineiro) | Ouvinte da Fazenda Muuuito Longe manda um alô pra vaca Mimosa (depois: `radio_19`) |
+| `radio_gaucha` | Gaucha SouthOfBrazil | Ouvinte gaúcha (depois: `radio_06`) |
+| `radio_marcao` | Phelipe Carioca | Ouvinte carioca, surfista na poça; só com chuva (depois: `radio_17`) |
+| `radio_azulina` | Bianca | Ouvinte paraense azulina pede piada do Paysandu (depois: `radio_30`) |
+
 ## Observações
 
 - Nas Configurações, o jogador escolhe **Áudio (só em português)** ou **Texto**. Em Texto, todas as mensagens de voz aparecem escritas.

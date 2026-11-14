@@ -187,7 +187,7 @@ const FEM = /^(Dona|Thaís|Bia|Kelly|Vó|Professora|Influencer|Deputada|Tia|Jés
 function genderOf(name) { return FEM.test(name) ? 'f' : 'm'; }
 const VoicePlayer = { a: null, msg: null, t0: 0 };
 VoicePlayer.play = function (m) {
-  this.stop(); Radio.stop(); // áudio do zap ou do PegaAí corta o DJ
+  this.stop(); // a rádio fica em silêncio enquanto o áudio toca (Radio.update)
   const vol = clamp(((Settings.master !== undefined ? Settings.master : 80) / 100), 0, 1);
   this.msg = m; this.t0 = performance.now(); m.voice.heard = true;
   const c = VOICE_CLIPS[m.voice.clip];
@@ -212,9 +212,13 @@ VoicePlayer.tick = function () {
   requestAnimationFrame(() => this.tick());
 };
 
-/* ---------- Rádio Gambiarra FM 171,1: o DJ Biruta entra no ar de vez em quando ----------
-   Volume em Configurações (Rádio); tecla F liga (chama o DJ na hora) e desliga.
-   Não toca junto com áudio do zap/PegaAí, com o paredão ligado nem na contagem do racha. */
+/* ---------- Rádio Gambiarra FM 171,1: programação no ar o tempo todo ----------
+   O DJ Biruta fala sem parar (quadros, comerciais, ouvintes ligando), com vinheta entre um e outro.
+   Ao ligar (ou voltar depois de um tempo fora), a rádio "sintoniza" num ponto qualquer da programação,
+   às vezes no meio de uma fala, como rádio de verdade. Liga e desliga: tecla F, botão Rádio no painel
+   ou Configurações (Ligada/Desligada e volume). Fica em silêncio enquanto toca áudio do zap/PegaAí,
+   com o paredão ligado e na contagem do racha, e continua depois.
+   cond: 'chuva' só quando está chovendo, 'seco' só sem chuva. then: o que entra logo em seguida. */
 const RADIO = [
   { clip: 'radio_01', tag: 'Abertura', text: 'Alôôô, motorista da madrugada! Tá ligado na Rádio Gambiarra FM, cento e setenta e um vírgula um: a rádio que não te engana... muito! Aqui é o DJ Biruta, e a noite é nossa!' },
   { clip: 'radio_02', tag: 'Previsão do tempo', text: 'Previsão do tempo pra São Gambiarra: céu nublado, noventa por cento de chance de chuva e cem por cento de chance de buraco na pista! Leva o guarda-chuva e o macaco, que o pneu vai furar!' },
@@ -230,67 +234,164 @@ const RADIO = [
   { clip: 'radio_12', tag: 'Futebol pelo Brasil', text: 'Notícia boa da Bahia: o torcedor do Bahia e o do Vitória fizeram as pazes... pra brigar de novo sobre quem faz o melhor acarajé. E o torcedor do São Paulo ligou dizendo que é soberano. Soberano de quê? Ele desligou!' },
   { clip: 'radio_13', tag: 'Recado do Seu Zé', text: 'Recado do Seu Zé da oficina: quem tá devendo fiado, a caderneta tá de olho! E quem não tá devendo... bate o carro aí que ele te dá desconto! Palavra do Seu Zé, não da rádio, tá?' },
   { clip: 'radio_14', tag: 'Vinheta', text: 'Rádio Gambiarra FM: tocando o terror na madrugada desde... ontem! Não sai daí, que o DJ Biruta já volta com mais besteira!' },
+  { clip: 'radio_15', tag: 'Oficina', text: 'Barulhinho estranho no carro? Na Oficina do Seu Zé o barulho some na hora... junto com o seu dinheiro! Brincadeira, Seu Zé, não corta o meu fiado! Oficina do Seu Zé: conserta tudo, menos coração partido.' },
+  { clip: 'radio_16', tag: 'Preço da gasolina', text: 'A gasolina tá tão cara que no Posto Tanque Cheio o frentista agora pergunta: vai encher ou vai só dar uma cheiradinha? E no Posto Estrela Cadente, você abastece, faz um pedido... e o preço sobe de novo!' },
+  { clip: 'radio_17', tag: 'Alerta de chuva', cond: 'chuva', text: 'Alerta de chuva em São Gambiarra! Motorista, poça aqui não é poça, é piscina com vista pra pista. Tira o pé, que aquaplanagem ainda não virou esporte olímpico!' },
+  { clip: 'radio_18', tag: 'Notícia da roça', text: 'Uai, sô! Lá na Fazenda Muuuito Longe o trem é bão demais da conta! Tem queijo, tem café, tem vaca... e tem estrada de terra que come o seu amortecedor com farofa, uai! Desculpa, gente, me empolguei no sotaque!' },
+  { clip: 'radio_19', tag: 'Rali da Vaca Atolada', text: 'Ô, cês que gosta de lama, presta atenção: o Rali da Vaca Atolada tá aí, sô! Cê acelera, a vaca olha, o carro afunda. Prêmio pro primeiro que chegar... e banho de mangueira pro último, uai!' },
+  { clip: 'radio_20', tag: 'Notícia da roça', text: 'Notícia da roça, sô: lá no Sítio Bota Fé a galinha botou um ovo do tamanho de pneu de Fuska! O dono falou: isso é trem de Minas, uai, aqui tudo é grande, até a saudade!' },
+  { clip: 'radio_21', tag: 'Comercial', text: 'Quer ganhar um dinheirinho na madrugada? Liga o PegaAí no celular e sai buscando passageiro por São Gambiarra! Corrida comum, aeroporto, mudança e até cliente VIP. Só não bate o carro, que estrela não dá em árvore!' },
+  { clip: 'radio_22', tag: 'Comercial', text: 'Seu carro tá com cara de geladeira velha? Passa na garagem! Pintura, neon, rebaixado, aerofólio, roda tala larga e até paredão no porta-malas. Fica tão bonito que até o pardal pede pra tirar foto!' },
+  { clip: 'radio_23', tag: 'Caminhão do gás', text: 'Tá ouvindo a musiquinha? É o caminhão do gás passando! A Gambiarra FM avisa: frete de gás paga bem, mas vai devagar na lombada, que botijão não usa cinto de segurança!' },
+  { clip: 'radio_24', tag: 'Recado', text: 'Recado pros apressadinhos: racha na BR é perigoso, ilegal... e dá um dinheirinho. A rádio não recomenda! Mas se for, aposta no carro vermelho, que vermelho anda mais. Todo mundo sabe disso!' },
+  { clip: 'radio_25', tag: 'Comercial', text: 'O Banestresse informa: empréstimo aprovado na hora, dinheiro na hora, e cobrança... toda hora! Banestresse: o único banco que te liga mais que a sua mãe!' },
+  { clip: 'radio_26', tag: 'Alerta na BR', text: 'Atenção, motorista da BR! Se você vir banana espalhada na pista, não é miragem: é a carreta do Seu Biu tombada de novo! Ajuda o homem, que ele paga por caixa e ainda dá uma penca de brinde!' },
+  { clip: 'radio_27', tag: 'Feira do Rolo', text: 'Feira do Rolo da Madrugada! Lá você troca um rádio sem antena por uma antena sem rádio. É o comércio mais justo do Brasil, meu amigo!' },
+  { clip: 'radio_28', tag: 'Plantão do futebol', text: 'Plantão do futebol! O torcedor do Fluminense ligou pra dizer que o time toca tanto a bola que até o juiz entrou na roda. E o santista mandou avisar: tá com saudade do Pelé. A gente também, meu amigo, a gente também!' },
+  { clip: 'radio_29', tag: 'Plantão do futebol', text: 'Um ouvinte vascaíno pediu pra gente tocar a música dele no programa. Tocamos! E ela ficou... em segundo lugar na parada. Ô Vasco, até na rádio, rapaz! É brincadeira, Vascão, a gente te ama!' },
+  { clip: 'radio_30', tag: 'Futebol pelo Brasil', text: 'Clássico pegando fogo no Norte e Nordeste! Torcedor do Remo e do Paysandu discutiram até o açaí esfriar. E torcedor do Ceará e do Fortaleza brigando pra saber de quem é o mar. Briga boa é briga com praia!' },
+  { clip: 'radio_31', tag: 'Boletim da BR', text: 'Boletim da BR-101 e Pouco: tem tanto buraco que os motoristas já dão nome pra eles. O maior se chama Claudinho. Manda um abraço pro Claudinho, que ele tá aí desde o ano passado!' },
+  { clip: 'radio_32', tag: 'Dica de passeio', text: 'Dica de passeio: o Convento da Pena lá no alto e a Pedra Azulejo, que nunca viu um azulejo na vida! São Gambiarra: a cidade onde o nome do lugar já é a primeira piada.' },
+  { clip: 'radio_33', tag: 'Madrugada', text: 'Já é alta madrugada e você ainda tá rodando? Para no Posto Estrela Cadente e toma um café. É tão forte que acorda até carro parado no estacionamento!' },
+  { clip: 'radio_34', tag: 'Ouvinte na linha', text: 'Vamos atender o ouvinte! Alô? Alô? ... Alô? Caiu. Igual o sinal do celular na Mata do Saci. Próximo!' },
+  { clip: 'radio_35', tag: 'Horóscopo do motorista', text: 'Horóscopo, parte dois! Leão: hoje você vai achar dinheiro... no fiado do Seu Zé, que é dele. Virgem: arruma esse porta-luvas. Peixes: cuidado com a poça. Sagitário: pé no freio, Sagitário!' },
+  { clip: 'radio_36', tag: 'Previsão do tempo', cond: 'seco', text: 'Previsão: noite seca e estrelada em São Gambiarra. Ótima noite pra lavar o carro... porque amanhã chove. É lei!' },
+  { clip: 'radio_37', tag: 'Lava-jato', text: 'No lava-jato do Posto Tanque Cheio entra carro sujo e sai carro limpinho, cheiroso... e um motorista mais pobre! Lavou, tá novo!' },
+  { clip: 'radio_38', tag: 'Notícia arrepiante', text: 'Notícia arrepiante: um motorista jura que viu o Saci pedindo carona na Mata do Saci. Recusou a corrida? Melhor: é uma perna a menos pra reclamar no PegaAí!' },
+  // comerciais com a voz de quem anuncia
+  { clip: 'radio_ze', tag: 'Comercial', who: 'Seu Zé', text: 'Oficina do Seu Zé! Bateu, ralou, amassou? Traz que eu ajeito! Aceito dinheiro, pix e fiado... fiado só pra quem tem cara de honesto, hein! Oficina do Seu Zé: seu carro sai novinho... e o meu bolso também!' },
+  { clip: 'radio_biu', tag: 'Comercial', who: 'Seu Biu', text: 'Aqui é o Seu Biu! Banana fresquinha, direto da carreta... quando ela não tomba! Penca na promoção! E se você vir uma carreta tombada na BR, sou eu, viu? Me ajuda!' },
+  { clip: 'radio_banco', tag: 'Comercial', who: 'Banestresse', text: 'Banestresse. Seu dinheiro em boas mãos. As nossas. Juros a partir de... não se preocupe com isso agora. Banestresse: estressar você é a nossa missão.' },
+  { clip: 'radio_posto', tag: 'Comercial', who: 'Posto Tanque Cheio', text: 'Posto Tanque Cheio! Gasolina, etanol, café requentado e banheiro com a chave na recepção. Abasteceu acima de cinquenta reais? Ganha um sorriso do frentista! Posto Tanque Cheio: o tanque enche, a carteira esvazia!' },
+  { clip: 'radio_pegaai', tag: 'Comercial', who: 'PegaAí', text: 'PegaAí! Precisa de uma corrida? A gente te pega aí! Precisa chegar na hora? Aí já é outra história! PegaAí: baixe agora... e reze.' },
+  // ouvintes ligando (o DJ responde logo depois)
+  { clip: 'radio_tonho', tag: 'Ouvinte na linha', who: 'Tonho, da fazenda', then: 'radio_19', text: 'Alô, DJ Biruta? Aqui é o Tonho, lá da Fazenda Muuuito Longe! Ô sô, manda um alô pra minha vaca Mimosa? Ela atolou de novo no rali, mas tá bem, uai! Beijo, Mimosa!' },
+  { clip: 'radio_gaucha', tag: 'Ouvinte na linha', who: 'Ouvinte gaúcha', then: 'radio_06', text: 'Bah, DJ! Liguei só pra dizer que o chimarrão tá quente e a rádio tá tri! E manda um abraço pro meu marido, que é motorista do PegaAí... e me deu uma estrela, o pilantra!' },
+  { clip: 'radio_marcao', tag: 'Ouvinte na linha', who: 'Marcão, do PegaAí', cond: 'chuva', then: 'radio_17', text: 'Fala, DJ! Aqui é o Marcão, do PegaAí! Mermão, a poça da avenida tá tão grande que agora há pouco passou um surfista. Sério! Valeu, Gambiarra FM!' },
+  { clip: 'radio_azulina', tag: 'Ouvinte na linha', who: 'Ouvinte azulina', then: 'radio_30', text: 'Égua, DJ! Liguei pra pedir uma música! Ah, vocês não tocam música? Então conta uma piada do Paysandu, que eu sou azulina, mana!' },
 ];
-const Radio = { a: null, cur: null, t: 25, k: 0, dur: 0, bag: [], first: true, held: false, line: -1, parts: null };
-Radio.off = function () { return !!Settings.radioOff || !((Settings.radio === undefined ? 70 : Settings.radio) > 0); };
+// vinhetas curtas entre um quadro e outro
+const RADIO_VINHETAS = [
+  { clip: 'radio_v1', tag: 'Vinheta', text: 'Gambiarra FM! Cento e setenta e um vírgula um!' },
+  { clip: 'radio_v2', tag: 'Vinheta', text: 'Você tá ouvindo a rádio que pega até debaixo da ponte!' },
+  { clip: 'radio_v3', tag: 'Vinheta', text: 'DJ Biruta na área! Aumenta o som aí, motorista!' },
+  { clip: 'radio_v4', tag: 'Vinheta', text: 'Gambiarra FM: saiu do ar? Dá um tapa no rádio que ela volta!' },
+];
+const Radio = { a: null, cur: null, mode: 'idle', k: 0, dur: 0, gap: 0, bag: [], fila: [], held: false, heldT: 0, line: -1, parts: null, last: null, lastV: null };
+Radio.isOn = function () { return !Settings.radioOff && (Settings.radio === undefined ? 70 : Settings.radio) > 0; };
 Radio.vol = function () { return clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp((Settings.radio === undefined ? 70 : Settings.radio) / 100, 0, 1); };
-Radio.next = function () {
-  if (this.first) { this.first = false; return RADIO[0]; }
-  if (!this.bag.length) {
-    this.bag = RADIO.slice(1);
-    for (let i = this.bag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]]; }
-    if (this.last && this.bag[this.bag.length - 1] === this.last) this.bag.unshift(this.bag.pop()); // não repete o último
-  }
-  return (this.last = this.bag.pop());
+Radio.cond = function (S) {
+  if (S.cond === 'chuva') return Weather.rain > 0.15;
+  if (S.cond === 'seco') return Weather.rain < 0.05;
+  return true;
 };
-Radio.play = function (S) {
-  this.stop();
+// sorteio sem repetir: passa por todos os quadros antes de repetir um
+Radio.next = function () {
+  for (let tent = 0; tent < 2; tent++) {
+    if (!this.bag.length) {
+      this.bag = RADIO.slice();
+      for (let i = this.bag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]]; }
+      if (this.last && this.bag[this.bag.length - 1] === this.last) this.bag.unshift(this.bag.pop());
+    }
+    for (let i = this.bag.length - 1; i >= 0; i--) if (this.cond(this.bag[i])) { const S = this.bag.splice(i, 1)[0]; this.last = S; return S; }
+    this.bag = [];
+  }
+  return (this.last = RADIO[0]);
+};
+// próximo bloco da programação: às vezes uma vinheta antes, e o "then" logo depois
+Radio.monta = function () {
+  const S = this.next(), out = [];
+  if (Math.random() < 0.3) { let V = pick(RADIO_VINHETAS); if (V === this.lastV) V = pick(RADIO_VINHETAS); this.lastV = V; out.push(V); }
+  out.push(S);
+  if (S.then) { const T = RADIO.find((x) => x.clip === S.then); if (T) out.push(T); }
+  return out;
+};
+Radio.play = function (S, off) {
+  this.solta();
   const c = VOICE_CLIPS[S.clip];
-  this.cur = S; this.k = 0; this.dur = c ? c.dur : Math.max(6, S.text.length / 14); this.line = -1;
+  this.cur = S; this.mode = 'clip'; this.dur = c ? c.dur : Math.max(4, S.text.length / 14); this.k = off || 0; this.line = -1;
   // legenda: uma frase por vez, no tempo proporcional ao tamanho
   const fr = S.text.split(/(?<=[.!?])\s+/), tot = S.text.length; let acc = 0;
   this.parts = fr.map((f) => { const o = { f, k0: acc / tot }; acc += f.length + 1; return o; });
-  if (c) { try { this.a = new Audio(c.src); this.a.volume = this.vol(); this.a.play().catch(() => {}); this.a.onended = () => this.stop(); } catch (e) { this.a = null; } }
-  const el = $('hud-radio');
-  if (el) { $('hr-tag').textContent = S.tag; $('hr-txt').textContent = ''; el.classList.remove('hidden'); }
+  if (c) {
+    try {
+      const a = this.a = new Audio(c.src); a.volume = this.vol();
+      if (off) { const pula = () => { try { a.currentTime = off; } catch (e) {} }; if (a.readyState >= 1) pula(); else a.addEventListener('loadedmetadata', pula, { once: true }); }
+      a.play().catch(() => {}); a.onended = () => { if (this.a === a) this.fim(); };
+    } catch (e) { this.a = null; }
+  }
+  this.mostra(true);
+  $('hr-tag').textContent = S.tag; $('hr-who').textContent = S.who || 'DJ Biruta'; $('hr-txt').textContent = '';
 };
-Radio.stop = function () {
-  if (this.a) { try { this.a.pause(); } catch (e) {} this.a.onended = null; this.a = null; }
-  if (this.cur) { this.cur = null; this.t = rnd(55, 95); }
-  this.held = false;
-  const el = $('hud-radio'); if (el) el.classList.add('hidden');
+// sintoniza num ponto qualquer da programação (às vezes no meio de uma fala), com chiado
+Radio.sintoniza = function () {
+  this.fila = this.monta().filter((x) => !RADIO_VINHETAS.includes(x));
+  const S = this.fila.shift(), c = VOICE_CLIPS[S.clip], d = c ? c.dur : 8;
+  if (AudioSys.ok) AudioSys.noise(0.35, 2400, 0.6, 0.05 * this.vol(), 'ui', 'bandpass');
+  this.play(S, Math.random() < 0.65 ? d * rnd(0.12, 0.55) : 0);
+};
+Radio.fim = function () {
+  this.solta();
+  this.mode = 'gap'; this.gap = this.fila.length ? rnd(0.3, 0.6) : rnd(0.7, 1.6);
+  if (!this.fila.length && AudioSys.ok) { // vinheta tocada (três notinhas)
+    const v = 0.05 * this.vol();
+    AudioSys.tone(523, 0.12, 'triangle', v, 'ui'); AudioSys.tone(659, 0.12, 'triangle', v, 'ui', null, 0.1); AudioSys.tone(784, 0.22, 'triangle', v, 'ui', null, 0.2);
+  }
+};
+Radio.solta = function () {
+  if (this.a) { const a = this.a; this.a = null; a.onended = null; try { a.pause(); } catch (e) {} }
+  this.cur = null; this.held = false;
+};
+// desliga de vez (ou para tudo ao sair do jogo); ao ligar de novo, sintoniza em outro ponto
+Radio.stop = function () { this.solta(); this.mode = 'idle'; this.fila = []; this.mostra(false); };
+Radio.mostra = function (on) {
+  const el = $('hud-radio'); if (el) el.classList.toggle('hidden', !on);
+  const b = $('hud-radio-btn'); if (b) b.classList.toggle('on', this.isOn());
 };
 Radio.toggle = function () {
-  if (this.cur) { this.stop(); Settings.radioOff = true; saveSettings(); toast('Rádio desligada', 'Aperte F para chamar o DJ Biruta de novo.', 'info'); return; }
+  if (this.isOn()) { this.stop(); Settings.radioOff = true; saveSettings(); syncSettingsUI(); this.mostra(false); toast('Rádio desligada', 'Aperte F (ou o botão Rádio) para ligar de novo.', 'info'); return; }
   Settings.radioOff = false; if (!(Settings.radio > 0)) Settings.radio = 70;
   saveSettings(); syncSettingsUI();
   Som.on = false; VoicePlayer.stop();
-  this.play(this.next());
+  this.sintoniza();
 };
-document.addEventListener('click', (e) => { if (e.target && e.target.closest && e.target.closest('#hud-radio')) Radio.toggle(); }); // tocar no letreiro desliga
+document.addEventListener('click', (e) => {
+  const t = e.target && e.target.closest ? e.target.closest('#hud-radio, #hud-radio-btn') : null;
+  if (t) Radio.toggle();
+});
 Radio.update = function (dt) {
   const sc = Screens.current;
-  const hold = Game.mode !== 'play' || Game.state === 'menu' || sc === 'screen-pause' || sc === 'screen-settings' || sc === 'screen-main' || sc === 'screen-credits';
-  if (this.cur) {
-    if (this.a) {
-      if (hold && !this.a.paused) { this.a.pause(); this.held = true; }
-      else if (!hold && this.held) { this.held = false; this.a.play().catch(() => {}); }
-    }
-    if (hold) return;
-    if (this.off() || Som.on) { this.stop(); return; }
-    this.k = this.a && this.a.currentTime > 0 ? this.a.currentTime : this.k + dt;
-    if (this.a) this.a.volume = this.vol();
-    if (this.k > this.dur + 1.5) { this.stop(); return; }
-    const kk = this.k / Math.max(1, this.dur);
-    let i = 0; while (i + 1 < this.parts.length && this.parts[i + 1].k0 <= kk) i++;
-    if (i !== this.line) { this.line = i; $('hr-txt').textContent = this.parts[i].f; }
+  const fora = Game.mode !== 'play' || Game.state === 'menu' || sc === 'screen-pause' || sc === 'screen-settings' || sc === 'screen-main' || sc === 'screen-credits';
+  const ocupado = !!VoicePlayer.msg || Som.on || !!(Act.race && Act.race.count > 0);
+  const btn = $('hud-radio-btn'); if (btn && btn.classList.contains('on') !== this.isOn()) btn.classList.toggle('on', this.isOn());
+  if (!this.isOn()) { if (this.mode !== 'idle') this.stop(); return; }
+  if (fora || ocupado) {
+    // em silêncio: segura a fala onde parou
+    if (this.a && !this.a.paused) { this.a.pause(); }
+    if (this.mode !== 'idle' && !this.held) { this.held = true; this.heldT = 0; this.mostra(false); }
+    if (this.held) this.heldT += dt;
     return;
   }
-  if (hold || Game.state !== 'playing' || this.off()) return;
-  this.t -= dt;
-  if (this.t > 0) return;
-  if (VoicePlayer.msg || Som.on || (Act.race && Act.race.count > 0)) { this.t = 8; return; }
-  this.play(this.next());
+  if (this.held) {
+    this.held = false; this.mostra(this.mode !== 'idle');
+    // ficou muito tempo fora do ar: a programação andou, sintoniza em outro ponto
+    if (this.heldT > 20) { this.stop(); this.sintoniza(); return; }
+    if (this.a) this.a.play().catch(() => {});
+  }
+  if (this.mode === 'idle') { if (Game.state === 'playing') this.sintoniza(); return; }
+  if (this.mode === 'gap') {
+    this.gap -= dt; if (this.gap > 0) return;
+    if (!this.fila.length) this.fila = this.monta();
+    this.play(this.fila.shift(), 0);
+    return;
+  }
+  // tocando uma fala
+  this.k = this.a && this.a.currentTime > 0 ? this.a.currentTime : this.k + dt;
+  if (this.a) this.a.volume = this.vol();
+  if (this.k > this.dur + 1.2) { this.fim(); return; }
+  const kk = this.k / Math.max(1, this.dur);
+  let i = 0; while (i + 1 < this.parts.length && this.parts[i + 1].k0 <= kk) i++;
+  if (i !== this.line) { this.line = i; $('hr-txt').textContent = this.parts[i].f; }
 };
 
 function voiceBubble(m, fmtT) {

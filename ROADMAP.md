@@ -65,7 +65,7 @@ Objetivo: dar motivo para o jogador voltar amanhã e não enjoar rápido.
   - Quadro inteiro em Cara-Pintada: 2.599 → 1.637 pinceladas.
 
 - [x] **Rádio Gambiarra FM e falas novas**
-  - DJ Biruta (14 vinhetas: previsão do tempo com buraco, plantão do futebol com piada de Vasco, Palmeiras, Corinthians, Flamengo, Botafogo, Galo, Cruzeiro, Grêmio, Inter, Bahia, Vitória e São Paulo, horóscopo do motorista, borracharia, recado do Seu Zé). Tecla F e volume próprio.
+  - Rádio no ar o tempo todo (50 falas): DJ Biruta com previsão do tempo, plantão do futebol (Vasco, Palmeiras, Corinthians, Flamengo, Botafogo, Fluminense, Santos, Galo, Cruzeiro, Grêmio, Inter, Bahia, Vitória, São Paulo, Remo, Paysandu, Ceará, Fortaleza), trocadilhos com a oficina, os postos, a chuva e a roça (imitando sotaque mineiro), comerciais com a voz do Seu Zé, Seu Biu, Banestresse, posto e PegaAí, e ouvintes ligando. Entra num ponto qualquer da programação; tecla F, botão Rádio e opção Ligada/Desligada.
   - Passageiros com sotaque (mineiro, gaúcha, nordestina, paulista, carioca, paraense) e áudio de cliente feliz nas corridas de 5 estrelas.
 
 ## Próximos

@@ -1195,7 +1195,7 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 
 /* ---------- Rádio Gambiarra FM (letreiro "no ar" com legenda do DJ) ---------- */
 #hud-radio {
-  position: absolute; left: 18px; bottom: 302px; width: 330px; pointer-events: auto; cursor: pointer;
+  position: absolute; left: 18px; bottom: 330px; width: 330px; pointer-events: auto; cursor: pointer;
   padding: 8px 12px 9px; border: 1px solid var(--line); border-left: 4px solid #ff4d6d; border-radius: 4px; color: #eef1f8;
   animation: hr-in 0.35s ease-out;
 }
@@ -1211,4 +1211,17 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 #hud-radio #hr-tag { display: inline-block; margin-right: 6px; padding: 0 5px; border-radius: 3px; background: rgba(255, 77, 109, 0.22); color: #ffb3c1; font-family: var(--f-cond); font-weight: 800; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; vertical-align: 1px; }
 @keyframes hr-eq { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
 @keyframes hr-in { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
-@media (max-height: 640px) { #hud-radio { bottom: 240px; width: 290px; } }
+@media (max-height: 640px) { #hud-radio { bottom: 268px; width: 290px; } }
+#hud-radio-btn {
+  position: absolute; left: 128px; bottom: 290px; transform: translateX(-50%); pointer-events: auto; cursor: pointer;
+  padding: 6px 12px; color: #eef1f8; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line);
+  font-family: var(--f-cond); font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; border-radius: 4px;
+}
+#hud-radio-btn kbd { margin: 0; font-size: 10px; padding: 0 5px; }
+#hud-radio-btn .hrb-ico { position: relative; width: 16px; height: 11px; border: 2px solid #8f97ad; border-radius: 2px; display: inline-block; }
+#hud-radio-btn .hrb-ico::before { content: ''; position: absolute; left: 1px; top: -7px; width: 9px; height: 2px; background: #8f97ad; transform: rotate(-28deg); transform-origin: left; }
+#hud-radio-btn .hrb-ico i { position: absolute; right: 1px; top: 1px; width: 4px; height: 4px; border-radius: 50%; background: #8f97ad; }
+#hud-radio-btn.on { border-color: rgba(255, 77, 109, 0.55); }
+#hud-radio-btn.on .hrb-ico { border-color: #ff4d6d; }
+#hud-radio-btn.on .hrb-ico::before, #hud-radio-btn.on .hrb-ico i { background: #ff4d6d; }
+@media (max-height: 640px) { #hud-radio-btn { left: 100px; bottom: 232px; } }
