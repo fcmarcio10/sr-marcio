@@ -1,4 +1,4 @@
-// Visual do trailer curto (estilo GTA 6): cor de cinema, clipes de rede social na vertical,
+// Visual do trailer curto de cinema: cor de cinema, títulos grandes por seção, clipes de rede social na vertical (sem uso hoje),
 // jornal da TV, nome dos personagens, título do lugar e o cartaz final. Roda depois do cena.js.
 (() => {
   const T = window.TR, ov = T.ov, preto = ov.querySelector('.tr-black');
@@ -115,7 +115,7 @@
   T.titulo = function (big, small, f0, f1) { T.tio = { f0, f1: f1 || T.n }; ti.querySelector('b').textContent = big; ti.querySelector('em').textContent = small || ''; };
 
   /* ---------- cartaz final ---------- */
-  const fim = el('g6-fim', '<div class="q-sol"></div><div class="q-lg"><div class="q-t">BR</div><div class="q-m">NIGHT DRIVE</div><div class="q-s">São Gambiarra · Espírito Santo</div></div><div class="q-ja">Em breve para Windows</div><div class="q-on"></div>', preto);
+  const fim = el('g6-fim', '<div class="q-sol"></div><div class="q-lg"><div class="q-t">BR</div><div class="q-m">NIGHT DRIVE</div><div class="q-s">Mundo aberto · São Gambiarra</div></div><div class="q-ja">Em breve para Windows</div><div class="q-on"></div>', preto);
   T.final = function (f0) { T.fimo = { f0 }; };
 
   T.grade = function (o) { gr.style.opacity = o; };

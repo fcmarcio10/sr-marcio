@@ -1,6 +1,6 @@
 // Visual do trailer vertical (Reels/TikTok): celular grande no meio da tela, frase no topo (estilo TikTok),
 // câmera que viaja do carro até o evento (zoom), nomes e cartaz final ajustados para a tela em pé.
-// Roda depois do cena.js, gameplay/extra.js e gta6/estilo.js.
+// Roda depois do cena.js, gameplay/extra.js e cinema/estilo.js.
 (() => {
   const T = window.TR, ov = T.ov;
   document.body.classList.add('vt');

@@ -2,7 +2,7 @@
 // uso (de dentro de tools/trailer):
 //   node gravar.js [cena ...]                      -> trailer simples (roteiro.js, pasta quadros/)
 //   ROTEIRO=./roteiro_gta.js node gravar.js [...]   -> trailer estilo GTA (pasta quadros_gta/, sons em eventos/)
-//   ROTEIRO=./gta6/roteiro.js node gravar.js [...]  -> trailer curto estilo GTA 6 (pastas do próprio roteiro)
+//   ROTEIRO=./cinema/roteiro.js node gravar.js [...]  -> trailer curto de cinema, jogo de carro (pastas do próprio roteiro)
 //   FOTOS=0,60 ...                                  -> prévia: só tira foto nesses quadros de cada cena (pasta previa/)
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');

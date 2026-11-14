@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# Trilha do trailer curto (estilo GTA 6): música original anos 80 a 110 BPM (Mi menor: Mim Dó Sol Ré),
+# Trilha do trailer curto de cinema: música original anos 80 a 110 BPM (Mi menor: Mim Dó Sol Ré),
 # sintetizador em arpejo, baixo pulsando, caixa com eco "cortado", e o som da gravação (motor, chuva, bipes)
 # no quadro exato. As falas entram por cima e a música abaixa quando alguém fala.
-# uso (de dentro de tools/trailer):  python3 gta6/som.py  -> gta6/saida/trilha.wav
+# uso (de dentro de tools/trailer):  python3 cinema/som.py  -> cinema/saida/trilha.wav
 import json, os, subprocess
 import numpy as np
 from scipy.signal import butter, sosfilt, fftconvolve

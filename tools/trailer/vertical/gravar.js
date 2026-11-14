@@ -36,7 +36,7 @@ console.log('duração total: %s s', acc.toFixed(2));
     Object.assign(carKit('brasa'), { finish: 'metal', neon: '#22d1ff', low: true, spoiler: true, wheels: 'tala', tint: 2, sound: true });
     player.setCar('brasa'); Events.spawnT = 1e9; Profile.msgs = []; UI.last = {}; ensurePhoneData(); VoicePlayer.stop(); Screens.closeAll();
   });
-  for (const f of ['cena.js', 'gameplay/extra.js', 'gta6/estilo.js', 'vertical/estilo.js']) await p.addScriptTag({ path: path.join(TRD, f) });
+  for (const f of ['cena.js', 'gameplay/extra.js', 'cinema/estilo.js', 'vertical/estilo.js']) await p.addScriptTag({ path: path.join(TRD, f) });
   await p.evaluate(() => { window.__VT.start(); TR.BEATF = 3600 / 130; });
   fs.mkdirSync(path.join(AQ, 'eventos'), { recursive: true });
   for (const c of lista) {

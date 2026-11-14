@@ -50,7 +50,7 @@ for (let i = 0; i < legendas.length - 1; i++) legendas[i].b = Math.min(legendas[
     player.setCar('brasa'); Events.spawnT = 1e9; Profile.msgs = []; UI.last = {}; ensurePhoneData(); VoicePlayer.stop(); Screens.closeAll();
   });
   await p.addScriptTag({ path: path.join(TRD, 'cena.js') });
-  for (const f of ['gameplay/extra.js', 'gta6/estilo.js', 'anuncio/estilo.js']) await p.addScriptTag({ path: path.join(TRD, f) });
+  for (const f of ['gameplay/extra.js', 'cinema/estilo.js', 'anuncio/estilo.js']) await p.addScriptTag({ path: path.join(TRD, f) });
   await p.evaluate((L) => { window.__VT.start(); TR.BEATF = 3600 / 130; TR.legendas = L; }, legendas);
   fs.mkdirSync(path.join(AQ, 'eventos'), { recursive: true });
   for (const c of lista) {

@@ -1,6 +1,6 @@
 // Visual do vídeo de anúncio (YouTube): cor quase natural do jogo, painel inteiro (com os avisos de tecla)
 // e o botão "Inscrever-se" com a setinha do mouse clicando no cartaz final.
-// Roda depois do cena.js, gameplay/extra.js e gta6/estilo.js.
+// Roda depois do cena.js, gameplay/extra.js e cinema/estilo.js.
 (() => {
   const T = window.TR, ov = T.ov;
   const _reset = T.reset;

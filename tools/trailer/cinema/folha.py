@@ -1,5 +1,5 @@
 # folha de contato da prévia (FOTOS=...): uma linha por cena, as fotos lado a lado
-# uso: python3 gta6/folha.py saida.jpg [cena ...]
+# uso: python3 cinema/folha.py saida.jpg [cena ...]
 import sys, os, re
 from PIL import Image, ImageDraw
 P = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'previa')
