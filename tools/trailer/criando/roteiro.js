@@ -248,7 +248,7 @@ const cenas = [
       TR.drive(900, 2100, 3000, 2100, 210, { lane: 24 }); TR.follow(1.7, 1.9, 0.14);
       TR.hora('Rádio', 'Gambiarra FM 171,1', 6, ${s(1.9)}, true); TR.em([[${s(2.2)}, () => TR.dj('radio_v1', true)]]);` },
   { nome: 'c28b-dj', seg: 0.3 + D('radio_03') + 0.6, antes: 0, estilo: 'rola', musica: 0.5, radio: true,
-    setup: `TR.em([[${s(0.3)}, () => TR.dj('radio_03')]]); TR.follow(1.9, 2.3, 0.12);` },
+    setup: `TR.drive(1450, 6221, 5200, 6221, 165, { lane: 21, v0: 165 }); TR.em([[${s(0.3)}, () => TR.dj('radio_03')]]); TR.follow(1.9, 2.3, 0.12);` },
   { nome: 'c29-desliga', seg: 0.2 + D('g29') + 0.9, antes: 0, estilo: 'rola', radio: true,
     setup: `TR.em([[${s(0.2)}, () => TR.dj('radio_v3', true)], [${s(0.2 + D('g29') - 0.6)}, () => TR.tecla('KeyF', 'F', 'rádio')]]); TR.follow(2.3, 1.8, 0.14);` },
   { nome: 'c30-celular', seg: 0.3 + D('g30') + 0.5, antes: 10, estilo: 'rola',

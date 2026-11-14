@@ -16,6 +16,15 @@
   // cena que continua a anterior (sem reset): o letreiro, o aviso e as estrelinhas da cena de antes não voltam
   const _limpa = T.limpaGags;
   T.limpaGags = function () { _limpa(); T.ho = null; T.no = null; T.tn = null; T.ra = null; };
+  // a cada quadro: sem viatura no trânsito (a polícia está desligada no jogo) e o letreiro da rádio aparece
+  // quando o DJ está no ar (o noite/estilo.js esconde o letreiro fora do TR.radioNoAr)
+  const _cine = T.cine;
+  T.cine = function () {
+    _cine();
+    if (Traffic.cars.some((c) => c.model === 'police')) { for (const c of Traffic.cars) if (c.model === 'police') { c.release(); c.dead = true; } Traffic.cars = Traffic.cars.filter((c) => !c.dead); }
+    const rp = document.getElementById('hud-radio');
+    if (rp && !T.ra && typeof Radio !== 'undefined') rp.classList.toggle('hidden', !(Radio.isOn() && Radio.mode !== 'idle' && !Radio.held));
+  };
   // DJ no ar: o letreiro da Rádio Gambiarra FM com a legenda; o áudio entra na montagem (mudo = só o letreiro)
   T.dj = function (clip, mudo) {
     const S = RADIO.find((r) => r.clip === clip) || RADIO_VINHETAS.find((r) => r.clip === clip); if (!S) return;
