@@ -932,7 +932,7 @@ Animals.update = function (dt, cx, cy) {
     const r = rnd();
     if (R.rural > 0.6) { if (r < 0.3) AudioSys.owl(); else if (r < 0.55) AudioSys.moo(); else if (r < 0.75) AudioSys.bark(900); }
     else if (rk === 'rio') { if (r < 0.6) AudioSys.frog(); else AudioSys.owl(); }
-    else { if (r < 0.35) AudioSys.bark(rnd(500, 1100)); else if (r < 0.5) AudioSys.siren(); else if (r < 0.7) AudioSys.aiHorn(rnd(500, 850), pick(Object.keys(HORNS)), rnd(-0.8, 0.8)); }
+    else { if (r < 0.35) AudioSys.bark(rnd(500, 1100)); else if (r < 0.5) { /* sem sirene */ } else if (r < 0.7) AudioSys.aiHorn(rnd(500, 850), pick(Object.keys(HORNS)), rnd(-0.8, 0.8)); }
   }
 };
 /* ---------- pelada nos campos de várzea ---------- */

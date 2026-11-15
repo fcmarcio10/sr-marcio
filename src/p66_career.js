@@ -870,13 +870,13 @@ Ambiente.sorteia = function (rk, R, cx, cy) {
     if (rk === 'rodovia') { add(2.5, 'sfx_caminhao', longe(), 0.5); add(1.5, 'sfx_carro', longe(), 0.45); }
   } else if (AMB_FAVELAS[rk]) {
     add(2, 'sfx_moto', longe(), 0.45); add(1.5, 'sfx_risada', longe(), 0.4); add(1.5, 'sfx_cachorro', longe(), 0.45);
-    add(0.5, 'sfx_fogos', longe(), 0.4); add(0.35, 'sfx_galo', longe(), 0.35); add(0.6, 'buzina', longe(), 0);
+    add(0.4, 'buzina', longe(), 0); // rojão e galo saíram (pedido do dono: menos sons)
   } else {
     let bar = null, bd = 700 * 700;
     for (const s of World.shops) if (s.kind === 'bar' || s.kind === 'lanchonete' || s.kind === 'churrascaria') { const d = (s.x - cx) ** 2 + (s.y - cy) ** 2; if (d < bd) { bd = d; bar = s; } }
-    add(2, 'sfx_carro', longe(), 0.4); add(1.5, 'sfx_moto', longe(), 0.4); add(0.7, 'sfx_onibus', longe(), 0.4);
+    add(2, 'sfx_carro', longe(), 0.4); add(1.2, 'sfx_moto', longe(), 0.4);
     add(bar ? 2 : 0.4, 'sfx_risada', bar ? [bar.x, bar.y] : longe(), 0.45); add(1, 'sfx_cachorro', longe(), 0.4);
-    add(0.3, 'sfx_alarme', longe(), 0.3); add(0.3, 'sfx_sirene', longe(), 0.5); add(0.15, 'sfx_fogos', longe(), 0.3); add(1, 'buzina', longe(), 0);
+    add(0.5, 'buzina', longe(), 0); // alarme, sirene, rojão e ônibus ao longe saíram: cidade mais simples
   }
   const campo = rk === 'mata' || R.rural > 0.5;
   if (!op.length) return true; // sem bicho por perto: só o fundo (grilos, sapos) toca
