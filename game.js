@@ -4646,9 +4646,9 @@ class Animal {
     if (player && Game.state === 'playing') {
       const d = Math.hypot(player.x - this.x, player.y - this.y);
       const sp = player.speed;
-      if (d < this.P.scare && sp > 50 && this.state !== 'flee') { this.scare(player.x, player.y, false); if (this.type === 'person' && sp > 110 && d < 95 && chance(0.6)) PedVoz.fala(this, 'susto'); }
-      if (d < 260 && AudioSys.hornOn && this.state !== 'flee') { this.scare(player.x, player.y, false); if (this.type === 'person' && d < 200 && chance(0.5)) PedVoz.fala(this, 'buzina'); }
-      if (this.type === 'person' && d < 110 && sp > 30 && player.surface === SF.SIDEWALK) PedVoz.fala(this, 'calcada');
+      if (d < this.P.scare && sp > 50 && this.state !== 'flee') { this.scare(player.x, player.y, false); if (this.type === 'person' && sp > 110 && d < 89.3 && chance(0.6)) PedVoz.fala(this, 'susto'); }
+      if (d < 260 && AudioSys.hornOn && this.state !== 'flee') { this.scare(player.x, player.y, false); if (this.type === 'person' && d < 188 && chance(0.5)) PedVoz.fala(this, 'buzina'); }
+      if (this.type === 'person' && d < 103.4 && sp > 30 && player.surface === SF.SIDEWALK) PedVoz.fala(this, 'calcada'); // distâncias 6% menores (pedido do dono)
     }
     this.t -= dt;
     if (this.state === 'idle' || this.state === 'graze') {
@@ -7472,7 +7472,7 @@ Som.update = function (dt) {
     if (s === 2 || s === 10) AudioSys.tone(s === 2 ? 880 : 784, 0.06, 'triangle', v * 0.12, 'engine');
   }
   // quem estiver perto dança
-  if (sp < 40 && s % 4 === 0) for (const an of Animals.list) if (an.type === 'person' && Math.abs(an.x - player.x) < 170 && Math.abs(an.y - player.y) < 170) { an.danceUntil = Game.time + 0.8; if (chance(0.03)) PedVoz.fala(an, 'paredao'); }
+  if (sp < 40 && s % 4 === 0) for (const an of Animals.list) if (an.type === 'person' && Math.abs(an.x - player.x) < 170 && Math.abs(an.y - player.y) < 170) { an.danceUntil = Game.time + 0.8; if (chance(0.03) && Math.abs(an.x - player.x) < 160 && Math.abs(an.y - player.y) < 160) PedVoz.fala(an, 'paredao'); }
 };
 /* ============================ RENDERIZAÇÃO ============================ */
 const canvas = document.getElementById('game');
