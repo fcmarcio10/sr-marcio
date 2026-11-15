@@ -11,6 +11,16 @@
     if (Radio.a) { try { Radio.a.pause(); } catch (e) {} Radio.a.onended = null; Radio.a = null; }
     if (!mudo) T.vozJogo(M.clip);
   };
+  // DJ apresentando a música (RADIO_APRESENTA não está na lista do TR.dj)
+  const _dj = T.dj;
+  T.dj = function (clip, mudo) {
+    const A = RADIO_APRESENTA.find((r) => r.clip === clip);
+    if (!A) return _dj(clip, mudo);
+    Settings.radioOff = false; if (!(Settings.radio > 0)) Settings.radio = 70;
+    Radio.fila = []; Radio.play(A, 0);
+    if (Radio.a) { try { Radio.a.pause(); } catch (e) {} Radio.a.onended = null; Radio.a = null; }
+    if (!mudo) T.vozJogo(clip);
+  };
   // buraco novo bem no caminho do carro (desenhado no chão e com a tremida do jogo)
   T.buraco = function (x, y, k) {
     k = k || 1; const p = { x, y, k, a: 0.6 };
