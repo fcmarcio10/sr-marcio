@@ -9741,7 +9741,7 @@ PedVoz.fala = function (an, tipo) {
   const c = VOICE_CLIPS[F[0]];
   if (c) {
     const d = player ? Math.hypot(an.x - player.x, an.y - player.y) : 0;
-    const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 250, 0.2, 1) * 0.85;
+    const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 288, 0.2, 1) * 0.85;
     try { if (this.a) this.a.pause(); const a = this.a = new Audio(c.src); a.volume = vol; a.play().catch(() => {}); } catch (e) { this.a = null; }
   }
   return true;
@@ -9751,7 +9751,7 @@ PedVoz.update = function () {
   const a = this.a, an = this.quem;
   if (!a || !an) return;
   if (a.ended || a.paused) { this.a = null; this.quem = null; return; }
-  const d = Math.hypot(an.x - Cam.x, an.y - Cam.y), k = an.morto ? 0 : clamp(1 - (d - 30) / 172, 0, 1); // some a uns 200 de distância
+  const d = Math.hypot(an.x - Cam.x, an.y - Cam.y), k = an.morto ? 0 : clamp(1 - (d - 34.5) / 198, 0, 1); // some a uns 232 de distância (+15%)
   const v = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.85 * k;
   if (v < 0.015) { try { a.pause(); } catch (e) {} this.a = null; this.quem = null; return; }
   a.volume = v;
