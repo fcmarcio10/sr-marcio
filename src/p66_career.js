@@ -226,10 +226,10 @@ VoicePlayer.tick = function () {
 /* ---------- pedestres que falam: susto, carro na calçada, buzina e paredão ----------
    Um de cada vez, com intervalo; a voz vai abaixando conforme o carro se afasta (PedVoz.update). */
 const PED_FALAS = {
-  susto: [['ped_1', 'Ô, maluco! Olha por onde anda!'], ['ped_2', 'Ai, meu Deus! Quase me atropela!'], ['ped_3', 'Devagar, motorista! Aqui não é autódromo!'], ['ped_4', 'Ê, rapá! Quer me levar junto, é?']],
-  calcada: [['ped_5', 'Sai da calçada, doido! Calçada é de gente!'], ['ped_6', 'Moço! A rua é ali, ó!']],
-  buzina: [['ped_7', 'Buzina pra tua avó, rapá!'], ['ped_8', 'Bah, que susto, tchê! Precisa buzinar desse jeito?']],
-  paredao: [['ped_9', 'Aumenta o som, motorista!'], ['ped_10', 'Esse paredão é bom demais! Toca mais uma!']],
+  susto: [['ped_1', 'Ô, maluco! Olha por onde anda!'], ['ped_2', 'Ai, meu Deus! Quase me atropela!'], ['ped_3', 'Devagar, motorista!'], ['ped_4', 'Ê, rapá! Quer me levar junto, é?'], ['ped_11', 'Tá doido, é?!'], ['ped_12', 'Eita! Por pouco, hein!'], ['ped_13', 'Olha a pressa, rapaz!']],
+  calcada: [['ped_5', 'Sai da calçada, doido!'], ['ped_6', 'Moço! A rua é ali, ó!']],
+  buzina: [['ped_7', 'Buzina pra tua avó, rapá!'], ['ped_8', 'Bah, que susto, tchê!']],
+  paredao: [['ped_9', 'Aumenta o som, motorista!'], ['ped_10', 'Esse paredão é bom demais!']],
 };
 const PedVoz = { t: 0, a: null, ultimo: null, quem: null, falas: 0 };
 PedVoz.fala = function (an, tipo) {
@@ -241,7 +241,7 @@ PedVoz.fala = function (an, tipo) {
   const c = VOICE_CLIPS[F[0]];
   if (c) {
     const d = player ? Math.hypot(an.x - player.x, an.y - player.y) : 0;
-    const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 288, 0.2, 1) * 0.85;
+    const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 288, 0.2, 1) * 0.782;
     try { if (this.a) this.a.pause(); const a = this.a = new Audio(c.src); a.volume = vol; a.play().catch(() => {}); } catch (e) { this.a = null; }
   }
   return true;
@@ -252,7 +252,7 @@ PedVoz.update = function () {
   if (!a || !an) return;
   if (a.ended || a.paused) { this.a = null; this.quem = null; return; }
   const d = Math.hypot(an.x - Cam.x, an.y - Cam.y), k = an.morto ? 0 : clamp(1 - (d - 34.5) / 198, 0, 1); // some a uns 232 de distância (+15%)
-  const v = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.85 * k;
+  const v = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.782 * k; // 8% mais baixa (nov/2026)
   if (v < 0.015) { try { a.pause(); } catch (e) {} this.a = null; this.quem = null; return; }
   a.volume = v;
 };
@@ -851,7 +851,7 @@ Ambiente.resto = function (dt) {
     this.pessoasT = rnd(6, 11);
     let n = 0, px = 0, py = 0;
     for (const an of Animals.list) if (an.type === 'person' && !an.morto && Math.abs(an.x - Cam.x) < 380 && Math.abs(an.y - Cam.y) < 300) { n++; px += an.x; py += an.y; }
-    if (n >= 3 && Math.random() < 0.55) this.toca('sfx_risada', px / n, py / n, 0.4, 900);
+    if (n >= 3 && Math.random() < 0.55 && AMB_FAVELAS[regionKeyAt(Cam.x, Cam.y)]) this.toca('sfx_risada', px / n, py / n, 0.4, 900); // risada só na favela
   }
 };
 // sorteio dos sons soltos do lugar (chamado pelo relógio de sons dos bichos); devolve false se ainda não carregou
@@ -875,10 +875,8 @@ Ambiente.sorteia = function (rk, R, cx, cy) {
     add(2, 'sfx_moto', longe(), 0.45); add(1.5, 'sfx_risada', longe(), 0.4); add(1.5, 'sfx_cachorro', longe(), 0.45);
     add(0.4, 'buzina', longe(), 0); // rojão e galo saíram (pedido do dono: menos sons)
   } else {
-    let bar = null, bd = 700 * 700;
-    for (const s of World.shops) if (s.kind === 'bar' || s.kind === 'lanchonete' || s.kind === 'churrascaria') { const d = (s.x - cx) ** 2 + (s.y - cy) ** 2; if (d < bd) { bd = d; bar = s; } }
     add(2, 'sfx_carro', longe(), 0.4); add(1.2, 'sfx_moto', longe(), 0.4);
-    add(bar ? 2 : 0.4, 'sfx_risada', bar ? [bar.x, bar.y] : longe(), 0.45); add(1, 'sfx_cachorro', longe(), 0.4);
+    add(1, 'sfx_cachorro', longe(), 0.4); // sem risada na cidade (pedido do dono): só som de cidade
     add(0.5, 'buzina', longe(), 0); // alarme, sirene, rojão e ônibus ao longe saíram: cidade mais simples
   }
   const campo = rk === 'mata' || R.rural > 0.5;

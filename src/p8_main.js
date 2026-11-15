@@ -230,6 +230,14 @@ async function boot() {
   document.querySelector('#screen-garage .garage-side').addEventListener('click', (e) => Garage.click(e));
   $('phone-body').addEventListener('click', (e) => Phone.click(e));
   $('phone-close').addEventListener('click', () => { AudioSys.back(); Screens.back(); });
+  // botões de baixo do celular: bolinha volta para o início, seta volta para a tela de antes
+  $('phone-nav-home').addEventListener('click', () => { if (Phone.app !== 'home') { phoneTone(1000, 0.04, 0.04); Phone.go('home'); } });
+  $('phone-nav-back').addEventListener('click', () => {
+    const b = [...document.querySelectorAll('#phone-body .ph-back, #phone-body [data-pgback], #phone-body [data-frback]')].find((x) => x.offsetParent !== null);
+    if (b) b.click(); else if (Phone.app !== 'home') Phone.go('home');
+  });
+  // tocar nos botões do celular não rouba o teclado do carro (dá para dirigir com ele aberto)
+  document.querySelector('#screen-phone .phone').addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
   $('hud-phone').addEventListener('click', () => { if (Game.state === 'playing') Phone.open('home'); });
   $('fps').classList.toggle('hidden', !Settings.showFps);
   prog(0.04, 'Preparando texturas…'); await tick();
