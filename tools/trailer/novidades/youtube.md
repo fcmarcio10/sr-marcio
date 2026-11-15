@@ -23,17 +23,17 @@ O que tem de novo:
 Capítulos:
 00:00 Abertura
 00:09 Sons de ambiente
-00:23 Pedestres falando
-00:37 Atropelamento
-00:49 Buracos
-01:02 Casas com cara de Brasil
-01:12 Noite e 60 FPS
-01:21 Rádio com música
-01:46 Chat dos Fretes
-02:03 PegaAí
-02:12 Detalhes do carro
-02:24 Carro passando
-02:31 Até a próxima
+00:22 Pedestres falando
+00:35 Atropelamento
+00:46 Buracos
+00:59 Casas com cara de Brasil
+01:09 Noite e 60 FPS
+01:18 Rádio com música
+01:48 Chat dos Fretes
+02:05 PegaAí
+02:14 Detalhes do carro
+02:26 Carro passando
+02:33 Até a próxima
 
 BR Night Drive vai sair para Windows. Em breve!
 Comenta aí: qual vai ser a próxima maluquice de São Gambiarra?
