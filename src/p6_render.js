@@ -11,9 +11,9 @@ let RS_MAX = 1;
    (quase não se nota) até voltar aos 60; quando sobra folga, volta a nitidez aos poucos. Nunca mexe no jogo em si. */
 // desligada nos testes e nos gravadores de vídeo (navegador controlado), que precisam da imagem sempre igual
 const AutoRes = { k: 1, n: 0, lentos: 0, trab: 0, t: 0, espera: 3, teto: 1, off: !!navigator.webdriver };
-AutoRes.quadro = function (dtReal, trabalhoMs) {
+AutoRes.quadro = function (dtReal, trabalhoMs, cap) {
   if (this.off || document.hidden || dtReal > 0.25) return; // aba escondida ou volta de pausa: não conta
-  this.n++; this.t += dtReal; this.trab += trabalhoMs; if (dtReal > 1 / 50) this.lentos++;
+  this.n++; this.t += dtReal; this.trab += trabalhoMs; if (dtReal > Math.max(1 / 50, cap ? 1.25 / cap : 0)) this.lentos++;
   this.espera -= dtReal;
   if (this.t < 2) return;
   const fracLento = this.lentos / this.n, trabMedio = this.trab / this.n;

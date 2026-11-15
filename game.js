@@ -97,7 +97,7 @@ const HORNS = {
 };
 // altura da câmera em 3 níveis: 1 = 140% (mais perto, padrão), 2 = 135%, 3 = 130% (o mais alto que dá)
 const CAM_LEVELS = { 1: 140, 2: 135, 3: 130 }, CAM_MIN = 130;
-const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', cam: '1', zoom: 140, showFps: false, minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4 }; // rádio começa desligada; depois o jogo lembra como você deixou
+const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', cam: '1', zoom: 140, showFps: false, fpsCap: '60', minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4 }; // rádio começa desligada; depois o jogo lembra como você deixou
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null');
@@ -7664,9 +7664,9 @@ let RS_MAX = 1;
    (quase não se nota) até voltar aos 60; quando sobra folga, volta a nitidez aos poucos. Nunca mexe no jogo em si. */
 // desligada nos testes e nos gravadores de vídeo (navegador controlado), que precisam da imagem sempre igual
 const AutoRes = { k: 1, n: 0, lentos: 0, trab: 0, t: 0, espera: 3, teto: 1, off: !!navigator.webdriver };
-AutoRes.quadro = function (dtReal, trabalhoMs) {
+AutoRes.quadro = function (dtReal, trabalhoMs, cap) {
   if (this.off || document.hidden || dtReal > 0.25) return; // aba escondida ou volta de pausa: não conta
-  this.n++; this.t += dtReal; this.trab += trabalhoMs; if (dtReal > 1 / 50) this.lentos++;
+  this.n++; this.t += dtReal; this.trab += trabalhoMs; if (dtReal > Math.max(1 / 50, cap ? 1.25 / cap : 0)) this.lentos++;
   this.espera -= dtReal;
   if (this.t < 2) return;
   const fracLento = this.lentos / this.n, trabMedio = this.trab / this.n;
@@ -11650,11 +11650,19 @@ function stepMenu(dt) {
 }
 const STEP = 1 / 120;
 let lastT = 0, accT = 0;
+let fpsGate = 0;
 function frame(now) {
   requestAnimationFrame(frame);
+  // trava de FPS (30, 60 ou 120): pula o quadro que chegou antes da hora, sem mexer na física (ela usa o tempo real)
+  const cap = +Settings.fpsCap || 0;
+  if (cap) {
+    const iv = 1000 / cap;
+    if (now < fpsGate - 1) return;
+    fpsGate = now - fpsGate > iv ? now + iv : fpsGate + iv;
+  }
   const t0q = performance.now();
   let dt = lastT ? (now - lastT) / 1000 : 0.016;
-  if (lastT && Game.state === 'playing') AutoRes.quadro(dt, frame.trab || 0);
+  if (lastT && Game.state === 'playing') AutoRes.quadro(dt, frame.trab || 0, cap);
   lastT = now;
   dt = clamp(dt, 0, 0.1);
   handleKeys();
@@ -11698,7 +11706,11 @@ function frame(now) {
   }
   Game.fpsT += dt; Game.fpsN++;
   if (Game.fpsT >= 0.5) {
-    if (Settings.showFps) $('fps').textContent = Math.round(Game.fpsN / Game.fpsT) + ' FPS · ' + Traffic.cars.length + ' carros · ' + chunks.size + ' blocos';
+    if (Settings.showFps) {
+      const f = Math.round(Game.fpsN / Game.fpsT), alvo = cap === 30 ? 30 : 60, el = $('fps');
+      el.textContent = f + ' FPS';
+      el.classList.toggle('medio', f < alvo * 0.92 && f >= alvo * 0.6); el.classList.toggle('ruim', f < alvo * 0.6);
+    }
     Game.fpsT = 0; Game.fpsN = 0;
   }
   frame.trab = performance.now() - t0q; // tempo gasto neste quadro (para a nitidez automática)

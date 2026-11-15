@@ -163,11 +163,19 @@ function stepMenu(dt) {
 }
 const STEP = 1 / 120;
 let lastT = 0, accT = 0;
+let fpsGate = 0;
 function frame(now) {
   requestAnimationFrame(frame);
+  // trava de FPS (30, 60 ou 120): pula o quadro que chegou antes da hora, sem mexer na física (ela usa o tempo real)
+  const cap = +Settings.fpsCap || 0;
+  if (cap) {
+    const iv = 1000 / cap;
+    if (now < fpsGate - 1) return;
+    fpsGate = now - fpsGate > iv ? now + iv : fpsGate + iv;
+  }
   const t0q = performance.now();
   let dt = lastT ? (now - lastT) / 1000 : 0.016;
-  if (lastT && Game.state === 'playing') AutoRes.quadro(dt, frame.trab || 0);
+  if (lastT && Game.state === 'playing') AutoRes.quadro(dt, frame.trab || 0, cap);
   lastT = now;
   dt = clamp(dt, 0, 0.1);
   handleKeys();
@@ -211,7 +219,11 @@ function frame(now) {
   }
   Game.fpsT += dt; Game.fpsN++;
   if (Game.fpsT >= 0.5) {
-    if (Settings.showFps) $('fps').textContent = Math.round(Game.fpsN / Game.fpsT) + ' FPS · ' + Traffic.cars.length + ' carros · ' + chunks.size + ' blocos';
+    if (Settings.showFps) {
+      const f = Math.round(Game.fpsN / Game.fpsT), alvo = cap === 30 ? 30 : 60, el = $('fps');
+      el.textContent = f + ' FPS';
+      el.classList.toggle('medio', f < alvo * 0.92 && f >= alvo * 0.6); el.classList.toggle('ruim', f < alvo * 0.6);
+    }
     Game.fpsT = 0; Game.fpsN = 0;
   }
   frame.trab = performance.now() - t0q; // tempo gasto neste quadro (para a nitidez automática)
