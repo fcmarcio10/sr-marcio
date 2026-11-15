@@ -674,3 +674,133 @@ function frListHTML() {
   if (!L.length) return '<p class="ph-empty">Nenhuma conversa ainda. Aceite um frete e o cliente fala com você por aqui.</p>';
   return L.map((c) => { const last = c.msgs[c.msgs.length - 1]; return `<button class="pg-row${c.read ? '' : ' new'}" data-frchat="${c.fid}"><span class="pgc-ava">${escapeHtml(c.name.split(' ').map((w) => w[0]).join('').slice(0, 2))}</span><span class="pg-mid"><b>${escapeHtml(c.name)}</b><small>${last ? (last.me ? 'Você: ' : '') + (last.voice && Settings.msgMode !== 'texto' ? 'Mensagem de voz' : escapeHtml(last.body.slice(0, 48))) : ''}</small></span><em>${escapeHtml((c.item || '').slice(0, 14))}</em></button>`; }).join('');
 }
+
+/* ---------- sons de ambiente: fundo em loop por região + sons soltos (bichos, carros, gente) ----------
+   Fundos (gravações em loop): cidade, favela, roça (grilos e sapos), praia (ondas), mata e rio; trocam devagar
+   conforme a câmera anda. Sons soltos saem do lugar certo (vaca perto das vacas, risada perto dos bares,
+   carro passando de verdade quando um carro do trânsito passa raspando) com volume pela distância e lado.
+   Cada som é preparado (decodificado) só quando é usado pela primeira vez, sem pesar no começo. */
+const AMB_FUNDO = { cidade: ['amb_cidade', 0.55], favela: ['amb_favela', 0.6], roca: ['amb_roca', 0.5], praia: ['amb_praia', 0.6], mata: ['amb_mata', 0.5], rio: ['amb_rio', 0.55] };
+const AMB_FAVELAS = { saopedro: 1, terravermelha: 1, feurosa: 1, carapina: 1 };
+const Ambiente = { buf: {}, pedido: {}, fundos: {}, t0: 0, passou: new Map(), passouT: 0, pessoasT: 0, n: 0 };
+Ambiente.pronto = function (clip) {
+  if (this.buf[clip]) return this.buf[clip];
+  if (this.pedido[clip] || !AudioSys.ok || !VOICE_CLIPS[clip]) return null;
+  this.pedido[clip] = true;
+  try {
+    const src = VOICE_CLIPS[clip].src, bin = atob(src.slice(src.indexOf(',') + 1)), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    AudioSys.ctx.decodeAudioData(u8.buffer).then((b) => { this.buf[clip] = b; }, () => {});
+  } catch (e) {}
+  return null;
+};
+// som solto num ponto do mundo: volume pela distância da câmera e lado esquerdo/direito
+Ambiente.toca = function (clip, x, y, vol, alcance) {
+  const b = this.pronto(clip); if (!b) return false;
+  const c = AudioSys.ctx, d = Math.hypot(x - Cam.x, y - Cam.y), g = (vol || 0.5) * clamp(1 - d / (alcance || 1500), 0.06, 1);
+  if (g < 0.02) return true;
+  const s = c.createBufferSource(); s.buffer = b; s.playbackRate.value = 0.92 + Math.random() * 0.16;
+  const gn = c.createGain(); gn.gain.value = g; s.connect(gn);
+  if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = clamp((x - Cam.x) / 750, -0.85, 0.85); gn.connect(p); p.connect(AudioSys.bus.ambient); } else gn.connect(AudioSys.bus.ambient);
+  s.start(); this.n++;
+  return true;
+};
+// cachorro latindo de verdade quando o carro assusta (cai no latido sintetizado se ainda não carregou)
+Ambiente.latido = function (x, y) { return this.toca('sfx_cachorro', x, y, 0.55, 1300); };
+// peso de cada fundo conforme o lugar da câmera
+Ambiente.pesos = function () {
+  const rk = regionKeyAt(Cam.x, Cam.y), R = REGIONS[rk], fav = AMB_FAVELAS[rk] ? 1 : 0;
+  const praia = Cam.x > ORLA_X0 - 300 ? clamp(1 - (SAND_Y - Cam.y) / 650, 0, 1) : 0;
+  const rio = clamp(1 - (Math.abs(Cam.x - riverCX(Cam.y)) - 160) / 650, 0, 1);
+  const mata = rk === 'mata' ? 1 : 0;
+  return { cidade: R.city * (1 - fav) * (1 - praia * 0.5), favela: fav, roca: R.rural * (1 - mata * 0.7) * (1 - rio * 0.6), praia, mata, rio };
+};
+Ambiente.update = function (dt) {
+  if (!AudioSys.ok) return;
+  // prepara os sons aos poucos (um a cada 1,2 s) para estarem prontos na primeira vez, sem travar
+  if (!this.fila) this.fila = Object.keys(VOICE_CLIPS).filter((k) => /^(amb|sfx)_/.test(k));
+  this.prepT = (this.prepT || 0) - dt;
+  if (this.fila.length && this.prepT <= 0) { this.prepT = 1.2; this.pronto(this.fila.shift()); }
+  const c = AudioSys.ctx, t = c.currentTime;
+  const jogando = Game.mode === 'play' && Game.state === 'playing';
+  const fora = !jogando || Screens.current === 'screen-pause' || Screens.current === 'screen-main';
+  this.mixT = (this.mixT || 0) - dt;
+  if (this.mixT <= 0) this.mix(c, t, fora);
+  if (!jogando || !player) return;
+  this.resto(dt);
+};
+// volumes dos fundos (4 vezes por segundo basta: a troca é lenta)
+Ambiente.mix = function (c, t, fora) {
+  this.mixT = 0.25;
+  const W = this.pesos();
+  for (const k in AMB_FUNDO) {
+    const [clip, vol] = AMB_FUNDO[k], alvo = (fora ? 0.25 : 1) * vol * W[k];
+    let F = this.fundos[k];
+    if (!F) {
+      if (alvo < 0.01) continue;
+      const b = this.pronto(clip); if (!b) continue;
+      const s = c.createBufferSource(); s.buffer = b; s.loop = true; s.loopStart = 0.03; s.loopEnd = Math.max(1, b.duration - 0.03);
+      const g = c.createGain(); g.gain.value = 0; s.connect(g); g.connect(AudioSys.bus.ambient); s.start(0, Math.random() * (b.duration - 1));
+      F = this.fundos[k] = { s, g };
+    }
+    F.g.gain.setTargetAtTime(alvo, t, 1.4);
+  }
+};
+Ambiente.resto = function (dt) {
+  // carro do trânsito passando raspando: o som passa junto (carro, moto, caminhão ou ônibus)
+  this.passouT -= dt;
+  if (this.passouT <= 0) {
+    for (const a of Traffic.cars) {
+      const dx = a.x - player.x, dy = a.y - player.y; if (dx * dx + dy * dy > 150 * 150) continue;
+      const rel = Math.hypot((a.vx || Math.cos(a.a) * (a.v || 0)) - player.vx, (a.vy || Math.sin(a.a) * (a.v || 0)) - player.vy);
+      if (rel < 150 || (this.passou.get(a) || -9) > Game.time - 6) continue;
+      this.passou.set(a, Game.time); this.passouT = 1.1;
+      const kd = a.m && a.m.kind, clip = kd === 'moto' ? 'sfx_moto' : kd === 'truck' ? 'sfx_caminhao' : kd === 'bus' ? 'sfx_onibus' : 'sfx_carro';
+      this.toca(clip, a.x, a.y, clamp(rel / 600, 0.25, 0.6), 900);
+      break;
+    }
+    if (this.passou.size > 40) this.passou.clear();
+  }
+  // gente reunida perto: conversa e risada de vez em quando
+  this.pessoasT -= dt;
+  if (this.pessoasT <= 0) {
+    this.pessoasT = rnd(6, 11);
+    let n = 0, px = 0, py = 0;
+    for (const an of Animals.list) if (an.type === 'person' && Math.abs(an.x - Cam.x) < 380 && Math.abs(an.y - Cam.y) < 300) { n++; px += an.x; py += an.y; }
+    if (n >= 3 && Math.random() < 0.55) this.toca('sfx_risada', px / n, py / n, 0.4, 900);
+  }
+};
+// sorteio dos sons soltos do lugar (chamado pelo relógio de sons dos bichos); devolve false se ainda não carregou
+Ambiente.sorteia = function (rk, R, cx, cy) {
+  if (!AudioSys.ok) return false;
+  const perto = (tipo, raio) => { let best = null, bd = raio * raio; for (const a of Animals.list) if (a.type === tipo) { const d = (a.x - cx) ** 2 + (a.y - cy) ** 2; if (d < bd) { bd = d; best = a; } } return best; };
+  const longe = () => { const ang = Math.random() * TAU, r = rnd(350, 900); return [cx + Math.cos(ang) * r, cy + Math.sin(ang) * r]; };
+  const op = []; // [peso, clip, x, y, vol]
+  const add = (w, clip, p, vol) => { if (w > 0) op.push([w, clip, p[0], p[1], vol]); };
+  const hr = (Profile.time % 1440) / 60, madrugada = hr >= 4 && hr < 6.5;
+  if (rk === 'mata') { add(2, 'sfx_coruja', longe(), 0.45); add(0.4, 'sfx_cachorro', longe(), 0.3); }
+  else if (R.rural > 0.5) {
+    const v = perto('cow', 1300), cv = perto('horse', 1300), gl = perto('chicken', 1100), dg = perto('dog', 1100);
+    add(v ? 3 : 0.8, 'sfx_vaca', v ? [v.x, v.y] : longe(), 0.55);
+    add(cv ? 2 : 0.4, 'sfx_cavalo', cv ? [cv.x, cv.y] : longe(), 0.5);
+    add(gl ? 2 : 0.3, 'sfx_galinha', gl ? [gl.x, gl.y] : longe(), 0.45);
+    add(dg ? 1.5 : 0.7, 'sfx_cachorro', dg ? [dg.x, dg.y] : longe(), 0.45);
+    add(1.2, 'sfx_coruja', longe(), 0.4);
+    add(madrugada ? 3 : 0.35, 'sfx_galo', gl ? [gl.x, gl.y] : longe(), 0.5);
+    if (rk === 'rodovia') { add(2.5, 'sfx_caminhao', longe(), 0.5); add(1.5, 'sfx_carro', longe(), 0.45); }
+  } else if (AMB_FAVELAS[rk]) {
+    add(2, 'sfx_moto', longe(), 0.45); add(1.5, 'sfx_risada', longe(), 0.4); add(1.5, 'sfx_cachorro', longe(), 0.45);
+    add(0.5, 'sfx_fogos', longe(), 0.4); add(0.35, 'sfx_galo', longe(), 0.35); add(0.6, 'buzina', longe(), 0);
+  } else {
+    let bar = null, bd = 700 * 700;
+    for (const s of World.shops) if (s.kind === 'bar' || s.kind === 'lanchonete' || s.kind === 'churrascaria') { const d = (s.x - cx) ** 2 + (s.y - cy) ** 2; if (d < bd) { bd = d; bar = s; } }
+    add(2, 'sfx_carro', longe(), 0.4); add(1.5, 'sfx_moto', longe(), 0.4); add(0.7, 'sfx_onibus', longe(), 0.4);
+    add(bar ? 2 : 0.4, 'sfx_risada', bar ? [bar.x, bar.y] : longe(), 0.45); add(1, 'sfx_cachorro', longe(), 0.4);
+    add(0.3, 'sfx_alarme', longe(), 0.3); add(0.3, 'sfx_sirene', longe(), 0.5); add(0.15, 'sfx_fogos', longe(), 0.3); add(1, 'buzina', longe(), 0);
+  }
+  if (!op.length) return false;
+  let tot = 0; for (const o of op) tot += o[0];
+  let r = Math.random() * tot, o = op[0]; for (const q of op) { r -= q[0]; if (r <= 0) { o = q; break; } }
+  if (o[1] === 'buzina') { AudioSys.aiHorn(rnd(500, 850), pick(Object.keys(HORNS)), rnd(-0.8, 0.8)); return true; }
+  return this.toca(o[1], o[2], o[3], o[4], 1600);
+};

@@ -52,11 +52,14 @@ function updateCamera(dt) {
   }
   Cam.shake *= Math.exp(-7 * dt);
   Cam.flash = (Cam.flash || 0) * Math.exp(-5 * dt);
-  const rk = regionKeyAt(Cam.x, Cam.y);
-  let dk = REGIONS[rk].dark;
+  const rk = regionKeyAt(Cam.x, Cam.y), RG = REGIONS[rk];
+  // noite um pouco mais clara que antes: na cidade a luz dos bairros clareia o céu; na roça, o luar
+  let dk = clamp(RG.dark * 1.15 - RG.rural * 0.09, 0.5, 0.92);
   const tm = Profile.time % 1440;
   const deep = tm >= 60 && tm < 240 ? 0.025 : 0;
-  Cam.dark = lerp(Cam.dark, dk + deep, 1 - Math.exp(-1.2 * dt));
+  const k = 1 - Math.exp(-1.2 * dt);
+  Cam.dark = lerp(Cam.dark, dk + deep, k);
+  Cam.city = lerp(Cam.city === undefined ? RG.city : Cam.city, RG.city, k); // tom do céu: roxo-alaranjado na cidade, azul de luar na roça
 }
 
 /* ---------- chão pré-renderizado ---------- */
@@ -1178,7 +1181,18 @@ function lightPass(view, cx, cy) {
   lctx.setTransform(1, 0, 0, 1, 0, 0);
   lctx.globalCompositeOperation = 'source-over';
   lctx.globalAlpha = 1;
-  lctx.fillStyle = `rgba(6,11,30,${Cam.dark.toFixed(3)})`;
+  // escuridão da noite numa pincelada só: 'copy' substitui o quadro anterior (antes ela se acumulava e todo canto
+  // sem poste ficava preto) e o degradê já escurece as bordas da tela (vinheta)
+  const cty = clamp(Cam.city === undefined ? 0.5 : Cam.city, 0, 1), dk = clamp(Cam.dark, 0.3, 0.95);
+  const cr = Math.round(20 - 4 * cty), cg = Math.round(32 - 16 * cty), cb = Math.round(66 - 24 * cty); // luar azulado na roça, céu roxo-alaranjado na cidade
+  if (Settings.quality !== 'baixa') {
+    const gr = lctx.createRadialGradient(lw / 2, lh / 2, lh * 0.3, lw / 2, lh / 2, Math.hypot(lw, lh) * 0.55);
+    gr.addColorStop(0, `rgba(${cr},${cg},${cb},${dk.toFixed(3)})`);
+    gr.addColorStop(0.55, `rgba(${cr},${cg},${cb},${(dk + (1 - dk) * 0.08).toFixed(3)})`);
+    gr.addColorStop(1, `rgba(${cr >> 1},${cg >> 1},${cb >> 1},${(dk + (1 - dk) * 0.5).toFixed(3)})`);
+    lctx.fillStyle = gr;
+  } else lctx.fillStyle = `rgba(${cr},${cg},${cb},${dk.toFixed(3)})`;
+  lctx.globalCompositeOperation = 'copy';
   lctx.fillRect(0, 0, lw, lh);
   lctx.globalCompositeOperation = 'destination-out';
   lctx.setTransform(zl, 0, 0, zl * SQ, lw / 2 - cx * zl, lh / 2 - cy * zl * SQ);
@@ -1235,7 +1249,7 @@ function glowPass(view, cx, cy) {
     let i = L.i;
     if (L.dieAt) { if (T > L.dieAt) continue; i *= Math.random() < 0.5 ? 0.1 : 1; }
     if (L.flick) { const f = Math.sin(T * 23 + L.seed * 50) + Math.sin(T * 7.3 + L.seed * 9); i *= f > 1.2 ? 0.2 : 1; }
-    const a = (L.shop ? 0.32 : L.canopy ? 0.12 : L.flood ? 0.1 : 0.17) * i;
+    const a = (L.shop ? 0.36 : L.canopy ? 0.14 : L.flood ? 0.12 : 0.21) * i;
     gctx.globalAlpha = a;
     gctx.drawImage(glowSprite(lightHex(L.col)), L.x - L.r * 0.85, L.y - L.r * 0.85, L.r * 1.7, L.r * 1.7);
   }
@@ -1523,7 +1537,7 @@ function render() {
     const bc = window._bloomC, bx = window._bloomX, bw = Math.ceil(gw / 4), bh = Math.ceil(gh / 4);
     if (bc.width !== bw || bc.height !== bh) { bc.width = bw; bc.height = bh; }
     bx.clearRect(0, 0, bw, bh); bx.drawImage(glowCanvas, 0, 0, bw, bh); // reduzir = desfocar
-    gctx.setTransform(1, 0, 0, 1, 0, 0); gctx.globalCompositeOperation = 'lighter'; gctx.globalAlpha = 0.45;
+    gctx.setTransform(1, 0, 0, 1, 0, 0); gctx.globalCompositeOperation = 'lighter'; gctx.globalAlpha = 0.52;
     gctx.drawImage(bc, -gw * 0.02, -gh * 0.02, gw * 1.04, gh * 1.04);
     gctx.globalAlpha = 1; gctx.globalCompositeOperation = 'source-over';
   }

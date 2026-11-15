@@ -179,6 +179,7 @@ function frame(now) {
     Weather.update(dt);
   } else accT = 0;
   Radio.update(dt);
+  Ambiente.update(dt); // sons de ambiente por região
   AudioSys.hornOn = Game.state === 'playing' && !!key.horn();
   render();
   updateHUD(dt);

@@ -96,7 +96,7 @@ function bakeLampShadows() {
       g.save();
       g.beginPath(); g.arc(L.x, L.y, R, 0, TAU); g.clip();
       const grd = g.createRadialGradient(L.x, L.y, 8, L.x, L.y, R);
-      grd.addColorStop(0, `rgba(0,0,0,${(0.75 * L.i).toFixed(3)})`); grd.addColorStop(0.65, `rgba(0,0,0,${(0.45 * L.i).toFixed(3)})`); grd.addColorStop(1, 'rgba(0,0,0,0)');
+      grd.addColorStop(0, `rgba(4,6,18,${(0.62 * L.i).toFixed(3)})`); grd.addColorStop(0.6, `rgba(4,6,18,${(0.36 * L.i).toFixed(3)})`); grd.addColorStop(1, 'rgba(4,6,18,0)');
       g.fillStyle = grd; g.strokeStyle = grd; g.lineCap = 'round';
       const path = () => {
         g.beginPath();

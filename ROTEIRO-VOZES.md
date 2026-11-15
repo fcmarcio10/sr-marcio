@@ -158,3 +158,7 @@ Projeto do ElevenLabs "BR Night Drive - Músicas da rádio, passageiros, pedestr
 | `fr_ok2.mp3` | Lucinda | [carinhosa] Ô meu filho, chegou tudinho inteiro! Nem uma caixa amassada. Volta sempre, viu? |
 | `fr_ok3.mp3` | Anderson - Sotaque Mineiro | [contente] Uai, chegou rapidim, sô! A encomenda tá perfeita. Brigado demais da conta! |
 | `fr_ok4.mp3` | Gaucha SouthOfBrazil | [feliz] Bah, entrega tri rápida, tchê! Já vou te recomendar pros vizinhos! |
+
+## Sons de ambiente (efeitos, não são vozes)
+
+Projeto do ElevenLabs "BR Night Drive - Sons de ambiente (cidade, roça, bichos)", modelo Sound Effects v2. Fundos com 20 s em loop (`amb_cidade`, `amb_favela`, `amb_roca`, `amb_praia`, `amb_mata`, `amb_rio`) e sons curtos (`sfx_vaca`, `sfx_galo`, `sfx_cavalo`, `sfx_galinha`, `sfx_coruja`, `sfx_cachorro`, `sfx_moto`, `sfx_carro`, `sfx_caminhao`, `sfx_onibus`, `sfx_alarme`, `sfx_risada`, `sfx_fogos`, `sfx_sirene`). Volumes igualados (fundos −24 dB, sons curtos −16 dB) ao comprimir em `audio/`.

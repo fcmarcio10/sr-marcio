@@ -863,7 +863,7 @@ class Animal {
   }
   scare(px, py, hard) {
     if (this.type === 'owl') return;
-    if (this.state !== 'flee' && this.type === 'dog' && Game.state === 'playing') AudioSys.bark(player ? Math.hypot(this.x - player.x, this.y - player.y) : 400);
+    if (this.state !== 'flee' && this.type === 'dog' && Game.state === 'playing' && !Ambiente.latido(this.x, this.y)) AudioSys.bark(player ? Math.hypot(this.x - player.x, this.y - player.y) : 400);
     this.state = 'flee'; this.t = hard ? 2.2 : 1.6;
     const a = Math.atan2(this.y - py, this.x - px) + rnd(-0.5, 0.5);
     this.tx = clamp(this.x + Math.cos(a) * 160, this.rect[0], this.rect[2]);
@@ -917,8 +917,9 @@ Animals.update = function (dt, cx, cy) {
   for (const g of World.grills) if (g.down === undefined && nearView(g.x, g.y, 80) && chance(dt * 6)) Particles.emit('smoke', g.x + rnd(-4, 4), g.y + rnd(-3, 3), rnd(-6, 6), rnd(-14, -4), rnd(1.2, 2.2), 4);
   this.soundT -= dt;
   if (this.soundT <= 0 && Game.state === 'playing') {
-    this.soundT = rnd(5, 11);
     const rk = regionKeyAt(cx, cy), R = REGIONS[rk];
+    this.soundT = R.rural > 0.5 ? rnd(5, 10) : rnd(4, 8);
+    if (Ambiente.sorteia(rk, R, cx, cy)) return; // som gravado do lugar (bichos, carros, gente); sintetizado enquanto não carrega
     const r = rnd();
     if (R.rural > 0.6) { if (r < 0.3) AudioSys.owl(); else if (r < 0.55) AudioSys.moo(); else if (r < 0.75) AudioSys.bark(900); }
     else if (rk === 'rio') { if (r < 0.6) AudioSys.frog(); else AudioSys.owl(); }
