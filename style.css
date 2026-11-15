@@ -546,9 +546,9 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 
 /* ================= CELULAR (Pera 15 Pro) ================= */
 /* o celular abre em cima do painel do carro e o jogo continua rodando (dá para dirigir com ele aberto) */
-#screen-phone { background: transparent; pointer-events: none; align-items: flex-end; justify-content: flex-end; padding: 0 18px calc(var(--dash-h, 270px) + 30px) 0; }
+#screen-phone { background: transparent; pointer-events: none; align-items: flex-end; justify-content: flex-end; padding: 0 calc(var(--dash-w, 240px) + 18px + 14px) 18px 0; } /* ao lado esquerdo do velocímetro */
 #screen-phone .phone { pointer-events: auto; transform: scale(var(--ph-s, 0.78)); transform-origin: bottom right; }
-body.cel-aberto #toasts { right: calc(306px * var(--ph-s, 0.78) + 36px); }
+body.cel-aberto #toasts { right: calc(var(--dash-w, 240px) + 32px + 306px * var(--ph-s, 0.78) + 14px); }
 body.tr-bigphone #screen-phone, body.vt-cel #screen-phone { background: rgba(3, 5, 12, 0.45); align-items: center; padding-bottom: 0; }
 .phone {
   width: 306px; height: min(640px, 90vh); border-radius: 52px; padding: 11px; box-sizing: border-box;
@@ -1192,8 +1192,9 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 @keyframes evoIn { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
 
 /* ---------- prévia da altura da câmera ---------- */
-.cam-row { position: relative; }
-#cam-prev { position: absolute; right: 0; top: calc(100% + 8px); z-index: 6; width: 300px; padding: 6px 6px 7px; background: rgba(7, 9, 15, 0.97); border-left: 4px solid var(--ouro);
+.cam-row { position: relative; flex-wrap: wrap; }
+/* a prévia abre dentro da própria linha (empurra as outras opções para baixo em vez de tapar) */
+#cam-prev { position: static; flex-basis: 100%; max-width: 300px; margin: 8px 0 2px auto; box-sizing: border-box; width: 300px; padding: 6px 6px 7px; background: rgba(7, 9, 15, 0.97); border-left: 4px solid var(--ouro);
   border-radius: 3px; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6); animation: evoIn 0.25s ease-out; pointer-events: none; }
 #cam-prev canvas { display: block; width: 100%; height: auto; border-radius: 2px; background: #0a1008; }
 #cam-prev .cp-cap { font-family: var(--f-cond); font-weight: 700; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: #e9edf5; margin-top: 6px; }

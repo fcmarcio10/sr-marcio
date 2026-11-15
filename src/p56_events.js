@@ -315,7 +315,7 @@ Events.acceptLoc = function (id) {
 Events.onImpact = function (imp) {
   const E = this.cur; if (!E || imp < 110) return;
   if (E.type === 'noivo' && E.stage === 'drive') { E.hits++; evSay(E.nome, pick(['"O TERNO! Amassou o terno!"', '"Pelo amor de Deus, a aliança!"', '"Se eu chegar com olho roxo, a noiva desiste!"'])); }
-  if (E.type === 'carona' && E.stage === 'drive') { E.hits++; evSay(E.C.name, pick(FALAS_BATIDA)); }
+  if (E.type === 'carona' && E.stage === 'drive') { E.hits++; vozBatida(E.C.name); }
 };
 Events.slipAt = function (x, y) {
   const E = this.cur; if (!E || E.type !== 'banana') return 0;

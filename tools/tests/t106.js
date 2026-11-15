@@ -1,4 +1,4 @@
-// t106: celular abre em cima do painel do carro e o jogo continua (dá para dirigir com ele aberto)
+// t106: celular abre ao lado esquerdo do velocímetro e o jogo continua (dá para dirigir com ele aberto)
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1400, height: 820 } });
@@ -12,7 +12,7 @@ const { chromium } = require('playwright');
   await p.keyboard.down('KeyW'); await p.waitForTimeout(1500); await p.keyboard.up('KeyW');
   const r = await p.evaluate(() => {
     const ph = document.querySelector('#screen-phone .phone').getBoundingClientRect(), d = $('hud-dash').getBoundingClientRect();
-    return { estado: Game.state, aberto: Screens.current, tempoAndou: Game.time, x: player.x, celularBaixo: Math.round(ph.bottom), painelTopo: Math.round(d.top), celularTopo: Math.round(ph.top), direita: [Math.round(ph.right), Math.round(d.right)] };
+    return { estado: Game.state, aberto: Screens.current, tempoAndou: Game.time, x: player.x, celularDireita: Math.round(ph.right), painelEsquerda: Math.round(d.left), celularBaixo: Math.round(ph.bottom), painelBaixo: Math.round(d.bottom), celularTopo: Math.round(ph.top) };
   });
   await p.screenshot({ path: 'celular_aberto.png' });
   // tocar no celular funciona
@@ -21,7 +21,7 @@ const { chromium } = require('playwright');
   await p.keyboard.press('KeyQ'); await p.waitForTimeout(300);
   const fechou = await p.evaluate(() => Screens.current);
   console.log(JSON.stringify({ t0, r, app, fechou }));
-  const ok = t0.estado === 'playing' && t0.hud && r.tempoAndou > t0.t + 1 && Math.abs(r.x - t0.x) > 20 && r.celularBaixo <= r.painelTopo && r.celularTopo >= 0 && app === 'mapa' && fechou === null;
+  const ok = t0.estado === 'playing' && t0.hud && r.tempoAndou > t0.t + 1 && Math.abs(r.x - t0.x) > 20 && r.celularDireita <= r.painelEsquerda && Math.abs(r.celularBaixo - r.painelBaixo) < 30 && r.celularTopo >= 60 && app === 'mapa' && fechou === null;
   console.log(ok ? 'OK: celular em cima do painel e o jogo continua' : 'FALHOU');
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();

@@ -97,7 +97,7 @@ const HORNS = {
 };
 // altura da câmera em 3 níveis: 1 = 140% (mais perto, padrão), 2 = 135%, 3 = 130% (o mais alto que dá)
 const CAM_LEVELS = { 1: 140, 2: 135, 3: 130 }, CAM_MIN = 130;
-const Settings = { weather: 'auto', master: 80, engine: 75, ambient: 65, ui: 60, quality: 'alta', cam: '1', zoom: 140, showFps: false, minimapRotate: false, msgMode: 'audio', radio: 70, radioOff: true, sv: 3 }; // rádio começa desligada; depois o jogo lembra como você deixou
+const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', cam: '1', zoom: 140, showFps: false, minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4 }; // rádio começa desligada; depois o jogo lembra como você deixou
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null');
@@ -106,6 +106,8 @@ function loadSettings() {
       if (!s.sv || s.sv < 2) { delete s.zoom; s.cam = '1'; s.quality = 'alta'; s.sv = 2; }
       // a rádio passou a começar desligada: quem nunca mexeu nela (estava ligada por padrão) começa com ela desligada uma vez
       if (s.sv < 3) { s.radioOff = true; s.sv = 3; }
+      // padrão novo (nov/2026): motor, ambiente, interface e rádio mais baixos; gráfico Alto e câmera perto. Só troca o que a pessoa nunca mexeu
+      if (s.sv < 4) { if (s.engine === 75) s.engine = 65; if (s.ambient === 65) s.ambient = 40; if (s.ui === 60) s.ui = 45; if (s.radio === 70) s.radio = 55; s.sv = 4; }
       Object.assign(Settings, s);
     }
   } catch (e) { /* sem storage */ }
@@ -262,7 +264,7 @@ const AudioSys = {
       const d2 = this.gain(0.5); lf2.connect(d2); d2.connect(env.gain); env.gain.value = 0.5; lf2.start();
       this.crickets.push({ out, vol });
     };
-    mk(4350, 31, 1.7, 0.05); mk(3900, 24, 1.1, 0.04); mk(4800, 38, 0.63, 0.03);
+    mk(4350, 31, 1.7, 0.028); mk(3900, 24, 1.1, 0.022); mk(4800, 38, 0.63, 0.016); // grilos mais baixos
     // zumbido da cidade
     const hum = this.loop(this.brown);
     this.cityGain = this.gain(0, this.bus.ambient);
@@ -315,7 +317,7 @@ const AudioSys = {
     this.hornGain.gain.setTargetAtTime(on && this.hornOn ? 0.16 : 0, t, 0.015);
     // ambiente
     for (const cr of this.crickets) cr.out.gain.setTargetAtTime(cr.vol * (0.25 + p.rural * 1.1), t, 0.6);
-    this.cityGain.gain.setTargetAtTime(0.03 + p.city * 0.06, t, 0.8); // cidade mais simples: o fundo gravado faz o trabalho
+    this.cityGain.gain.setTargetAtTime(0.015 + p.city * 0.03, t, 0.8); // cidade mais simples: o fundo gravado faz o trabalho
     this.trafficGain.gain.setTargetAtTime(0, t, 0.8);
     this.riverGain.gain.setTargetAtTime(p.river * 0.09, t, 0.6);
   },

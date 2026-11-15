@@ -67,11 +67,11 @@ const Screens = {
 };
 // tela livre para o jogo: nada aberto ou só o celular (o celular não pausa o jogo)
 function telaLivre() { return !Screens.current || Screens.current === 'screen-phone'; }
-// tamanho do celular: cabe entre o topo da tela e o painel do carro
+// tamanho do celular: fica ao lado esquerdo do velocímetro, do chão até perto do topo
 function ajustaCelular() {
   const d = $('hud-dash'), ph = document.querySelector('#screen-phone .phone'); if (!d || !ph) return;
-  const dh = d.offsetHeight || 270, h = ph.offsetHeight || 640, livre = window.innerHeight - dh - 18 - 30 - 14;
-  document.documentElement.style.setProperty('--dash-h', dh + 'px');
+  const dw = d.offsetWidth || 240, h = ph.offsetHeight || 640, livre = window.innerHeight - 18 - 96; // do chão até abaixo do quadro de objetivo
+  document.documentElement.style.setProperty('--dash-w', dw + 'px');
   document.documentElement.style.setProperty('--ph-s', clamp(livre / h, 0.45, 0.85).toFixed(3));
 }
 window.addEventListener('resize', () => { if (Screens.current === 'screen-phone') ajustaCelular(); });

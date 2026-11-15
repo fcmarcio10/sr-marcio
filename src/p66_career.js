@@ -84,11 +84,20 @@ function rideOnBoard(R) {
   if (R.type === 'mudanca') return '"Cuidado com ' + pick(MUDANCA_ITENS) + ', que é herança de família!"';
   return pick(FALAS_EMBARQUE);
 }
+// passageiro reage à batida falando (dentro do carro), na voz de homem ou de mulher conforme o nome
+const BATIDA_VOZ = { f: ['bt_f1', 'bt_f2', 'bt_f3', 'bt_f4', 'bt_f5'], m: ['bt_m1', 'bt_m2', 'bt_m3', 'bt_m4', 'bt_m5', 'bt_m6', 'bt_m7'], vip: { m: 'bt_vm', f: 'bt_vf' }, quebra: { m: 'bt_qm', f: 'bt_qf' } };
+function vozBatida(nome, tipo) {
+  if (Game.time < (vozBatida.t || 0)) return; vozBatida.t = Game.time + 3.2;
+  const g = genderOf(nome || '') === 'f' ? 'f' : 'm';
+  let clip = tipo === 'vip' ? BATIDA_VOZ.vip[g] : tipo === 'quebra' ? BATIDA_VOZ.quebra[g] : pick(BATIDA_VOZ[g].filter((c) => c !== vozBatida.ult));
+  vozBatida.ult = clip; const C = VOICE_CLIPS[clip]; if (!C) return;
+  try { const a = new Audio(C.src); a.volume = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.9; a.play().catch(() => {}); } catch (e) {}
+}
 function rideHit(R) {
   R.hits++;
-  if (R.type === 'mudanca') { const it = pick(MUDANCA_ITENS.filter((x) => !R.broke.includes(x)).concat(['mais alguma coisa'])); R.broke.push(it); toast('Quebrou ' + it + '!', R.name + ': "Ai, meu Deus do céu!"', 'bad'); }
-  else if (R.type === 'vip') toast(R.name, pick(['"Isso vai pra minha assessoria."', '"Você sabe com quem está falando?"', '"Que experiência lamentável."']), 'bad');
-  else toast(R.name, pick(FALAS_BATIDA), 'bad');
+  if (R.type === 'mudanca') { const it = pick(MUDANCA_ITENS.filter((x) => !R.broke.includes(x)).concat(['mais alguma coisa'])); R.broke.push(it); vozBatida(R.name, 'quebra'); }
+  else if (R.type === 'vip') vozBatida(R.name, 'vip');
+  else vozBatida(R.name); // sem aviso escrito: o passageiro fala
 }
 function rideFinish(R) {
   const late = R.tmax ? R.t > R.tmax : R.t > R.len / 120 + 40;
@@ -226,10 +235,10 @@ VoicePlayer.tick = function () {
 /* ---------- pedestres que falam: susto, carro na calçada, buzina e paredão ----------
    Um de cada vez, com intervalo; a voz vai abaixando conforme o carro se afasta (PedVoz.update). */
 const PED_FALAS = {
-  susto: [['ped_1', 'Ô, maluco! Olha por onde anda!'], ['ped_2', 'Ai, meu Deus! Quase me atropela!'], ['ped_3', 'Devagar, motorista!'], ['ped_4', 'Ê, rapá! Quer me levar junto, é?'], ['ped_11', 'Tá doido, é?!'], ['ped_12', 'Eita! Por pouco, hein!'], ['ped_13', 'Olha a pressa, rapaz!']],
-  calcada: [['ped_5', 'Sai da calçada, doido!'], ['ped_6', 'Moço! A rua é ali, ó!']],
-  buzina: [['ped_7', 'Buzina pra tua avó, rapá!'], ['ped_8', 'Bah, que susto, tchê!']],
-  paredao: [['ped_9', 'Aumenta o som, motorista!'], ['ped_10', 'Esse paredão é bom demais!']],
+  susto: [['ped_1', 'Ô, maluco! Olha por onde anda!'], ['ped_2', 'Ai, meu Deus! Quase me atropela!'], ['ped_3', 'Devagar, motorista!'], ['ped_4', 'Ê, rapá! Quer me levar junto, é?'], ['ped_11', 'Tá doido, é?!'], ['ped_12', 'Eita! Por pouco, hein!'], ['ped_13', 'Olha a pressa, rapaz!'], ['ped_14', 'Calma, piloto!']],
+  calcada: [['ped_5', 'Sai da calçada, doido!'], ['ped_6', 'Moço! A rua é ali, ó!'], ['ped_15', 'Desce da calçada, motorista!'], ['ped_16', 'Ô! Aqui é calçada, viu?']],
+  buzina: [['ped_7', 'Buzina pra tua avó, rapá!'], ['ped_8', 'Bah, que susto, tchê!'], ['ped_17', 'Tô surdo não, moço!'], ['ped_18', 'Pra que essa buzina toda?']],
+  paredao: [['ped_9', 'Aumenta o som, motorista!'], ['ped_10', 'Esse paredão é bom demais!'], ['ped_19', 'Aí sim, hein!'], ['ped_20', 'Que som é esse, meu Deus!']],
 };
 const PedVoz = { t: 0, a: null, ultimo: null, quem: null, falas: 0 };
 PedVoz.fala = function (an, tipo) {
@@ -763,7 +772,7 @@ function frListHTML() {
    conforme a câmera anda. Sons soltos saem do lugar certo (vaca perto das vacas, risada perto dos bares,
    carro passando de verdade quando um carro do trânsito passa raspando) com volume pela distância e lado.
    Cada som é preparado (decodificado) só quando é usado pela primeira vez, sem pesar no começo. */
-const AMB_FUNDO = { cidade: ['amb_cidade', 0.55], favela: ['amb_favela', 0.6], roca: ['amb_roca', 0.5], praia: ['amb_praia', 0.6], mata: ['amb_mata', 0.5], rio: ['amb_rio', 0.55] };
+const AMB_FUNDO = { cidade: ['amb_cidade', 0.3], favela: ['amb_favela', 0.42], roca: ['amb_roca', 0.26], praia: ['amb_praia', 0.45], mata: ['amb_mata', 0.32], rio: ['amb_rio', 0.4] }; // cidade suave, roça baixa (pedido do dono)
 const AMB_FAVELAS = { saopedro: 1, terravermelha: 1, feurosa: 1, carapina: 1 };
 const Ambiente = { buf: {}, pedido: {}, fundos: {}, t0: 0, passou: new Map(), passouT: 0, pessoasT: 0, n: 0 };
 Ambiente.pronto = function (clip) {
