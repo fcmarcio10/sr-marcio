@@ -1267,3 +1267,42 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 .col-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
 .col-chip { font-size: 10px; padding: 2px 7px; border-radius: 9px; background: rgba(255, 255, 255, 0.09); } .col-chip.ok { background: rgba(58, 208, 122, 0.25); }
 .col-list { margin: 6px 0 0; padding-left: 16px; font-size: 11px; color: rgba(255, 255, 255, 0.8); } .col-list li { margin: 2px 0; }
+
+/* tutorial guiado: o Seu Zé falando, com bolinhas de progresso */
+#tutorial .tut-ava { flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, #3a6a8a, #1d3a52); border: 2px solid var(--ouro); font: 800 13px var(--f-cond); color: #fff; letter-spacing: 0.04em; }
+#tutorial .tut-mid { flex: 1; min-width: 0; }
+#tutorial .tut-who { display: flex; align-items: center; gap: 10px; font: 800 12px var(--f-cond); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ouro); margin-bottom: 3px; }
+#tutorial .tut-dots { display: flex; gap: 4px; } #tutorial .tut-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 255, 255, 0.2); }
+#tutorial .tut-dots i.ok { background: #3ad07a; } #tutorial .tut-dots i.at { background: var(--ouro); box-shadow: 0 0 6px var(--ouro); }
+#tutorial .tut-text { font-size: 15px; line-height: 1.35; color: #e9edf5; }
+
+/* cartão de resultado (fim de corrida, entrega e percurso) */
+#resultado { position: fixed; top: 116px; left: 18px; z-index: 30; width: 280px; padding: 14px 18px 12px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(14, 17, 26, 0.95), rgba(7, 9, 15, 0.95)); border-top: 3px solid var(--ouro); border-radius: 4px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55); color: #e9edf5; font-family: var(--f-body); }
+#resultado.hidden { display: none; }
+#resultado.entra { animation: rsIn 0.38s cubic-bezier(.2, 1.4, .4, 1); }
+#resultado.sai { animation: rsOut 0.45s ease-in forwards; }
+@keyframes rsIn { from { opacity: 0; transform: translateX(-30px) scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes rsOut { to { opacity: 0; transform: translateX(-24px); } }
+#resultado .rs-top b { display: block; font: 800 20px var(--f-cond); letter-spacing: 0.05em; text-transform: uppercase; }
+#resultado .rs-top small { display: block; font-size: 12px; color: rgba(233, 237, 245, 0.65); margin-top: 1px; }
+#resultado .rs-stars { display: flex; gap: 6px; margin: 10px 0 6px; }
+#resultado .rs-stars i { width: 26px; height: 26px; background: rgba(255, 255, 255, 0.12); clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); transition: transform 0.2s; }
+#resultado .rs-stars i.on { background: var(--ouro); animation: rsStar 0.3s cubic-bezier(.2, 1.8, .4, 1); }
+#resultado .rs-stars i.off { background: rgba(255, 255, 255, 0.18); }
+@keyframes rsStar { from { transform: scale(0.2) rotate(-40deg); } to { transform: scale(1); } }
+#resultado .rs-medal { margin: 10px 0 4px; font: 800 18px var(--f-cond); letter-spacing: 0.08em; text-transform: uppercase; }
+#resultado .rs-medal.m3 { color: #ffd23f; } #resultado .rs-medal.m2 { color: #d8dde6; } #resultado .rs-medal.m1 { color: #d08a4a; } #resultado .rs-medal.m0 { color: #8a92a2; }
+#resultado .rs-lines { margin-top: 6px; }
+#resultado .rs-l, #resultado .rs-total { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; opacity: 0.35; transition: opacity 0.2s; }
+#resultado .rs-l.on, #resultado .rs-total.on { opacity: 1; }
+#resultado .rs-l span { font-size: 13px; color: rgba(233, 237, 245, 0.75); } #resultado .rs-l em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+#resultado .rs-total { border-top: 1px solid rgba(255, 255, 255, 0.12); margin-top: 6px; padding-top: 7px; }
+#resultado .rs-total span { font: 800 14px var(--f-cond); letter-spacing: 0.1em; text-transform: uppercase; }
+#resultado .rs-total em { font: 800 24px var(--f-cond); font-style: normal; color: #3ad07a; font-variant-numeric: tabular-nums; }
+#resultado .rs-total.pop em { animation: rsStar 0.35s cubic-bezier(.2, 1.8, .4, 1); }
+
+/* confete da subida de nível */
+.confete { position: fixed; inset: 0; pointer-events: none; z-index: 31; overflow: hidden; }
+.confete i { position: absolute; top: 26%; width: 8px; height: 12px; border-radius: 2px; opacity: 0; animation-name: confete; animation-timing-function: cubic-bezier(.2, .6, .4, 1); animation-fill-mode: forwards; }
+@keyframes confete { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(var(--dx), 70vh) rotate(var(--rz)); } }

@@ -30,6 +30,7 @@ function levelUp(L) {
   Profile.money += bonus; Profile.earned += bonus; UI.moneyDelta(bonus);
   AudioSys.chime(); AudioSys.tone(523, 0.12, 'triangle', 0.08, 'ui', null, 0.15); AudioSys.tone(784, 0.25, 'triangle', 0.08, 'ui', null, 0.3);
   const el = $('levelup');
+  confete(80);
   if (el) { $('lu-num').textContent = 'NÍVEL ' + L; $('lu-title').textContent = levelTitle(L) + ' · bônus R$ ' + fmtMoney(bonus); el.classList.remove('hidden', 'go'); void el.offsetWidth; el.classList.add('go'); clearTimeout(levelUp.t); levelUp.t = setTimeout(() => el.classList.add('hidden'), 4200); }
   for (const [id, T] of Object.entries(RIDE_TYPES)) if (T.lvl === L) addMsg('PegaAí', 'Nova categoria liberada!', 'Parabéns, você chegou ao nível ' + L + '! Agora você pode receber corridas ' + T.name + '. ' + T.desc + (T.rating ? ' Só manter a nota acima de ' + fmtRating(T.rating) + '.' : ''), false);
 }
@@ -116,7 +117,8 @@ function rideFinish(R) {
   if (R.type === 'vip' && stars === 5) Profile.vipOk = (Profile.vipOk || 0) + 1;
   pgChat(R).stars = stars;
   Act.ride = null; Act.rideT = rnd(4, 9);
-  pay(v + tip, (RIDE_TYPES[R.type].name) + ' ' + '★'.repeat(stars) + '☆'.repeat(5 - stars) + (tip ? ' + gorjeta' : '') + ' · ' + R.name);
+  pay(v + tip); // sem aviso: o cartão de resultado mostra tudo
+  Resultado.mostra({ titulo: 'Corrida concluída', sub: RIDE_TYPES[R.type].name + ' · ' + R.name, estrelas: stars, linhas: [['Corrida', v], ['Gorjeta', tip]], total: v + tip });
   gainXP(stars * 4 + { comum: 0, aero: 15, mudanca: 15, vip: 30 }[R.type]);
   if (R.type === 'aero' && late) setTimeout(() => toast(R.name, '"Perdi o voo! Agora vou de ônibus pra Vitorinha, com galinha no colo."', 'bad'), 1200);
   if (stars <= 2) setTimeout(() => angryVoice(R, late), rnd(6000, 12000));

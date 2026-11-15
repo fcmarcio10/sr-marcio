@@ -1567,6 +1567,7 @@ function render() {
   Debris.draw(ctx, view);
   Atropelo.desenhaSangue(ctx, view);
   Colecao.desenha(ctx, view); // panelas de barro e placas de zoeira
+  Tutorial.desenha(ctx, view); // seta do tutorial em cima do lugar certo
   drawDynShadows(ctx, view);
   pm('decals');
   // veículos e animais

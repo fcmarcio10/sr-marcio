@@ -199,7 +199,8 @@ function finishDelivery() {
   frFim(d, d.t > d.par * 1.6, d.hits >= 3 || (d.fragile && d.hits >= 2)); // cliente agradece (ou reclama) no chat do app de Fretes
   Act.delivery = null;
   Profile.deliveries++;
-  pay(v + bonus, 'Entrega concluída' + (bonus ? ' — no prazo!' : ''));
+  pay(v + bonus);
+  Resultado.mostra({ titulo: 'Entrega concluída', sub: d.item + (bonus ? ' · no prazo!' : d.t > d.par * 1.6 ? ' · atrasou' : ''), estrelas: null, linhas: [['Frete', Math.round(v)], ['Bônus no prazo', bonus]], total: Math.round(v) + bonus });
   saveGame();
 }
 function startRace(r) {
@@ -226,8 +227,8 @@ function finishRace() {
   Profile.races[r.id] = { best: Math.min(prev.best, t), medal: Math.max(prev.medal, medal) };
   Act.race = null;
   AudioSys.chime();
-  toast(r.name + ' — ' + names[medal], 'Tempo ' + fmtTime(t) + (record ? ' · NOVO RECORDE' : ''), medal >= 2 ? 'good' : 'info');
-  pay(v, 'Prêmio do percurso');
+  pay(v);
+  Resultado.mostra({ titulo: r.name, sub: 'Tempo ' + fmtTime(t) + (record ? ' · NOVO RECORDE' : ''), medalha: names[medal], medalhaN: medal, estrelas: null, linhas: [['Prêmio do percurso', v]], total: v });
   saveGame();
 }
 function abandonActivity() {

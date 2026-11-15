@@ -1,0 +1,34 @@
+// t113: tutorial guiado do Seu Zé (8 passos até a primeira corrida e a oficina), seta no chão, cartão de resultado e confete
+const { chromium } = require('playwright');
+(async () => {
+  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1400, height: 820 } });
+  const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+  await p.goto('file://' + process.cwd() + '/wrapped.html');
+  await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 90000 });
+  await p.evaluate(() => localStorage.clear());
+  await p.click('[data-act="play"]'); await p.waitForTimeout(8000);
+  const passo = () => p.evaluate(() => ({ tut: Profile.tut, txt: (document.querySelector('#tutorial .tut-text') || {}).textContent, quem: (document.querySelector('#tutorial .tut-who') || {}).textContent, vis: !document.getElementById('tutorial').classList.contains('hidden') }));
+  const L = [];
+  L.push(await passo());
+  await p.evaluate(() => { Profile.distance += 300; }); await p.waitForTimeout(300); L.push(await passo());
+  await p.evaluate(() => { player.vx = 100; player.speed = 100; }); await p.waitForTimeout(100); await p.evaluate(() => { player.vx = 0; player.vy = 0; player.speed = 0; }); await p.waitForTimeout(400); L.push(await passo());
+  await p.keyboard.press('KeyQ'); await p.waitForTimeout(400); L.push(await passo());
+  await p.click('#phone-body [data-app="pegaai"]'); await p.waitForTimeout(300); await p.click('#phone-body [data-act2="ride-toggle"]'); await p.waitForTimeout(400); L.push(await passo());
+  await p.waitForTimeout(3500);
+  const temCorrida = await p.evaluate(() => !!Act.ride);
+  const seta = await p.evaluate(() => { const a = Tutorial.alvo(); return !!a && !!Act.ride && a.x === Act.ride.pick.x; });
+  await p.evaluate(() => { Act.ride.stage = 'drive'; }); await p.waitForTimeout(400); L.push(await passo());
+  await p.evaluate(() => { const R = Act.ride; R.t = 10; R.hits = 0; rideFinish(R); }); await p.waitForTimeout(3500);
+  const rs = await p.evaluate(() => { const el = document.getElementById('resultado'); return { vis: el && !el.classList.contains('hidden'), estrelas: el ? el.querySelectorAll('.rs-stars i.on').length : 0, total: el ? el.querySelector('.rs-total em').textContent : '' }; });
+  await p.screenshot({ path: 'tut_resultado.png' });
+  L.push(await passo());
+  const way = await p.evaluate(() => Act.waypoint && Act.waypoint.label);
+  await p.evaluate(() => { Screens.closeAll(); showDialog({ title: 'Oficina', text: 'teste' }); }); await p.waitForTimeout(400); await p.evaluate(() => closeDialog()); await p.waitForTimeout(300); L.push(await passo());
+  await p.evaluate(() => levelUp(2)); await p.waitForTimeout(400);
+  const conf = await p.evaluate(() => document.querySelectorAll('.confete i').length);
+  console.log(L.map((x) => x.tut + ':' + (x.txt || '').slice(0, 40)).join('\n'));
+  console.log(JSON.stringify({ temCorrida, seta, rs, way, conf, quem: L[0].quem }));
+  const ok = L.map((x) => x.tut).join() === '0,1,2,3,4,5,6,7' && temCorrida && seta && rs.vis && rs.estrelas === 5 && /R\$ \d/.test(rs.total) && /Oficina/.test(way) && conf > 20;
+  console.log(ok ? 'OK: tutorial guiado, resultado e confete' : 'FALHOU');
+  console.log(errs.join('\n') || 'no errors'); await b.close();
+})();

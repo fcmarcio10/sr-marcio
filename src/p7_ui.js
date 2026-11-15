@@ -549,30 +549,65 @@ function renderMapDests() {
   }
 }
 /* ---------- tutorial curto do primeiro jogo ---------- */
+/* ---------- tutorial guiado (os primeiros 10 minutos): o Seu Zé fala cada passo, uma coisa de cada vez,
+   com seta no chão e GPS até o lugar certo. Vai até a primeira corrida e a primeira visita à oficina. ---------- */
+const oficinaZe = () => World.shops.find((x) => x.kind === 'oficina');
 const TUT_STEPS = [
-  { html: 'Acelere com <kbd>W</kbd> ou <kbd>↑</kbd> e vire com <kbd>A</kbd> <kbd>D</kbd>. <kbd>S</kbd> freia e dá ré.', done: () => (Profile.distance || 0) - Tutorial.d0 > 220 },
-  { html: 'Numa curva, segure <kbd>Espaço</kbd> para puxar o freio de mão e fazer a traseira escorregar.', done: () => Keys.Space && player.speed > 90, skipAfter: 25 },
-  { html: 'Aperte <kbd>Q</kbd> para abrir o celular.', done: () => Screens.current === 'screen-phone' },
-  { html: 'No celular: <b>Mapa</b> marca destinos, <b>PegaAí</b> dá corridas e <b>Mensagens</b> fala com o Seu Zé. Aperte <kbd>Q</kbd> de novo para guardar.', done: () => !Screens.current, inPhone: true },
-  { html: 'Pare em frente a um comércio com marcador <b style="color:#ffd24a">amarelo</b> e aperte <kbd>E</kbd> para pegar uma entrega.', done: () => !!Act.delivery || !!Act.ride, skipAfter: 45 },
-  { html: 'Bateu? A <b>Oficina do Seu Zé</b> conserta. Sem gasolina? Chame o Seu Zé pelas Mensagens que ele vai até você. Boa noite!', done: () => Tutorial.t > 9 },
+  { voz: 'tz_1', html: 'Acelere com <kbd>W</kbd> e vire com <kbd>A</kbd> <kbd>D</kbd>. Dê uma voltinha.', done: () => (Profile.distance || 0) - Tutorial.d0 > 220 },
+  { voz: 'tz_2', html: 'Agora freie com <kbd>S</kbd> até parar.', done: () => { if (player.speed > 70) Tutorial.rapido = true; return Tutorial.rapido && player.speed < 8; }, skipAfter: 40 },
+  { voz: 'tz_3', html: 'Abra o celular com <kbd>Q</kbd>.', done: () => Screens.current === 'screen-phone' },
+  { voz: 'tz_4', html: 'Toque no <b>PegaAí</b> e fique <b>online</b>.', inPhone: true, done: () => Act.rideOnline || !!Act.ride },
+  { voz: 'tz_5', html: () => 'Siga a seta e busque <b>' + escapeHtml(Act.ride ? Act.ride.name : 'o passageiro') + '</b>.', alvo: () => Act.ride && Act.ride.pick,
+    cada: () => { if (!Act.ride && Act.rideOnline) Act.rideT = Math.min(Act.rideT, 2); }, done: () => !!Act.ride && Act.ride.stage !== 'pickup' },
+  { voz: 'tz_6', html: () => 'Leve até <b>' + escapeHtml(Act.ride ? Act.ride.dest.name : 'o destino') + '</b>. Devagar nas curvas!', alvo: () => Act.ride && Act.ride.dest,
+    cada: () => { if (!Act.ride && Profile.rides <= Tutorial.rides0) { if (Act.rideOnline) Act.rideT = Math.min(Act.rideT, 2); Profile.tut = 4; Tutorial.shown = -1; } }, done: () => Profile.rides > Tutorial.rides0 },
+  { voz: 'tz_7', html: 'Passe na <b>Oficina do Seu Zé</b> e aperte <kbd>E</kbd> na porta.', alvo: () => oficinaZe(),
+    entra: () => { const o = oficinaZe(); if (o) { Act.waypoint = { x: o.x, y: o.y, label: 'Oficina do Seu Zé' }; Act.gpsT = 0; } }, done: () => Screens.current === 'screen-dialog' || Screens.current === 'screen-garage', skipAfter: 240 },
+  { voz: 'tz_8', html: 'Pronto! A cidade é sua. Trabalhe, explore e não esqueça do fiado.', done: () => Tutorial.t > 9 },
 ];
 const Tutorial = {
-  t: 0, d0: 0, shown: -1,
+  t: 0, d0: 0, shown: -1, rides0: 0, rapido: false, a: null,
+  alvo() { const st = Profile.tut !== undefined && TUT_STEPS[Profile.tut]; return st && st.alvo ? st.alvo() : null; },
+  fala(clip) {
+    try { if (this.a) this.a.pause(); } catch (e) {}
+    this.a = null; this.fila = clip;
+  },
   update(dt) {
     const el = $('tutorial');
-    const vis = Game.mode === 'play' && (!Screens.current || Screens.current === 'screen-phone');
+    const vis = Game.mode === 'play' && (!Screens.current || Screens.current === 'screen-phone' || Screens.current === 'screen-dialog');
     if (!el || !vis || Profile.tut === undefined || Profile.tut >= TUT_STEPS.length) { if (el && this.shown !== -2) { el.classList.add('hidden'); this.shown = -2; } return; }
     const st = TUT_STEPS[Profile.tut];
     this.t += dt;
     if (this.shown !== Profile.tut) {
-      this.shown = Profile.tut;
-      el.innerHTML = `<div class="tut-step">${Profile.tut + 1}/${TUT_STEPS.length}</div><div class="tut-text">${st.html}</div><button class="tut-skip" id="tut-skip">Pular tutorial</button>`;
-      $('tut-skip').addEventListener('click', () => { Profile.tut = TUT_STEPS.length; AudioSys.back(); saveGame(); });
+      this.shown = Profile.tut; this.t = 0;
+      if (Profile.tut === 4) this.rides0 = Profile.rides || 0;
+      if (st.entra) st.entra();
+      const dots = TUT_STEPS.map((x, i) => `<i class="${i < Profile.tut ? 'ok' : i === Profile.tut ? 'at' : ''}"></i>`).join('');
+      el.innerHTML = `<span class="tut-ava">SZ</span><div class="tut-mid"><div class="tut-who">Seu Zé <span class="tut-dots">${dots}</span></div><div class="tut-text"></div></div><button class="tut-skip" id="tut-skip">Pular</button>`;
+      $('tut-skip').addEventListener('click', () => { Profile.tut = TUT_STEPS.length; AudioSys.back(); this.fala(null); saveGame(); });
       el.classList.remove('hidden'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+      this.fala(st.voz);
+    }
+    const txt = el.querySelector('.tut-text'), h = typeof st.html === 'function' ? st.html() : st.html;
+    if (txt && txt.innerHTML !== h) txt.innerHTML = h;
+    // a fala do Seu Zé espera o áudio de boas-vindas (e outros áudios) terminarem
+    if (this.fila && !VoicePlayer.msg && VOICE_CLIPS[this.fila]) {
+      try { const a = this.a = new Audio(VOICE_CLIPS[this.fila].src); a.volume = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.95; a.play().catch(() => {}); } catch (e) {}
+      this.fila = null;
     }
     el.classList.toggle('in-phone', !!st.inPhone);
-    if (st.done() || (st.skipAfter && this.t > st.skipAfter)) { Profile.tut++; this.t = 0; AudioSys.checkpoint(); }
+    if (st.cada) st.cada();
+    if (Profile.tut < TUT_STEPS.length && TUT_STEPS[Profile.tut] === st && (st.done() || (st.skipAfter && this.t > st.skipAfter))) { Profile.tut++; this.t = 0; AudioSys.checkpoint(); saveGame(); }
+  },
+  // seta pulando em cima do lugar certo (no chão do jogo)
+  desenha(ctx, view) {
+    const q = this.alvo(); if (!q || !inView(view, q.x, q.y, 60)) return;
+    const k = (Game.time * 1.6) % 1, pulo = Math.abs(Math.sin(Game.time * 4)) * 8;
+    ctx.save(); ctx.globalAlpha = 0.9 * (1 - k); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(q.x, q.y, 14 + k * 26, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 2;
+    ctx.beginPath(); const y = q.y - 30 - pulo; ctx.moveTo(q.x, y + 16); ctx.lineTo(q.x - 11, y); ctx.lineTo(q.x - 4, y); ctx.lineTo(q.x - 4, y - 12); ctx.lineTo(q.x + 4, y - 12); ctx.lineTo(q.x + 4, y); ctx.lineTo(q.x + 11, y); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
   },
 };
 function showDialog(o) {
