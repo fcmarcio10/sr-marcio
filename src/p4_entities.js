@@ -862,7 +862,7 @@ class Animal {
     this.col = this.col || (type === 'cow' ? pick(['#ece7dc', '#ece7dc', '#8a5a3a', '#2a2420']) : type === 'horse' ? pick(['#6a4026', '#3a2618', '#d8cfc0', '#8a5a34']) : type === 'chicken' ? pick(['#f2efe6', '#b56a2a', '#3a2a1e']) : type === 'dog' ? pick(['#c98a3a', '#c98a3a', '#2a2420', '#e8e0d0', '#7a5a3a']) : '#7a5a3c');
   }
   scare(px, py, hard) {
-    if (this.type === 'owl') return;
+    if (this.type === 'owl' || this.morto) return;
     if (this.state !== 'flee' && this.type === 'dog' && Game.state === 'playing' && !Ambiente.latido(this.x, this.y)) AudioSys.bark(player ? Math.hypot(this.x - player.x, this.y - player.y) : 400);
     this.state = 'flee'; this.t = hard ? 2.2 : 1.6;
     const a = Math.atan2(this.y - py, this.x - px) + rnd(-0.5, 0.5);
@@ -870,6 +870,7 @@ class Animal {
     this.ty = clamp(this.y + Math.sin(a) * 160, this.rect[1], this.rect[3]);
   }
   update(dt) {
+    if (this.morto) return; // atropelado: o corpo fica parado (Atropelo cuida)
     this.phase += dt * (this.state === 'idle' ? 2 : 8 + this.v * 0.1);
     if (this.type === 'owl') { this.blinkT -= dt; if (this.blinkT < -0.15) this.blinkT = rnd(2, 6); return; }
     if (player && Game.state === 'playing') {

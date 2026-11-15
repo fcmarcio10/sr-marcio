@@ -1485,10 +1485,12 @@ function render() {
   Skids.draw(ctx, view);
   Weather.drawRipples(ctx, view);
   Debris.draw(ctx, view);
+  Atropelo.desenhaSangue(ctx, view);
   drawDynShadows(ctx, view);
   pm('decals');
   // veículos e animais
-  for (const an of Animals.list) if (an.type !== 'owl' && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
+  for (const an of Animals.list) if (an.type !== 'owl' && !an.morto && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
+  Atropelo.desenhaCorpos(ctx, view);
   if (Settings.quality !== 'baixa') Peladas.draw(ctx, view);
   pm('animals');
   for (const c of Traffic.cars) {
@@ -1558,7 +1560,6 @@ function render() {
   Weather.drawDrops(ctx);
   pm('drops');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  if (PedVoz.quem) PedVoz.desenha(ctx, cx, cy, z, W, Hh);
   if (Cam.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${(Cam.flash * 0.6).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
 }
 

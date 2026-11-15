@@ -180,6 +180,7 @@ function frame(now) {
   } else accT = 0;
   Radio.update(dt);
   Ambiente.update(dt); // sons de ambiente por região
+  PedVoz.update(); Atropelo.update(dt); // voz do pedestre abaixando com a distância; atropelamento
   AudioSys.hornOn = Game.state === 'playing' && !!key.horn();
   render();
   updateHUD(dt);

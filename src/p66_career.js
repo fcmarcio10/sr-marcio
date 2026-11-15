@@ -224,7 +224,7 @@ VoicePlayer.tick = function () {
 };
 
 /* ---------- pedestres que falam: susto, carro na calçada, buzina e paredão ----------
-   Um de cada vez, com intervalo; a voz sai mais baixa quanto mais longe, e aparece um balãozinho com a frase. */
+   Um de cada vez, com intervalo; a voz vai abaixando conforme o carro se afasta (PedVoz.update). */
 const PED_FALAS = {
   susto: [['ped_1', 'Ô, maluco! Olha por onde anda!'], ['ped_2', 'Ai, meu Deus! Quase me atropela!'], ['ped_3', 'Devagar, motorista! Aqui não é autódromo!'], ['ped_4', 'Ê, rapá! Quer me levar junto, é?']],
   calcada: [['ped_5', 'Sai da calçada, doido! Calçada é de gente!'], ['ped_6', 'Moço! A rua é ali, ó!']],
@@ -233,12 +233,11 @@ const PED_FALAS = {
 };
 const PedVoz = { t: 0, a: null, ultimo: null, quem: null, falas: 0 };
 PedVoz.fala = function (an, tipo) {
-  if (!an || Game.mode !== 'play' || Game.time < this.t || VoicePlayer.msg) return false;
+  if (!an || an.morto || Game.mode !== 'play' || Game.time < this.t || VoicePlayer.msg) return false;
   const L = PED_FALAS[tipo]; if (!L) return false;
   let F = pick(L); if (F[0] === this.ultimo && L.length > 1) F = L.find((x) => x[0] !== this.ultimo);
   this.ultimo = F[0]; this.t = Game.time + rnd(7, 12); this.falas++;
-  if (this.quem && this.quem !== an) this.quem.falaAte = 0;
-  an.fala = F[1]; an.falaAte = Game.time + 2.8; this.quem = an;
+  this.quem = an; this.vol0 = 1;
   const c = VOICE_CLIPS[F[0]];
   if (c) {
     const d = player ? Math.hypot(an.x - player.x, an.y - player.y) : 0;
@@ -247,23 +246,86 @@ PedVoz.fala = function (an, tipo) {
   }
   return true;
 };
-// balãozinho em cima de quem falou (desenhado em tela, depois do mundo)
-PedVoz.desenha = function (ctx, cx, cy, z, W, Hh) {
-  const an = this.quem;
-  if (!an || !(an.falaAte > Game.time)) return;
-  const sx = W / 2 + (an.x - cx) * z, sy = Hh / 2 + (an.y - cy) * z - 26 * z;
-  if (sx < -200 || sx > W + 200 || sy < -60 || sy > Hh + 60) return;
-  const k = clamp((an.falaAte - Game.time) / 0.3, 0, 1) * clamp((2.8 - (an.falaAte - Game.time)) / 0.15, 0, 1);
-  const fs = Math.round(clamp(W / 105, 12, 17));
-  ctx.save(); ctx.globalAlpha = k;
-  ctx.font = `700 ${fs}px "BRND Cond", "Segoe UI", Roboto, Arial, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const tw = Math.min(ctx.measureText(an.fala).width, W * 0.5), bw = tw + fs * 1.3, bh = fs * 1.9, x0 = clamp(sx - bw / 2, 6, W - bw - 6), y0 = sy - bh;
-  ctx.fillStyle = 'rgba(250,248,240,0.95)'; ctx.strokeStyle = 'rgba(20,20,26,0.85)'; ctx.lineWidth = 2;
-  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, y0, bw, bh, bh / 2.4); else ctx.rect(x0, y0, bw, bh);
-  ctx.moveTo(sx - 6, y0 + bh); ctx.lineTo(sx, y0 + bh + 8); ctx.lineTo(sx + 6, y0 + bh);
-  ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#16161c'; ctx.fillText(an.fala, x0 + bw / 2, y0 + bh / 2 + 1, W * 0.5);
-  ctx.restore();
+// a voz acompanha a distância: quanto mais o carro se afasta, mais baixa; longe demais, para de vez
+PedVoz.update = function () {
+  const a = this.a, an = this.quem;
+  if (!a || !an) return;
+  if (a.ended || a.paused) { this.a = null; this.quem = null; return; }
+  const d = Math.hypot(an.x - Cam.x, an.y - Cam.y), k = an.morto ? 0 : clamp(1 - (d - 70) / 380, 0, 1);
+  const v = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.85 * k;
+  if (v < 0.015) { try { a.pause(); } catch (e) {} this.a = null; this.quem = null; return; }
+  a.volume = v;
+};
+
+/* ---------- atropelamento: o pedestre cai, o corpo fica uns segundos e some devagar; fica só o sangue no chão,
+   que some quando o carro vai embora (não fica desenhado fora da tela à toa). Quem estava perto sai correndo. ---------- */
+const Atropelo = { mortos: [], sangue: [], n: 0 };
+Atropelo.update = function (dt) {
+  if (!player || Game.mode !== 'play' || Game.state !== 'playing') return;
+  const sp = player.speed;
+  if (sp > 50) {
+    const m = player.m, ca = Math.cos(player.a), sa = Math.sin(player.a), hl = m.L / 2 + 2, hw = m.W / 2 + 2;
+    for (const an of Animals.list) {
+      if (an.type !== 'person' || an.morto) continue;
+      const dx = an.x - player.x, dy = an.y - player.y; if (dx > 45 || dx < -45 || dy > 45 || dy < -45) continue;
+      const lx = dx * ca + dy * sa, ly = -dx * sa + dy * ca;
+      if (Math.abs(lx) < hl && Math.abs(ly) < hw) this.atropela(an, sp);
+    }
+  }
+  for (let i = this.mortos.length - 1; i >= 0; i--) {
+    const an = this.mortos[i]; an.mortoT += dt;
+    // corpo sumiu: a pessoa volta em outro ponto da calçada dela, longe da câmera (a cidade não fica vazia)
+    if (an.mortoT > 6 && Math.hypot(an.x - Cam.x, an.y - Cam.y) > 1500) {
+      an.morto = false; an.state = 'idle'; an.t = rnd(1, 4); an.v = 0;
+      an.x = rnd(an.rect[0], an.rect[2]); an.y = rnd(an.rect[1], an.rect[3]);
+      this.mortos.splice(i, 1);
+    }
+  }
+  // sangue longe da tela some de vez
+  const v = Cam.view, mg = 500;
+  if (v && v.x1 > v.x0) for (let i = this.sangue.length - 1; i >= 0; i--) { const q = this.sangue[i]; q.age = (q.age || 0) + dt; if (q.age > 1.5 && (q.x < v.x0 - mg || q.x > v.x1 + mg || q.y < v.y0 - mg || q.y > v.y1 + mg)) this.sangue.splice(i, 1); }
+};
+Atropelo.atropela = function (an, sp) {
+  an.morto = true; an.mortoT = 0; an.v = 0; an.danceUntil = 0;
+  const f = clamp(sp / 400, 0.3, 1);
+  an.x += Math.cos(player.a) * (8 + 16 * f); an.y += Math.sin(player.a) * (8 + 16 * f); // é jogado um pouco para frente
+  an.ca = player.a + rnd(-1.2, 1.2); // de que jeito ficou caído
+  this.mortos.push(an); this.n++;
+  this.sangue.push({ x: an.x, y: an.y, s: Math.random() * 1000, r: rnd(9, 12), a: player.a, t: 0, rastro: 10 + 14 * f });
+  this.sangue.push({ x: an.x - Math.cos(player.a) * 13, y: an.y - Math.sin(player.a) * 13, s: Math.random() * 1000, r: rnd(4, 6), a: player.a, t: 0 });
+  if (this.sangue.length > 24) this.sangue.splice(0, this.sangue.length - 24);
+  if (PedVoz.quem === an && PedVoz.a) { try { PedVoz.a.pause(); } catch (e) {} PedVoz.a = null; PedVoz.quem = null; }
+  AudioSys.thud(); AudioSys.noise(0.12, 600, 1, 0.12 * f, 'engine', 'lowpass');
+  player.vx *= 0.93; player.vy *= 0.93; Cam.shake = Math.max(Cam.shake, 3);
+  for (const o of Animals.list) if (o !== an && !o.morto && Math.abs(o.x - an.x) < 220 && Math.abs(o.y - an.y) < 220) o.scare(an.x, an.y, true); // quem viu, corre
+};
+// manchas de sangue no chão (uma pincelada por mancha, só as que aparecem na tela)
+Atropelo.desenhaSangue = function (ctx, view) {
+  if (!this.sangue.length) return;
+  for (const q of this.sangue) {
+    if (!inView(view, q.x, q.y, 30)) continue;
+    q.t = Math.min(1, q.t + 0.04);
+    const R = mulberry32(q.s | 0), r = q.r * (0.35 + 0.65 * q.t);
+    ctx.fillStyle = 'rgba(150,10,14,0.88)'; ctx.beginPath();
+    ctx.ellipse(q.x, q.y, r, r * 0.72, R() * TAU, 0, TAU);
+    if (q.rastro) { const L = q.rastro * q.t, ex = q.x + Math.cos(q.a) * L * 0.5, ey = q.y + Math.sin(q.a) * L * 0.5; ctx.moveTo(ex + L * 0.6, ey); ctx.ellipse(ex, ey, L * 0.6, r * 0.32, q.a, 0, TAU); } // arrastado na direção do carro
+    for (let k = 0; k < 6; k++) { const a = R() * TAU, dd = r * (0.8 + R() * 0.9), rr = 0.6 + R() * 1.4; ctx.moveTo(q.x + Math.cos(a) * dd + rr, q.y + Math.sin(a) * dd); ctx.arc(q.x + Math.cos(a) * dd, q.y + Math.sin(a) * dd, rr, 0, TAU); }
+    ctx.fill();
+  }
+};
+// corpo caído: fica uns 4 segundos e some devagar
+Atropelo.desenhaCorpos = function (ctx, view) {
+  for (const an of this.mortos) {
+    if (an.mortoT > 5.6 || !inView(view, an.x, an.y, 30)) continue;
+    const al = an.mortoT < 4 ? 1 : clamp(1 - (an.mortoT - 4) / 1.6, 0, 1);
+    ctx.save(); ctx.globalAlpha = al; ctx.translate(an.x, an.y); ctx.rotate(an.ca);
+    ctx.fillStyle = an.pants; ctx.fillRect(-6.5, -2.2, 4.6, 1.6); ctx.fillRect(-6.2, 0.6, 4.4, 1.6); // pernas
+    ctx.fillStyle = an.col; ctx.beginPath(); ctx.ellipse(-0.6, 0, 3.4, 2.5, 0, 0, TAU); ctx.fill(); // tronco
+    ctx.fillStyle = an.skin; ctx.fillRect(-1, -4.1, 3.2, 1.2); ctx.fillRect(0.4, 2.9, 3, 1.2); // braços abertos
+    ctx.beginPath(); ctx.arc(4.2, 0.3, 1.9, 0, TAU); ctx.fill(); // cabeça
+    ctx.fillStyle = an.hair; ctx.beginPath(); ctx.arc(4.6, 0.3, 1.9, -Math.PI * 0.5, Math.PI * 0.5); ctx.fill();
+    ctx.restore();
+  }
 };
 
 /* ---------- Rádio Gambiarra FM 171,1: programação no ar o tempo todo ----------
@@ -766,7 +828,7 @@ Ambiente.resto = function (dt) {
   if (this.pessoasT <= 0) {
     this.pessoasT = rnd(6, 11);
     let n = 0, px = 0, py = 0;
-    for (const an of Animals.list) if (an.type === 'person' && Math.abs(an.x - Cam.x) < 380 && Math.abs(an.y - Cam.y) < 300) { n++; px += an.x; py += an.y; }
+    for (const an of Animals.list) if (an.type === 'person' && !an.morto && Math.abs(an.x - Cam.x) < 380 && Math.abs(an.y - Cam.y) < 300) { n++; px += an.x; py += an.y; }
     if (n >= 3 && Math.random() < 0.55) this.toca('sfx_risada', px / n, py / n, 0.4, 900);
   }
 };
