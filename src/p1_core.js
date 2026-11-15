@@ -97,13 +97,15 @@ const HORNS = {
 };
 // altura da câmera em 3 níveis: 1 = 140% (mais perto, padrão), 2 = 135%, 3 = 130% (o mais alto que dá)
 const CAM_LEVELS = { 1: 140, 2: 135, 3: 130 }, CAM_MIN = 130;
-const Settings = { weather: 'auto', master: 80, engine: 75, ambient: 65, ui: 60, quality: 'alta', cam: '1', zoom: 140, showFps: false, minimapRotate: false, msgMode: 'audio', radio: 70, radioOff: false, sv: 2 };
+const Settings = { weather: 'auto', master: 80, engine: 75, ambient: 65, ui: 60, quality: 'alta', cam: '1', zoom: 140, showFps: false, minimapRotate: false, msgMode: 'audio', radio: 70, radioOff: true, sv: 3 }; // rádio começa desligada; depois o jogo lembra como você deixou
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null');
     if (s && typeof s === 'object') {
       // configuração antiga (antes dos 3 níveis): câmera volta pro padrão e o gráfico passa a ser Alto uma vez
       if (!s.sv || s.sv < 2) { delete s.zoom; s.cam = '1'; s.quality = 'alta'; s.sv = 2; }
+      // a rádio passou a começar desligada: quem nunca mexeu nela (estava ligada por padrão) começa com ela desligada uma vez
+      if (s.sv < 3) { s.radioOff = true; s.sv = 3; }
       Object.assign(Settings, s);
     }
   } catch (e) { /* sem storage */ }

@@ -456,7 +456,7 @@ def axe():  # Banda Botijão — Axé do Caminhão do Gás (surdos, agogô, meta
     M.poe(surdo(1.2), M.t(35, 0)); M.poe(kick(130, 40, 0.8, 1.0), M.t(35, 0))
     return M.mestre(sala=0.8)
 
-MUSICAS = {'xote': xote, 'funk': funk, 'moda': moda, 'pagode': pagode, 'neon': neon, 'arrocha': arrocha, 'bossa': bossa, 'axe': axe}
+MUSICAS = {'xote': xote, 'funk': funk, 'moda': moda, 'pagode': pagode, 'neon': neon, 'arrocha': arrocha, 'bossa': bossa}  # o axé saiu da rádio (pedido do dono)
 
 if __name__ == '__main__':
     quais = sys.argv[1:] or list(MUSICAS)

@@ -9,9 +9,19 @@ const { chromium } = require('playwright');
   await p.evaluate(() => { localStorage.clear(); });
   await p.click('[data-act="play"]'); await p.waitForTimeout(7000);
   console.log('clips:', await p.evaluate(() => JSON.stringify({ radio: RADIO.concat(RADIO_VINHETAS).filter(r => VOICE_CLIPS[r.clip]).length + '/' + (RADIO.length + RADIO_VINHETAS.length), falas: VOICE_LINES.filter(l => VOICE_CLIPS[l.clip]).length + '/' + VOICE_LINES.length, then: RADIO.filter(r => r.then && !RADIO.find(x => x.clip === r.then)).length + ' sem par' })));
-  // já entra no ar sozinha, ligada por padrão
-  let r = await p.evaluate(() => ({ ligada: Radio.isOn(), modo: Radio.mode, cur: Radio.cur && Radio.cur.clip, k: +Radio.k.toFixed(1), dur: Radio.dur, visivel: !$('hud-radio').classList.contains('hidden'), botao: $('hud-radio-btn').classList.contains('on'), txt: $('hr-txt').textContent }));
-  console.log('no ar ao começar:', JSON.stringify(r));
+  // primeira vez: começa desligada
+  const st = () => p.evaluate(() => ({ ligada: Radio.isOn(), modo: Radio.mode, cur: Radio.cur && Radio.cur.clip, k: +Radio.k.toFixed(1), dur: Radio.dur, visivel: !$('hud-radio').classList.contains('hidden'), botao: $('hud-radio-btn').classList.contains('on'), txt: $('hr-txt').textContent, carregando: !!Game.carregando }));
+  let r = await st();
+  console.log('primeira vez (desligada):', JSON.stringify(r));
+  const ok = [!r.ligada && r.modo === 'idle'];
+  // deixou ligada e saiu: na próxima vez espera a tela de carregamento acabar e só então entra no ar
+  await p.evaluate(() => { Settings.radioOff = false; saveSettings(); Radio.stop(); });
+  await p.reload(); await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 40000 });
+  await p.click('[data-act="continue"]'); await p.waitForTimeout(2500);
+  const rc = await st(); console.log('carregando (deixou ligada):', JSON.stringify(rc));
+  await p.waitForTimeout(5500);
+  r = await st(); console.log('depois de carregar:', JSON.stringify(r));
+  ok.push(rc.carregando && rc.modo === 'idle' && !rc.cur, !r.carregando && r.ligada);
   await p.screenshot({ path: 'radio.png' });
   // boas-vindas do Seu Zé (9,5 s) deixa a rádio em silêncio e depois ela volta
   await p.waitForTimeout(3500);
@@ -63,5 +73,6 @@ const { chromium } = require('playwright');
   // volume 0 = desligada
   await p.evaluate(() => { Settings.radio = 0; }); await p.waitForTimeout(300);
   console.log('volume 0:', await p.evaluate(() => Radio.mode));
+  console.log(ok.every(Boolean) ? 'OK: rádio começa desligada e espera o carregamento' : 'FALHOU: ' + JSON.stringify(ok));
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();

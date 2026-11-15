@@ -422,7 +422,6 @@ const RADIO_MUSICAS = [
   { clip: 'mus_neon', nome: 'Neon na BR', banda: 'Os Faróis Altos', intro: 'dj_m5' },
   { clip: 'mus_arrocha', nome: 'Arrocha do Coração Rebaixado', banda: 'Kelvin do Arrocha', intro: 'dj_m6' },
   { clip: 'mus_bossa', nome: 'Bossa da Garoa', banda: 'Quarteto Garoa Fina', intro: 'dj_m7', cond: 'chuva' },
-  { clip: 'mus_axe', nome: 'Axé do Caminhão do Gás', banda: 'Banda Botijão', intro: 'dj_m8' },
 ];
 const RADIO_APRESENTA = [
   { clip: 'dj_m1', tag: 'Agora toca', musica: 'mus_xote', text: 'E agora, pra arrastar o pé no asfalto: Trio Pé de Pano, com Xote do Pneu Furado! Segura o forró, motorista!' },
@@ -432,7 +431,6 @@ const RADIO_APRESENTA = [
   { clip: 'dj_m5', tag: 'Agora toca', musica: 'mus_neon', text: 'Pra quem tá de farol alto na BR... Os Faróis Altos, com Neon na BR! E abaixa esse farol, por favor!' },
   { clip: 'dj_m6', tag: 'Agora toca', musica: 'mus_arrocha', text: 'Essa vai pra quem levou uma estrela no PegaAí e tá com o coração partido: Kelvin do Arrocha, com Arrocha do Coração Rebaixado!' },
   { clip: 'dj_m7', tag: 'Agora toca', musica: 'mus_bossa', text: 'Garoinha na janela, limpador ligado... Quarteto Garoa Fina, com Bossa da Garoa. Dirige devagar, que o chão tá liso.' },
-  { clip: 'dj_m8', tag: 'Agora toca', musica: 'mus_axe', text: 'Tira o pé do chão... mas não do freio! Banda Botijão, com Axé do Caminhão do Gás!' },
 ];
 const RADIO_DEPOIS = [
   { clip: 'dj_b1', tag: 'DJ Biruta', text: 'Que música, hein? Pedido de ninguém, porque aqui ninguém pede nada: a gente toca o que quer!' },
@@ -551,7 +549,7 @@ document.addEventListener('click', (e) => {
 });
 Radio.update = function (dt) {
   const sc = Screens.current;
-  const fora = Game.mode !== 'play' || Game.state === 'menu' || sc === 'screen-pause' || sc === 'screen-settings' || sc === 'screen-main' || sc === 'screen-credits';
+  const fora = Game.mode !== 'play' || Game.state === 'menu' || Game.carregando || sc === 'screen-pause' || sc === 'screen-settings' || sc === 'screen-main' || sc === 'screen-credits';
   const ocupado = !!VoicePlayer.msg || Som.on || !!(Act.race && Act.race.count > 0);
   const btn = $('hud-radio-btn'); if (btn && btn.classList.contains('on') !== this.isOn()) btn.classList.toggle('on', this.isOn());
   if (!this.isOn()) { if (this.mode !== 'idle') this.stop(); return; }

@@ -43,6 +43,7 @@ function withTransit(fn) {
   let tipI = 0; tipEl.innerHTML = '<b>DICA</b>' + tips[0]; tipEl.style.opacity = 1;
   txt.textContent = MSG[0]; fill.style.width = '0%';
   el.classList.remove('hidden', 'fade');
+  Game.carregando = true; // a rádio espera o fim do carregamento
   const t0 = performance.now(), D = 6600;
   setTimeout(fn, 40); // monta o jogo por trás da tela de carregamento
   const step = (now) => {
@@ -52,7 +53,7 @@ function withTransit(fn) {
     const ti = Math.min(tips.length - 1, Math.floor((now - t0) / 2200));
     if (ti !== tipI) { tipI = ti; tipEl.style.opacity = 0; setTimeout(() => { tipEl.innerHTML = '<b>DICA</b>' + tips[ti]; tipEl.style.opacity = 1; }, 220); }
     if (k < 1) requestAnimationFrame(step);
-    else { el.classList.add('fade'); setTimeout(() => el.classList.add('hidden'), 460); }
+    else { el.classList.add('fade'); setTimeout(() => { el.classList.add('hidden'); Game.carregando = false; }, 460); }
   };
   requestAnimationFrame(step);
 }
