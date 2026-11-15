@@ -183,7 +183,7 @@ function frame(now) {
   } else accT = 0;
   Radio.update(dt);
   Ambiente.update(dt); // sons de ambiente por região
-  PedVoz.update(); Atropelo.update(dt); // voz do pedestre abaixando com a distância; atropelamento
+  PedVoz.update(); Atropelo.update(dt); Colecao.update(dt); // voz do pedestre abaixando com a distância; atropelamento
   AudioSys.hornOn = Game.state === 'playing' && !!key.horn();
   render();
   updateHUD(dt);
@@ -249,7 +249,7 @@ async function boot() {
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
-  pruneRoadTrees(); thinTrees(); addBuracos();
+  pruneRoadTrees(); thinTrees(); addBuracos(); Colecao.monta();
   buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();
   buildMapImage();

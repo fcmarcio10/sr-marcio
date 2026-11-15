@@ -391,9 +391,11 @@ const PH_ICONS = {
   carteira: ['#2f6fdf', _ln('<rect x="3.5" y="6" width="17" height="13" rx="2.5"/><path d="M3.5 10h17"/><circle cx="16.5" cy="14.5" r="1" fill="#fff"/>')],
   trapaca: ['#7d3cff', _ln('<path d="M4 20 14 10"/><path d="M15 3l1 2.5L18.5 6.5 16 7.5 15 10l-1-2.5L11.5 6.5 14 5.5z"/><path d="M19 12l.6 1.4 1.4.6-1.4.6L19 16l-.6-1.4-1.4-.6 1.4-.6z"/>')],
   conquistas: ['#e0a21b', _ln('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>')],
+  camera: ['#3c4049', _ln('<path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/>')],
+  colecao: ['#b8643a', _ln('<path d="M6.5 9.5h11l-1 8.5a2 2 0 0 1-2 1.7h-5a2 2 0 0 1-2-1.7z"/><path d="M5 9.5h14M9.5 9.5V8a2.5 2.5 0 0 1 5 0v1.5"/>')],
   ajustes: ['#7b808a', _ln('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>')],
 };
-const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes' };
+const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
   return `<button class="ph-app" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge ? `<i class="ph-badge">${badge}</i>` : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
@@ -405,7 +407,7 @@ const WALLS = [
   { id: 'pedra', name: 'Pedra Azulejo', place: 'Domingos Martelo' },
   { id: 'camburi', name: 'Praia de Camburiso', place: 'Vitorinha' },
   { id: 'dunas', name: 'Dunas de Ita-Unhas', place: 'Conceição da Barraca' },
-  { id: 'bandeira', name: 'Trabalha e Confia', place: 'Bandeira capixaba' },
+  { id: 'bandeira', name: 'Trabalha e Confia', place: 'Bandeira da cidade' },
   { id: 'estrada', name: 'Estrada da Madrugada', place: 'Rodovia BR-101 e Pouco' },
 ];
 const _wallCache = {};
@@ -520,7 +522,9 @@ const Phone = {
       html = `<div class="ph-lock"><div class="ph-date">São Gambiarra</div><div class="ph-time">${clockStr()}</div></div>` +
         `<div class="ph-widgets"><div class="ph-wid wid-sky${Weather.rain > 0.15 ? ' rain' : ''}"><small>São Gambiarra</small><b>${temp}°</b><span>${wl || (hr >= 19 || hr < 5 ? 'Noite abafada' : 'Céu limpo')}</span><span class="wid-sub">Máx. 31° Mín. 21°</span></div>` +
         `<button class="ph-wid wid-money" data-app="carteira"><small>Carteira</small><b>R$ ${fmtMoney(Profile.money)}</b><span>${Profile.deliveries || 0} entregas · ${Profile.rides || 0} corridas</span><span class="wid-sub">${job ? H(job) : dest ? 'Destino: ' + H(dest) : 'Nenhum serviço ativo'}</span></button></div>` +
-        '<div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : 0)).join('') + '</div>' +
+        // apps em grupos com nome, para achar fácil
+        '<div class="ph-sec">Trabalho e dinheiro</div><div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].map((id) => phIcon(id, id === 'fretes' ? frUnread() : 0)).join('') + '</div>' +
+        '<div class="ph-sec">Explorar a cidade</div><div class="ph-grid">' + ['camera', 'colecao'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id, 0)).join('') + '</div>' +
         `<div class="ph-wname">${H(W.name)} · ${H(W.place)}</div>` +
         '<div class="ph-dock">' + ['mapa', 'msgs', 'pegaai', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
@@ -625,6 +629,8 @@ const Phone = {
     } else if (this.app === 'carteira') {
       html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div>` + walletHTML(this.wtab);
     }
+    if (this.app === 'camera') html = cameraHTML(); else if (this.app === 'colecao') html = colecaoHTML();
+    html = phComDescricao(this.app, html);
     body.innerHTML = html;
     if (this.app === 'mapa') { phoneMap = new MapView($('phonemap'), MapState.phone); renderMapDests(); requestAnimationFrame(() => phoneMap && phoneMap.draw()); } else phoneMap = null;
     if (this.chat) { const ch = body.querySelector('.wa-chat'); if (ch) body.scrollTop = body.scrollHeight; }
@@ -632,6 +638,7 @@ const Phone = {
   click(e) {
     const t = e.target.closest('button'); if (!t) return;
     if (t.dataset.app) { this.go(t.dataset.app); return; }
+    if (t.dataset.foto) { Colecao.fotografa(); return; }
     if (t.dataset.mz) { if (phoneMap) mapCtrl(phoneMap, t.dataset.mz); return; }
     if (t.dataset.sos) { if (t.dataset.sos === 'cancel') socorroCancel(); else socorroCall(t.dataset.sos); phoneTone(1760, 0.05, 0.04); this.render(); return; }
     if (t.dataset.mute) {

@@ -1557,6 +1557,7 @@ function render() {
   Weather.drawRipples(ctx, view);
   Debris.draw(ctx, view);
   Atropelo.desenhaSangue(ctx, view);
+  Colecao.desenha(ctx, view); // panelas de barro e placas de zoeira
   drawDynShadows(ctx, view);
   pm('decals');
   // veículos e animais

@@ -35,7 +35,7 @@ const { chromium } = require('playwright');
           for (const an of Animals.list) {
             if (!nearView(an.x, an.y, 0)) continue;
             if (!isFinite(an.x)) conta('bicho NaN', nome);
-            if (an.type === 'person' && an.onRoad && !an.morto && an.state !== 'flee' && !World.nodes.some((n) => Math.abs(n.x - an.x) < n.hx + 30 && Math.abs(n.y - an.y) < n.hy + 30)) conta('pedestre no meio da pista', nome + ' ' + Math.round(an.x) + ',' + Math.round(an.y));
+            if (an.type === 'person' && an.onRoad && !an.morto && !an.cruza && an.state !== 'flee' && !World.nodes.some((n) => Math.abs(n.x - an.x) < n.hx + 30 && Math.abs(n.y - an.y) < n.hy + 30)) conta('pedestre no meio da pista', nome + ' ' + Math.round(an.x) + ',' + Math.round(an.y));
             if (an.type !== 'owl' && dentroCasa(an.x, an.y)) conta(an.type + ' dentro de construção', nome + ' ' + Math.round(an.x) + ',' + Math.round(an.y));
           }
           if (!isFinite(player.x)) conta('jogador NaN', nome);

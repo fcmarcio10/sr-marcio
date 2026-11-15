@@ -277,7 +277,7 @@ Atropelo.update = function (dt) {
     if (an.mortoT <= 6 && an.morreuX !== undefined) { an.x = an.morreuX; an.y = an.morreuY; an.v = 0; } // fica estático onde caiu
     // corpo sumiu: a pessoa volta em outro ponto da calçada dela, longe da câmera (a cidade não fica vazia)
     if (an.mortoT > 6 && Math.hypot(an.x - Cam.x, an.y - Cam.y) > 1500) {
-      an.morto = false; an.morreuX = undefined; an.state = 'idle'; an.t = rnd(1, 4); an.v = 0;
+      an.morto = false; an.morreuX = undefined; an.cruza = null; an.state = 'idle'; an.t = rnd(1, 4); an.v = 0;
       an.x = rnd(an.rect[0], an.rect[2]); an.y = rnd(an.rect[1], an.rect[3]);
       this.mortos.splice(i, 1);
     }

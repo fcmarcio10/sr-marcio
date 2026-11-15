@@ -626,7 +626,7 @@ class AICar {
       let bv = 0;
       if (bl === player) bv = Math.max(0, player.vx * Math.cos(this.a) + player.vy * Math.sin(this.a));
       else if (bl instanceof AICar) bv = Math.max(0, bl.v * Math.cos(bl.a - this.a));
-      const keep = bl === player ? 34 : 14; // distância de segurança maior atrás de você
+      const keep = (bl === player ? 34 : 14) + this.v * 0.18; // distância de segurança cresce com a velocidade (mais longe atrás de você)
       target = Math.min(target, Math.max(0, bv + (gap - keep) * 1.1), Math.max(0, (gap - keep * 0.5) * 3));
     }
     // ultrapassagem / troca de faixa
@@ -636,6 +636,12 @@ class AICar {
       this.overtake -= dt;
       const passed = player && ((player.x - this.x) * this.dx + (player.y - this.y) * this.dy) < -this.m.L - 10;
       if (this.overtake <= 0 || passed || this.sEnd - this.s < 120 || !this.laneClear(this.offT, 0, 140)) { this.overtake = 0; this.offT = this.e.T.lanes[this.lane]; }
+    }
+    // mantém a direita: na avenida, depois de ultrapassar, volta para a faixa da direita quando ela está livre
+    this.dirT = (this.dirT || 0) + dt;
+    if (this.state === 'edge' && this.e.T.lanes.length > 1 && this.lane === 1 && !this.big && this.lcT <= 0 && this.dirT > 2.5 && this.sEnd - this.s > 200 && this.turnType !== 'right') {
+      this.dirT = 0;
+      if ((!this.blocker || gap > 160) && this.laneClear(this.e.T.lanes[0], -60, 90)) { this.lane = 0; this.offT = this.e.T.lanes[0]; this.lcT = 3; }
     }
     // desvio leve: se você está meio dentro da faixa à frente, ele se afasta um pouco dentro da pista
     this.nudge = (this.nudge || 0) * Math.exp(-2 * dt);
@@ -677,6 +683,9 @@ class AICar {
       }
     }
     if (this.honking > 0) this.honking -= dt;
+    // tempo de reação de motorista: parado, demora um pouquinho para arrancar quando a frente libera
+    if (this.v < 3 && target > 20) { if (this.reacT === -1 || this.reacT === undefined) this.reacT = 0.25 + Math.random() * 0.5; if (this.reacT > 0) { this.reacT -= dt; target = 0; } }
+    else if (this.v >= 3) this.reacT = -1;
     this.braking = target < this.v - 5;
     if (this.v < target) this.v = Math.min(target, this.v + this.acc * dt);
     else this.v = Math.max(target, this.v - (this.hitT > 0 ? 600 : 380) * dt);
@@ -899,10 +908,55 @@ class Animal {
   scare(px, py, hard) {
     if (this.type === 'owl' || this.morto) return;
     if (this.state !== 'flee' && this.type === 'dog' && Game.state === 'playing' && !Ambiente.latido(this.x, this.y)) AudioSys.bark(player ? Math.hypot(this.x - player.x, this.y - player.y) : 400);
+    if (this.cruza) { this.cruzaV = 1; return; } // atravessando: apressa o passo e termina de atravessar
     this.state = 'flee'; this.t = hard ? 2.2 : 1.6;
-    const a = Math.atan2(this.y - py, this.x - px) + rnd(-0.5, 0.5);
+    let a = Math.atan2(this.y - py, this.x - px) + rnd(-0.5, 0.5);
+    // pessoa foge para o lado, saindo do caminho do carro (e não correndo na frente dele)
+    if (this.type === 'person' && player && px === player.x && player.speed > 30) {
+      const vx = player.vx / player.speed, vy = player.vy / player.speed, lado = Math.sign((this.x - px) * -vy + (this.y - py) * vx) || 1;
+      a = Math.atan2(vx * lado, -vy * lado) + rnd(-0.3, 0.3);
+    }
     this.tx = clamp(this.x + Math.cos(a) * 160, this.rect[0], this.rect[2]);
     this.ty = clamp(this.y + Math.sin(a) * 160, this.rect[1], this.rect[3]);
+  }
+  // atravessar a rua (como gente de verdade): para na beira, olha para os dois lados, atravessa e fica do outro lado
+  vaiCruzar() {
+    const w = this.rect[2] - this.rect[0], h = this.rect[3] - this.rect[1];
+    if (Math.min(w, h) > 30) return false; // só quem anda numa calçada (faixa estreita)
+    const ne = nearestEdge(this.x, this.y); if (!ne) return false;
+    const e = ne.e; if (!e.T.asphalt || !e.T.sw || e.bridge || e.T.id === 'highway') return false;
+    const cy = e.h ? e.a.y : e.a.x, eu = e.h ? this.y : this.x, lado = Math.sign(eu - cy) || 1;
+    if (Math.abs(eu - cy) < e.hw) return false;
+    const R = this.rect, M = e.h ? [R[0], 2 * cy - R[3], R[2], 2 * cy - R[1]] : [2 * cy - R[2], R[1], 2 * cy - R[0], R[3]];
+    // só quem está na calçada desta rua (faixa comprida ao longo dela, colada no asfalto)
+    const ao = e.h ? [R[1], R[3]] : [R[0], R[2]], dist0 = Math.min(Math.abs(ao[0] - cy), Math.abs(ao[1] - cy));
+    if ((e.h ? R[2] - R[0] : R[3] - R[1]) < 60 || dist0 < e.hw - 2 || dist0 > e.hw + (e.T.sw || 0) + 4) return false;
+    // do outro lado tem que ter calçada livre (nada de parede no caminho)
+    for (const k of [0.1, 0.5, 0.9]) { const px = e.h ? M[0] + (M[2] - M[0]) * k : (M[0] + M[2]) / 2, py = e.h ? (M[1] + M[3]) / 2 : M[1] + (M[3] - M[1]) * k; if (emParede(px, py, 4)) return false; const g = groundAt(px, py); if (g !== SF.SIDEWALK && g !== SF.PAVED) return false; }
+    const bx = e.h ? this.x : cy + lado * (e.hw + 3), by = e.h ? cy + lado * (e.hw + 3) : this.y; // beira da calçada
+    const fx = e.h ? this.x : cy - lado * (e.hw + 8), fy = e.h ? cy - lado * (e.hw + 8) : this.y; // outro lado
+    if (emParede(fx, fy, 4) || emParede(bx, by, 4)) return false;
+    this.cruza = { fase: 0, bx, by, fx, fy, M, e, h: e.h, olhaT: 0, espera: 0 }; this.cruzaV = 0; this.state = 'walk'; this.t = 30;
+    return true;
+  }
+  cruzaPasso(dt) {
+    const C = this.cruza; if (!C) return false;
+    const vai = (tx, ty, spd) => { const dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy); if (d < 2) return true; this.a += clamp(angDiff(this.a, Math.atan2(dy, dx)), -6 * dt, 6 * dt); const k = Math.min(d, spd * dt) / d; this.x += dx * k; this.y += dy * k; this.v = spd; return false; };
+    if (C.fase === 0) { if (vai(C.bx, C.by, this.P.walk)) { C.fase = 1; C.olhaT = 0; } }
+    else if (C.fase === 1) {
+      // olha para um lado e para o outro; só vai quando não vem carro perto
+      this.v = 0; C.olhaT += dt; C.espera += dt;
+      const ang = (C.h ? 0 : Math.PI / 2) + (Math.floor(C.olhaT / 0.7) % 2 ? Math.PI : 0); this.a += clamp(angDiff(this.a, ang), -5 * dt, 5 * dt);
+      const vem = (o, v) => { const dl = C.h ? Math.abs(o.x - this.x) : Math.abs(o.y - this.y), dc = C.h ? Math.abs(o.y - C.by) : Math.abs(o.x - C.bx); return dc < C.e.hw + 20 && dl < 70 + v * 1.6; };
+      let livre = !(player && vem(player, player.speed));
+      for (const c of Traffic.cars) if (livre && vem(c, c.v || 0)) livre = false;
+      if (livre && C.olhaT > 1.2) C.fase = 2;
+      else if (C.espera > 14) { this.cruza = null; this.state = 'idle'; this.t = rnd(1, 3); } // desistiu
+    } else if (C.fase === 2) {
+      if (vai(C.fx, C.fy, this.cruzaV ? this.P.flee * 0.8 : this.P.walk * 1.35)) { this.rect = C.M; this.cruza = null; this.cruzaV = 0; this.state = 'idle'; this.t = rnd(1, 4); }
+    }
+    const g = groundAt(this.x, this.y); this.onRoad = g === SF.ROAD || g === SF.DIRT || g === SF.BRIDGE;
+    return true;
   }
   update(dt) {
     if (this.morto) return; // atropelado: o corpo fica parado (Atropelo cuida)
@@ -916,8 +970,12 @@ class Animal {
       if (this.type === 'person' && d < 62 && sp > 30 && player.surface === SF.SIDEWALK) PedVoz.fala(this, 'calcada'); // distâncias 6% e depois mais 40% menores (pedido do dono)
     }
     this.t -= dt;
+    if (this.type === 'person' && this.cruzaPasso(dt)) return;
     if (this.state === 'idle' || this.state === 'graze') {
       this.v = 0;
+      // parado: acompanha com o olhar o carro que passa perto
+      if (this.type === 'person' && player && player.speed > 25 && Math.abs(player.x - this.x) < 140 && Math.abs(player.y - this.y) < 140) this.a += clamp(angDiff(this.a, Math.atan2(player.y - this.y, player.x - this.x)), -3 * dt, 3 * dt);
+      if (this.t <= 0 && this.type === 'person' && !this.dance && chance(0.14) && this.vaiCruzar()) return;
       if (this.t <= 0) {
         if (chance(0.55)) { this.state = 'walk'; this.tx = rnd(this.rect[0], this.rect[2]); this.ty = rnd(this.rect[1], this.rect[3]); this.t = 8; }
         else { this.state = (this.type === 'cow' || this.type === 'horse' || this.type === 'chicken' || this.type === 'capybara') && chance(0.6) ? 'graze' : 'idle'; this.t = rnd(2, 6); }

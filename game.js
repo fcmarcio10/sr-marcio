@@ -4430,7 +4430,7 @@ class AICar {
       let bv = 0;
       if (bl === player) bv = Math.max(0, player.vx * Math.cos(this.a) + player.vy * Math.sin(this.a));
       else if (bl instanceof AICar) bv = Math.max(0, bl.v * Math.cos(bl.a - this.a));
-      const keep = bl === player ? 34 : 14; // distância de segurança maior atrás de você
+      const keep = (bl === player ? 34 : 14) + this.v * 0.18; // distância de segurança cresce com a velocidade (mais longe atrás de você)
       target = Math.min(target, Math.max(0, bv + (gap - keep) * 1.1), Math.max(0, (gap - keep * 0.5) * 3));
     }
     // ultrapassagem / troca de faixa
@@ -4440,6 +4440,12 @@ class AICar {
       this.overtake -= dt;
       const passed = player && ((player.x - this.x) * this.dx + (player.y - this.y) * this.dy) < -this.m.L - 10;
       if (this.overtake <= 0 || passed || this.sEnd - this.s < 120 || !this.laneClear(this.offT, 0, 140)) { this.overtake = 0; this.offT = this.e.T.lanes[this.lane]; }
+    }
+    // mantém a direita: na avenida, depois de ultrapassar, volta para a faixa da direita quando ela está livre
+    this.dirT = (this.dirT || 0) + dt;
+    if (this.state === 'edge' && this.e.T.lanes.length > 1 && this.lane === 1 && !this.big && this.lcT <= 0 && this.dirT > 2.5 && this.sEnd - this.s > 200 && this.turnType !== 'right') {
+      this.dirT = 0;
+      if ((!this.blocker || gap > 160) && this.laneClear(this.e.T.lanes[0], -60, 90)) { this.lane = 0; this.offT = this.e.T.lanes[0]; this.lcT = 3; }
     }
     // desvio leve: se você está meio dentro da faixa à frente, ele se afasta um pouco dentro da pista
     this.nudge = (this.nudge || 0) * Math.exp(-2 * dt);
@@ -4481,6 +4487,9 @@ class AICar {
       }
     }
     if (this.honking > 0) this.honking -= dt;
+    // tempo de reação de motorista: parado, demora um pouquinho para arrancar quando a frente libera
+    if (this.v < 3 && target > 20) { if (this.reacT === -1 || this.reacT === undefined) this.reacT = 0.25 + Math.random() * 0.5; if (this.reacT > 0) { this.reacT -= dt; target = 0; } }
+    else if (this.v >= 3) this.reacT = -1;
     this.braking = target < this.v - 5;
     if (this.v < target) this.v = Math.min(target, this.v + this.acc * dt);
     else this.v = Math.max(target, this.v - (this.hitT > 0 ? 600 : 380) * dt);
@@ -4703,10 +4712,55 @@ class Animal {
   scare(px, py, hard) {
     if (this.type === 'owl' || this.morto) return;
     if (this.state !== 'flee' && this.type === 'dog' && Game.state === 'playing' && !Ambiente.latido(this.x, this.y)) AudioSys.bark(player ? Math.hypot(this.x - player.x, this.y - player.y) : 400);
+    if (this.cruza) { this.cruzaV = 1; return; } // atravessando: apressa o passo e termina de atravessar
     this.state = 'flee'; this.t = hard ? 2.2 : 1.6;
-    const a = Math.atan2(this.y - py, this.x - px) + rnd(-0.5, 0.5);
+    let a = Math.atan2(this.y - py, this.x - px) + rnd(-0.5, 0.5);
+    // pessoa foge para o lado, saindo do caminho do carro (e não correndo na frente dele)
+    if (this.type === 'person' && player && px === player.x && player.speed > 30) {
+      const vx = player.vx / player.speed, vy = player.vy / player.speed, lado = Math.sign((this.x - px) * -vy + (this.y - py) * vx) || 1;
+      a = Math.atan2(vx * lado, -vy * lado) + rnd(-0.3, 0.3);
+    }
     this.tx = clamp(this.x + Math.cos(a) * 160, this.rect[0], this.rect[2]);
     this.ty = clamp(this.y + Math.sin(a) * 160, this.rect[1], this.rect[3]);
+  }
+  // atravessar a rua (como gente de verdade): para na beira, olha para os dois lados, atravessa e fica do outro lado
+  vaiCruzar() {
+    const w = this.rect[2] - this.rect[0], h = this.rect[3] - this.rect[1];
+    if (Math.min(w, h) > 30) return false; // só quem anda numa calçada (faixa estreita)
+    const ne = nearestEdge(this.x, this.y); if (!ne) return false;
+    const e = ne.e; if (!e.T.asphalt || !e.T.sw || e.bridge || e.T.id === 'highway') return false;
+    const cy = e.h ? e.a.y : e.a.x, eu = e.h ? this.y : this.x, lado = Math.sign(eu - cy) || 1;
+    if (Math.abs(eu - cy) < e.hw) return false;
+    const R = this.rect, M = e.h ? [R[0], 2 * cy - R[3], R[2], 2 * cy - R[1]] : [2 * cy - R[2], R[1], 2 * cy - R[0], R[3]];
+    // só quem está na calçada desta rua (faixa comprida ao longo dela, colada no asfalto)
+    const ao = e.h ? [R[1], R[3]] : [R[0], R[2]], dist0 = Math.min(Math.abs(ao[0] - cy), Math.abs(ao[1] - cy));
+    if ((e.h ? R[2] - R[0] : R[3] - R[1]) < 60 || dist0 < e.hw - 2 || dist0 > e.hw + (e.T.sw || 0) + 4) return false;
+    // do outro lado tem que ter calçada livre (nada de parede no caminho)
+    for (const k of [0.1, 0.5, 0.9]) { const px = e.h ? M[0] + (M[2] - M[0]) * k : (M[0] + M[2]) / 2, py = e.h ? (M[1] + M[3]) / 2 : M[1] + (M[3] - M[1]) * k; if (emParede(px, py, 4)) return false; const g = groundAt(px, py); if (g !== SF.SIDEWALK && g !== SF.PAVED) return false; }
+    const bx = e.h ? this.x : cy + lado * (e.hw + 3), by = e.h ? cy + lado * (e.hw + 3) : this.y; // beira da calçada
+    const fx = e.h ? this.x : cy - lado * (e.hw + 8), fy = e.h ? cy - lado * (e.hw + 8) : this.y; // outro lado
+    if (emParede(fx, fy, 4) || emParede(bx, by, 4)) return false;
+    this.cruza = { fase: 0, bx, by, fx, fy, M, e, h: e.h, olhaT: 0, espera: 0 }; this.cruzaV = 0; this.state = 'walk'; this.t = 30;
+    return true;
+  }
+  cruzaPasso(dt) {
+    const C = this.cruza; if (!C) return false;
+    const vai = (tx, ty, spd) => { const dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy); if (d < 2) return true; this.a += clamp(angDiff(this.a, Math.atan2(dy, dx)), -6 * dt, 6 * dt); const k = Math.min(d, spd * dt) / d; this.x += dx * k; this.y += dy * k; this.v = spd; return false; };
+    if (C.fase === 0) { if (vai(C.bx, C.by, this.P.walk)) { C.fase = 1; C.olhaT = 0; } }
+    else if (C.fase === 1) {
+      // olha para um lado e para o outro; só vai quando não vem carro perto
+      this.v = 0; C.olhaT += dt; C.espera += dt;
+      const ang = (C.h ? 0 : Math.PI / 2) + (Math.floor(C.olhaT / 0.7) % 2 ? Math.PI : 0); this.a += clamp(angDiff(this.a, ang), -5 * dt, 5 * dt);
+      const vem = (o, v) => { const dl = C.h ? Math.abs(o.x - this.x) : Math.abs(o.y - this.y), dc = C.h ? Math.abs(o.y - C.by) : Math.abs(o.x - C.bx); return dc < C.e.hw + 20 && dl < 70 + v * 1.6; };
+      let livre = !(player && vem(player, player.speed));
+      for (const c of Traffic.cars) if (livre && vem(c, c.v || 0)) livre = false;
+      if (livre && C.olhaT > 1.2) C.fase = 2;
+      else if (C.espera > 14) { this.cruza = null; this.state = 'idle'; this.t = rnd(1, 3); } // desistiu
+    } else if (C.fase === 2) {
+      if (vai(C.fx, C.fy, this.cruzaV ? this.P.flee * 0.8 : this.P.walk * 1.35)) { this.rect = C.M; this.cruza = null; this.cruzaV = 0; this.state = 'idle'; this.t = rnd(1, 4); }
+    }
+    const g = groundAt(this.x, this.y); this.onRoad = g === SF.ROAD || g === SF.DIRT || g === SF.BRIDGE;
+    return true;
   }
   update(dt) {
     if (this.morto) return; // atropelado: o corpo fica parado (Atropelo cuida)
@@ -4720,8 +4774,12 @@ class Animal {
       if (this.type === 'person' && d < 62 && sp > 30 && player.surface === SF.SIDEWALK) PedVoz.fala(this, 'calcada'); // distâncias 6% e depois mais 40% menores (pedido do dono)
     }
     this.t -= dt;
+    if (this.type === 'person' && this.cruzaPasso(dt)) return;
     if (this.state === 'idle' || this.state === 'graze') {
       this.v = 0;
+      // parado: acompanha com o olhar o carro que passa perto
+      if (this.type === 'person' && player && player.speed > 25 && Math.abs(player.x - this.x) < 140 && Math.abs(player.y - this.y) < 140) this.a += clamp(angDiff(this.a, Math.atan2(player.y - this.y, player.x - this.x)), -3 * dt, 3 * dt);
+      if (this.t <= 0 && this.type === 'person' && !this.dance && chance(0.14) && this.vaiCruzar()) return;
       if (this.t <= 0) {
         if (chance(0.55)) { this.state = 'walk'; this.tx = rnd(this.rect[0], this.rect[2]); this.ty = rnd(this.rect[1], this.rect[3]); this.t = 8; }
         else { this.state = (this.type === 'cow' || this.type === 'horse' || this.type === 'chicken' || this.type === 'capybara') && chance(0.6) ? 'graze' : 'idle'; this.t = rnd(2, 6); }
@@ -6104,9 +6162,11 @@ const PH_ICONS = {
   carteira: ['#2f6fdf', _ln('<rect x="3.5" y="6" width="17" height="13" rx="2.5"/><path d="M3.5 10h17"/><circle cx="16.5" cy="14.5" r="1" fill="#fff"/>')],
   trapaca: ['#7d3cff', _ln('<path d="M4 20 14 10"/><path d="M15 3l1 2.5L18.5 6.5 16 7.5 15 10l-1-2.5L11.5 6.5 14 5.5z"/><path d="M19 12l.6 1.4 1.4.6-1.4.6L19 16l-.6-1.4-1.4-.6 1.4-.6z"/>')],
   conquistas: ['#e0a21b', _ln('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>')],
+  camera: ['#3c4049', _ln('<path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/>')],
+  colecao: ['#b8643a', _ln('<path d="M6.5 9.5h11l-1 8.5a2 2 0 0 1-2 1.7h-5a2 2 0 0 1-2-1.7z"/><path d="M5 9.5h14M9.5 9.5V8a2.5 2.5 0 0 1 5 0v1.5"/>')],
   ajustes: ['#7b808a', _ln('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>')],
 };
-const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes' };
+const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
   return `<button class="ph-app" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge ? `<i class="ph-badge">${badge}</i>` : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
@@ -6118,7 +6178,7 @@ const WALLS = [
   { id: 'pedra', name: 'Pedra Azulejo', place: 'Domingos Martelo' },
   { id: 'camburi', name: 'Praia de Camburiso', place: 'Vitorinha' },
   { id: 'dunas', name: 'Dunas de Ita-Unhas', place: 'Conceição da Barraca' },
-  { id: 'bandeira', name: 'Trabalha e Confia', place: 'Bandeira capixaba' },
+  { id: 'bandeira', name: 'Trabalha e Confia', place: 'Bandeira da cidade' },
   { id: 'estrada', name: 'Estrada da Madrugada', place: 'Rodovia BR-101 e Pouco' },
 ];
 const _wallCache = {};
@@ -6233,7 +6293,9 @@ const Phone = {
       html = `<div class="ph-lock"><div class="ph-date">São Gambiarra</div><div class="ph-time">${clockStr()}</div></div>` +
         `<div class="ph-widgets"><div class="ph-wid wid-sky${Weather.rain > 0.15 ? ' rain' : ''}"><small>São Gambiarra</small><b>${temp}°</b><span>${wl || (hr >= 19 || hr < 5 ? 'Noite abafada' : 'Céu limpo')}</span><span class="wid-sub">Máx. 31° Mín. 21°</span></div>` +
         `<button class="ph-wid wid-money" data-app="carteira"><small>Carteira</small><b>R$ ${fmtMoney(Profile.money)}</b><span>${Profile.deliveries || 0} entregas · ${Profile.rides || 0} corridas</span><span class="wid-sub">${job ? H(job) : dest ? 'Destino: ' + H(dest) : 'Nenhum serviço ativo'}</span></button></div>` +
-        '<div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : 0)).join('') + '</div>' +
+        // apps em grupos com nome, para achar fácil
+        '<div class="ph-sec">Trabalho e dinheiro</div><div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].map((id) => phIcon(id, id === 'fretes' ? frUnread() : 0)).join('') + '</div>' +
+        '<div class="ph-sec">Explorar a cidade</div><div class="ph-grid">' + ['camera', 'colecao'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id, 0)).join('') + '</div>' +
         `<div class="ph-wname">${H(W.name)} · ${H(W.place)}</div>` +
         '<div class="ph-dock">' + ['mapa', 'msgs', 'pegaai', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
@@ -6338,6 +6400,8 @@ const Phone = {
     } else if (this.app === 'carteira') {
       html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div>` + walletHTML(this.wtab);
     }
+    if (this.app === 'camera') html = cameraHTML(); else if (this.app === 'colecao') html = colecaoHTML();
+    html = phComDescricao(this.app, html);
     body.innerHTML = html;
     if (this.app === 'mapa') { phoneMap = new MapView($('phonemap'), MapState.phone); renderMapDests(); requestAnimationFrame(() => phoneMap && phoneMap.draw()); } else phoneMap = null;
     if (this.chat) { const ch = body.querySelector('.wa-chat'); if (ch) body.scrollTop = body.scrollHeight; }
@@ -6345,6 +6409,7 @@ const Phone = {
   click(e) {
     const t = e.target.closest('button'); if (!t) return;
     if (t.dataset.app) { this.go(t.dataset.app); return; }
+    if (t.dataset.foto) { Colecao.fotografa(); return; }
     if (t.dataset.mz) { if (phoneMap) mapCtrl(phoneMap, t.dataset.mz); return; }
     if (t.dataset.sos) { if (t.dataset.sos === 'cancel') socorroCancel(); else socorroCall(t.dataset.sos); phoneTone(1760, 0.05, 0.04); this.render(); return; }
     if (t.dataset.mute) {
@@ -9105,6 +9170,7 @@ function render() {
   Weather.drawRipples(ctx, view);
   Debris.draw(ctx, view);
   Atropelo.desenhaSangue(ctx, view);
+  Colecao.desenha(ctx, view); // panelas de barro e placas de zoeira
   drawDynShadows(ctx, view);
   pm('decals');
   // veículos e animais
@@ -9915,7 +9981,7 @@ Atropelo.update = function (dt) {
     if (an.mortoT <= 6 && an.morreuX !== undefined) { an.x = an.morreuX; an.y = an.morreuY; an.v = 0; } // fica estático onde caiu
     // corpo sumiu: a pessoa volta em outro ponto da calçada dela, longe da câmera (a cidade não fica vazia)
     if (an.mortoT > 6 && Math.hypot(an.x - Cam.x, an.y - Cam.y) > 1500) {
-      an.morto = false; an.morreuX = undefined; an.state = 'idle'; an.t = rnd(1, 4); an.v = 0;
+      an.morto = false; an.morreuX = undefined; an.cruza = null; an.state = 'idle'; an.t = rnd(1, 4); an.v = 0;
       an.x = rnd(an.rect[0], an.rect[2]); an.y = rnd(an.rect[1], an.rect[3]);
       this.mortos.splice(i, 1);
     }
@@ -10524,6 +10590,167 @@ Ambiente.sorteia = function (rk, R, cx, cy) {
   if (o[1] === 'buzina') { AudioSys.aiHorn(rnd(500, 850), pick(Object.keys(HORNS)), rnd(-0.8, 0.8)); return true; }
   return this.toca(o[1], o[2], o[3], o[4], 1600) || campo; // no campo nunca cai no mugido sintetizado
 };
+/* ============================ COLECIONÁVEIS ============================
+   30 panelas de barro escondidas, 15 placas de zoeira na beira das estradas e 12 pontos turísticos para
+   fotografar com o app Câmera do celular. Cada coleção completa dá um prêmio. Tudo montado com sorteio próprio
+   (não mexe no sorteio do mapa) e salvo em Profile.col = { p: {}, s: {}, f: {} }. */
+const COL_PLACAS = [
+  'PROIBIDO PROIBIR', 'CUIDADO: LOMBADA INVISÍVEL', 'ATENÇÃO: SOGRA NA PISTA', 'FIADO SÓ AMANHÃ',
+  'BURACO TOMBADO PELO PATRIMÔNIO', 'SINAL DE CELULAR SÓ NA PONTA DO PÉ', 'CACHORRO MANSO. O DONO NÃO',
+  'VELOCIDADE MÁXIMA: A QUE O CARRO AGUENTAR', 'VACA TEM PREFERÊNCIA', 'AQUI JAZ UM AMORTECEDOR',
+  'SORRIA, VOCÊ ESTÁ SENDO FILMADO (MENTIRA)', 'RETORNO A 50 KM (OU MAIS)', 'PROIBIDO JOGAR LIXO. SUJEITO A FOFOCA',
+  'DEVAGAR: CRIANÇA, IDOSO E GALINHA', 'BEM-VINDO A SÃO GAMBIARRA. AQUI TUDO DÁ UM JEITO',
+];
+const COL_FOTOS = ['praca', 'ponte', 'mirante', 'convento', 'ponte3', 'caixa', 'orlacamburi', 'barra', 'pedra', 'porto', 'campao', 'fazenda'];
+const COL_INFO = {
+  p: { nome: 'Panelas de barro', premio: 5000, cor: '#b8643a' },
+  s: { nome: 'Placas de zoeira', premio: 3000, cor: '#f2c43a' },
+  f: { nome: 'Fotos turísticas', premio: 4000, cor: '#3a9be0' },
+};
+const Colecao = { panelas: [], placas: [], fotos: [], t: 0, flashT: 0 };
+function colSave() { if (!Profile.col) Profile.col = { p: {}, s: {}, f: {} }; return Profile.col; }
+
+// monta onde fica cada coisa (depois do mapa pronto; sorteio próprio, sempre igual)
+Colecao.monta = function () {
+  const R = mulberry32(3030), edges = World.edges.filter((e) => e.len > 220 && !e.bridge);
+  const ok = (x, y, L, dmin) => {
+    if (x < 260 || y < 260 || x > WORLD_W - 260 || y > WORLD_H - 260) return false;
+    const g = groundAt(x, y); if (g === SF.ROAD || g === SF.DIRT || g === SF.BRIDGE || g === SF.WATER) return false;
+    if (areaBlocked(x - 7, y - 7, x + 7, y + 7)) return false;
+    return L.every((q) => Math.abs(q.x - x) > dmin || Math.abs(q.y - y) > dmin);
+  };
+  const porReg = {};
+  const lugar = (L, n, dmin, maxReg, longe) => {
+    for (let tent = 0; tent < 6000 && L.length < n; tent++) {
+      const e = edges[Math.floor(R() * edges.length)], s = 40 + R() * (e.len - 80), sd = R() < 0.5 ? 1 : -1;
+      const o = e.hw + (e.T.sw ? e.T.sw : 0) + longe + R() * 10, nx = e.h ? 0 : 1, ny = e.h ? 1 : 0;
+      const x = e.a.x + e.dx * s + nx * o * sd, y = e.a.y + e.dy * s + ny * o * sd, rk = regionKeyAt(x, y);
+      const k = L === Colecao.panelas ? 'p' + rk : 's' + rk;
+      if ((porReg[k] || 0) >= maxReg || !ok(x, y, L, dmin)) continue;
+      porReg[k] = (porReg[k] || 0) + 1;
+      L.push({ id: L.length, x, y, reg: rk, a: e.h ? 0 : Math.PI / 2, sd });
+    }
+  };
+  this.panelas.length = 0; this.placas.length = 0;
+  lugar(this.panelas, 30, 420, 3, 4);
+  lugar(this.placas, 15, 700, 2, 10);
+  this.placas.forEach((q, i) => { q.txt = COL_PLACAS[i % COL_PLACAS.length]; });
+  this.fotos = COL_FOTOS.map((id) => World.pois.find((p) => p.id === id)).filter(Boolean);
+};
+
+// pega a panela e lê a placa passando perto; confere os prêmios
+Colecao.update = function (dt) {
+  if (!player || Game.mode !== 'play' || Game.state !== 'playing') return;
+  this.flashT = Math.max(0, this.flashT - dt);
+  this.camT = (this.camT || 0) - dt;
+  if (this.camT <= 0 && Screens.current === 'screen-phone' && Phone.app === 'camera') { this.camT = 1; Phone.render(); } // câmera acompanha o caminho
+  this.t -= dt; if (this.t > 0) return; this.t = 0.15;
+  const C = colSave(), px = player.x, py = player.y;
+  for (const q of this.panelas) if (!C.p[q.id] && Math.abs(q.x - px) < 24 && Math.abs(q.y - py) < 24) {
+    C.p[q.id] = clockStr(); AudioSys.chime(); pay(50);
+    toast('Panela de barro ' + Object.keys(C.p).length + '/' + this.panelas.length, 'Achou uma panela das paneleiras escondida em ' + REGIONS[q.reg].name + '.', 'good');
+    this.premio('p');
+  }
+  for (const q of this.placas) if (!C.s[q.id] && Math.abs(q.x - px) < 70 && Math.abs(q.y - py) < 70) {
+    C.s[q.id] = clockStr(); AudioSys.chime(); pay(50);
+    toast('Placa de zoeira ' + Object.keys(C.s).length + '/' + this.placas.length, '"' + q.txt + '"', 'good');
+    this.premio('s');
+  }
+};
+Colecao.total = function (k) { return k === 'p' ? this.panelas.length : k === 's' ? this.placas.length : this.fotos.length; };
+Colecao.premio = function (k) {
+  const C = colSave(); C.ok = C.ok || {};
+  if (C.ok[k] || Object.keys(C[k]).length < this.total(k)) return;
+  C.ok[k] = true; const I = COL_INFO[k];
+  setTimeout(() => { AudioSys.chime(); pay(I.premio, 'Coleção completa: ' + I.nome + '!'); toast('Coleção completa!', I.nome + ' — prêmio de R$ ' + fmtMoney(I.premio), 'good'); }, 900);
+};
+// ponto turístico mais perto ainda sem foto
+Colecao.pontoPerto = function () {
+  const C = colSave(); let best = null, bd = 1e9;
+  for (const q of this.fotos) { if (C.f[q.id]) continue; const d = Math.hypot(q.x - player.x, q.y - player.y); if (d < bd) { bd = d; best = q; } }
+  return best ? { q: best, d: bd } : null;
+};
+Colecao.FOTO_R = 260;
+Colecao.fotografa = function () {
+  const P = this.pontoPerto(); if (!P || P.d > this.FOTO_R) { phoneTone(300, 0.08, 0.05); return; }
+  const C = colSave(); C.f[P.q.id] = clockStr(); this.flashT = 0.35;
+  AudioSys.noise(0.08, 3000, 1, 0.12, 'ui', 'highpass'); phoneTone(1500, 0.04, 0.05, 0.08); pay(100);
+  toast('Foto: ' + P.q.name, 'Foto ' + Object.keys(C.f).length + '/' + this.fotos.length + ' do álbum turístico.', 'good');
+  this.premio('f'); Phone.render(); setTimeout(() => { if (Phone.app === 'camera') Phone.render(); }, 380);
+};
+
+// desenho no chão (só o que está perto da tela)
+Colecao.desenha = function (ctx, view) {
+  const C = colSave();
+  for (const q of this.panelas) {
+    if (C.p[q.id] || !inView(view, q.x, q.y, 20)) continue;
+    const x = q.x, y = q.y;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(x + 1.5, y + 1.5, 6.5, 5.5, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#6a3a22'; ctx.beginPath(); ctx.arc(x, y, 6, 0, TAU); ctx.fill(); // panela de barro vista de cima
+    ctx.fillStyle = '#8a4e2c'; ctx.beginPath(); ctx.arc(x - 0.5, y - 0.5, 4.6, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#3a2016'; ctx.beginPath(); ctx.arc(x - 0.5, y - 0.5, 1.4, 0, TAU); ctx.fill(); // pegador da tampa
+    ctx.fillStyle = '#6a3a22'; ctx.fillRect(x - 8, y - 1.2, 2.4, 2.4); ctx.fillRect(x + 5.6, y - 1.2, 2.4, 2.4); // alças
+    if ((Game.time * 0.7 + q.id * 0.37) % 4 < 0.12) { ctx.fillStyle = 'rgba(255,240,200,0.9)'; ctx.fillRect(x - 3, y - 4, 1.5, 1.5); } // brilho de vez em quando
+  }
+  for (const q of this.placas) {
+    if (!inView(view, q.x, q.y, 40)) continue;
+    const lido = !!C.s[q.id];
+    ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.a);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(-13, 3, 28, 5);
+    ctx.fillStyle = '#6a6a6a'; ctx.fillRect(-11, 4, 2, 4); ctx.fillRect(9, 4, 2, 4); // pés
+    ctx.fillStyle = lido ? '#c9a83a' : '#f2c43a'; ctx.fillRect(-14, -4, 28, 9); // placa amarela
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1; ctx.strokeRect(-13.5, -3.5, 27, 8);
+    ctx.fillStyle = '#1a1a1a'; for (let i = 0; i < 3; i++) ctx.fillRect(-10 + i * 7, -1, 5, 1.2); ctx.fillRect(-8, 1.5, 15, 1.2); // "letras"
+    ctx.restore();
+  }
+};
+
+/* ---------- apps do celular ---------- */
+function cameraHTML() {
+  const C = colSave(), P = Colecao.pontoPerto(), n = Object.keys(C.f).length, tot = Colecao.fotos.length;
+  const dirTxt = (q) => { const a = Math.atan2(q.y - player.y, q.x - player.x), d = ['leste', 'sudeste', 'sul', 'sudoeste', 'oeste', 'noroeste', 'norte', 'nordeste']; return d[((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8]; };
+  let h = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Câmera</div>';
+  h += '<p class="ph-desc">Chegue perto de um ponto turístico e tire a foto. Álbum completo vale R$ ' + fmtMoney(COL_INFO.f.premio) + '.</p>';
+  const perto = P && P.d <= Colecao.FOTO_R;
+  h += `<div class="cam-view${perto ? ' ok' : ''}${Colecao.flashT > 0 ? ' flash' : ''}"><i class="cam-c tl"></i><i class="cam-c tr"></i><i class="cam-c bl"></i><i class="cam-c br"></i>` +
+    (perto ? `<b>${escapeHtml(P.q.name)}</b><span>No enquadramento</span>` : n >= tot ? '<b>Álbum completo!</b><span>Você fotografou todos os pontos</span>' :
+      `<b>Nada para fotografar aqui</b><span>${P ? 'Mais perto: ' + escapeHtml(P.q.name) + ' — ' + (P.d * 0.09 >= 1000 ? (P.d * 0.09 / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(P.d * 0.09 / 10) * 10 + ' m') + ' ao ' + dirTxt(P.q) : ''}</span>`) + '</div>';
+  h += `<button class="cam-shot" data-foto="1" ${perto ? '' : 'disabled'} title="Fotografar"><i></i></button>`;
+  h += `<div class="col-sub">Álbum turístico · ${n}/${tot}</div><div class="cam-album">` +
+    Colecao.fotos.map((q) => `<div class="cam-ph${C.f[q.id] ? ' ok' : ''}"><span>${C.f[q.id] ? escapeHtml(q.name) : '?'}</span></div>`).join('') + '</div>';
+  return h;
+}
+function colecaoHTML() {
+  const C = colSave();
+  let h = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Coleção</div>';
+  h += '<p class="ph-desc">Coisas escondidas por São Gambiarra inteira. Cada coleção completa dá um prêmio.</p>';
+  const card = (k, extra) => {
+    const I = COL_INFO[k], n = Object.keys(C[k]).length, tot = Colecao.total(k), done = C.ok && C.ok[k];
+    return `<div class="col-card"><div class="col-top"><i style="background:${I.cor}"></i><b>${I.nome}</b><em>${n}/${tot}</em></div>` +
+      `<div class="col-bar"><i style="width:${(n / Math.max(1, tot) * 100).toFixed(0)}%;background:${I.cor}"></i></div>` +
+      `<small>${done ? 'Completa! Prêmio de R$ ' + fmtMoney(I.premio) + ' recebido.' : 'Prêmio ao completar: R$ ' + fmtMoney(I.premio)}</small>${extra}</div>`;
+  };
+  // panelas: quantas faltam em cada bairro (a dica para explorar)
+  const reg = {}; for (const q of Colecao.panelas) { const r = reg[q.reg] || (reg[q.reg] = [0, 0]); r[1]++; if (C.p[q.id]) r[0]++; }
+  const pz = Object.entries(reg).sort((a, b) => (a[1][0] === a[1][1]) - (b[1][0] === b[1][1]) || REGIONS[a[0]].name.localeCompare(REGIONS[b[0]].name))
+    .map(([k, v]) => `<span class="col-chip${v[0] === v[1] ? ' ok' : ''}">${escapeHtml(REGIONS[k].name)} ${v[0]}/${v[1]}</span>`).join('');
+  h += card('p', '<div class="col-hint">Por bairro:</div><div class="col-chips">' + pz + '</div>');
+  const lidas = Colecao.placas.filter((q) => C.s[q.id]);
+  h += card('s', lidas.length ? '<ul class="col-list">' + lidas.map((q) => `<li>"${escapeHtml(q.txt)}"</li>`).join('') + '</ul>' : '<div class="col-hint">Placas amarelas na beira das ruas e estradas. Passe perto para ler.</div>');
+  h += card('f', '<div class="col-hint">Use o app Câmera perto dos pontos turísticos.</div>');
+  return h;
+}
+// uma linha explicando cada app (embaixo do título)
+const PH_DESC = {
+  mapa: 'Veja a cidade e marque um destino no GPS.', msgs: 'Conversas com o Seu Zé, o Seu Biu e o banco.', pegaai: 'Fique online, aceite corridas e leve passageiros.',
+  fretes: 'Entregas e cargas. Um frete por vez.', carteira: 'Seu dinheiro, contas e empréstimo.', racha: 'Corridas de madrugada valendo dinheiro.',
+  conquistas: 'Desafios cumpridos e os prêmios de cada um.', ajustes: 'Som, mensagens, notificações e papel de parede.',
+};
+function phComDescricao(app, html) {
+  const d = PH_DESC[app]; if (!d || html.indexOf('ph-desc') >= 0) return html;
+  const i = html.indexOf('</div>', html.indexOf('class="ph-head"')); if (html.indexOf('class="ph-head"') < 0 || i < 0) return html;
+  return html.slice(0, i + 6) + `<p class="ph-desc">${d}</p>` + html.slice(i + 6);
+}
 /* ============================ INTERFACE ============================ */
 const $ = (id) => document.getElementById(id);
 const UI = {
@@ -11385,7 +11612,7 @@ function frame(now) {
   } else accT = 0;
   Radio.update(dt);
   Ambiente.update(dt); // sons de ambiente por região
-  PedVoz.update(); Atropelo.update(dt); // voz do pedestre abaixando com a distância; atropelamento
+  PedVoz.update(); Atropelo.update(dt); Colecao.update(dt); // voz do pedestre abaixando com a distância; atropelamento
   AudioSys.hornOn = Game.state === 'playing' && !!key.horn();
   render();
   updateHUD(dt);
@@ -11451,7 +11678,7 @@ async function boot() {
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
-  pruneRoadTrees(); thinTrees(); addBuracos();
+  pruneRoadTrees(); thinTrees(); addBuracos(); Colecao.monta();
   buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();
   buildMapImage();
