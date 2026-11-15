@@ -55,11 +55,13 @@ const { chromium } = require('playwright');
     player.place(2100, 1518, 0); Cam.x = 2100; Cam.y = 1500; player.vx = 0; player.vy = 0;
     const n0 = Ambiente.n, a = Traffic.cars[0] || { m: VMODELS.hatch }; Traffic.cars.unshift(a);
     a.x = player.x + 60; a.y = player.y + 20; a.vx = 400; a.vy = 0; Ambiente.passouT = 0; Ambiente.passou.clear();
-    Ambiente.update(0.016);
+    Ambiente.resto(0.016); const devagar = Ambiente.n - n0; // eu parado: não faz barulho
+    player.vx = -330; player.speed = 330; Ambiente.passouT = 0; Ambiente.passou.clear(); // eu a ~99 km/h
+    Ambiente.resto(0.016); const rapido = Ambiente.n - n0 - devagar; player.vx = 0; player.speed = 0;
     const lat = Ambiente.latido(player.x + 100, player.y);
-    return { tocou: Ambiente.n - n0, latido: lat };
+    return { devagar, rapido, latido: lat };
   });
-  console.log('carro passando + latido:', JSON.stringify(pass)); ok.push(pass.tocou >= 2 && pass.latido);
+  console.log('carro passando (eu parado / eu acima de 85) + latido:', JSON.stringify(pass)); ok.push(pass.devagar === 0 && pass.rapido === 1 && pass.latido);
   console.log(ok.every(Boolean) ? 'OK: noite clara e sons de ambiente' : 'FALHOU: ' + JSON.stringify(ok));
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();

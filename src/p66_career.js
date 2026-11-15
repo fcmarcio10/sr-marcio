@@ -829,14 +829,15 @@ Ambiente.mix = function (c, t, fora) {
 Ambiente.resto = function (dt) {
   // carro do trânsito passando raspando: o som passa junto (carro, moto, caminhão ou ônibus)
   this.passouT -= dt;
-  if (this.passouT <= 0) {
+  // só quando eu estou rápido (acima de 85 km/h): devagar, carro passando não faz barulho nenhum
+  if (this.passouT <= 0 && player.speed * 0.3 > 85) {
     for (const a of Traffic.cars) {
       const dx = a.x - player.x, dy = a.y - player.y; if (dx * dx + dy * dy > 150 * 150) continue;
       const rel = Math.hypot((a.vx || Math.cos(a.a) * (a.v || 0)) - player.vx, (a.vy || Math.sin(a.a) * (a.v || 0)) - player.vy);
-      if (rel < 150 || (this.passou.get(a) || -9) > Game.time - 6) continue;
+      if (rel < 280 || (this.passou.get(a) || -9) > Game.time - 6) continue;
       this.passou.set(a, Game.time); this.passouT = 1.1;
       const kd = a.m && a.m.kind, clip = kd === 'moto' ? 'sfx_moto' : kd === 'truck' ? 'sfx_caminhao' : kd === 'bus' ? 'sfx_onibus' : 'sfx_carro';
-      this.toca(clip, a.x, a.y, clamp(rel / 600, 0.25, 0.6), 900);
+      this.toca(clip, a.x, a.y, clamp((rel - 200) / 900, 0.12, 0.38), 900); // mais baixo que antes
       break;
     }
     if (this.passou.size > 40) this.passou.clear();
