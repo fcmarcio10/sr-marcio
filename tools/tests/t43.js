@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
   const errs = []; p.on('pageerror', e => errs.push(e.message + e.stack));
   await p.goto('file://' + process.cwd() + '/wrapped.html');
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 40000 });
-  await p.click('[data-act="play"]'); await p.waitForTimeout(500);
+  await p.click('[data-act="play"]'); await p.waitForFunction(() => Game.carregando === false, null, { timeout: 30000 }); await p.waitForTimeout(500);
   const m0 = await p.evaluate(() => { Profile.deliveries = 1; Profile.distance = 6 / 0.09 * 1000; Profile.topSpeed = 120; return Profile.money; });
   await p.waitForTimeout(1600);
   console.log('unlocked', await p.evaluate(() => JSON.stringify(Profile.ach)), 'money', m0, '->', await p.evaluate(() => Profile.money));

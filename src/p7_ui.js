@@ -553,17 +553,17 @@ function renderMapDests() {
    com seta no chão e GPS até o lugar certo. Vai até a primeira corrida e a primeira visita à oficina. ---------- */
 const oficinaZe = () => World.shops.find((x) => x.kind === 'oficina');
 const TUT_STEPS = [
-  { voz: 'tz_1', html: 'Acelere com <kbd>W</kbd> e vire com <kbd>A</kbd> <kbd>D</kbd>. Dê uma voltinha.', done: () => (Profile.distance || 0) - Tutorial.d0 > 220 },
-  { voz: 'tz_2', html: 'Agora freie com <kbd>S</kbd> até parar.', done: () => { if (player.speed > 70) Tutorial.rapido = true; return Tutorial.rapido && player.speed < 8; }, skipAfter: 40 },
-  { voz: 'tz_3', html: 'Abra o celular com <kbd>Q</kbd>.', done: () => Screens.current === 'screen-phone' },
-  { voz: 'tz_4', html: 'Toque no <b>PegaAí</b> e fique <b>online</b>.', inPhone: true, done: () => Act.rideOnline || !!Act.ride },
-  { voz: 'tz_5', html: () => 'Siga a seta e busque <b>' + escapeHtml(Act.ride ? Act.ride.name : 'o passageiro') + '</b>.', alvo: () => Act.ride && Act.ride.pick,
+  { voz: 'tz_1', titulo: 'Bora dar uma volta', html: 'Acelere com <kbd>W</kbd> e vire com <kbd>A</kbd> <kbd>D</kbd>. Dê uma voltinha.', done: () => (Profile.distance || 0) - Tutorial.d0 > 220 },
+  { voz: 'tz_2', titulo: 'Freio é seu amigo', html: 'Agora freie com <kbd>S</kbd> até parar.', done: () => { if (player.speed > 70) Tutorial.rapido = true; return Tutorial.rapido && player.speed < 8; }, skipAfter: 40 },
+  { voz: 'tz_3', titulo: 'O celular é seu escritório', html: 'Abra o celular com <kbd>Q</kbd>.', done: () => Screens.current === 'screen-phone' },
+  { voz: 'tz_4', titulo: 'Hora de trabalhar', html: 'Toque no <b>PegaAí</b> e fique <b>online</b>.', inPhone: true, done: () => Act.rideOnline || !!Act.ride },
+  { voz: 'tz_5', titulo: 'Primeiro passageiro', html: () => 'Siga a seta e busque <b>' + escapeHtml(Act.ride ? Act.ride.name : 'o passageiro') + '</b>.', alvo: () => Act.ride && Act.ride.pick,
     cada: () => { if (!Act.ride && Act.rideOnline) Act.rideT = Math.min(Act.rideT, 2); }, done: () => !!Act.ride && Act.ride.stage !== 'pickup' },
-  { voz: 'tz_6', html: () => 'Leve até <b>' + escapeHtml(Act.ride ? Act.ride.dest.name : 'o destino') + '</b>. Devagar nas curvas!', alvo: () => Act.ride && Act.ride.dest,
+  { voz: 'tz_6', titulo: 'Leve com carinho', html: () => 'Leve até <b>' + escapeHtml(Act.ride ? Act.ride.dest.name : 'o destino') + '</b>. Devagar nas curvas!', alvo: () => Act.ride && Act.ride.dest,
     cada: () => { if (!Act.ride && Profile.rides <= Tutorial.rides0) { if (Act.rideOnline) Act.rideT = Math.min(Act.rideT, 2); Profile.tut = 4; Tutorial.shown = -1; } }, done: () => Profile.rides > Tutorial.rides0 },
-  { voz: 'tz_7', html: 'Passe na <b>Oficina do Seu Zé</b> e aperte <kbd>E</kbd> na porta.', alvo: () => oficinaZe(),
+  { voz: 'tz_7', titulo: 'Visite o Seu Zé', html: 'Passe na <b>Oficina do Seu Zé</b> e aperte <kbd>E</kbd> na porta.', alvo: () => oficinaZe(),
     entra: () => { const o = oficinaZe(); if (o) { Act.waypoint = { x: o.x, y: o.y, label: 'Oficina do Seu Zé' }; Act.gpsT = 0; } }, done: () => Screens.current === 'screen-dialog' || Screens.current === 'screen-garage', skipAfter: 240 },
-  { voz: 'tz_8', html: 'Pronto! A cidade é sua. Trabalhe, explore e não esqueça do fiado.', done: () => Tutorial.t > 9 },
+  { voz: 'tz_8', titulo: 'Você está pronto', html: 'Pronto! A cidade é sua. Trabalhe, explore e não esqueça do fiado.', done: () => Tutorial.t > 9 },
 ];
 const Tutorial = {
   t: 0, d0: 0, shown: -1, rides0: 0, rapido: false, a: null,
@@ -574,7 +574,7 @@ const Tutorial = {
   },
   update(dt) {
     const el = $('tutorial');
-    const vis = Game.mode === 'play' && (!Screens.current || Screens.current === 'screen-phone' || Screens.current === 'screen-dialog');
+    const vis = Game.mode === 'play' && carregou(1.5) && (!Screens.current || Screens.current === 'screen-phone' || Screens.current === 'screen-dialog');
     if (!el || !vis || Profile.tut === undefined || Profile.tut >= TUT_STEPS.length) { if (el && this.shown !== -2) { el.classList.add('hidden'); this.shown = -2; } return; }
     const st = TUT_STEPS[Profile.tut];
     this.t += dt;
@@ -584,9 +584,10 @@ const Tutorial = {
       if (st.entra) st.entra();
       const dots = TUT_STEPS.map((x, i) => `<i class="${i < Profile.tut ? 'ok' : i === Profile.tut ? 'at' : ''}"></i>`).join('');
       el.innerHTML = `<span class="tut-ava">SZ</span><div class="tut-mid"><div class="tut-who">Seu Zé <span class="tut-dots">${dots}</span></div><div class="tut-text"></div></div><button class="tut-skip" id="tut-skip">Pular</button>`;
-      $('tut-skip').addEventListener('click', () => { Profile.tut = TUT_STEPS.length; AudioSys.back(); this.fala(null); saveGame(); });
+      $('tut-skip').addEventListener('click', () => { Profile.tut = TUT_STEPS.length; AudioSys.back(); this.fala(null); const p = $('tut-pop'); if (p) p.classList.add('sai'); saveGame(); });
       el.classList.remove('hidden'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
       this.fala(st.voz);
+      this.popup(st);
     }
     const txt = el.querySelector('.tut-text'), h = typeof st.html === 'function' ? st.html() : st.html;
     if (txt && txt.innerHTML !== h) txt.innerHTML = h;
@@ -598,6 +599,15 @@ const Tutorial = {
     el.classList.toggle('in-phone', !!st.inPhone);
     if (st.cada) st.cada();
     if (Profile.tut < TUT_STEPS.length && TUT_STEPS[Profile.tut] === st && (st.done() || (st.skipAfter && this.t > st.skipAfter))) { Profile.tut++; this.t = 0; AudioSys.checkpoint(); saveGame(); }
+  },
+  // aviso grande no meio da tela anunciando o passo (some sozinho e deixa a caixa de baixo)
+  popup(st) {
+    let p = $('tut-pop');
+    if (!p) { p = document.createElement('div'); p.id = 'tut-pop'; document.body.appendChild(p); }
+    const n = TUT_STEPS.indexOf(st) + 1, h = typeof st.html === 'function' ? st.html() : st.html;
+    p.innerHTML = `<div class="tp-n">TUTORIAL · PASSO ${n} DE ${TUT_STEPS.length}</div><div class="tp-t">${escapeHtml(st.titulo || '')}</div><div class="tp-d">${h}</div>`;
+    p.classList.remove('on', 'sai'); void p.offsetWidth; p.classList.add('on');
+    clearTimeout(this.popT); this.popT = setTimeout(() => p.classList.add('sai'), 3200);
   },
   // seta pulando em cima do lugar certo (no chão do jogo)
   desenha(ctx, view) {
@@ -629,6 +639,7 @@ function renderPauseStats() {
     ['Medalhas de ouro', medals + '/' + World.races.length], ['Carros', Object.keys(Profile.owned).length + '/' + CARS.length],
   ];
   $('pause-stats').innerHTML = rows.map(([a, b]) => `<div>${a} <b>${b}</b></div>`).join('');
+  { const ph = $('pause-hist'); if (ph) ph.innerHTML = '<div class="hist-tit">HISTÓRIA · O CARRO DOS SONHOS</div><div class="hist-lista">' + Historia.listaHTML() + '</div>'; }
 }
 
 /* ---------- HUD ---------- */
@@ -677,7 +688,8 @@ function updateHUD(dt) {
     title = 'Destino no GPS'; desc = 'Siga as setas verdes no chão.';
     meta = Math.round((Act.gps ? Act.gps.len : 0) * 0.09) + ' m';
   } else if (Events.hud()) { const h = Events.hud(); title = h[0]; desc = h[1]; meta = h[2]; cls = 'event'; }
-  else { const h = freeRoamHint(); title = h[0]; desc = h[1]; }
+  else { const hs = (Profile.fuel >= 22 && Profile.damage <= 55) && Historia.hud(); if (hs) { title = hs[0]; desc = hs[1]; meta = hs[2]; cls = 'historia'; } else { const h = freeRoamHint(); title = h[0]; desc = h[1]; } }
+  UI.set('obj-tag', cls === 'historia' ? 'HISTÓRIA' : 'OBJETIVO');
   UI.set('obj-title', title); UI.set('obj-desc', desc); UI.set('obj-meta', meta);
   if (UI.last.objcls !== cls) { UI.last.objcls = cls; $('hud-objective').className = 'glass ' + cls; }
   // veículo

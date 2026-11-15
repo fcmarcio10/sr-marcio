@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
   const errs = []; p.on('pageerror', e => errs.push(e.message + e.stack));
   await p.goto('file://' + process.cwd() + '/wrapped.html');
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 40000 });
-  await p.click('[data-act="play"]'); await p.waitForTimeout(3200);
+  await p.click('[data-act="play"]'); await p.waitForFunction(() => Game.carregando === false, null, { timeout: 30000 }); await p.waitForTimeout(3200);
   await p.evaluate(() => { Profile.tut = 99; Events.spawnT = 1e9; Profile.money = 9000; Garage.sel = Profile.current; Garage.tab = 'perf'; Screens.open('screen-garage'); });
   await p.waitForTimeout(700); await p.screenshot({ path: 'g_perf.png' });
   await p.click('[data-gtab="kit"]'); await p.click('[data-kcat="neon"]'); await p.click('[data-kopt="neon"][data-kv="#ff2bd6"]'); await p.waitForTimeout(500);

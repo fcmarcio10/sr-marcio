@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
   const errs = []; p.on('pageerror', e => errs.push(e.message + e.stack));
   await p.goto('file://' + process.cwd() + '/wrapped.html');
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 40000 });
-  await p.click('[data-act="play"]'); await p.waitForTimeout(600);
+  await p.click('[data-act="play"]'); await p.waitForFunction(() => Game.carregando === false, null, { timeout: 30000 }); await p.waitForTimeout(600);
   await p.waitForTimeout(7600);
   await p.evaluate(() => { Profile.tut = 99; Events.spawnT = 1e9; });
   const spawn = (t) => p.evaluate((t) => { Events.clear(); for (let i = 0; i < 30; i++) if (Events.spawn(t)) return true; return false; }, t);

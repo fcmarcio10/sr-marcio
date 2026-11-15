@@ -21,7 +21,8 @@ const { chromium } = require('playwright');
   const rc = await st(); console.log('carregando (deixou ligada):', JSON.stringify(rc));
   await p.waitForTimeout(5500);
   r = await st(); console.log('depois de carregar:', JSON.stringify(r));
-  ok.push(rc.carregando && rc.modo === 'idle' && !rc.cur, !r.carregando && r.ligada);
+  ok.push(rc.carregando && rc.modo === 'idle' && !rc.cur, !r.carregando && !r.ligada); // a rádio sempre começa desligada
+  await p.keyboard.press('KeyF'); await p.waitForTimeout(600);
   await p.screenshot({ path: 'radio.png' });
   // boas-vindas do Seu Zé (9,5 s) deixa a rádio em silêncio e depois ela volta
   await p.waitForTimeout(3500);

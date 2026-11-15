@@ -7,7 +7,7 @@ const NIGHT_START = 19 * 60 + 30, NIGHT_END = 29 * 60;
 
 function startPlay() {
   AudioSys.init();
-  Act.reset(); Events.reset(); CarLife.reset(); Som.on = false; Radio.stop();
+  Act.reset(); Events.reset(); CarLife.reset(); Som.on = false; Radio.stop(); Settings.radioOff = true; if (typeof saveSettings === "function") saveSettings(); // a rádio sempre começa desligada (liga no F)
   player = new Player(Profile.current);
   let pos = World.home;
   const sp = Profile.pos;
@@ -25,12 +25,12 @@ function startPlay() {
   // primeira vez no jogo: o Seu Zé manda um áudio de boas-vindas no zap (toca sozinho uma vez)
   if (!Profile.welcomed) {
     Profile.welcomed = true;
-    setTimeout(() => {
+    aposCarregar(() => {
       if (Game.mode !== 'play') { Profile.welcomed = false; return; }
       const m = charVoice('boas_vindas');
       if (m && m.voice) VoicePlayer.play(m);
       saveGame();
-    }, 9500);
+    }, 2.5);
   }
 }
 // tela de carregamento entre o menu e o jogo, com dica
@@ -43,7 +43,7 @@ function withTransit(fn) {
   let tipI = 0; tipEl.innerHTML = '<b>DICA</b>' + tips[0]; tipEl.style.opacity = 1;
   txt.textContent = MSG[0]; fill.style.width = '0%';
   el.classList.remove('hidden', 'fade');
-  Game.carregando = true; // a rádio espera o fim do carregamento
+  Game.carregando = true; Game.posCarga = 0; // nada fala nem reage antes do fim do carregamento
   const t0 = performance.now(), D = 6600;
   setTimeout(fn, 40); // monta o jogo por trás da tela de carregamento
   const step = (now) => {
@@ -58,11 +58,21 @@ function withTransit(fn) {
   requestAnimationFrame(step);
 }
 function newGame() { withTransit(newGameNow); }
+// coisas que só acontecem depois que a tela de carregamento some (falas, avisos, tutorial)
+const AposCarga = { fila: [] };
+function aposCarregar(fn, s) { AposCarga.fila.push({ fn, s: s || 0 }); }
+function carregou(seg) { return !Game.carregando && (Game.posCarga === undefined || Game.posCarga >= (seg || 0)); }
+AposCarga.update = function (dt) {
+  if (Game.carregando) return;
+  if (Game.posCarga !== undefined) Game.posCarga += dt;
+  const pc = Game.posCarga === undefined ? 1e9 : Game.posCarga;
+  for (let i = this.fila.length - 1; i >= 0; i--) { const q = this.fila[i]; if (pc >= q.s) { this.fila.splice(i, 1); try { q.fn(); } catch (e) { console.error(e); } } }
+};
 function newGameNow() {
   Profile = newProfile();
   startPlay();
   saveGame();
-  setTimeout(() => toast('Bem-vindo a São Gambiarra', 'A noite é sua. Explore à vontade — pare nos comércios e aperte E para pegar entregas.', 'info'), 600);
+  aposCarregar(() => toast('Bem-vindo a São Gambiarra', 'A noite é sua. Explore à vontade — pare nos comércios e aperte E para pegar entregas.', 'info'), 0.6);
   Profile.tut = 0; Tutorial.t = 0; Tutorial.d0 = Profile.distance || 0; Tutorial.shown = -1; Tutorial.rapido = false;
 }
 function continueGame() {
@@ -73,7 +83,7 @@ function continueGame() {
 function continueGameNow(p) {
   Profile = p;
   startPlay();
-  setTimeout(() => toast('Bem-vindo de volta', 'R$ ' + fmtMoney(Profile.money) + ' na carteira · ' + carById(Profile.current).name, 'info'), 500);
+  aposCarregar(() => toast('Bem-vindo de volta', 'R$ ' + fmtMoney(Profile.money) + ' na carteira · ' + carById(Profile.current).name, 'info'), 0.6);
 }
 function saveGame() {
   if (player && Game.mode === 'play') Profile.pos = { x: player.x, y: player.y, a: player.a };
@@ -148,6 +158,7 @@ function stepPlay(dt) {
   Som.update(dt);
   Socorro.update(dt);
   Achievements.check(dt);
+  Historia.update(dt);
   Weather.updatePlayer(dt, player);
   Police.update(dt);
   if (CHEATS_ENABLED && Cheats.god && (Profile.damage > 0 || (Profile.zones && (Profile.zones.f || Profile.zones.r || Profile.zones.l || Profile.zones.rt)))) { Profile.damage = 0; Profile.zones = { f: 0, r: 0, l: 0, rt: 0, seed: ((Profile.zones && Profile.zones.seed) || 0) + 1 }; }
@@ -183,15 +194,16 @@ function frame(now) {
   if (st === 'playing' || st === 'menu') {
     accT += dt;
     let n = 0;
-    while (accT >= STEP && n < 12) { if (st === 'playing') stepPlay(STEP); else stepMenu(STEP); accT -= STEP; n++; }
+    while (accT >= STEP && n < 12) { if (st === 'playing') { if (!Game.carregando) stepPlay(STEP); } else stepMenu(STEP); accT -= STEP; n++; }
     if (n >= 12) accT = 0;
     updateCamera(dt);
     updateFireflies(dt);
     Weather.update(dt);
   } else accT = 0;
+  AposCarga.update(dt);
   Radio.update(dt);
-  Ambiente.update(dt); // sons de ambiente por região
-  PedVoz.update(); Atropelo.update(dt); Colecao.update(dt); // voz do pedestre abaixando com a distância; atropelamento
+  if (!Game.carregando) { Ambiente.update(dt); PedVoz.update(); } // sons de ambiente por região; voz do pedestre
+  Atropelo.update(dt); Colecao.update(dt); // voz do pedestre abaixando com a distância; atropelamento
   AudioSys.hornOn = Game.state === 'playing' && !!key.horn();
   render();
   updateHUD(dt);
@@ -205,7 +217,7 @@ function frame(now) {
     const river = Math.max(clamp(1 - (Math.abs(Cam.x - riverCX(Cam.y)) - 160) / 650, 0, 1), clamp(1 - (SEA_Y - Cam.y) / 700, 0, 1) * 1.3); // rio e mar
     const p = player;
     AudioSys.update({
-      active: Game.state === 'playing' && !!p, rpm: p ? p.rpm : 900, thr: p ? p.thr : 0, speed: p ? p.speed : 0, slip: p ? p.slip : 0,
+      active: Game.state === 'playing' && !Game.carregando && !!p, rpm: p ? p.rpm : 900, thr: p ? p.thr : 0, speed: p ? p.speed : 0, slip: p ? p.slip : 0,
       surfaceRough: p ? SURF[p.surface].rough : 0, paved: p ? (p.surface === SF.ROAD || p.surface === SF.PAVED || p.surface === SF.BRIDGE || p.surface === SF.SIDEWALK) : true, rural: R.rural, city: R.city, river, pitch: p ? p.car.pitch : 1, cyl: p ? (p.car.cyl || 4) : 4,
     });
     let md = Infinity;

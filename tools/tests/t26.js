@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
   const errs = []; p.on('pageerror', e => errs.push(e.message + e.stack)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
   await p.goto('file://' + process.cwd() + '/wrapped.html');
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 40000 });
-  await p.click('[data-act="play"]'); await p.waitForTimeout(500);
+  await p.click('[data-act="play"]'); await p.waitForFunction(() => Game.carregando === false, null, { timeout: 30000 }); await p.waitForTimeout(500);
   const L = (...a) => console.log(...a);
   // celular e mensagem
   await p.keyboard.press('KeyQ'); await p.waitForTimeout(300); await p.screenshot({ path: 'p1.png' });

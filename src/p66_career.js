@@ -176,6 +176,13 @@ const CHAR_VOICES = {
   ze_nao: { from: 'Seu Zé (Oficina)', text: 'Rapá, de novo? Ainda tem fiado pendurado aqui! Fiado é igual sogra: uma vez a gente aguenta, duas já é abuso. Acerta comigo que eu vou voando!' },
   biu_socorro: { from: 'Seu Biu (Bananas)', text: 'Ô meu patrão, a carreta tombou! Tá banana pra todo lado, parece feira depois de terremoto! Me ajuda aqui, pelo amor de Deus, que eu pago cada caixa!' },
   boas_vindas: { from: 'Seu Zé (Oficina)', text: 'Ô meu filho, seja bem-vindo a São Gambiarra! Aqui é o Seu Zé, da oficina. Pegou a chave do carro? Então bora rodar: corrida no PegaAí, frete, e foge dos buracos, que aqui tem mais buraco que queijo suíço. Bateu? Vem na oficina que eu ajeito. Vai com Deus, e devagar, viu?' },
+  cap_2: { from: 'Seu Zé (Oficina)', text: 'Ô meu filho, viu aquele Opalha 6C preto no fundo da oficina? Pois é... tá à venda! R$ 29.000 e ele é seu. Começa pelo PegaAí: faz cinco corridas e vem me contar!' },
+  cap_3: { from: 'Seu Zé (Oficina)', text: 'Mandou bem nas corridas, bicho! Mas o Opalha não se paga sozinho, né? Pega umas entregas aí nos comércios. Faz três entregas que eu te conto um segredo.' },
+  cap_4: { from: 'Seu Zé (Oficina)', text: 'O segredo é esse: quem ajuda a cidade, a cidade ajuda de volta. De madrugada sempre tem alguém precisando de socorro. Fica de olho e ajuda duas pessoas aí, meu filho!' },
+  cap_5: { from: 'Seu Zé (Oficina)', text: 'Rapá, o povo só fala de você! Agora vai lá pra roça encarar o Rali da Vaca Atolada. Lama até o para-choque, mas quem termina ganha respeito. E não atola, hein!' },
+  cap_6: { from: 'Seu Zé (Oficina)', text: 'Tá pronto, meu filho. Hoje de madrugada tem racha. Ganha um e a cidade inteira vai saber quem é você. Mas vai com cuidado, que eu não quero conserto!' },
+  cap_7: { from: 'Seu Zé (Oficina)', text: 'Olha só pra você! Agora é só juntar o dinheiro. O Opalha tá aqui te esperando, encerado e de tanque cheio. R$ 29.000 e a chave é sua!' },
+  cap_fim: { from: 'Seu Zé (Oficina)', text: 'Ô meu filho, que orgulho! O Opalha agora é seu. Lembra do primeiro dia, do Gou Quadrado tossindo? Pois é. São Gambiarra inteira tá falando de você. Agora, ó... e o fiado?' },
   banco_atraso: { from: 'Banestresse', text: 'Olá. Aqui é a assistente virtual do Banestresse. Identificamos uma parcela em atraso. Os juros já estão trabalhando por você. Tenha uma ótima noite.' },
 };
 function charVoice(key, from, fallbackText) {

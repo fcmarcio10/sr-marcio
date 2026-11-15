@@ -1306,3 +1306,29 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 .confete { position: fixed; inset: 0; pointer-events: none; z-index: 31; overflow: hidden; }
 .confete i { position: absolute; top: 26%; width: 8px; height: 12px; border-radius: 2px; opacity: 0; animation-name: confete; animation-timing-function: cubic-bezier(.2, .6, .4, 1); animation-fill-mode: forwards; }
 @keyframes confete { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(var(--dx), 70vh) rotate(var(--rz)); } }
+/* aviso grande de cada passo do tutorial */
+#tut-pop { position: fixed; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(0.9); opacity: 0; pointer-events: none; z-index: 45; text-align: center; padding: 18px 30px 20px; min-width: min(420px, calc(100vw - 32px)); max-width: calc(100vw - 32px); background: linear-gradient(180deg, rgba(20, 16, 30, 0.92), rgba(12, 10, 20, 0.92)); border: 1px solid rgba(255, 210, 63, 0.6); border-radius: 16px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55); visibility: hidden; }
+#tut-pop.on { visibility: visible; animation: tpIn 0.45s cubic-bezier(.2, 1.4, .4, 1) forwards; }
+#tut-pop.on.sai { animation: tpOut 0.5s ease-in forwards; }
+#tut-pop .tp-n { font: 600 12px/1 'BRND Sans', sans-serif; letter-spacing: 0.18em; color: #ffd23f; }
+#tut-pop .tp-t { font: 400 34px/1.1 'BRND Anton', sans-serif; color: #fff; margin: 8px 0 6px; text-transform: uppercase; letter-spacing: 0.02em; }
+#tut-pop .tp-d { font: 500 16px/1.35 'BRND Sans', sans-serif; color: rgba(255, 255, 255, 0.85); }
+#tut-pop kbd { display: inline-block; padding: 1px 7px; border-radius: 5px; background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.3); font: 600 14px 'BRND Sans', sans-serif; }
+@keyframes tpIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes tpOut { from { opacity: 1; transform: translate(-50%, -50%) scale(1); } to { opacity: 0; transform: translate(-50%, -80%) scale(0.95); visibility: hidden; } }
+/* história: cartaz de capítulo, painel e lista na pausa */
+#hud-objective.historia { border-color: rgba(255, 210, 63, 0.5); }
+#hist-pop { position: fixed; left: 50%; top: 34%; transform: translate(-50%, -50%); opacity: 0; visibility: hidden; pointer-events: none; z-index: 46; text-align: center; padding: 22px 40px 24px; min-width: min(480px, calc(100vw - 32px)); max-width: calc(100vw - 32px); background: radial-gradient(120% 140% at 50% 0%, rgba(60, 40, 10, 0.95), rgba(10, 8, 16, 0.94)); border: 1px solid rgba(255, 210, 63, 0.7); border-radius: 18px; box-shadow: 0 22px 60px rgba(0, 0, 0, 0.6); }
+#hist-pop.on { visibility: visible; animation: tpIn 0.55s cubic-bezier(.2, 1.4, .4, 1) forwards; }
+#hist-pop.on.sai { animation: tpOut 0.6s ease-in forwards; }
+#hist-pop .hp-n { font: 600 13px/1 'BRND Sans', sans-serif; letter-spacing: 0.25em; color: #ffd23f; }
+#hist-pop .hp-t { font: 400 46px/1.05 'BRND Anton', sans-serif; color: #fff; margin: 10px 0 8px; text-transform: uppercase; background: linear-gradient(180deg, #fff 30%, #ffd23f); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+#hist-pop .hp-d { font: 500 17px/1.35 'BRND Sans', sans-serif; color: rgba(255, 255, 255, 0.85); }
+#hist-pop.grande .hp-t { font-size: 60px; }
+#pause-hist { margin: 4px 0 12px; }
+#pause-hist .hist-tit { font: 600 11px/1 'BRND Sans', sans-serif; letter-spacing: 0.18em; color: #ffd23f; margin-bottom: 8px; text-align: center; }
+#pause-hist .hist-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; }
+.hist-cap { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); font: 500 13px 'BRND Sans', sans-serif; color: rgba(255, 255, 255, 0.45); }
+.hist-cap b { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.1); font-size: 11px; }
+.hist-cap.ok { color: #9be88f; } .hist-cap.ok b { background: #3aa655; color: #fff; }
+.hist-cap.at { color: #fff; outline: 1px solid rgba(255, 210, 63, 0.6); } .hist-cap.at b { background: #ffd23f; color: #222; }

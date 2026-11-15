@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
   await p.goto('file://' + process.cwd() + '/wrapped.html');
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 90000 });
   await p.evaluate(() => localStorage.clear());
-  await p.click('[data-act="play"]'); await p.waitForTimeout(8000);
+  await p.click('[data-act="play"]'); await p.waitForFunction(() => Game.carregando === false, null, { timeout: 30000 }); await p.waitForTimeout(2500);
   const passo = () => p.evaluate(() => ({ tut: Profile.tut, txt: (document.querySelector('#tutorial .tut-text') || {}).textContent, quem: (document.querySelector('#tutorial .tut-who') || {}).textContent, vis: !document.getElementById('tutorial').classList.contains('hidden') }));
   const L = [];
   L.push(await passo());

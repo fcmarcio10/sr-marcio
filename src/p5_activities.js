@@ -225,6 +225,7 @@ function finishRace() {
   v = Math.max(v, 40);
   const record = t < prev.best;
   Profile.races[r.id] = { best: Math.min(prev.best, t), medal: Math.max(prev.medal, medal) };
+  if (r.id === 'fazenda') Profile.histRali = (Profile.histRali || 0) + 1; // capítulo 5 da história
   Act.race = null;
   AudioSys.chime();
   pay(v);

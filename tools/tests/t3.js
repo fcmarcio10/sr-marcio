@@ -8,7 +8,7 @@ const OUT = process.argv[2];
   p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message + '\n' + e.stack));
   await p.goto('file:///home/user/sr-marcio/index.html');
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 30000 });
-  await p.click('[data-act="play"]');
+  await p.click('[data-act="play"]'); await p.waitForFunction(() => Game.carregando === false, null, { timeout: 30000 });
   await p.waitForTimeout(500);
   const log = (...a) => console.log(...a);
   // 1. entrega na padaria
@@ -88,7 +88,7 @@ const OUT = process.argv[2];
   await p.keyboard.press('Escape'); await p.waitForTimeout(200);
   await p.click('#screen-pause [data-act="save-quit"]'); await p.waitForTimeout(300);
   log('menu:', await p.evaluate(() => [Game.mode, Screens.current, document.getElementById('btn-continue').disabled]));
-  await p.click('[data-act="continue"]'); await p.waitForTimeout(500);
+  await p.click('[data-act="continue"]'); await p.waitForFunction(() => Game.carregando === false, null, { timeout: 30000 }); await p.waitForTimeout(500);
   log('continued:', await p.evaluate(() => [Game.mode, player.car.id, Profile.money]));
   console.log(errs.join('\n') || 'no errors');
   await b.close();

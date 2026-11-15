@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
   const errs = []; p.on('pageerror', e => errs.push(e.message + e.stack));
   await p.goto('file://' + process.cwd() + '/wrapped.html');
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 40000 });
-  await p.click('[data-act="play"]'); await p.waitForTimeout(600);
+  await p.click('[data-act="play"]'); await p.waitForFunction(() => Game.carregando === false, null, { timeout: 30000 }); await p.waitForTimeout(600);
   await p.evaluate(() => { Profile.tut = 99; Settings.weather = 'limpo'; Weather.rain = Weather.wet = 0; });
   const shots = [['M1', 6300, 6260, 0.9, true], ['M2', 5450, 8700, 1.0, true]];
   for (const [n, x, y, z, bright] of shots) {
