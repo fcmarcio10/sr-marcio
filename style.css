@@ -576,13 +576,13 @@ body.tr-bigphone #screen-phone, body.vt-cel #screen-phone { background: rgba(3, 
 #phone-body > * { flex-shrink: 0; }
 .phone-home { pointer-events: auto; cursor: pointer; position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 124px; height: 5px; border: 0; border-radius: 3px; background: rgba(255, 255, 255, 0.85); margin: 0; z-index: 5; }
 .phone-home:hover { background: #fff; }
-/* barra de botões (para quem prefere botão a gesto): bolinha = início, seta = voltar */
-.phone-nav { flex-shrink: 0; height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 46px 6px; background: rgba(0, 0, 0, 0.55); z-index: 5; }
-.phone-nav button { pointer-events: auto; cursor: pointer; width: 44px; height: 32px; border: 0; border-radius: 16px; background: transparent; display: flex; align-items: center; justify-content: center; padding: 0; }
-.phone-nav button:hover { background: rgba(255, 255, 255, 0.12); }
-.phone-nav button:active { background: rgba(255, 255, 255, 0.24); }
-.pn-dot { width: 15px; height: 15px; border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, 0.9); box-sizing: border-box; }
-.pn-seta { width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-right: 13px solid rgba(255, 255, 255, 0.9); }
+/* barra de botões (para quem prefere botão a gesto): seta = voltar (esquerda), bolinha = início (direita) */
+.phone-nav { flex-shrink: 0; height: 42px; display: flex; align-items: center; justify-content: space-between; padding: 2px 51px 6px; background: linear-gradient(180deg, rgba(10, 12, 18, 0.55), rgba(0, 0, 0, 0.82)); border-top: 1px solid rgba(255, 255, 255, 0.07); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 5; }
+.phone-nav button { pointer-events: auto; cursor: pointer; width: 48px; height: 34px; border: 0; border-radius: 17px; background: transparent; display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.15s, transform 0.1s; }
+.phone-nav button:hover { background: rgba(255, 255, 255, 0.1); }
+.phone-nav button:active { background: rgba(255, 255, 255, 0.22); transform: scale(0.9); }
+.pn-dot { width: 16px; height: 16px; border-radius: 50%; border: 2.2px solid rgba(255, 255, 255, 0.92); box-sizing: border-box; box-shadow: 0 0 6px rgba(255, 255, 255, 0.25); }
+.pn-seta { width: 11px; height: 11px; border-left: 2.6px solid rgba(255, 255, 255, 0.92); border-bottom: 2.6px solid rgba(255, 255, 255, 0.92); border-radius: 1.5px; transform: translateX(2px) rotate(45deg); }
 /* tela inicial */
 .ph-lock { text-align: center; padding: 6px 0 18px; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); }
 .ph-date { font: 600 13px -apple-system, "Segoe UI", sans-serif; color: rgba(255, 255, 255, 0.85); }
