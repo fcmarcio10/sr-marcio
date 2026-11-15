@@ -6768,7 +6768,7 @@ Events.update = function (dt) {
   // ignorou: expira
   // convite na tela: corre só com o jogo na tela; se ignorar, conta como recusado
   if (E.stage === 'offer') {
-    if (!Screens.current) E.offerT -= dt;
+    if (telaLivre()) E.offerT -= dt;
     Offer.tick(E);
     if (E.offerT <= 0) { this.answerOffer(false); return; }
   }
@@ -6783,7 +6783,7 @@ Events.update = function (dt) {
     if (E.type === 'quebrado') { E.leave = { v: 0 }; }
     return;
   }
-  const canPrompt = !Act.prompt && sp < 70 && !Screens.current;
+  const canPrompt = !Act.prompt && sp < 70 && telaLivre();
   const prompt = (text, act) => { if (canPrompt) Act.prompt = { text, act }; };
   const busyMsg = () => toast('Termine o serviço atual', 'Você já está com uma corrida ou entrega. Finalize primeiro.', 'bad');
   switch (E.type) {
@@ -10583,16 +10583,27 @@ const Screens = {
   onOpen(id) {
     if (id === 'screen-settings') syncSettingsUI();
     if (id === 'screen-garage') Garage.render();
-    if (id === 'screen-phone' && typeof Phone !== 'undefined') Phone.render();
+    if (id === 'screen-phone' && typeof Phone !== 'undefined') { Phone.render(); requestAnimationFrame(ajustaCelular); }
     if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
     if (id === 'screen-pause') renderPauseStats();
     if (id === 'screen-main') $('btn-continue').disabled = !hasSave;
     if (id === 'screen-pause') $('btn-abandon').disabled = !(Act.race || Act.delivery || Act.waypoint);
   },
 };
+// tela livre para o jogo: nada aberto ou só o celular (o celular não pausa o jogo)
+function telaLivre() { return !Screens.current || Screens.current === 'screen-phone'; }
+// tamanho do celular: cabe entre o topo da tela e o painel do carro
+function ajustaCelular() {
+  const d = $('hud-dash'), ph = document.querySelector('#screen-phone .phone'); if (!d || !ph) return;
+  const dh = d.offsetHeight || 270, h = ph.offsetHeight || 640, livre = window.innerHeight - dh - 18 - 30 - 14;
+  document.documentElement.style.setProperty('--dash-h', dh + 'px');
+  document.documentElement.style.setProperty('--ph-s', clamp(livre / h, 0.45, 0.85).toFixed(3));
+}
+window.addEventListener('resize', () => { if (Screens.current === 'screen-phone') ajustaCelular(); });
 function updateHudVisibility() {
-  const show = Game.mode === 'play' && (!Screens.current || Screens.current === 'screen-dialog');
+  const show = Game.mode === 'play' && (!Screens.current || Screens.current === 'screen-dialog' || Screens.current === 'screen-phone');
   $('hud').classList.toggle('hidden', !show);
+  document.body.classList.toggle('cel-aberto', Game.mode === 'play' && Screens.current === 'screen-phone' && !document.body.classList.contains('tr-bigphone'));
 }
 
 /* ---------- botões e menus ---------- */
@@ -11176,7 +11187,7 @@ function updateHUD(dt) {
     const lo = !!player.lightsOff; if (UI.last.lo !== lo) { UI.last.lo = lo; $('hud-dash').classList.toggle('lights-off', lo); }
     if (UI.last.som !== Som.on) { UI.last.som = Som.on; $('hud-dash').classList.toggle('som-on', Som.on); } }
   // prompt
-  const pr = Act.prompt && !Screens.current ? '<kbd>E</kbd>' + escapeHtml(Act.prompt.text) : '';
+  const pr = Act.prompt && telaLivre() ? '<kbd>E</kbd>' + escapeHtml(Act.prompt.text) : '';
   if (UI.last.prompt !== pr) { UI.last.prompt = pr; const el = $('prompt'); el.innerHTML = pr; el.classList.toggle('hidden', !pr); }
   // percurso
   const rt = Act.race && Act.race.count <= 0 ? fmtTime(Act.race.t) : '';
@@ -11191,7 +11202,7 @@ function escapeHtml(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&am
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {
   mode: 'menu', time: 0, autosaveT: 30, fpsT: 0, fpsN: 0,
-  get state() { return this.mode === 'menu' ? 'menu' : (Screens.current ? 'paused' : 'playing'); },
+  get state() { return this.mode === 'menu' ? 'menu' : (Screens.current && Screens.current !== 'screen-phone' ? 'paused' : 'playing'); }, // celular aberto não pausa
 };
 const NIGHT_START = 19 * 60 + 30, NIGHT_END = 29 * 60;
 

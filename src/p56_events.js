@@ -373,7 +373,7 @@ Events.update = function (dt) {
   // ignorou: expira
   // convite na tela: corre só com o jogo na tela; se ignorar, conta como recusado
   if (E.stage === 'offer') {
-    if (!Screens.current) E.offerT -= dt;
+    if (telaLivre()) E.offerT -= dt;
     Offer.tick(E);
     if (E.offerT <= 0) { this.answerOffer(false); return; }
   }
@@ -388,7 +388,7 @@ Events.update = function (dt) {
     if (E.type === 'quebrado') { E.leave = { v: 0 }; }
     return;
   }
-  const canPrompt = !Act.prompt && sp < 70 && !Screens.current;
+  const canPrompt = !Act.prompt && sp < 70 && telaLivre();
   const prompt = (text, act) => { if (canPrompt) Act.prompt = { text, act }; };
   const busyMsg = () => toast('Termine o serviço atual', 'Você já está com uma corrida ou entrega. Finalize primeiro.', 'bad');
   switch (E.type) {

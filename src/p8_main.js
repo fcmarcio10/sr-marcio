@@ -1,7 +1,7 @@
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {
   mode: 'menu', time: 0, autosaveT: 30, fpsT: 0, fpsN: 0,
-  get state() { return this.mode === 'menu' ? 'menu' : (Screens.current ? 'paused' : 'playing'); },
+  get state() { return this.mode === 'menu' ? 'menu' : (Screens.current && Screens.current !== 'screen-phone' ? 'paused' : 'playing'); }, // celular aberto não pausa
 };
 const NIGHT_START = 19 * 60 + 30, NIGHT_END = 29 * 60;
 

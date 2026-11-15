@@ -545,7 +545,11 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 #dialog-portrait { display: block; margin: 0 auto 12px; border-radius: 12px; background: #20242c; border: 2px solid rgba(255, 210, 63, 0.5); }
 
 /* ================= CELULAR (Pera 15 Pro) ================= */
-#screen-phone { background: rgba(3, 5, 12, 0.45); justify-content: flex-end; padding-right: max(5vw, 16px); }
+/* o celular abre em cima do painel do carro e o jogo continua rodando (dá para dirigir com ele aberto) */
+#screen-phone { background: transparent; pointer-events: none; align-items: flex-end; justify-content: flex-end; padding: 0 18px calc(var(--dash-h, 270px) + 30px) 0; }
+#screen-phone .phone { pointer-events: auto; transform: scale(var(--ph-s, 0.78)); transform-origin: bottom right; }
+body.cel-aberto #toasts { right: calc(306px * var(--ph-s, 0.78) + 36px); }
+body.tr-bigphone #screen-phone, body.vt-cel #screen-phone { background: rgba(3, 5, 12, 0.45); align-items: center; padding-bottom: 0; }
 .phone {
   width: 306px; height: min(640px, 90vh); border-radius: 52px; padding: 11px; box-sizing: border-box;
   background: linear-gradient(145deg, #5b5e66, #24262b 30%, #17181c 60%, #4a4d55);
