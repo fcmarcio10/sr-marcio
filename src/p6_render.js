@@ -120,7 +120,7 @@ function roofSprite(b) {
   const w = Math.ceil(b.x1 - b.x0), h = Math.ceil(b.y1 - b.y0);
   const c = makeCanvas(w, h), g = c.getContext('2d');
   const R = mulberry32(b.seed);
-  const rc = b.roofColor;
+  const rc = b.roofColor, occ = []; // occ: cantos já ocupados (nada fica por cima de nada)
   switch (b.roofType) {
     case 'hip': case 'gable': case 'gableV': case 'tower': {
       g.fillStyle = rc; g.fillRect(0, 0, w, h);
@@ -197,6 +197,7 @@ function roofSprite(b) {
       g.strokeStyle = shade(rc, -0.35); g.lineWidth = 3; g.strokeRect(1.5, 1.5, w - 3, h - 3);
       const tx = R() < 0.5 ? 12 : w - 12, ty = R() < 0.5 ? 12 : h - 12;
       g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.arc(tx + 2, ty + 2, 8, 0, TAU); g.fill();
+      occ.push([tx - 10, ty - 10, tx + 10, ty + 10]);
       g.fillStyle = '#3b7fc4'; g.beginPath(); g.arc(tx, ty, 7.5, 0, TAU); g.fill();
       g.fillStyle = '#5a9be0'; g.beginPath(); g.arc(tx - 1, ty - 1, 4.5, 0, TAU); g.fill();
       g.strokeStyle = '#2a5f96'; g.lineWidth = 1; g.beginPath(); g.arc(tx, ty, 7.5, 0, TAU); g.stroke();
@@ -218,6 +219,7 @@ function roofSprite(b) {
       g.fillStyle = 'rgba(0,0,0,0.1)'; for (let i = 0; i < 8; i++) { g.beginPath(); g.ellipse(R() * w, R() * h, 3 + R() * 8, 2 + R() * 5, 0, 0, TAU); g.fill(); }
       // segundo andar em obra (tijolo baiano aparente)
       const bw = w * (0.45 + R() * 0.3), bh = h * (0.5 + R() * 0.3), bx = R() < 0.5 ? 0 : w - bw, by = R() < 0.5 ? 0 : h - bh;
+      occ.push([bx, by, bx + bw, by + bh]);
       g.fillStyle = '#b5603a'; g.fillRect(bx, by, bw, bh);
       g.fillStyle = 'rgba(70,25,10,0.55)';
       for (let yy = by; yy < by + bh; yy += 4) { g.fillRect(bx, yy, bw, 0.8); for (let xx = bx + ((yy - by) / 4 % 2) * 4; xx < bx + bw; xx += 8) g.fillRect(xx, yy, 0.8, 4); }
@@ -247,6 +249,7 @@ function roofSprite(b) {
       const n = Math.floor(w * h / (big ? 4000 : 6000));
       for (let i = 0; i < n; i++) {
         const x = 8 + R() * (w - 26), y = 8 + R() * (h - 22), kind = R();
+        occ.push([x - 1, y - 1, x + 18, y + 15]);
         if (kind < 0.55) {
           g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x + 2, y + 2, 12, 9);
           g.fillStyle = '#b8b8b2'; g.fillRect(x, y, 12, 9); g.fillStyle = '#5a5a58'; g.beginPath(); g.arc(x + 6, y + 4.5, 3, 0, TAU); g.fill();
@@ -261,26 +264,30 @@ function roofSprite(b) {
       }
       if (big && w > 70 && h > 70 && R() < 0.5) {
         g.strokeStyle = 'rgba(230,230,220,0.7)'; g.lineWidth = 2;
+        occ.push([w / 2 - 20, h / 2 - 20, w / 2 + 20, h / 2 + 20]);
         g.beginPath(); g.arc(w / 2, h / 2, 18, 0, TAU); g.stroke();
         g.font = 'bold 20px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(230,230,220,0.7)'; g.fillText('H', w / 2, h / 2 + 1);
       }
-      if (big && R() < 0.6) { g.strokeStyle = '#888'; g.lineWidth = 1.2; g.beginPath(); const ax = w - 14, ay = 14; g.moveTo(ax, ay); g.lineTo(ax - 10, ay + 12); g.moveTo(ax - 4, ay + 4); g.lineTo(ax + 3, ay + 8); g.stroke(); b.antenna = [ax, ay]; }
+      if (big && R() < 0.6) { g.strokeStyle = '#888'; g.lineWidth = 1.2; g.beginPath(); const ax = w - 14, ay = 14; occ.push([ax - 12, ay - 2, ax + 5, ay + 14]); g.moveTo(ax, ay); g.lineTo(ax - 10, ay + 12); g.moveTo(ax - 4, ay + 4); g.lineTo(ax + 3, ay + 8); g.stroke(); b.antenna = [ax, ay]; }
     }
   }
   // detalhes de laje: antena parabólica e varal de roupas
   if (b.dish && w > 22 && h > 22) {
     const dx = R() < 0.5 ? 8 : w - 8, dy = R() < 0.5 ? h - 8 : 8;
     g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.arc(dx + 1.5, dy + 1.5, 5.5, 0, TAU); g.fill();
+    occ.push([dx - 7, dy - 7, dx + 7, dy + 7]);
     g.fillStyle = '#d8d8d2'; g.beginPath(); g.arc(dx, dy, 5.5, 0, TAU); g.fill();
     g.fillStyle = '#a8a8a2'; g.beginPath(); g.arc(dx + 1, dy + 1, 3.2, 0, TAU); g.fill();
     g.fillStyle = '#555'; g.fillRect(dx - 0.6, dy - 0.6, 1.2, 1.2);
   }
   if (b.varal && w > 30 && h > 24) {
     const vy = h * (0.3 + R() * 0.4), vx0 = w * 0.15, vx1 = w * 0.85;
+    occ.push([vx0 - 2, vy - 2, vx1 + 2, vy + 9]); // varal com roupa
     g.strokeStyle = 'rgba(40,40,40,0.8)'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(vx0, vy); g.lineTo(vx1, vy); g.stroke();
     const clothes = ['#e63946', '#f1f1f1', '#3a86ff', '#f4c430', '#2bb24c', '#ff7f11', '#8338ec'];
     for (let x = vx0 + 2; x < vx1 - 5; x += 6 + R() * 3) { g.fillStyle = clothes[(R() * clothes.length) | 0]; g.fillRect(x, vy, 4 + R() * 2, 4 + R() * 3); }
   }
+  detalhesBR(b, g, w, h, occ);
   if (b.sign) {
     const fs = clamp(Math.min(w / (b.sign.length * 0.62), h * 0.42), 7, 22);
     g.font = `800 ${fs}px "Segoe UI", Roboto, Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -289,6 +296,46 @@ function roofSprite(b) {
   }
   b.roof = c;
   return c;
+}
+// detalhes brasileiros no telhado (sorteio próprio de cada casa; só onde está livre, nunca em cima de outra coisa)
+function detalhesBR(b, g, w, h, occ) {
+  if (b.sign || b.party || w < 34 || h < 30) return;
+  const Q = mulberry32((b.seed | 0) + 4242);
+  const livre = (x0, y0, x1, y1) => x0 >= 2 && y0 >= 2 && x1 <= w - 2 && y1 <= h - 2 && occ.every((o) => x1 <= o[0] || x0 >= o[2] || y1 <= o[1] || y0 >= o[3]);
+  const poe = (bw, bh, fn) => { // tenta os cantos e o meio das beiradas
+    const spots = [[4, 4], [w - 4 - bw, 4], [4, h - 4 - bh], [w - 4 - bw, h - 4 - bh], [w / 2 - bw / 2, 4], [w / 2 - bw / 2, h - 4 - bh]];
+    const k0 = (Q() * spots.length) | 0;
+    for (let i = 0; i < spots.length; i++) { const [x, y] = spots[(k0 + i) % spots.length]; if (livre(x, y, x + bw, y + bh)) { occ.push([x - 1, y - 1, x + bw + 1, y + bh + 1]); fn(x, y); return true; } }
+    return false;
+  };
+  const sombra = (x, y, ww, hh) => { g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(x + 1.5, y + 1.5, ww, hh); };
+  if (b.roofType === 'laje') {
+    // tanque de lavar roupa
+    if (Q() < 0.55) poe(11, 8, (x, y) => { sombra(x, y, 11, 8); g.fillStyle = '#e9e6dd'; g.fillRect(x, y, 11, 8); g.fillStyle = '#9fb2b8'; g.fillRect(x + 1.5, y + 1.5, 5, 5); g.fillStyle = '#c9c5bb'; g.fillRect(x + 7.5, y + 1.5, 2, 5); });
+    // cadeiras de plástico brancas e mesinha
+    if (Q() < 0.5) poe(18, 10, (x, y) => {
+      g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.arc(x + 10, y + 6, 4.5, 0, TAU); g.fill();
+      g.fillStyle = '#f4f2ea'; g.beginPath(); g.arc(x + 9, y + 5, 4.2, 0, TAU); g.fill();
+      for (const cx of [x + 1, x + 14]) { g.fillStyle = '#ecebe4'; g.fillRect(cx, y + 2, 3.6, 3.6); g.fillStyle = '#d5d3ca'; g.fillRect(cx, y + 1, 3.6, 1.3); }
+      g.fillStyle = '#c99a2e'; g.fillRect(x + 8, y + 4, 2, 2.6); // garrafa na mesa
+    });
+    // vasos de planta (samambaia e comigo-ninguém-pode)
+    const nv = Q() < 0.6 ? 2 + ((Q() * 2) | 0) : 0;
+    for (let i = 0; i < nv; i++) poe(6, 6, (x, y) => { g.fillStyle = '#9a5532'; g.beginPath(); g.arc(x + 3, y + 3, 2.8, 0, TAU); g.fill(); g.fillStyle = i % 2 ? '#3f8a3a' : '#2f7a2e'; g.beginPath(); for (let k = 0; k < 5; k++) { const a = k * 1.256 + Q(); g.moveTo(x + 3, y + 3); g.ellipse(x + 3 + Math.cos(a) * 2, y + 3 + Math.sin(a) * 2, 2.4, 1.1, a, 0, TAU); } g.fill(); });
+  } else if (b.roofType === 'amianto') {
+    // pneu velho e tijolos segurando a telha contra o vento
+    const np = 1 + ((Q() * 3) | 0);
+    for (let i = 0; i < np; i++) poe(8, 8, (x, y) => { g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.arc(x + 5, y + 5, 4, 0, TAU); g.fill(); g.strokeStyle = '#1d1d1f'; g.lineWidth = 2.4; g.beginPath(); g.arc(x + 4, y + 4, 2.8, 0, TAU); g.stroke(); });
+    const nt = 2 + ((Q() * 3) | 0);
+    for (let i = 0; i < nt; i++) poe(5, 3, (x, y) => { g.fillStyle = '#b0583a'; g.fillRect(x, y, 5, 3); g.fillStyle = 'rgba(60,20,10,0.5)'; g.fillRect(x, y + 2.2, 5, 0.8); });
+  } else if (b.roofType === 'hip' || b.roofType === 'gable' || b.roofType === 'gableV') {
+    // telhas trocadas (mais novas) e limo perto da calha
+    for (let i = 0; i < 3 + ((Q() * 4) | 0); i++) { const x = 6 + Q() * (w - 16), y = 6 + Q() * (h - 14); if (!livre(x, y, x + 5, y + 3)) continue; g.fillStyle = shade(b.roofColor, 0.22); g.fillRect(x, y, 5, 3); }
+    g.fillStyle = 'rgba(55,75,40,0.22)'; for (let i = 0; i < 4; i++) { const x = Q() * (w - 12); g.beginPath(); g.ellipse(x + 6, Q() < 0.5 ? 3 : h - 3, 6, 2, 0, 0, TAU); g.fill(); }
+  } else if ((b.roofType === 'flat' || !b.roofType) && b.h > 40) {
+    // prédio: caixa d'água de fibra azul em cima
+    poe(16, 16, (x, y) => { g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.arc(x + 9.5, y + 9.5, 7.5, 0, TAU); g.fill(); g.fillStyle = '#2f78c8'; g.beginPath(); g.arc(x + 8, y + 8, 7.5, 0, TAU); g.fill(); g.fillStyle = '#4f97e2'; g.beginPath(); g.arc(x + 7, y + 7, 4.3, 0, TAU); g.fill(); g.strokeStyle = '#1f5a9a'; g.lineWidth = 1; g.beginPath(); g.arc(x + 8, y + 8, 7.5, 0, TAU); g.stroke(); });
+  }
 }
 function signGlow(b) {
   if (b.glowSign) return b.glowSign;

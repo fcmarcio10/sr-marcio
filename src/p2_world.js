@@ -254,7 +254,7 @@ function decal(x0, y0, x1, y1, type, opt) {
 function decalR(r, type, opt) { return decal(r[0], r[1], r[2], r[3], type, opt); }
 
 /* -------- objetos -------- */
-const HOUSE_COLORS = ['#e8d9a8', '#f0c8a0', '#c9dfe8', '#e3b5b5', '#cfe3c1', '#f2efe6', '#e8c07a', '#d6c4e6', '#b9d4c9', '#f4dcc0', '#e1a77a', '#a9c6e0'];
+const HOUSE_COLORS = ['#e8d9a8', '#f0c8a0', '#8fd0c4', '#ee9fb4', '#b9d77a', '#f2efe6', '#f2c43a', '#d6c4e6', '#7cc7e8', '#f4dcc0', '#e8915a', '#a9c6e0']; // verde-água, rosa, verde-limão, amarelo-ovo, azul-piscina, laranja
 const WALL_COLORS = ['#d8d2c2', '#c9b79c', '#e6e0d0', '#b8b0a2', '#cfc6b0', '#9fa8a3', '#e2d2b6', '#c4a989'];
 const OFFICE_COLORS = ['#8c939e', '#a39a8b', '#6f7a87', '#b5ada0', '#7d8a8f', '#9c8f84', '#5f6b78', '#c2b8a8'];
 const ROOF_TILE = ['#a8492b', '#b8582f', '#93422a', '#c06a3c', '#8a3b24'];
