@@ -640,7 +640,7 @@ const Phone = {
     if (t.dataset.pgtab) { this.pgTab = t.dataset.pgtab; this.pgChat = null; phoneTone(900, 0.04, 0.05); this.render(); return; }
     if (t.dataset.pgchat) { this.pgChat = t.dataset.pgchat; AudioSys.click(); this.render(); return; }
     if (t.dataset.pgback) { this.pgChat = null; this.pgTab = 'msgs'; AudioSys.back(); this.render(); return; }
-    if (t.dataset.pgq && Act.ride) { const R = Act.ride; pgMsg(R, PG_QUICK[+t.dataset.pgq], null, true); phoneTone(1760, 0.05, 0.04); setTimeout(() => { if (Act.ride === R) pgMsg(R, pick(PG_ANS)); }, rnd(1500, 3000)); return; }
+    if (t.dataset.pgq && Act.ride) { const R = Act.ride, c = pgFind(R.rid); if (c && !pgCanReply(c)) return; pgMsg(R, PG_QUICK[+t.dataset.pgq], null, true); phoneTone(1760, 0.05, 0.04); setTimeout(() => { if (Act.ride === R) pgMsg(R, pick(PG_ANS)); }, rnd(1500, 3000)); return; }
     if (t.dataset.rcat) { const id = t.dataset.rcat; if (!rideTypeCheck(id) && id !== 'comum') { career().acc[id] = career().acc[id] === false; phoneTone(900, 0.04, 0.05); this.render(); } return; }
     if (t.dataset.vid) { const m = (Profile.msgs || []).concat(...pgChats().map((c) => c.msgs)).find((x) => x.vid === t.dataset.vid); if (m && m.voice) { if (VoicePlayer.msg === m) VoicePlayer.stop(); else VoicePlayer.play(m); } return; }
     if (t.dataset.loc) { Events.acceptLoc(+t.dataset.loc); return; }

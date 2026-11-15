@@ -74,7 +74,7 @@ function newRideRequest() {
   if (type === 'aero' || type === 'vip') R.tmax = len / (type === 'aero' ? 235 : 210) + (type === 'aero' ? 28 : 35);
   R.rid = 'r' + Date.now().toString(36) + Math.floor(Math.random() * 1e4);
   Act.ride = R; Act.gpsT = 0;
-  setTimeout(() => { if (Act.ride === R && R.stage === 'pickup') pgMsg(R, pick(PG_PICKUP[type])); }, rnd(2500, 5000));
+  setTimeout(() => { if (Act.ride === R && R.stage === 'pickup') { const tx = pick(PG_PICKUP[type]), m = pgMsg(R, tx); if (/\?$/.test(tx)) { m.ask = true; if (Screens.current === 'screen-phone' && Phone.app === 'pegaai') Phone.render(); } } }, rnd(2500, 5000)); // pergunta do passageiro libera mais uma resposta
   AudioSys.tone(988, 0.1, 'square', 0.06, 'ui'); AudioSys.tone(1319, 0.14, 'square', 0.06, 'ui', null, 0.12);
   toast(T.name + ': nova corrida', R.name + ' em ' + pk.name + ' · R$ ' + R.fare, type === 'comum' ? 'info' : 'good');
 }
@@ -432,6 +432,12 @@ function pgMsg(R, body, voice, me) {
   return m;
 }
 function pgFind(rid) { return pgChats().find((c) => c.rid === rid); }
+// o motorista responde uma vez só; os botões só voltam se o passageiro perguntar algo depois (mensagem com ask)
+function pgCanReply(c) {
+  const lastMe = c.msgs.map((m) => !!m.me).lastIndexOf(true);
+  if (lastMe < 0) return true;
+  return c.msgs.slice(lastMe + 1).some((m) => !m.me && m.ask);
+}
 function pgChatHTML(c) {
   c.read = true;
   const T = RIDE_TYPES[c.type] || RIDE_TYPES.comum, fmtT = (t) => { const v = Math.floor(t || 0) % 1440; return String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0'); };
@@ -443,7 +449,8 @@ function pgChatHTML(c) {
     else h += `<div class="pgc-msg ${m.me ? 'me' : ''}">${escapeHtml(m.body)}<i>${fmtT(m.t)}</i></div>`;
   }
   h += '</div>';
-  if (live) h += '<div class="pgc-quick">' + PG_QUICK.map((q, i) => `<button data-pgq="${i}">${escapeHtml(q)}</button>`).join('') + '</div>';
+  if (live && pgCanReply(c)) h += '<div class="pgc-quick">' + PG_QUICK.map((q, i) => `<button data-pgq="${i}">${escapeHtml(q)}</button>`).join('') + '</div>';
+  else if (live) h += '<div class="pgc-closed">Você já respondeu esta conversa</div>';
   else h += '<div class="pgc-closed">Corrida encerrada · não dá para enviar mensagens</div>';
   return h + '</div>';
 }

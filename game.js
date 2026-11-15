@@ -1661,7 +1661,9 @@ function buildRoadProps() {
       const ax = -dx, ay = -dy; // direção de chegada
       const rx = -ay, ry = ax;
       const off = e.hw + (e.T.sw ? 10 : 8);
-      const px = n.x + dx * (clear - 18) + rx * off, py = n.y + dy * (clear - 18) + ry * off;
+      // rua sem calçada (rodovia) chegando numa avenida: o poste vai para a calçada da avenida, não fica no asfalto dela
+      const per = e.a === n ? e.perpA : e.perpB, along = clear - 18 < per + 4 ? per + 12 : clear - 18;
+      const px = n.x + dx * along + rx * off, py = n.y + dy * along + ry * off;
       const pole = { kind: 'tlight', x: px, y: py, node: n, axis: e.h ? 'H' : 'V', a: Math.atan2(ay, ax), h: 50, hx: px - rx * 14, hy: py - ry * 14 };
       addTall(pole, px - 50, py - 50, px + 50, py + 50);
       addCircCol(px, py, 3, 'pole').brk = { kind: 'tall', obj: pole };
@@ -2312,7 +2314,8 @@ function buildLitoral() {
   orlaSorteioAntigo();
   const RG = RNG; RNG = mulberry32(8830);
   // embaixo da Serra (Feio Rosa, Cara-Pintada, Nova Prosa e Flexão): mata fechada descendo até o mar
-  forest(230, 8760, ORLA_X0, SEA_Y - 4);
+  // a mata para antes da esquina da Avenida Dante Micheline (não invade a pista nem vira parede invisível)
+  forest(230, 8760, 4530, SEA_Y - 4); forest(4530, 8815, ORLA_X0, SEA_Y - 4);
   for (const [x, y, r, h] of [[ORLA_X0 + 30, SAND_Y + 40, 46, 30], [ORLA_X0 + 2, SEA_Y - 8, 34, 20], [ORLA_X0 + 80, SEA_Y + 6, 22, 12]]) addRock(x, y, r, h); // pedras onde a praia começa
   // postes, coqueiros e quiosques na beira-mar
   for (let x = ORLA_X0 + 110; x < 8700; x += 230) {
@@ -6173,7 +6176,7 @@ const Phone = {
     if (t.dataset.pgtab) { this.pgTab = t.dataset.pgtab; this.pgChat = null; phoneTone(900, 0.04, 0.05); this.render(); return; }
     if (t.dataset.pgchat) { this.pgChat = t.dataset.pgchat; AudioSys.click(); this.render(); return; }
     if (t.dataset.pgback) { this.pgChat = null; this.pgTab = 'msgs'; AudioSys.back(); this.render(); return; }
-    if (t.dataset.pgq && Act.ride) { const R = Act.ride; pgMsg(R, PG_QUICK[+t.dataset.pgq], null, true); phoneTone(1760, 0.05, 0.04); setTimeout(() => { if (Act.ride === R) pgMsg(R, pick(PG_ANS)); }, rnd(1500, 3000)); return; }
+    if (t.dataset.pgq && Act.ride) { const R = Act.ride, c = pgFind(R.rid); if (c && !pgCanReply(c)) return; pgMsg(R, PG_QUICK[+t.dataset.pgq], null, true); phoneTone(1760, 0.05, 0.04); setTimeout(() => { if (Act.ride === R) pgMsg(R, pick(PG_ANS)); }, rnd(1500, 3000)); return; }
     if (t.dataset.rcat) { const id = t.dataset.rcat; if (!rideTypeCheck(id) && id !== 'comum') { career().acc[id] = career().acc[id] === false; phoneTone(900, 0.04, 0.05); this.render(); } return; }
     if (t.dataset.vid) { const m = (Profile.msgs || []).concat(...pgChats().map((c) => c.msgs)).find((x) => x.vid === t.dataset.vid); if (m && m.voice) { if (VoicePlayer.msg === m) VoicePlayer.stop(); else VoicePlayer.play(m); } return; }
     if (t.dataset.loc) { Events.acceptLoc(+t.dataset.loc); return; }
@@ -9435,7 +9438,7 @@ function newRideRequest() {
   if (type === 'aero' || type === 'vip') R.tmax = len / (type === 'aero' ? 235 : 210) + (type === 'aero' ? 28 : 35);
   R.rid = 'r' + Date.now().toString(36) + Math.floor(Math.random() * 1e4);
   Act.ride = R; Act.gpsT = 0;
-  setTimeout(() => { if (Act.ride === R && R.stage === 'pickup') pgMsg(R, pick(PG_PICKUP[type])); }, rnd(2500, 5000));
+  setTimeout(() => { if (Act.ride === R && R.stage === 'pickup') { const tx = pick(PG_PICKUP[type]), m = pgMsg(R, tx); if (/\?$/.test(tx)) { m.ask = true; if (Screens.current === 'screen-phone' && Phone.app === 'pegaai') Phone.render(); } } }, rnd(2500, 5000)); // pergunta do passageiro libera mais uma resposta
   AudioSys.tone(988, 0.1, 'square', 0.06, 'ui'); AudioSys.tone(1319, 0.14, 'square', 0.06, 'ui', null, 0.12);
   toast(T.name + ': nova corrida', R.name + ' em ' + pk.name + ' · R$ ' + R.fare, type === 'comum' ? 'info' : 'good');
 }
@@ -9793,6 +9796,12 @@ function pgMsg(R, body, voice, me) {
   return m;
 }
 function pgFind(rid) { return pgChats().find((c) => c.rid === rid); }
+// o motorista responde uma vez só; os botões só voltam se o passageiro perguntar algo depois (mensagem com ask)
+function pgCanReply(c) {
+  const lastMe = c.msgs.map((m) => !!m.me).lastIndexOf(true);
+  if (lastMe < 0) return true;
+  return c.msgs.slice(lastMe + 1).some((m) => !m.me && m.ask);
+}
 function pgChatHTML(c) {
   c.read = true;
   const T = RIDE_TYPES[c.type] || RIDE_TYPES.comum, fmtT = (t) => { const v = Math.floor(t || 0) % 1440; return String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0'); };
@@ -9804,7 +9813,8 @@ function pgChatHTML(c) {
     else h += `<div class="pgc-msg ${m.me ? 'me' : ''}">${escapeHtml(m.body)}<i>${fmtT(m.t)}</i></div>`;
   }
   h += '</div>';
-  if (live) h += '<div class="pgc-quick">' + PG_QUICK.map((q, i) => `<button data-pgq="${i}">${escapeHtml(q)}</button>`).join('') + '</div>';
+  if (live && pgCanReply(c)) h += '<div class="pgc-quick">' + PG_QUICK.map((q, i) => `<button data-pgq="${i}">${escapeHtml(q)}</button>`).join('') + '</div>';
+  else if (live) h += '<div class="pgc-closed">Você já respondeu esta conversa</div>';
   else h += '<div class="pgc-closed">Corrida encerrada · não dá para enviar mensagens</div>';
   return h + '</div>';
 }
