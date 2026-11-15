@@ -14,8 +14,8 @@ const { chromium } = require('playwright');
     const an = Animals.list.find((a) => a.type === 'person');
     player.place(an.x + 30, an.y, 0); Cam.x = an.x + 30; Cam.y = an.y; PedVoz.t = 0;
     PedVoz.fala(an, 'susto'); PedVoz.update(); const v0 = PedVoz.a ? PedVoz.a.volume : -1;
-    Cam.x = an.x + 300; PedVoz.update(); const v1 = PedVoz.a ? PedVoz.a.volume : 0;
-    Cam.x = an.x + 700; PedVoz.update(); const parou = !PedVoz.a;
+    Cam.x = an.x + 130; PedVoz.update(); const v1 = PedVoz.a ? PedVoz.a.volume : 0;
+    Cam.x = an.x + 230; PedVoz.update(); const parou = !PedVoz.a;
     return { v0: +v0.toFixed(2), v1: +v1.toFixed(2), parou, balao: typeof PedVoz.desenha };
   });
   console.log('voz:', JSON.stringify(voz)); ok.push(voz.v0 > voz.v1 && voz.v1 > 0 && voz.parou && voz.balao === 'undefined');
@@ -44,6 +44,15 @@ const { chromium } = require('playwright');
     return { ficouNaTela: ficou, depois: Atropelo.sangue.length, voltou: !an.morto, mortos: Atropelo.mortos.length };
   }, at.idx);
   console.log('longe:', JSON.stringify(longe)); ok.push(longe.ficouNaTela >= 1 && longe.depois === 0 && longe.voltou && longe.mortos === 0);
+  const pneu = await p.evaluate(() => {
+    const an = Animals.list.find((a) => a.type === 'person' && !a.morto && Math.abs(a.x - 2100) < 1500);
+    Cam.x = an.x; Cam.y = an.y; render(); player.place(an.x - 10, an.y, 0); player.vx = 300; player.vy = 0; player.speed = 300; Atropelo.update(0.016);
+    const q = Atropelo.sangue[Atropelo.sangue.length - 1], n0 = Skids.count;
+    for (let i = 0; i < 40; i++) { player.x += 4; Atropelo.update(0.016); }
+    const marcas = []; for (let j = 0; j < Skids.count; j++) if (Skids.dirt[j] === 3 || Skids.dirt[j] === 4) marcas.push(Skids.dirt[j]);
+    return { manchas: Atropelo.sangue.length, raio: +q.r.toFixed(1), marcas: marcas.length, fortes: marcas.filter((x) => x === 3).length, resta: Math.round(player.sangueRodas) };
+  });
+  console.log('sangue e pneu:', JSON.stringify(pneu)); ok.push(pneu.raio <= 8.3 && pneu.marcas > 4 && pneu.fortes > 0 && pneu.resta <= 0);
   console.log(ok.every(Boolean) ? 'OK: voz abaixa com a distância e atropelamento' : 'FALHOU: ' + JSON.stringify(ok));
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();

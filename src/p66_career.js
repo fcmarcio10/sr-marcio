@@ -241,7 +241,7 @@ PedVoz.fala = function (an, tipo) {
   const c = VOICE_CLIPS[F[0]];
   if (c) {
     const d = player ? Math.hypot(an.x - player.x, an.y - player.y) : 0;
-    const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 560, 0.2, 1) * 0.85;
+    const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 250, 0.2, 1) * 0.85;
     try { if (this.a) this.a.pause(); const a = this.a = new Audio(c.src); a.volume = vol; a.play().catch(() => {}); } catch (e) { this.a = null; }
   }
   return true;
@@ -251,7 +251,7 @@ PedVoz.update = function () {
   const a = this.a, an = this.quem;
   if (!a || !an) return;
   if (a.ended || a.paused) { this.a = null; this.quem = null; return; }
-  const d = Math.hypot(an.x - Cam.x, an.y - Cam.y), k = an.morto ? 0 : clamp(1 - (d - 70) / 380, 0, 1);
+  const d = Math.hypot(an.x - Cam.x, an.y - Cam.y), k = an.morto ? 0 : clamp(1 - (d - 30) / 172, 0, 1); // some a uns 200 de distância
   const v = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.85 * k;
   if (v < 0.015) { try { a.pause(); } catch (e) {} this.a = null; this.quem = null; return; }
   a.volume = v;
@@ -281,6 +281,15 @@ Atropelo.update = function (dt) {
       this.mortos.splice(i, 1);
     }
   }
+  // passou por cima da poça de sangue: os pneus de trás marcam um pouquinho nos primeiros metros
+  for (const q of this.sangue) if (Math.abs(q.x - player.x) < q.r + 8 && Math.abs(q.y - player.y) < q.r + 8 && Math.hypot(q.x - player.x, q.y - player.y) < q.r + 6) { if (!(player.sangueRodas > 50)) player.sangueRodas = 90; }
+  if (player.sangueRodas > 0 && sp > 6) {
+    const c = Math.cos(player.a), s2 = Math.sin(player.a), m = player.m, rx = player.x - c * m.L * 0.3, ry = player.y - s2 * m.L * 0.3, ox = -s2 * (m.W / 2 - 2.5), oy = c * (m.W / 2 - 2.5);
+    const L = player.rastroSangue;
+    if (L && Math.hypot(rx - L[4], ry - L[5]) > 3) Skids.add(L[0], L[1], rx + ox, ry + oy, L[2], L[3], rx - ox, ry - oy, player.sangueRodas > 45 ? 'sangue' : 'sangue2');
+    if (!L || Math.hypot(rx - L[4], ry - L[5]) > 3) player.rastroSangue = [rx + ox, ry + oy, rx - ox, ry - oy, rx, ry];
+    player.sangueRodas -= sp * dt;
+  } else if (!(player.sangueRodas > 0)) player.rastroSangue = null;
   // sangue longe da tela some de vez
   const v = Cam.view, mg = 500;
   if (v && v.x1 > v.x0) for (let i = this.sangue.length - 1; i >= 0; i--) { const q = this.sangue[i]; q.age = (q.age || 0) + dt; if (q.age > 1.5 && (q.x < v.x0 - mg || q.x > v.x1 + mg || q.y < v.y0 - mg || q.y > v.y1 + mg)) this.sangue.splice(i, 1); }
@@ -291,8 +300,7 @@ Atropelo.atropela = function (an, sp) {
   an.x += Math.cos(player.a) * (8 + 16 * f); an.y += Math.sin(player.a) * (8 + 16 * f); // é jogado um pouco para frente
   an.ca = player.a + rnd(-1.2, 1.2); // de que jeito ficou caído
   this.mortos.push(an); this.n++;
-  this.sangue.push({ x: an.x, y: an.y, s: Math.random() * 1000, r: rnd(9, 12), a: player.a, t: 0, rastro: 10 + 14 * f });
-  this.sangue.push({ x: an.x - Math.cos(player.a) * 13, y: an.y - Math.sin(player.a) * 13, s: Math.random() * 1000, r: rnd(4, 6), a: player.a, t: 0 });
+  this.sangue.push({ x: an.x, y: an.y, s: Math.random() * 1000, r: rnd(6.2, 8.2), a: player.a, t: 0, rastro: (10 + 14 * f) * 0.6 }); // metade do sangue de antes
   if (this.sangue.length > 24) this.sangue.splice(0, this.sangue.length - 24);
   if (PedVoz.quem === an && PedVoz.a) { try { PedVoz.a.pause(); } catch (e) {} PedVoz.a = null; PedVoz.quem = null; }
   AudioSys.thud(); AudioSys.noise(0.12, 600, 1, 0.12 * f, 'engine', 'lowpass');
@@ -309,7 +317,7 @@ Atropelo.desenhaSangue = function (ctx, view) {
     ctx.fillStyle = 'rgba(150,10,14,0.88)'; ctx.beginPath();
     ctx.ellipse(q.x, q.y, r, r * 0.72, R() * TAU, 0, TAU);
     if (q.rastro) { const L = q.rastro * q.t, ex = q.x + Math.cos(q.a) * L * 0.5, ey = q.y + Math.sin(q.a) * L * 0.5; ctx.moveTo(ex + L * 0.6, ey); ctx.ellipse(ex, ey, L * 0.6, r * 0.32, q.a, 0, TAU); } // arrastado na direção do carro
-    for (let k = 0; k < 6; k++) { const a = R() * TAU, dd = r * (0.8 + R() * 0.9), rr = 0.6 + R() * 1.4; ctx.moveTo(q.x + Math.cos(a) * dd + rr, q.y + Math.sin(a) * dd); ctx.arc(q.x + Math.cos(a) * dd, q.y + Math.sin(a) * dd, rr, 0, TAU); }
+    for (let k = 0; k < 3; k++) { const a = R() * TAU, dd = r * (0.8 + R() * 0.8), rr = 0.5 + R() * 1.1; ctx.moveTo(q.x + Math.cos(a) * dd + rr, q.y + Math.sin(a) * dd); ctx.arc(q.x + Math.cos(a) * dd, q.y + Math.sin(a) * dd, rr, 0, TAU); }
     ctx.fill();
   }
 };
@@ -840,15 +848,14 @@ Ambiente.sorteia = function (rk, R, cx, cy) {
   const op = []; // [peso, clip, x, y, vol]
   const add = (w, clip, p, vol) => { if (w > 0) op.push([w, clip, p[0], p[1], vol]); };
   const hr = (Profile.time % 1440) / 60, madrugada = hr >= 4 && hr < 6.5;
-  if (rk === 'mata') { add(2, 'sfx_coruja', longe(), 0.45); add(0.4, 'sfx_cachorro', longe(), 0.3); }
-  else if (R.rural > 0.5) {
-    const v = perto('cow', 1300), cv = perto('horse', 1300), gl = perto('chicken', 1100), dg = perto('dog', 1100);
-    add(v ? 3 : 0.8, 'sfx_vaca', v ? [v.x, v.y] : longe(), 0.55);
-    add(cv ? 2 : 0.4, 'sfx_cavalo', cv ? [cv.x, cv.y] : longe(), 0.5);
-    add(gl ? 2 : 0.3, 'sfx_galinha', gl ? [gl.x, gl.y] : longe(), 0.45);
-    add(dg ? 1.5 : 0.7, 'sfx_cachorro', dg ? [dg.x, dg.y] : longe(), 0.45);
-    add(1.2, 'sfx_coruja', longe(), 0.4);
-    add(madrugada ? 3 : 0.35, 'sfx_galo', gl ? [gl.x, gl.y] : longe(), 0.5);
+  // roça e mata: bicho só faz barulho se existir um de verdade por perto (nada de vaca mugindo no meio do nada)
+  const v = perto('cow', 800), cv = perto('horse', 800), gl = perto('chicken', 700), dg = perto('dog', 700), ow = perto('owl', 900);
+  if (rk === 'mata' || R.rural > 0.5) {
+    if (v) add(3, 'sfx_vaca', [v.x, v.y], 0.55);
+    if (cv) add(2, 'sfx_cavalo', [cv.x, cv.y], 0.5);
+    if (gl) { add(2, 'sfx_galinha', [gl.x, gl.y], 0.45); add(madrugada ? 3 : 0.35, 'sfx_galo', [gl.x, gl.y], 0.5); }
+    if (dg) add(1.5, 'sfx_cachorro', [dg.x, dg.y], 0.45);
+    if (ow) add(1.2, 'sfx_coruja', [ow.x, ow.y], 0.4);
     if (rk === 'rodovia') { add(2.5, 'sfx_caminhao', longe(), 0.5); add(1.5, 'sfx_carro', longe(), 0.45); }
   } else if (AMB_FAVELAS[rk]) {
     add(2, 'sfx_moto', longe(), 0.45); add(1.5, 'sfx_risada', longe(), 0.4); add(1.5, 'sfx_cachorro', longe(), 0.45);
@@ -860,9 +867,10 @@ Ambiente.sorteia = function (rk, R, cx, cy) {
     add(bar ? 2 : 0.4, 'sfx_risada', bar ? [bar.x, bar.y] : longe(), 0.45); add(1, 'sfx_cachorro', longe(), 0.4);
     add(0.3, 'sfx_alarme', longe(), 0.3); add(0.3, 'sfx_sirene', longe(), 0.5); add(0.15, 'sfx_fogos', longe(), 0.3); add(1, 'buzina', longe(), 0);
   }
-  if (!op.length) return false;
+  const campo = rk === 'mata' || R.rural > 0.5;
+  if (!op.length) return true; // sem bicho por perto: só o fundo (grilos, sapos) toca
   let tot = 0; for (const o of op) tot += o[0];
   let r = Math.random() * tot, o = op[0]; for (const q of op) { r -= q[0]; if (r <= 0) { o = q; break; } }
   if (o[1] === 'buzina') { AudioSys.aiHorn(rnd(500, 850), pick(Object.keys(HORNS)), rnd(-0.8, 0.8)); return true; }
-  return this.toca(o[1], o[2], o[3], o[4], 1600);
+  return this.toca(o[1], o[2], o[3], o[4], 1600) || campo; // no campo nunca cai no mugido sintetizado
 };

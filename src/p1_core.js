@@ -230,11 +230,12 @@ const AudioSys = {
     const rumble = this.loop(this.brown);
     this.eRumble = this.gain(0, this.eOut);
     rumble.connect(this.filt('lowpass', 110, 1, this.eRumble));
-    // pneus cantando
-    const sq = this.loop(this.white);
+    // pneus cantando: chiado com tom (três notas que tremem rápido, como borracha raspando) + um pouco de ruído
     this.sGain = this.gain(0, this.bus.engine);
-    this.sFilter = this.filt('bandpass', 2100, 7, this.sGain);
-    sq.connect(this.sFilter);
+    this.sFilter = this.filt('bandpass', 1500, 2.2, this.sGain);
+    const vib = c.createOscillator(); vib.frequency.value = 23; const vibG = this.gain(32); vib.connect(vibG); vib.start();
+    for (const [f, v] of [[860, 0.42], [1290, 0.28], [1720, 0.16]]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; vibG.connect(o.frequency); o.connect(this.gain(v, this.sFilter)); o.start(); }
+    const sq = this.loop(this.white); sq.connect(this.filt('bandpass', 2600, 3, this.gain(0.35, this.sFilter)));
     // vento / rolagem
     const wn = this.loop(this.white);
     this.wGain = this.gain(0, this.bus.engine);
@@ -303,8 +304,10 @@ const AudioSys = {
     this.eBody.frequency.setTargetAtTime(80 + p.rpm * 0.012, t, 0.1);
     this.eOut.gain.setTargetAtTime(on * (0.09 + load * 0.1 + rr * 0.05), t, 0.06);
     this.eRumble.gain.setTargetAtTime(on * (0.08 + load * 0.16), t, k);
-    this.sGain.gain.setTargetAtTime(on * clamp(p.slip, 0, 1) * 0.16, t, 0.04);
-    this.sFilter.frequency.setTargetAtTime(1700 + clamp(p.speed / 600, 0, 1) * 900, t, 0.1);
+    // só canta no asfalto, escorregando de verdade e com velocidade (curva normal não chia)
+    const sk = (p.paved === false ? 0 : 1) * clamp((p.slip - 0.38) / 0.55, 0, 1) * clamp((p.speed - 60) / 220, 0, 1);
+    this.sGain.gain.setTargetAtTime(on * sk * 0.12, t, sk > 0 ? 0.03 : 0.07);
+    this.sFilter.frequency.setTargetAtTime(1300 + clamp(p.speed / 600, 0, 1) * 600, t, 0.1);
     this.wGain.gain.setTargetAtTime(on * clamp(p.speed / 650, 0, 1) * 0.11, t, 0.1);
     this.gGain.gain.setTargetAtTime(on * p.surfaceRough * clamp(p.speed / 300, 0, 1) * 0.12, t, 0.1);
     this.hornGain.gain.setTargetAtTime(on && this.hornOn ? 0.16 : 0, t, 0.015);

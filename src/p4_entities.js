@@ -1155,7 +1155,7 @@ const Skids = {
     for (const [x0, y0, x1, y1] of [[ax, ay, bx, by], [cx, cy, dx, dy]]) {
       const j = this.i;
       this.buf[j * 4] = x0; this.buf[j * 4 + 1] = y0; this.buf[j * 4 + 2] = x1; this.buf[j * 4 + 3] = y1;
-      this.t[j] = Game.time; this.dirt[j] = surf === 'mud' ? 2 : surf === SF.ROAD || surf === SF.PAVED || surf === SF.BRIDGE ? 0 : 1;
+      this.t[j] = Game.time; this.dirt[j] = surf === 'sangue' ? 3 : surf === 'sangue2' ? 4 : surf === 'mud' ? 2 : surf === SF.ROAD || surf === SF.PAVED || surf === SF.BRIDGE ? 0 : 1;
       this.i = (j + 1) % this.N; this.count = Math.min(this.N, this.count + 1);
     }
   },
@@ -1169,7 +1169,7 @@ const Skids = {
       let any = false;
       for (let j = 0; j < this.count; j++) {
         const age = Game.time - this.t[j];
-        if (age < lo || age >= hi || this.dirt[j] === 2) continue;
+        if (age < lo || age >= hi || this.dirt[j] >= 2) continue;
         const x = this.buf[j * 4], y = this.buf[j * 4 + 1];
         if (x < view.x0 - 20 || x > view.x1 + 20 || y < view.y0 - 20 || y > view.y1 + 20) continue;
         ctx.moveTo(x, y); ctx.lineTo(this.buf[j * 4 + 2], this.buf[j * 4 + 3]); any = true;
@@ -1186,6 +1186,17 @@ const Skids = {
         if (this.dirt[j] !== 2) continue;
         const age = Game.time - this.t[j];
         if (age < lo || age >= hi) continue;
+        const x = this.buf[j * 4], y = this.buf[j * 4 + 1];
+        if (x < view.x0 - 20 || x > view.x1 + 20 || y < view.y0 - 20 || y > view.y1 + 20) continue;
+        ctx.moveTo(x, y); ctx.lineTo(this.buf[j * 4 + 2], this.buf[j * 4 + 3]); any = true;
+      }
+      if (any) ctx.stroke();
+    }
+    // pneu que passou no sangue (forte no começo, fraco depois; some com o tempo)
+    for (const [tipo, al] of [[3, 0.62], [4, 0.3]]) {
+      ctx.lineWidth = 3; ctx.strokeStyle = `rgba(120,10,12,${al})`; ctx.beginPath(); let any = false;
+      for (let j = 0; j < this.count; j++) {
+        if (this.dirt[j] !== tipo || Game.time - this.t[j] > 40) continue;
         const x = this.buf[j * 4], y = this.buf[j * 4 + 1];
         if (x < view.x0 - 20 || x > view.x1 + 20 || y < view.y0 - 20 || y > view.y1 + 20) continue;
         ctx.moveTo(x, y); ctx.lineTo(this.buf[j * 4 + 2], this.buf[j * 4 + 3]); any = true;

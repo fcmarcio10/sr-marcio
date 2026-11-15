@@ -54,7 +54,7 @@ function updateCamera(dt) {
   Cam.flash = (Cam.flash || 0) * Math.exp(-5 * dt);
   const rk = regionKeyAt(Cam.x, Cam.y), RG = REGIONS[rk];
   // noite um pouco mais clara que antes: na cidade a luz dos bairros clareia o céu; na roça, o luar
-  let dk = clamp(RG.dark * 1.15 - RG.rural * 0.09, 0.5, 0.92);
+  let dk = clamp(1 - 0.9 * (1 - (RG.dark * 1.15 - RG.rural * 0.09)), 0.5, 0.94); // 10% mais escura que a versão anterior
   const tm = Profile.time % 1440;
   const deep = tm >= 60 && tm < 240 ? 0.025 : 0;
   const k = 1 - Math.exp(-1.2 * dt);
@@ -1489,6 +1489,7 @@ function render() {
   drawDynShadows(ctx, view);
   pm('decals');
   // veículos e animais
+  if (World.caidos) for (const o of World.caidos) if (inView(view, o.x, o.y, 90)) drawTall(ctx, o); // derrubados ficam no chão, embaixo dos carros
   for (const an of Animals.list) if (an.type !== 'owl' && !an.morto && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
   Atropelo.desenhaCorpos(ctx, view);
   if (Settings.quality !== 'baixa') Peladas.draw(ctx, view);
@@ -1521,7 +1522,7 @@ function render() {
   for (const o of _rq) { if (!tallVisible(o, view)) continue; const ox = o.cx !== undefined ? o.cx : o.x, oy = o.cy !== undefined ? o.cy : o.y; o._d = (ox - cx) * (ox - cx) + (oy - cy) * (oy - cy); _talls.push(o); }
   _talls.sort((a, b) => b._d - a._d);
   pm('tallsQuery');
-  for (const o of _talls) drawTall(ctx, o);
+  for (const o of _talls) if (o.down === undefined) drawTall(ctx, o);
   pm('talls');
   Events.drawTop(ctx, view);
   for (const an of Animals.list) if (an.type === 'owl' && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);

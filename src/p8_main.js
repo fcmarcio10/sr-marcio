@@ -195,7 +195,7 @@ function frame(now) {
     const p = player;
     AudioSys.update({
       active: Game.state === 'playing' && !!p, rpm: p ? p.rpm : 900, thr: p ? p.thr : 0, speed: p ? p.speed : 0, slip: p ? p.slip : 0,
-      surfaceRough: p ? SURF[p.surface].rough : 0, rural: R.rural, city: R.city, river, pitch: p ? p.car.pitch : 1, cyl: p ? (p.car.cyl || 4) : 4,
+      surfaceRough: p ? SURF[p.surface].rough : 0, paved: p ? (p.surface === SF.ROAD || p.surface === SF.PAVED || p.surface === SF.BRIDGE || p.surface === SF.SIDEWALK) : true, rural: R.rural, city: R.city, river, pitch: p ? p.car.pitch : 1, cyl: p ? (p.car.cyl || 4) : 4,
     });
     let md = Infinity;
     for (const s of World.shops) if (s.kind === 'bar' || s.kind === 'lanchonete' || s.kind === 'churrascaria' || s.kind === 'fazenda') md = Math.min(md, Math.hypot(s.x - Cam.x, s.y - Cam.y));
