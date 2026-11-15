@@ -86,3 +86,75 @@ Projeto do ElevenLabs "BR Night Drive - Rádio Gambiarra FM (programação cont�
 - Nas Configurações, o jogador escolhe **Áudio (só em português)** ou **Texto**. Em Texto, todas as mensagens de voz aparecem escritas.
 - Enquanto um arquivo não existe, o celular do jogo mostra a mensagem de voz com a transcrição e lê o texto com a voz do próprio Windows.
 - O plano grátis do ElevenLabs pede crédito ao ElevenLabs (já está na tela de Créditos) e **não permite uso comercial**. Para vender o jogo, as vozes precisam ser geradas num plano pago.
+
+## Terceira leva (músicas da rádio, passageiros, pedestres e fretes)
+
+Projeto do ElevenLabs "BR Night Drive - Músicas da rádio, passageiros, pedestres e fretes" (modelo Eleven v4, uma tomada por fala). As 8 músicas da rádio não são do ElevenLabs: foram compostas no código (`tools/radio/musicas.py`).
+
+### Rádio: apresentação das músicas e comentário depois
+
+| Arquivo | Voz | Texto |
+|---|---|---|
+| `dj_m1.mp3` | Eddy Miller (DJ Biruta) | [radialista animado] E agora, pra arrastar o pé no asfalto: Trio Pé de Pano, com Xote do Pneu Furado! Segura o forró, motorista! |
+| `dj_m2.mp3` | Eddy Miller (DJ Biruta) | [empolgado] Aumenta o grave, que lá vem MC Rebaixado, com Batidão da Lombada! Cuidado, que o escapamento raspa! |
+| `dj_m3.mp3` | Eddy Miller (DJ Biruta) | [imitando sotaque mineiro, divertido] Ô sô, prepara a botina, uai! Zé Poeira e Toinho Lama, com Moda da Vaca Atolada, direto da roça pra sua cabine! |
+| `dj_m4.mp3` | Eddy Miller (DJ Biruta) | [animado] Madrugada de sexta pede o quê? Pagode! Grupo Fiado Pago, com Pagode do Pastel de Vento! |
+| `dj_m5.mp3` | Eddy Miller (DJ Biruta) | [voz de locutor de filme] Pra quem tá de farol alto na BR... Os Faróis Altos, com Neon na BR! [ri] E abaixa esse farol, por favor! |
+| `dj_m6.mp3` | Eddy Miller (DJ Biruta) | [dramático, exagerado] Essa vai pra quem levou uma estrela no PegaAí e tá com o coração partido: Kelvin do Arrocha, com Arrocha do Coração Rebaixado! |
+| `dj_m7.mp3` | Eddy Miller (DJ Biruta) | [calmo, suave] Garoinha na janela, limpador ligado... Quarteto Garoa Fina, com Bossa da Garoa. Dirige devagar, que o chão tá liso. |
+| `dj_m8.mp3` | Eddy Miller (DJ Biruta) | [gritando de alegria] Tira o pé do chão... mas não do freio! Banda Botijão, com Axé do Caminhão do Gás! |
+| `dj_b1.mp3` | Eddy Miller (DJ Biruta) | [animado] Que música, hein? Pedido de ninguém, porque aqui ninguém pede nada: a gente toca o que quer! |
+| `dj_b2.mp3` | Eddy Miller (DJ Biruta) | [rindo] Ê, música boa! Se você cantou junto, buzina duas vezes... na calma, que tem gente dormindo! |
+
+### Rádio: quadros novos e ouvinte pedindo música
+
+| Arquivo | Voz | Texto |
+|---|---|---|
+| `radio_39.mp3` | Eddy Miller (DJ Biruta) | [animado] Promoção da madrugada! O primeiro ouvinte que achar uma rua sem buraco em São Gambiarra ganha um pastel de vento. A promoção começou em dois mil e dez... e até agora ninguém ganhou! |
+| `radio_40.mp3` | Eddy Miller (DJ Biruta) | [conselheiro] Dica do DJ: se o GPS mandar você virar à direita dentro do rio... não vira, tá? O GPS também tá cansado. É madrugada pra todo mundo! |
+| `radio_41.mp3` | Eddy Miller (DJ Biruta) | [voz romântica exagerada] Correio do coração! A Kelly, do Feio Rosa, manda dizer pro Rafa que ela não esqueceu... os quarenta reais que ele pegou emprestado. [suspira] Que romântico! |
+| `radio_42.mp3` | Eddy Miller (DJ Biruta) | [apresentador de quiz] Teste de conhecimento: qual a diferença entre uma lombada e um quebra-molas em São Gambiarra? [pausa] Nenhuma! Os dois quebram a sua mola! |
+| `radio_43.mp3` | Eddy Miller (DJ Biruta) | [sério, fingindo ser oficial] Atenção, motorista de aplicativo: se o passageiro perguntar se falta muito, a resposta oficial é: tô virando a esquina. Mesmo que você esteja em outra cidade! |
+| `radio_44.mp3` | Eddy Miller (DJ Biruta) | [apresentador de culinária] Receita do DJ: pegue um ovo, coloque no capô do carro depois de um racha... e pronto, ovo frito! Não tente isso em casa. Tente na rua mesmo! |
+| `radio_45.mp3` | Eddy Miller (DJ Biruta) | [alarmado e divertido] Choveu em São Gambiarra! As poças estão tão grandes que o Seu Biu já tá vendendo banana com boia. Pisa leve, que aquaplanagem não é esporte olímpico! |
+| `radio_46.mp3` | Eddy Miller (DJ Biruta) | [repórter] Recado da prefeitura: o semáforo da Avenida Brasil Sil Sil ficou amarelo por quarenta minutos porque o funcionário dormiu. Respeitem o sono do rapaz! |
+| `radio_47.mp3` | Eddy Miller (DJ Biruta) | [admirado] Pedestre, se você atravessou na faixa e o carro parou... tira uma foto, que isso é raro! Motorista educado em São Gambiarra é tipo cometa! |
+| `radio_thais.mp3` | Dani | [animada, ligando pra rádio] Alô, DJ Biruta? Aqui é a Thaís, de Camburiso! Toca aquele forró do pneu furado pra mim e pro meu namorado, que tá preso no trânsito da BR! |
+
+### Passageiros (PegaAí)
+
+| Arquivo | Voz | Texto |
+|---|---|---|
+| `p_pastel.mp3` | Phelipe Carioca | [revoltado] Ô, motorista! Meu pastel de vento voou pela janela na terceira batida! Agora é só vento mesmo! Uma estrela pra você, mermão! |
+| `p_bolo.mp3` | Dani | [indignada, quase chorando] Moço, o bolo do aniversário da minha filha virou farofa! Era de três andares, agora é um andar só! Uma estrela, e com raiva! |
+| `p_novela.mp3` | Lucinda | [impaciente] Meu filho, perdi o último capítulo da novela por causa dessa demora! Agora eu nunca vou saber quem é o pai do bebê! Uma estrela! |
+| `p_galinha.mp3` | Eduardo Norte do Paraná | [bravo] Minhas galinhas chegaram tudo tonta, rapaz! Uma botou ovo mexido! Isso é frete ou montanha-russa? |
+| `p_entrevista.mp3` | Davi Leão | [irônico] Mano, marquei a entrevista de emprego às dez e cheguei às onze! O cara me contratou só por pena. Uma estrela... mas obrigado pela pena! |
+| `p_vip3.mp3` | Bianca - Quirky and Animated | [esnobe, ofendida] Querido, eu pedi o VIP e o ar-condicionado era a janela aberta! Meu cabelo tá parecendo ninho de passarinho. Inaceitável! |
+| `p_top4.mp3` | Gaucha SouthOfBrazil | [feliz] Bah, que corrida tri legal, tchê! Chegou na hora e sem nenhum solavanco. Cinco estrelas, e o chimarrão é por minha conta! |
+| `p_top5.mp3` | Marcio Brasil Brasileiro | [satisfeito] Rapá, que motorista bom! Nem senti o carro andar, achei que tava no sofá de casa! Cinco estrelas, bicho! |
+| `p_top6.mp3` | Lucinda | [carinhosa] Ô meu filho, que educação! Me ajudou com as sacolas e ainda dirigiu devagarinho. Deus te pague! Cinco estrelas! |
+
+### Pedestres
+
+| Arquivo | Voz | Texto |
+|---|---|---|
+| `ped_1.mp3` | Marcio Brasil Brasileiro | [gritando, assustado] Ô, maluco! Olha por onde anda! |
+| `ped_2.mp3` | Bianca - Quirky and Animated | [gritando, assustada] Ai, meu Deus! Quase me atropela! |
+| `ped_3.mp3` | Lucinda | [brava, gritando] Devagar, motorista! Aqui não é autódromo! |
+| `ped_4.mp3` | Phelipe Carioca | [gritando] Ê, rapá! Quer me levar junto, é? |
+| `ped_5.mp3` | Thiago - Warm and inviting | [bravo, gritando] Sai da calçada, doido! Calçada é de gente! |
+| `ped_6.mp3` | Dani | [indignada] Moço! A rua é ali, ó! |
+| `ped_7.mp3` | Felipe Leão | [irritado] Buzina pra tua avó, rapá! |
+| `ped_8.mp3` | Gaucha SouthOfBrazil | [assustada] Bah, que susto, tchê! Precisa buzinar desse jeito? |
+| `ped_9.mp3` | Davi Leão | [animado, dançando] Aumenta o som, motorista! |
+| `ped_10.mp3` | Dani | [empolgada] Esse paredão é bom demais! Toca mais uma! |
+
+### Clientes de frete agradecendo (app de Fretes)
+
+| Arquivo | Voz | Texto |
+|---|---|---|
+| `fr_ok1.mp3` | Thiago - Warm and inviting | [aliviado, feliz] Chegou o gás! Graças a Deus, que o feijão tava pela metade. Valeu demais, parceiro! Cinco estrelas! |
+| `fr_ok2.mp3` | Lucinda | [carinhosa] Ô meu filho, chegou tudinho inteiro! Nem uma caixa amassada. Volta sempre, viu? |
+| `fr_ok3.mp3` | Anderson - Sotaque Mineiro | [contente] Uai, chegou rapidim, sô! A encomenda tá perfeita. Brigado demais da conta! |
+| `fr_ok4.mp3` | Gaucha SouthOfBrazil | [feliz] Bah, entrega tri rápida, tchê! Já vou te recomendar pros vizinhos! |

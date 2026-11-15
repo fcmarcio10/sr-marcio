@@ -875,8 +875,9 @@ class Animal {
     if (player && Game.state === 'playing') {
       const d = Math.hypot(player.x - this.x, player.y - this.y);
       const sp = player.speed;
-      if (d < this.P.scare && sp > 50 && this.state !== 'flee') this.scare(player.x, player.y, false);
-      if (d < 260 && AudioSys.hornOn && this.state !== 'flee') this.scare(player.x, player.y, false);
+      if (d < this.P.scare && sp > 50 && this.state !== 'flee') { this.scare(player.x, player.y, false); if (this.type === 'person' && sp > 110 && d < 95 && chance(0.6)) PedVoz.fala(this, 'susto'); }
+      if (d < 260 && AudioSys.hornOn && this.state !== 'flee') { this.scare(player.x, player.y, false); if (this.type === 'person' && d < 200 && chance(0.5)) PedVoz.fala(this, 'buzina'); }
+      if (this.type === 'person' && d < 110 && sp > 30 && player.surface === SF.SIDEWALK) PedVoz.fala(this, 'calcada');
     }
     this.t -= dt;
     if (this.state === 'idle' || this.state === 'graze') {

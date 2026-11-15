@@ -70,6 +70,7 @@ function startJob(job) {
   Act.gpsT = 0;
   AudioSys.chime();
   toast(job.jobName + ' aceito', 'Buscar ' + job.item.toLowerCase() + ' em ' + job.pick.name + '.', 'info');
+  frStart(Act.delivery);
 }
 // ---------- app de motorista ----------
 function canDriveRides() { return player && VMODELS[player.car.model].kind !== 'truck'; }
@@ -500,7 +501,7 @@ const Phone = {
     if (cfg.wall === 'auto' || !WALLS.some((w) => w.id === cfg.wall)) { let w; do { w = pick(WALLS).id; } while (w === this.wall); this.wall = w; } else this.wall = cfg.wall;
     this.app = app || 'home'; if (Screens.current !== 'screen-phone') Screens.open('screen-phone'); this.render(); phoneTone(1200, 0.05, 0.05);
   },
-  go(app) { this.app = app; this.chat = null; if (app !== 'pegaai') { this.pgChat = null; this.pgTab = 'drv'; } if (app === 'aj-update') this.updT = performance.now(); this.render(); if (phoneCfg().sounds) AudioSys.click(); },
+  go(app) { this.app = app; this.chat = null; if (app !== 'pegaai') { this.pgChat = null; this.pgTab = 'drv'; } if (app !== 'fretes') { this.frChat = null; this.frTab = 'job'; } if (app === 'aj-update') this.updT = performance.now(); this.render(); if (phoneCfg().sounds) AudioSys.click(); },
   render() {
     const body = $('phone-body'); if (!body) return;
     $('phone-clock').textContent = clockStr();
@@ -519,7 +520,7 @@ const Phone = {
       html = `<div class="ph-lock"><div class="ph-date">São Gambiarra</div><div class="ph-time">${clockStr()}</div></div>` +
         `<div class="ph-widgets"><div class="ph-wid wid-sky${Weather.rain > 0.15 ? ' rain' : ''}"><small>São Gambiarra</small><b>${temp}°</b><span>${wl || (hr >= 19 || hr < 5 ? 'Noite abafada' : 'Céu limpo')}</span><span class="wid-sub">Máx. 31° Mín. 21°</span></div>` +
         `<button class="ph-wid wid-money" data-app="carteira"><small>Carteira</small><b>R$ ${fmtMoney(Profile.money)}</b><span>${Profile.deliveries || 0} entregas · ${Profile.rides || 0} corridas</span><span class="wid-sub">${job ? H(job) : dest ? 'Destino: ' + H(dest) : 'Nenhum serviço ativo'}</span></button></div>` +
-        '<div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id)).join('') + '</div>' +
+        '<div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : 0)).join('') + '</div>' +
         `<div class="ph-wname">${H(W.name)} · ${H(W.place)}</div>` +
         '<div class="ph-dock">' + ['mapa', 'msgs', 'pegaai', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
@@ -583,9 +584,13 @@ const Phone = {
         (ok ? `<button class="ph-btn ${Act.rideOnline ? 'off' : ''}" data-act2="ride-toggle">${Act.rideOnline ? 'Ficar offline' : 'Ficar online'}</button>` : '<p class="ph-empty">Caminhão não roda no PegaAí. Use um carro de passeio ou a picape.</p>') +
         '<p class="pg-sec">CATEGORIAS QUE VOCÊ ACEITA</p>' + Object.entries(RIDE_TYPES).map(([id, T]) => { const why = rideTypeCheck(id), on = C.acc[id] !== false; return `<button class="pg-cat${why ? ' locked' : ''}${on && !why ? ' on' : ''}" data-rcat="${id}"><span><b>${H(T.name)}</b><small>${why ? H(why) : H(T.desc)}</small></span><em>${why ? '<svg viewBox="0 0 24 24" class="pg-lock"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : on ? 'ON' : 'OFF'}</em></button>`; }).join('') +
         '<p class="ph-note">Nota alta e nível alto liberam corridas que pagam mais. Batida e demora derrubam a nota, e cliente mal atendido manda áudio.</p>';
+    } else if (this.app === 'fretes' && (this.frTab === 'msgs' || this.frChat)) {
+      const nF = frUnread();
+      if (this.frChat && frFind(this.frChat)) html = frChatHTML(frFind(this.frChat));
+      else html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Fretes</div><div class="ph-tabs"><button data-frtab="job">Fretes</button><button class="on" data-frtab="msgs">Mensagens${nF ? ' (' + nF + ')' : ''}</button></div>` + frListHTML();
     } else if (this.app === 'fretes') {
-      const job = player.car.job;
-      html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Fretes</div>';
+      const job = player.car.job, nF = frUnread();
+      html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Fretes</div><div class="ph-tabs"><button class="on" data-frtab="job">Fretes</button><button data-frtab="msgs">Mensagens${nF ? ' (' + nF + ')' : ''}</button></div>`;
       if (!job) html += '<p class="ph-empty">Seu veículo não faz fretes. Compre um veículo de trabalho na garagem: o mais barato é a Salvêro do Peão (R$ 3.500). Também tem caminhão de gás, guincho, caçamba, baú e tanque.</p>';
       else if (Act.delivery) html += `<div class="ph-card"><div class="ph-big">${H(Act.delivery.item)}</div><p>${Act.delivery.stage === 'pickup' ? 'Buscar em ' + H(Act.delivery.pick ? Act.delivery.pick.name : '') : 'Entregar em ' + H(Act.delivery.dest.name)}<br>R$ ${fmtMoney(Act.delivery.reward)}</p></div><button class="ph-btn off" data-act2="job-cancel">Cancelar frete</button>`;
       else {
@@ -637,12 +642,16 @@ const Phone = {
     if (t.dataset.wtab) { this.wtab = t.dataset.wtab; phoneTone(900, 0.04, 0.05); this.render(); return; }
     if (t.dataset.lamt) { this.loanAmt = +t.dataset.lamt; phoneTone(900, 0.04, 0.05); this.render(); return; }
     if (t.dataset.loan) { if (takeLoan(this.loanAmt || 1000, +t.dataset.loan)) { phoneTone(1760, 0.06, 0.05); this.render(); } return; }
+    if (t.dataset.frtab) { this.frTab = t.dataset.frtab; this.frChat = null; phoneTone(900, 0.04, 0.05); this.render(); return; }
+    if (t.dataset.frchat) { this.frChat = t.dataset.frchat; AudioSys.click(); this.render(); return; }
+    if (t.dataset.frback) { this.frChat = null; this.frTab = 'msgs'; AudioSys.back(); this.render(); return; }
+    if (t.dataset.frq && Act.delivery && Act.delivery.fid) { const d = Act.delivery, c = frFind(d.fid); if (!c || !frCanReply(c)) return; frMsg(d, FR_QUICK[+t.dataset.frq], null, true); phoneTone(1760, 0.05, 0.04); setTimeout(() => { if (Act.delivery === d) frMsg(d, pick(FR_ANS)); }, rnd(1500, 3000)); return; }
     if (t.dataset.pgtab) { this.pgTab = t.dataset.pgtab; this.pgChat = null; phoneTone(900, 0.04, 0.05); this.render(); return; }
     if (t.dataset.pgchat) { this.pgChat = t.dataset.pgchat; AudioSys.click(); this.render(); return; }
     if (t.dataset.pgback) { this.pgChat = null; this.pgTab = 'msgs'; AudioSys.back(); this.render(); return; }
     if (t.dataset.pgq && Act.ride) { const R = Act.ride, c = pgFind(R.rid); if (c && !pgCanReply(c)) return; pgMsg(R, PG_QUICK[+t.dataset.pgq], null, true); phoneTone(1760, 0.05, 0.04); setTimeout(() => { if (Act.ride === R) pgMsg(R, pick(PG_ANS)); }, rnd(1500, 3000)); return; }
     if (t.dataset.rcat) { const id = t.dataset.rcat; if (!rideTypeCheck(id) && id !== 'comum') { career().acc[id] = career().acc[id] === false; phoneTone(900, 0.04, 0.05); this.render(); } return; }
-    if (t.dataset.vid) { const m = (Profile.msgs || []).concat(...pgChats().map((c) => c.msgs)).find((x) => x.vid === t.dataset.vid); if (m && m.voice) { if (VoicePlayer.msg === m) VoicePlayer.stop(); else VoicePlayer.play(m); } return; }
+    if (t.dataset.vid) { const m = (Profile.msgs || []).concat(...pgChats().map((c) => c.msgs), ...frChats().map((c) => c.msgs)).find((x) => x.vid === t.dataset.vid); if (m && m.voice) { if (VoicePlayer.msg === m) VoicePlayer.stop(); else VoicePlayer.play(m); } return; }
     if (t.dataset.loc) { Events.acceptLoc(+t.dataset.loc); return; }
     if (t.dataset.chat) { this.chat = t.dataset.chat; this.render(); if (phoneCfg().sounds) AudioSys.click(); return; }
     if (t.dataset.reply && this.chat) {

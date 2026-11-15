@@ -186,6 +186,7 @@ function startDelivery(off) {
   AudioSys.chime();
   toast('Entrega aceita', off.item + ' para ' + off.dest.name, 'info');
   Act.gpsT = 0;
+  frStart(Act.delivery);
 }
 function finishDelivery() {
   const d = Act.delivery;
@@ -194,6 +195,7 @@ function finishDelivery() {
   if (d.t <= d.par) bonus = Math.round(d.reward * (d.hot ? 0.45 : 0.25));
   else if (d.t > d.par * 1.6) v *= 0.75;
   if (d.fragile) v *= Math.max(0.3, 1 - 0.15 * d.hits);
+  frFim(d, d.t > d.par * 1.6, d.hits >= 3 || (d.fragile && d.hits >= 2)); // cliente agradece (ou reclama) no chat do app de Fretes
   Act.delivery = null;
   Profile.deliveries++;
   pay(v + bonus, 'Entrega concluída' + (bonus ? ' — no prazo!' : ''));

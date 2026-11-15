@@ -658,7 +658,7 @@ function updateHUD(dt) {
   UI.set('race-timer', rt); $('race-timer').classList.toggle('hidden', !rt);
   const cd = Act.race && Act.race.count > 0 ? String(Math.ceil(Act.race.count)) : Act.race && Act.race.t < 0.8 ? 'VAI!' : '';
   if (UI.last.cd !== cd) { UI.last.cd = cd; const el = $('countdown'); el.textContent = cd; el.classList.toggle('hidden', !cd); }
-  { const un = unreadCount() + pgUnread() > 0; if (UI.last.badge !== un) { UI.last.badge = un; $('hud-phone-badge').classList.toggle('hidden', !un); } }
+  { const un = unreadCount() + pgUnread() + frUnread() > 0; if (UI.last.badge !== un) { UI.last.badge = un; $('hud-phone-badge').classList.toggle('hidden', !un); } }
   drawMinimap();
   drawSpeedo();
 }

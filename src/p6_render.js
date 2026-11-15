@@ -1544,6 +1544,7 @@ function render() {
   Weather.drawDrops(ctx);
   pm('drops');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (PedVoz.quem) PedVoz.desenha(ctx, cx, cy, z, W, Hh);
   if (Cam.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${(Cam.flash * 0.6).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
 }
 

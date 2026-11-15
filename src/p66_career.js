@@ -113,8 +113,9 @@ function rideFinish(R) {
   if (stars <= 2) setTimeout(() => angryVoice(R, late), rnd(6000, 12000));
   else if (stars === 5) setTimeout(() => {
     if (R.type !== 'vip' && Math.random() < 0.45) happyVoice(R);
-    else pgMsg(R, R.type === 'vip' ? 'Serviço impecável. Vou te recomendar pro meu círculo de amigos. E olha que meu círculo é exclusivo.' : pick(['Valeu pela corrida, motorista! Nota 5!', 'Corrida top, chegou rapidinho!', 'Melhor motorista de São Gambiarra, bicho!', 'Bah, que corrida tri! Valeu, tchê!', 'Oxe, chegou foi ligeiro! Nota 5, visse?', 'Uai, nem senti os buracos, sô!', 'Égua, que motorista pai d\'égua!']));
+    else pgMsg(R, R.type === 'vip' ? 'Serviço impecável. Vou te recomendar pro meu círculo de amigos. E olha que meu círculo é exclusivo.' : pick(PG_TOP));
   }, 7000);
+  else if (stars >= 3 && Math.random() < 0.5) setTimeout(() => pgMsg(R, pick(PG_MEIO)), rnd(5000, 9000)); // corrida mais ou menos: comentário curto
   saveGame();
 }
 
@@ -147,6 +148,16 @@ const VOICE_LINES = [
   { clip: 'p_top1', g: 'f', when: 'top', text: 'Motorista nota mil! Chegou rapidinho, carro cheiroso e ainda tava tocando a Rádio Gambiarra. Cinco estrelas e um beijo!' },
   { clip: 'p_top2', g: 'm', when: 'top', text: 'Ô trem bão, sô! Corrida macia que nem pão de queijo quentinho. Cinco estrelas procê, viu? Deus te abençoe!' },
   { clip: 'p_top3', g: 'm', when: 'top', text: 'Aí sim, mano! Dirigiu igual piloto de Fórmula 1, mas sem bater em nada! Cinco estrelas, e ainda vou te dar gorjeta!' },
+  // terceira leva (passageiros novos)
+  { clip: 'p_pastel', g: 'm', when: 'hits3', text: 'Ô, motorista! Meu pastel de vento voou pela janela na terceira batida! Agora é só vento mesmo! Uma estrela pra você, mermão!' },
+  { clip: 'p_bolo', g: 'f', when: 'hits', text: 'Moço, o bolo do aniversário da minha filha virou farofa! Era de três andares, agora é um andar só! Uma estrela, e com raiva!' },
+  { clip: 'p_novela', g: 'f', when: 'late', text: 'Meu filho, perdi o último capítulo da novela por causa dessa demora! Agora eu nunca vou saber quem é o pai do bebê! Uma estrela!' },
+  { clip: 'p_galinha', g: 'm', when: 'mudanca', text: 'Minhas galinhas chegaram tudo tonta, rapaz! Uma botou ovo mexido! Isso é frete ou montanha-russa?' },
+  { clip: 'p_entrevista', g: 'm', when: 'late', text: 'Mano, marquei a entrevista de emprego às dez e cheguei às onze! O cara me contratou só por pena. Uma estrela... mas obrigado pela pena!' },
+  { clip: 'p_vip3', g: 'f', when: 'vip', text: 'Querido, eu pedi o VIP e o ar-condicionado era a janela aberta! Meu cabelo tá parecendo ninho de passarinho. Inaceitável!' },
+  { clip: 'p_top4', g: 'f', when: 'top', text: 'Bah, que corrida tri legal, tchê! Chegou na hora e sem nenhum solavanco. Cinco estrelas, e o chimarrão é por minha conta!' },
+  { clip: 'p_top5', g: 'm', when: 'top', text: 'Rapá, que motorista bom! Nem senti o carro andar, achei que tava no sofá de casa! Cinco estrelas, bicho!' },
+  { clip: 'p_top6', g: 'f', when: 'top', text: 'Ô meu filho, que educação! Me ajudou com as sacolas e ainda dirigiu devagarinho. Deus te pague! Cinco estrelas!' },
 ];
 // áudios dos personagens do jogo (clip opcional; sem clip o celular lê o texto)
 const CHAR_VOICES = {
@@ -212,6 +223,49 @@ VoicePlayer.tick = function () {
   requestAnimationFrame(() => this.tick());
 };
 
+/* ---------- pedestres que falam: susto, carro na calçada, buzina e paredão ----------
+   Um de cada vez, com intervalo; a voz sai mais baixa quanto mais longe, e aparece um balãozinho com a frase. */
+const PED_FALAS = {
+  susto: [['ped_1', 'Ô, maluco! Olha por onde anda!'], ['ped_2', 'Ai, meu Deus! Quase me atropela!'], ['ped_3', 'Devagar, motorista! Aqui não é autódromo!'], ['ped_4', 'Ê, rapá! Quer me levar junto, é?']],
+  calcada: [['ped_5', 'Sai da calçada, doido! Calçada é de gente!'], ['ped_6', 'Moço! A rua é ali, ó!']],
+  buzina: [['ped_7', 'Buzina pra tua avó, rapá!'], ['ped_8', 'Bah, que susto, tchê! Precisa buzinar desse jeito?']],
+  paredao: [['ped_9', 'Aumenta o som, motorista!'], ['ped_10', 'Esse paredão é bom demais! Toca mais uma!']],
+};
+const PedVoz = { t: 0, a: null, ultimo: null, quem: null, falas: 0 };
+PedVoz.fala = function (an, tipo) {
+  if (!an || Game.mode !== 'play' || Game.time < this.t || VoicePlayer.msg) return false;
+  const L = PED_FALAS[tipo]; if (!L) return false;
+  let F = pick(L); if (F[0] === this.ultimo && L.length > 1) F = L.find((x) => x[0] !== this.ultimo);
+  this.ultimo = F[0]; this.t = Game.time + rnd(7, 12); this.falas++;
+  if (this.quem && this.quem !== an) this.quem.falaAte = 0;
+  an.fala = F[1]; an.falaAte = Game.time + 2.8; this.quem = an;
+  const c = VOICE_CLIPS[F[0]];
+  if (c) {
+    const d = player ? Math.hypot(an.x - player.x, an.y - player.y) : 0;
+    const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 560, 0.2, 1) * 0.85;
+    try { if (this.a) this.a.pause(); const a = this.a = new Audio(c.src); a.volume = vol; a.play().catch(() => {}); } catch (e) { this.a = null; }
+  }
+  return true;
+};
+// balãozinho em cima de quem falou (desenhado em tela, depois do mundo)
+PedVoz.desenha = function (ctx, cx, cy, z, W, Hh) {
+  const an = this.quem;
+  if (!an || !(an.falaAte > Game.time)) return;
+  const sx = W / 2 + (an.x - cx) * z, sy = Hh / 2 + (an.y - cy) * z - 26 * z;
+  if (sx < -200 || sx > W + 200 || sy < -60 || sy > Hh + 60) return;
+  const k = clamp((an.falaAte - Game.time) / 0.3, 0, 1) * clamp((2.8 - (an.falaAte - Game.time)) / 0.15, 0, 1);
+  const fs = Math.round(clamp(W / 105, 12, 17));
+  ctx.save(); ctx.globalAlpha = k;
+  ctx.font = `700 ${fs}px "BRND Cond", "Segoe UI", Roboto, Arial, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const tw = Math.min(ctx.measureText(an.fala).width, W * 0.5), bw = tw + fs * 1.3, bh = fs * 1.9, x0 = clamp(sx - bw / 2, 6, W - bw - 6), y0 = sy - bh;
+  ctx.fillStyle = 'rgba(250,248,240,0.95)'; ctx.strokeStyle = 'rgba(20,20,26,0.85)'; ctx.lineWidth = 2;
+  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, y0, bw, bh, bh / 2.4); else ctx.rect(x0, y0, bw, bh);
+  ctx.moveTo(sx - 6, y0 + bh); ctx.lineTo(sx, y0 + bh + 8); ctx.lineTo(sx + 6, y0 + bh);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#16161c'; ctx.fillText(an.fala, x0 + bw / 2, y0 + bh / 2 + 1, W * 0.5);
+  ctx.restore();
+};
+
 /* ---------- Rádio Gambiarra FM 171,1: programação no ar o tempo todo ----------
    O DJ Biruta fala sem parar (quadros, comerciais, ouvintes ligando), com vinheta entre um e outro.
    Ao ligar (ou voltar depois de um tempo fora), a rádio "sintoniza" num ponto qualquer da programação,
@@ -268,6 +322,17 @@ const RADIO = [
   { clip: 'radio_tonho', tag: 'Ouvinte na linha', who: 'Tonho, da fazenda', then: 'radio_19', text: 'Alô, DJ Biruta? Aqui é o Tonho, lá da Fazenda Muuuito Longe! Ô sô, manda um alô pra minha vaca Mimosa? Ela atolou de novo no rali, mas tá bem, uai! Beijo, Mimosa!' },
   { clip: 'radio_gaucha', tag: 'Ouvinte na linha', who: 'Ouvinte gaúcha', then: 'radio_06', text: 'Bah, DJ! Liguei só pra dizer que o chimarrão tá quente e a rádio tá tri! E manda um abraço pro meu marido, que é motorista do PegaAí... e me deu uma estrela, o pilantra!' },
   { clip: 'radio_marcao', tag: 'Ouvinte na linha', who: 'Marcão, do PegaAí', cond: 'chuva', then: 'radio_17', text: 'Fala, DJ! Aqui é o Marcão, do PegaAí! Mermão, a poça da avenida tá tão grande que agora há pouco passou um surfista. Sério! Valeu, Gambiarra FM!' },
+  // terceira leva: mais quadros do DJ e ouvinte pedindo música
+  { clip: 'radio_39', tag: 'Promoção da madrugada', text: 'Promoção da madrugada! O primeiro ouvinte que achar uma rua sem buraco em São Gambiarra ganha um pastel de vento. A promoção começou em dois mil e dez... e até agora ninguém ganhou!' },
+  { clip: 'radio_40', tag: 'Dica do DJ', text: 'Dica do DJ: se o GPS mandar você virar à direita dentro do rio... não vira, tá? O GPS também tá cansado. É madrugada pra todo mundo!' },
+  { clip: 'radio_41', tag: 'Correio do coração', text: 'Correio do coração! A Kelly, do Feio Rosa, manda dizer pro Rafa que ela não esqueceu... os quarenta reais que ele pegou emprestado. Que romântico!' },
+  { clip: 'radio_42', tag: 'Teste de conhecimento', text: 'Teste de conhecimento: qual a diferença entre uma lombada e um quebra-molas em São Gambiarra? Nenhuma! Os dois quebram a sua mola!' },
+  { clip: 'radio_43', tag: 'Aviso aos motoristas', text: 'Atenção, motorista de aplicativo: se o passageiro perguntar se falta muito, a resposta oficial é: tô virando a esquina. Mesmo que você esteja em outra cidade!' },
+  { clip: 'radio_44', tag: 'Receita do DJ', text: 'Receita do DJ: pegue um ovo, coloque no capô do carro depois de um racha... e pronto, ovo frito! Não tente isso em casa. Tente na rua mesmo!' },
+  { clip: 'radio_45', tag: 'Alerta de chuva', cond: 'chuva', text: 'Choveu em São Gambiarra! As poças estão tão grandes que o Seu Biu já tá vendendo banana com boia. Pisa leve, que aquaplanagem não é esporte olímpico!' },
+  { clip: 'radio_46', tag: 'Recado da prefeitura', text: 'Recado da prefeitura: o semáforo da Avenida Brasil Sil Sil ficou amarelo por quarenta minutos porque o funcionário dormiu. Respeitem o sono do rapaz!' },
+  { clip: 'radio_47', tag: 'Você sabia?', text: 'Pedestre, se você atravessou na faixa e o carro parou... tira uma foto, que isso é raro! Motorista educado em São Gambiarra é tipo cometa!' },
+  { clip: 'radio_thais', tag: 'Ouvinte na linha', who: 'Thaís, de Camburiso', then: 'dj_m1', text: 'Alô, DJ Biruta? Aqui é a Thaís, de Camburiso! Toca aquele forró do pneu furado pra mim e pro meu namorado, que tá preso no trânsito da BR!' },
   { clip: 'radio_azulina', tag: 'Ouvinte na linha', who: 'Ouvinte azulina', then: 'radio_30', text: 'Égua, DJ! Liguei pra pedir uma música! Ah, vocês não tocam música? Então conta uma piada do Paysandu, que eu sou azulina, mana!' },
 ];
 // vinhetas curtas entre um quadro e outro
@@ -277,7 +342,34 @@ const RADIO_VINHETAS = [
   { clip: 'radio_v3', tag: 'Vinheta', text: 'DJ Biruta na área! Aumenta o som aí, motorista!' },
   { clip: 'radio_v4', tag: 'Vinheta', text: 'Gambiarra FM: saiu do ar? Dá um tapa no rádio que ela volta!' },
 ];
-const Radio = { a: null, cur: null, mode: 'idle', k: 0, dur: 0, gap: 0, bag: [], fila: [], held: false, heldT: 0, line: -1, parts: null, last: null, lastV: null };
+// músicas da rádio: compostas para o jogo (tools/radio/musicas.py), sem direitos de ninguém. Cada uma tem a
+// apresentação do DJ antes; depois, às vezes, um comentário. A Bossa da Garoa só toca com chuva.
+const RADIO_MUSICAS = [
+  { clip: 'mus_xote', nome: 'Xote do Pneu Furado', banda: 'Trio Pé de Pano', intro: 'dj_m1' },
+  { clip: 'mus_funk', nome: 'Batidão da Lombada', banda: 'MC Rebaixado', intro: 'dj_m2' },
+  { clip: 'mus_moda', nome: 'Moda da Vaca Atolada', banda: 'Zé Poeira & Toinho Lama', intro: 'dj_m3' },
+  { clip: 'mus_pagode', nome: 'Pagode do Pastel de Vento', banda: 'Grupo Fiado Pago', intro: 'dj_m4' },
+  { clip: 'mus_neon', nome: 'Neon na BR', banda: 'Os Faróis Altos', intro: 'dj_m5' },
+  { clip: 'mus_arrocha', nome: 'Arrocha do Coração Rebaixado', banda: 'Kelvin do Arrocha', intro: 'dj_m6' },
+  { clip: 'mus_bossa', nome: 'Bossa da Garoa', banda: 'Quarteto Garoa Fina', intro: 'dj_m7', cond: 'chuva' },
+  { clip: 'mus_axe', nome: 'Axé do Caminhão do Gás', banda: 'Banda Botijão', intro: 'dj_m8' },
+];
+const RADIO_APRESENTA = [
+  { clip: 'dj_m1', tag: 'Agora toca', musica: 'mus_xote', text: 'E agora, pra arrastar o pé no asfalto: Trio Pé de Pano, com Xote do Pneu Furado! Segura o forró, motorista!' },
+  { clip: 'dj_m2', tag: 'Agora toca', musica: 'mus_funk', text: 'Aumenta o grave, que lá vem MC Rebaixado, com Batidão da Lombada! Cuidado, que o escapamento raspa!' },
+  { clip: 'dj_m3', tag: 'Agora toca', musica: 'mus_moda', text: 'Ô sô, prepara a botina, uai! Zé Poeira e Toinho Lama, com Moda da Vaca Atolada, direto da roça pra sua cabine!' },
+  { clip: 'dj_m4', tag: 'Agora toca', musica: 'mus_pagode', text: 'Madrugada de sexta pede o quê? Pagode! Grupo Fiado Pago, com Pagode do Pastel de Vento!' },
+  { clip: 'dj_m5', tag: 'Agora toca', musica: 'mus_neon', text: 'Pra quem tá de farol alto na BR... Os Faróis Altos, com Neon na BR! E abaixa esse farol, por favor!' },
+  { clip: 'dj_m6', tag: 'Agora toca', musica: 'mus_arrocha', text: 'Essa vai pra quem levou uma estrela no PegaAí e tá com o coração partido: Kelvin do Arrocha, com Arrocha do Coração Rebaixado!' },
+  { clip: 'dj_m7', tag: 'Agora toca', musica: 'mus_bossa', text: 'Garoinha na janela, limpador ligado... Quarteto Garoa Fina, com Bossa da Garoa. Dirige devagar, que o chão tá liso.' },
+  { clip: 'dj_m8', tag: 'Agora toca', musica: 'mus_axe', text: 'Tira o pé do chão... mas não do freio! Banda Botijão, com Axé do Caminhão do Gás!' },
+];
+const RADIO_DEPOIS = [
+  { clip: 'dj_b1', tag: 'DJ Biruta', text: 'Que música, hein? Pedido de ninguém, porque aqui ninguém pede nada: a gente toca o que quer!' },
+  { clip: 'dj_b2', tag: 'DJ Biruta', text: 'Ê, música boa! Se você cantou junto, buzina duas vezes... na calma, que tem gente dormindo!' },
+];
+function radioFaixa(M) { return { clip: M.clip, tag: 'Tocando agora', who: M.banda, text: M.nome, faixa: true }; }
+const Radio = { a: null, cur: null, mode: 'idle', k: 0, dur: 0, gap: 0, bag: [], mbag: [], semMusica: 1, fila: [], held: false, heldT: 0, line: -1, parts: null, last: null, lastV: null };
 Radio.isOn = function () { return !Settings.radioOff && (Settings.radio === undefined ? 70 : Settings.radio) > 0; };
 Radio.vol = function () { return clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp((Settings.radio === undefined ? 70 : Settings.radio) / 100, 0, 1); };
 Radio.cond = function (S) {
@@ -299,11 +391,39 @@ Radio.next = function () {
   return (this.last = RADIO[0]);
 };
 // próximo bloco da programação: às vezes uma vinheta antes, e o "then" logo depois
+// próxima música (sorteio sem repetir; a da chuva só com chuva)
+Radio.proxMusica = function () {
+  for (let tent = 0; tent < 2; tent++) {
+    if (!this.mbag.length) { this.mbag = RADIO_MUSICAS.slice(); for (let i = this.mbag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [this.mbag[i], this.mbag[j]] = [this.mbag[j], this.mbag[i]]; } }
+    for (let i = this.mbag.length - 1; i >= 0; i--) if (this.cond(this.mbag[i]) && VOICE_CLIPS[this.mbag[i].clip]) return this.mbag.splice(i, 1)[0];
+    this.mbag = [];
+  }
+  return null;
+};
+// apresentação do DJ + a música (+ às vezes um comentário depois)
+Radio.blocoMusica = function (M, out) {
+  const A = RADIO_APRESENTA.find((x) => x.clip === M.intro);
+  if (A && !out.includes(A)) out.push(A);
+  out.push(radioFaixa(M));
+  if (Math.random() < 0.45) out.push(pick(RADIO_DEPOIS));
+  this.semMusica = 0;
+  return out;
+};
 Radio.monta = function () {
-  const S = this.next(), out = [];
+  const out = [];
+  // música a cada um ou dois quadros de falação
+  if (this.semMusica >= 2 || (this.semMusica >= 1 && Math.random() < 0.5)) { const M = this.proxMusica(); if (M) return this.blocoMusica(M, out); }
+  this.semMusica++;
+  const S = this.next();
   if (Math.random() < 0.3) { let V = pick(RADIO_VINHETAS); if (V === this.lastV) V = pick(RADIO_VINHETAS); this.lastV = V; out.push(V); }
   out.push(S);
-  if (S.then) { const T = RADIO.find((x) => x.clip === S.then); if (T) out.push(T); }
+  if (S.then) {
+    const T = RADIO.find((x) => x.clip === S.then) || RADIO_APRESENTA.find((x) => x.clip === S.then);
+    if (T && T.musica) { // ouvinte pediu música: o DJ apresenta e ela toca
+      const M = RADIO_MUSICAS.find((x) => x.clip === T.musica); this.mbag = this.mbag.filter((x) => x !== M);
+      if (M && VOICE_CLIPS[M.clip]) { out.push(T); return this.blocoMusica(M, out); }
+    } else if (T) out.push(T);
+  }
   return out;
 };
 Radio.play = function (S, off) {
@@ -315,7 +435,7 @@ Radio.play = function (S, off) {
   this.parts = fr.map((f) => { const o = { f, k0: acc / tot }; acc += f.length + 1; return o; });
   if (c) {
     try {
-      const a = this.a = new Audio(c.src); a.volume = this.vol();
+      const a = this.a = new Audio(c.src); a.volume = this.vol() * (S.faixa ? 0.8 : 1);
       if (off) { const pula = () => { try { a.currentTime = off; } catch (e) {} }; if (a.readyState >= 1) pula(); else a.addEventListener('loadedmetadata', pula, { once: true }); }
       a.play().catch(() => {}); a.onended = () => { if (this.a === a) this.fim(); };
     } catch (e) { this.a = null; }
@@ -387,7 +507,7 @@ Radio.update = function (dt) {
   }
   // tocando uma fala
   this.k = this.a && this.a.currentTime > 0 ? this.a.currentTime : this.k + dt;
-  if (this.a) this.a.volume = this.vol();
+  if (this.a) this.a.volume = this.vol() * (this.cur && this.cur.faixa ? 0.8 : 1);
   if (this.k > this.dur + 1.2) { this.fim(); return; }
   const kk = this.k / Math.max(1, this.dur);
   let i = 0; while (i + 1 < this.parts.length && this.parts[i + 1].k0 <= kk) i++;
@@ -405,13 +525,17 @@ function voiceBubble(m, fmtT) {
 /* ---------- chat do PegaAí (estilo app de corrida, separado do WhatsApp) ----------
    Passageiro não fica com o seu contato: a conversa é dentro do app, uma por corrida. */
 const PG_PICKUP = {
-  comum: ['Oi! Tô na frente do portão azul.', 'Pode buzinar que eu desço.', 'Tô de camisa amarela, perto da esquina.', 'Já tô na calçada, moço!', 'Oxe, demora não, viu? Tô na esquina.', 'Uai, tô te esperando aqui na porta, sô.', 'Bah, tô aqui de cuia na mão, tchê. Não tem erro.', 'Égua, tô de boné vermelho, pai d\'égua!', 'Mano, tô na frente da padaria, chega mais.'],
-  aero: ['Oi! Tô com duas malas, cabe aí?', 'Corre que meu voo não espera, por favor!'],
-  mudanca: ['As caixas já tão na calçada!', 'Traz espaço que a geladeira é grande, hein.'],
-  vip: ['Estou aguardando. Sem buzina, por favor.', 'Prefiro que não converse durante o trajeto. Obrigado.'],
+  comum: ['Oi! Tô na frente do portão azul.', 'Pode buzinar que eu desço.', 'Tô de camisa amarela, perto da esquina.', 'Já tô na calçada, moço!', 'Oxe, demora não, viu? Tô na esquina.', 'Uai, tô te esperando aqui na porta, sô.', 'Bah, tô aqui de cuia na mão, tchê. Não tem erro.', 'Égua, tô de boné vermelho, pai d\'égua!', 'Mano, tô na frente da padaria, chega mais.', 'Tô de chinelo e pijama, não repara!', 'O cachorro late, mas é manso. Acho.', 'Você aceita pix ou pastel?', 'Tô na frente do bar, de boné virado.'],
+  aero: ['Oi! Tô com duas malas, cabe aí?', 'Corre que meu voo não espera, por favor!', 'Tô no portão com a mala de rodinha quebrada. Vem logo?', 'Meu voo é daqui a uma hora. Dá tempo, né?'],
+  mudanca: ['As caixas já tão na calçada!', 'Traz espaço que a geladeira é grande, hein.', 'Cuidado que o sofá não passa pela porta de lado!', 'Tem um papagaio na gaiola também. Ele fala, mas não morde.'],
+  vip: ['Estou aguardando. Sem buzina, por favor.', 'Prefiro que não converse durante o trajeto. Obrigado.', 'Espero que o carro esteja perfumado. Tenho rinite.', 'Por favor, sem rádio alta. A não ser que toque bossa nova.'],
 };
 const PG_QUICK = ['Já estou chegando!', 'Cheguei!', 'Tô no trânsito, 2 minutinhos.'];
-const PG_ANS = ['Beleza!', 'Ok, tô te esperando.', 'Valeu!', 'Tá bom, sem pressa (mas com um pouco de pressa).'];
+const PG_ANS = ['Beleza!', 'Ok, tô te esperando.', 'Valeu!', 'Tá bom, sem pressa (mas com um pouco de pressa).', 'Tô vendo o carrinho no mapa, vem!', 'Ufa! Achei que tinha me esquecido.', 'Combinado, tô na porta.', 'Só não buzina que o neném dormiu.'];
+// avaliação 5 estrelas por texto (quando não manda áudio)
+const PG_TOP = ['Valeu pela corrida, motorista! Nota 5!', 'Corrida top, chegou rapidinho!', 'Melhor motorista de São Gambiarra, bicho!', 'Bah, que corrida tri! Valeu, tchê!', 'Oxe, chegou foi ligeiro! Nota 5, visse?', 'Uai, nem senti os buracos, sô!', 'Égua, que motorista pai d\'égua!'].concat(['Chegou antes do previsto! Nem deu tempo de passar o batom.', 'Motorista educado e carro limpinho. Cinco estrelas!', 'Gostei da rádio que tava tocando. Nota 5!', 'Nunca vi alguém desviar de buraco assim. Artista!', 'Valeu, campeão! Até o cachorro gostou da corrida.', 'Corrida tranquila, música boa e ar fresquinho. Nota mil!']);
+// corrida de 3 ou 4 estrelas: comentário curto
+const PG_MEIO = ['Corrida ok. Só o banco que tava meio grudento, hein.', 'Chegou, mas pegou todo buraco da avenida.', 'Foi bem, mas da próxima abaixa esse som, por favor.', 'Deu tudo certo. O carro tem cheiro de pastel, é normal?', 'Corrida boa! Só a freada na lombada que me assustou.', 'Tudo certo. Mas o GPS te mandou pelo caminho mais longo, viu?'];
 function pgChats() { if (!Profile.pg) Profile.pg = { chats: [] }; return Profile.pg.chats; }
 function pgUnread() { return pgChats().filter((c) => !c.read).length; }
 function pgChat(R) {
@@ -458,4 +582,95 @@ function pgListHTML() {
   const L = pgChats();
   if (!L.length) return '<p class="ph-empty">Nenhuma conversa ainda. Fique online e aceite corridas.</p>';
   return L.map((c) => { const last = c.msgs[c.msgs.length - 1]; return `<button class="pg-row${c.read ? '' : ' new'}" data-pgchat="${c.rid}"><span class="pgc-ava">${escapeHtml(c.name.split(' ').map((w) => w[0]).join('').slice(0, 2))}</span><span class="pg-mid"><b>${escapeHtml(c.name)}</b><small>${last ? (last.me ? 'Você: ' : '') + (last.voice && Settings.msgMode !== 'texto' ? 'Mensagem de voz' : escapeHtml(last.body.slice(0, 48))) : ''}</small></span><em>${escapeHtml((RIDE_TYPES[c.type] || RIDE_TYPES.comum).name.replace('PegaAí ', '').replace('PegaAí', 'Comum'))}</em></button>`; }).join('');
+}
+/* ---------- chat do app de Fretes: o cliente escreve quando o frete é aceito e agradece (ou reclama) na entrega ----------
+   Igual ao PegaAí: uma conversa por frete, o motorista responde uma vez só (outra só se o cliente perguntar). */
+const FR_PEDIDO = {
+  gas: ['Oi! O gás acabou bem na hora do feijão. Vem rapidinho, por favor!', 'Boa noite! É o gás? Tô esperando no portão.', 'Moço, traz o botijão que a pizza ficou pela metade no forno!', 'Vai demorar muito? O arroz tá esperando!'],
+  bau: ['Boa noite, motorista. A carga é pra hoje ainda, tá? O caminhão de ontem sumiu.', 'Pode descarregar pelos fundos, a porta da frente emperrou.', 'Cuidado com as caixas de vidro, por favor!'],
+  tanker: ['Aqui é do posto. A bomba tá secando e os carros tão fazendo fila!', 'Capricha, que hoje a gasolina tá pela hora da morte.', 'Chega antes do movimento da madrugada?'],
+  cacamba: ['O entulho tá todo na calçada. Leva tudo, por favor!', 'A vizinha já reclamou do entulho três vezes. Vem logo?'],
+  guincho: ['Meu carro morreu no meio da rua! Tô do lado dele com o pisca ligado.', 'O carro deu um estalo e parou. O Seu Zé mandou chamar você.', 'Tá vindo? Já tá escuro aqui e o celular tá com três por cento!'],
+  pickup: ['Oi! Já separei as coisas na garagem. Cuidado com a geladeira!', 'Tem escada aqui, mas eu ajudo a carregar.', 'Cabe tudo na caçamba da picape?'],
+  loja: ['Oi! Pedi pelo aplicativo e tô morrendo de fome. Vem rápido!', 'Boa noite! Pode tocar a campainha do 2.', 'É a minha encomenda? Tô de olho no mapa!'],
+};
+const FR_OK = ['Chegou certinho! Muito obrigado, motorista!', 'Valeu demais! Entrega rápida e tudo inteiro.', 'Obrigada! Da próxima vez peço com você de novo.', 'Show de bola! Cinco estrelas pro frete.', 'Chegou! Nem acreditei que foi tão rápido.', 'Deus te abençoe, meu filho. Chegou tudo bem!'];
+const FR_OK_TIPO = { gas: ['Gás chegou! Agora o feijão sai. Muito obrigado!', 'Salvou a janta! Valeu pelo gás, parceiro!'], tanker: ['Tanque cheio! A fila de carro já tá andando. Valeu!'], guincho: ['Carro entregue na oficina! O Seu Zé disse que é só a bateria. Ufa, valeu!'], cacamba: ['Calçada limpinha! A vizinha até sorriu. Obrigado!'] };
+const FR_ATRASO = ['Chegou, né... Demorou, mas chegou. Obrigado mesmo assim.', 'Achei que o frete vinha de jegue! Mas valeu.', 'Já tinha até desistido. Obrigado, mas da próxima vez, mais cedo!'];
+const FR_AVARIA = ['Chegou, mas metade das caixas tá amassada. Vou relevar dessa vez...', 'Moço, o que você fez com a minha carga? Tá tudo sacudido!', 'Chegou tudo chacoalhado. Parece que veio pela estrada de terra!'];
+const FR_QUICK = ['Já tô a caminho!', 'Carga a bordo, chegando!', 'Pode deixar, chega inteirinho!'];
+const FR_ANS = ['Beleza, obrigado!', 'Valeu! Tô esperando.', 'Combinado!', 'Vem com Deus!'];
+// agradecimento por áudio (às vezes)
+const FR_VOZ = [
+  { clip: 'fr_ok1', g: 'm', tipo: 'gas', text: 'Chegou o gás! Graças a Deus, que o feijão tava pela metade. Valeu demais, parceiro! Cinco estrelas!' },
+  { clip: 'fr_ok2', g: 'f', text: 'Ô meu filho, chegou tudinho inteiro! Nem uma caixa amassada. Volta sempre, viu?' },
+  { clip: 'fr_ok3', g: 'm', text: 'Uai, chegou rapidim, sô! A encomenda tá perfeita. Brigado demais da conta!' },
+  { clip: 'fr_ok4', g: 'f', text: 'Bah, entrega tri rápida, tchê! Já vou te recomendar pros vizinhos!' },
+];
+function frChats() { if (!Profile.fr) Profile.fr = { chats: [] }; return Profile.fr.chats; }
+function frUnread() { return frChats().filter((c) => !c.read).length; }
+function frFind(fid) { return frChats().find((c) => c.fid === fid); }
+function frCliente(d) {
+  if (d.type === 'bau' || d.type === 'tanker') return d.dest.name; // quem recebe é a loja ou o posto
+  if (d.type === 'cacamba') return 'Mestre de obras ' + pick(['Tonhão', 'Juca', 'Valdir', 'Zezé']);
+  return pick(PASSAGEIROS);
+}
+function frChat(d) {
+  let c = frFind(d.fid);
+  if (!c) { c = { fid: d.fid, name: d.cliente, item: d.item, t: Math.floor(Profile.time), msgs: [], read: true }; frChats().unshift(c); if (frChats().length > 20) frChats().length = 20; }
+  return c;
+}
+function frMsg(d, body, voice, me) {
+  const c = frChat(d), m = { body, me: !!me, t: Math.floor(Profile.time) };
+  if (voice) m.voice = voice;
+  c.msgs.push(m);
+  if (!me) {
+    c.read = false;
+    if (phoneCfg().notif) toast('Fretes · ' + c.name, voice && Settings.msgMode !== 'texto' ? 'Mensagem de voz' : body, 'info');
+    if (phoneCfg().sounds) { AudioSys.tone(784, 0.07, 'sine', 0.07, 'ui'); AudioSys.tone(988, 0.12, 'sine', 0.07, 'ui', null, 0.09); }
+  }
+  if (Screens.current === 'screen-phone' && Phone.app === 'fretes') Phone.render();
+  return m;
+}
+function frCanReply(c) { const i = c.msgs.map((m) => !!m.me).lastIndexOf(true); return i < 0 || c.msgs.slice(i + 1).some((m) => !m.me && m.ask); }
+// frete aceito: o cliente escreve em seguida
+function frStart(d) {
+  d.fid = 'f' + Date.now().toString(36) + Math.floor(Math.random() * 1e4); d.cliente = frCliente(d);
+  setTimeout(() => {
+    if (Act.delivery !== d) return;
+    const tx = pick(FR_PEDIDO[d.type] || FR_PEDIDO.loja), m = frMsg(d, tx);
+    if (/\?$/.test(tx)) { m.ask = true; if (Screens.current === 'screen-phone' && Phone.app === 'fretes') Phone.render(); }
+  }, rnd(2500, 5000));
+}
+// frete entregue: agradece (às vezes por áudio), ou reclama do atraso ou da carga sacudida
+function frFim(d, atraso, avaria) {
+  if (!d.fid) return;
+  setTimeout(() => {
+    if (avaria) { frMsg(d, pick(FR_AVARIA)); return; }
+    if (atraso) { frMsg(d, pick(FR_ATRASO)); return; }
+    const g = genderOf(d.cliente), vozes = FR_VOZ.filter((v) => (!v.tipo || v.tipo === d.type) && (v.g === g || /^(Mercad|Posto|Padaria|Farm|Lanch|Bar|Church|Moqu|Sítio|Fazenda|Mestre)/.test(d.cliente)));
+    if (vozes.length && Math.random() < 0.35) { const V = pick(vozes); frMsg(d, V.text, { clip: V.clip, dur: (VOICE_CLIPS[V.clip] && VOICE_CLIPS[V.clip].dur) || 6 }); return; }
+    frMsg(d, pick((FR_OK_TIPO[d.type] || []).concat(FR_OK)));
+  }, rnd(3500, 6500));
+}
+function frChatHTML(c) {
+  c.read = true;
+  const fmtT = (t) => { const v = Math.floor(t || 0) % 1440; return String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0'); };
+  const live = Act.delivery && Act.delivery.fid === c.fid;
+  let h = `<div class="pgc"><div class="pgc-top"><button class="ph-back" data-frback="1">‹</button><span class="pgc-ava">${escapeHtml(c.name.split(' ').map((w) => w[0]).join('').slice(0, 2))}</span><div><b>${escapeHtml(c.name)}</b><small>${escapeHtml(c.item || 'Frete')} · ${live ? 'frete em andamento' : 'entregue'}</small></div></div><div class="pgc-body">`;
+  h += '<div class="pgc-note">As mensagens ficam só no app de Fretes.</div>';
+  for (const m of c.msgs) {
+    if (m.voice && Settings.msgMode !== 'texto') h += voiceBubble(m, fmtT).replace('class="wa-msg wa-vmsg"', 'class="wa-msg wa-vmsg pgc-in"');
+    else h += `<div class="pgc-msg ${m.me ? 'me' : ''}">${escapeHtml(m.body)}<i>${fmtT(m.t)}</i></div>`;
+  }
+  h += '</div>';
+  if (live && frCanReply(c)) h += '<div class="pgc-quick">' + FR_QUICK.map((q, i) => `<button data-frq="${i}">${escapeHtml(q)}</button>`).join('') + '</div>';
+  else if (live) h += '<div class="pgc-closed">Você já respondeu esta conversa</div>';
+  else h += '<div class="pgc-closed">Frete encerrado · não dá para enviar mensagens</div>';
+  return h + '</div>';
+}
+function frListHTML() {
+  const L = frChats();
+  if (!L.length) return '<p class="ph-empty">Nenhuma conversa ainda. Aceite um frete e o cliente fala com você por aqui.</p>';
+  return L.map((c) => { const last = c.msgs[c.msgs.length - 1]; return `<button class="pg-row${c.read ? '' : ' new'}" data-frchat="${c.fid}"><span class="pgc-ava">${escapeHtml(c.name.split(' ').map((w) => w[0]).join('').slice(0, 2))}</span><span class="pg-mid"><b>${escapeHtml(c.name)}</b><small>${last ? (last.me ? 'Você: ' : '') + (last.voice && Settings.msgMode !== 'texto' ? 'Mensagem de voz' : escapeHtml(last.body.slice(0, 48))) : ''}</small></span><em>${escapeHtml((c.item || '').slice(0, 14))}</em></button>`; }).join('');
 }
