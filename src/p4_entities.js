@@ -213,6 +213,19 @@ class Player {
       if (carKit(this.car.id).low) { for (let i = 0; i < 14; i++) Particles.emit('spark', this.x + rnd(-8, 8), this.y + rnd(-8, 8), -this.vx * 0.3 + rnd(-90, 90), -this.vy * 0.3 + rnd(-90, 90), rnd(0.2, 0.45), 2); AudioSys.noise(0.25, 3200, 2, 0.08, 'engine', 'bandpass'); Profile.damage = Math.min(100, Profile.damage + 0.3); }
     }
     this.onBump = onB;
+    // buraco no asfalto: a roda que cai nele faz o carro tremer um pouquinho
+    if (sp > 40 && World.buracos.length) {
+      const W = this.rodas();
+      for (const b of World.buracos) {
+        if (Math.abs(b.x - this.x) > 40 || Math.abs(b.y - this.y) > 40 || Game.time - b.t < 0.5) continue;
+        for (let k = 0; k < 4; k++) if ((W[k * 2] - b.x) ** 2 + (W[k * 2 + 1] - b.y) ** 2 < b.r * b.r) {
+          b.t = Game.time; Cam.shake = Math.max(Cam.shake, Math.min(3.2, 1 + sp / 160));
+          AudioSys.noise(0.12, 260, 1.2, clamp(sp / 1400, 0.04, 0.16), 'engine', 'lowpass'); // tum! baixinho
+          if (sp > 330) Profile.damage = Math.min(100, Profile.damage + 0.15);
+          break;
+        }
+      }
+    }
     // efeitos: fumaça do capô amassado, escapamento e estouro no escape
     const Zf = Profile.zones ? Profile.zones.f : 0;
     if (Zf > 0.45 && !this.lampWarn) { this.lampWarn = true; toast('Farol avariado', 'A frente amassada deixou o farol fraco. Conserte na Oficina do Seu Zé.', 'bad'); }

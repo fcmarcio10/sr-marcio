@@ -711,7 +711,7 @@ function areaBlocked(x0, y0, x1, y1) {
 const World = {
   nodes: [], edges: [], nodeMap: new Map(),
   buildings: [], tall: [], lights: [], shops: [], pois: [], races: [], parkSpots: [],
-  homes: [], animalsDef: [], pickups: [], trafficPoles: [], bumps: [], grills: [], radars: [], sparkers: [], geysers: [], fountains: [], obras: [], depots: {}, rachas: [], parties: [], pitches: [],
+  homes: [], animalsDef: [], pickups: [], trafficPoles: [], bumps: [], grills: [], radars: [], sparkers: [], geysers: [], fountains: [], obras: [], buracos: [], depots: {}, rachas: [], parties: [], pitches: [],
 };
 
 /* -------- tipos de via -------- */
@@ -1659,9 +1659,15 @@ function buildRoadProps() {
         const s = e.len * rnd(0.35, 0.65), sd = chance(0.5) ? 1 : -1, o = e.hw - 9;
         const px = e.a.x + e.dx * s + nx * o * sd, py = e.a.y + e.dy * s + ny * o * sd;
         addProp('hole', px - nx * 4 * sd, py - ny * 4 * sd, { z: 5.6, R: 20 });
-        World.obras.push({ x: e.a.x + e.dx * s + nx * T.lanes[0] * sd, y: e.a.y + e.dy * s + ny * T.lanes[0] * sd, name: 'Obra na ' + e.name });
-        for (const d of [-26, -9, 9, 26]) addProp('cone', px + e.dx * d, py + e.dy * d, { col: 'circ', cr: 3, R: 14 });
-        addProp('barrier', px + e.dx * 40, py + e.dy * 40, { a: Math.atan2(ny, nx), col: 'circ', cr: 4, R: 22 });
+        if (hash2(Math.round(px) + 913, Math.round(py) + 77) < 0.4) {
+          // 40% das obras ficaram só com o buraco (sem cones nem cavalete); o sorteio do mapa avança igual
+          for (let k = 0; k < 5; k++) rnd();
+          World.buracos.push({ x: px - nx * 4 * sd, y: py - ny * 4 * sd, r: 10, t: -9 });
+        } else {
+          World.obras.push({ x: e.a.x + e.dx * s + nx * T.lanes[0] * sd, y: e.a.y + e.dy * s + ny * T.lanes[0] * sd, name: 'Obra na ' + e.name });
+          for (const d of [-26, -9, 9, 26]) addProp('cone', px + e.dx * d, py + e.dy * d, { col: 'circ', cr: 3, R: 14 });
+          addProp('barrier', px + e.dx * 40, py + e.dy * 40, { a: Math.atan2(ny, nx), col: 'circ', cr: 4, R: 22 });
+        }
       }
       // lixeiras / hidrantes
       for (let s = e.clearA + 40; s < e.len - e.clearB - 40; s += 140) {
@@ -2029,6 +2035,38 @@ function thinTrees() {
   // tira as árvores removidas da lista de desenho (nem entram na conta do quadro)
   for (let i = 0; i < rendGrid.cells.length; i++) { const a = rendGrid.cells[i]; if (a && a.some((o) => o.removed)) rendGrid.cells[i] = a.filter((o) => !o.removed); }
   return n;
+}
+// buracos soltos no asfalto: 20% das ruas da cidade e 30% das ruas da favela (sorteio próprio: não mexe no mapa)
+const BURACO_FAVELA = { saopedro: 1, terravermelha: 1, feurosa: 1, carapina: 1 };
+function addBuracos() {
+  const R = mulberry32(5150), longeDe = (x, y, L, d) => L.every((q) => Math.abs(q.x - x) > d || Math.abs(q.y - y) > d);
+  for (const e of World.edges) {
+    if (!e.T.asphalt || e.bridge || e.len < 260) continue;
+    const mx = e.h ? (e.a.x + e.b.x) / 2 : e.a.x, my = e.h ? e.a.y : (e.a.y + e.b.y) / 2, rk = regionKeyAt(mx, my), G = REGIONS[rk];
+    const fav = BURACO_FAVELA[rk], cid = !fav && G && G.city >= 0.45 && G.rural < 0.5;
+    const sorte = R(), n = 1 + (R() < 0.35 ? 1 : 0);
+    if (!(fav ? sorte < 0.3 : cid ? sorte < 0.2 : false)) continue;
+    const nx = e.h ? 0 : 1, ny = e.h ? 1 : 0;
+    for (let i = 0; i < n; i++) {
+      const s = (e.clearA || 40) + 50 + R() * Math.max(1, e.len - (e.clearA || 40) - (e.clearB || 40) - 100);
+      const lane = e.T.lanes[Math.floor(R() * e.T.lanes.length)], sd = R() < 0.5 ? 1 : -1;
+      const x = e.a.x + e.dx * s + nx * lane * sd + (R() - 0.5) * 8, y = e.a.y + e.dy * s + ny * lane * sd + (R() - 0.5) * 8;
+      if (!longeDe(x, y, World.buracos, 90) || !longeDe(x, y, World.obras, 120)) continue;
+      if (World.bumps.some((b) => x > b.x0 - 40 && x < b.x1 + 40 && y > b.y0 - 40 && y < b.y1 + 40)) continue;
+      const g = groundAt(x, y); if (g !== SF.ROAD && g !== SF.PAVED) continue;
+      const k = 0.7 + R() * 0.45, a = R() * 3, p = { type: 'buraco', x, y, k, a };
+      bake(x - 16, y - 16, x + 16, y + 16, 5.6, (gc) => drawBuraco(gc, p));
+      World.buracos.push({ x, y, r: 9 * k, t: -9 });
+    }
+  }
+}
+function drawBuraco(g, p) {
+  g.save(); g.translate(p.x, p.y); g.rotate(p.a); g.scale(p.k, p.k);
+  g.fillStyle = 'rgba(40,38,36,0.55)'; g.beginPath(); g.ellipse(0, 0, 13, 9, 0, 0, TAU); g.fill(); // asfalto rachado em volta
+  g.fillStyle = '#121214'; g.beginPath(); g.ellipse(0, 0, 9, 6, 0, 0, TAU); g.fill();
+  g.strokeStyle = 'rgba(110,104,92,0.55)'; g.lineWidth = 1; g.stroke();
+  g.strokeStyle = 'rgba(20,20,22,0.7)'; g.beginPath(); g.moveTo(8, 2); g.lineTo(14, 4); g.moveTo(-8, -3); g.lineTo(-13, -6); g.stroke();
+  g.restore();
 }
 function markReflections() {
   for (const L of World.lights) {
@@ -3975,6 +4013,19 @@ class Player {
       if (carKit(this.car.id).low) { for (let i = 0; i < 14; i++) Particles.emit('spark', this.x + rnd(-8, 8), this.y + rnd(-8, 8), -this.vx * 0.3 + rnd(-90, 90), -this.vy * 0.3 + rnd(-90, 90), rnd(0.2, 0.45), 2); AudioSys.noise(0.25, 3200, 2, 0.08, 'engine', 'bandpass'); Profile.damage = Math.min(100, Profile.damage + 0.3); }
     }
     this.onBump = onB;
+    // buraco no asfalto: a roda que cai nele faz o carro tremer um pouquinho
+    if (sp > 40 && World.buracos.length) {
+      const W = this.rodas();
+      for (const b of World.buracos) {
+        if (Math.abs(b.x - this.x) > 40 || Math.abs(b.y - this.y) > 40 || Game.time - b.t < 0.5) continue;
+        for (let k = 0; k < 4; k++) if ((W[k * 2] - b.x) ** 2 + (W[k * 2 + 1] - b.y) ** 2 < b.r * b.r) {
+          b.t = Game.time; Cam.shake = Math.max(Cam.shake, Math.min(3.2, 1 + sp / 160));
+          AudioSys.noise(0.12, 260, 1.2, clamp(sp / 1400, 0.04, 0.16), 'engine', 'lowpass'); // tum! baixinho
+          if (sp > 330) Profile.damage = Math.min(100, Profile.damage + 0.15);
+          break;
+        }
+      }
+    }
     // efeitos: fumaça do capô amassado, escapamento e estouro no escape
     const Zf = Profile.zones ? Profile.zones.f : 0;
     if (Zf > 0.45 && !this.lampWarn) { this.lampWarn = true; toast('Farol avariado', 'A frente amassada deixou o farol fraco. Conserte na Oficina do Seu Zé.', 'bad'); }
@@ -11290,7 +11341,7 @@ async function boot() {
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
-  pruneRoadTrees(); thinTrees();
+  pruneRoadTrees(); thinTrees(); addBuracos();
   buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();
   buildMapImage();
