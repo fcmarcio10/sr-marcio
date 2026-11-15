@@ -165,7 +165,9 @@ const STEP = 1 / 120;
 let lastT = 0, accT = 0;
 function frame(now) {
   requestAnimationFrame(frame);
+  const t0q = performance.now();
   let dt = lastT ? (now - lastT) / 1000 : 0.016;
+  if (lastT && Game.state === 'playing') AutoRes.quadro(dt, frame.trab || 0);
   lastT = now;
   dt = clamp(dt, 0, 0.1);
   handleKeys();
@@ -212,6 +214,7 @@ function frame(now) {
     if (Settings.showFps) $('fps').textContent = Math.round(Game.fpsN / Game.fpsT) + ' FPS · ' + Traffic.cars.length + ' carros · ' + chunks.size + ' blocos';
     Game.fpsT = 0; Game.fpsN = 0;
   }
+  frame.trab = performance.now() - t0q; // tempo gasto neste quadro (para a nitidez automática)
 }
 
 async function boot() {

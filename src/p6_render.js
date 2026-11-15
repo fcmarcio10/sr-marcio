@@ -6,6 +6,23 @@ const lctx = lightCanvas.getContext('2d');
 const glowCanvas = document.createElement('canvas');
 const gctx = glowCanvas.getContext('2d');
 let RS = 1, LS = 0.5, SCREEN_W = 1, SCREEN_H = 1;
+let RS_MAX = 1;
+/* Nitidez automática: se os quadros começam a atrasar (abaixo de ~57 FPS), a tela desenha com um pouco menos de pontos
+   (quase não se nota) até voltar aos 60; quando sobra folga, volta a nitidez aos poucos. Nunca mexe no jogo em si. */
+// desligada nos testes e nos gravadores de vídeo (navegador controlado), que precisam da imagem sempre igual
+const AutoRes = { k: 1, n: 0, lentos: 0, trab: 0, t: 0, espera: 3, teto: 1, off: !!navigator.webdriver };
+AutoRes.quadro = function (dtReal, trabalhoMs) {
+  if (this.off || document.hidden || dtReal > 0.25) return; // aba escondida ou volta de pausa: não conta
+  this.n++; this.t += dtReal; this.trab += trabalhoMs; if (dtReal > 1 / 50) this.lentos++;
+  this.espera -= dtReal;
+  if (this.t < 2) return;
+  const fracLento = this.lentos / this.n, trabMedio = this.trab / this.n;
+  let nk = this.k;
+  if (this.espera <= 0 && fracLento > 0.25 && this.k > 0.55) { nk = Math.max(0.55, this.k - 0.1); this.teto = Math.min(this.teto, this.k); this.espera = 3; } // atrasando: baixa um degrau
+  else if (this.espera <= 0 && fracLento < 0.03 && trabMedio < 7 && this.k < 1) { nk = Math.min(1, this.k + 0.05); if (nk >= this.teto) nk = this.k; this.espera = 8; } // folga: sobe devagar (sem passar do degrau que já travou)
+  this.n = this.lentos = this.trab = this.t = 0;
+  if (nk !== this.k && Game.state === 'playing') { this.k = nk; resize(); }
+};
 const Cam = { x: 1000, y: 2700, zoom: 1, shake: 0, quick: 1, view: { x0: 0, y0: 0, x1: 0, y1: 0 }, dark: 0.84, menuTarget: null, menuT: 0 };
 const PAR = 1 / 1700;
 const SQ = 1;      // visão de cima (sem achatamento vertical)
@@ -15,6 +32,8 @@ function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
   const dpr = window.devicePixelRatio || 1;
   RS = Settings.quality === 'alta' ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.7 : Math.min(dpr, 1.25);
+  if (AutoRes.q !== Settings.quality) { AutoRes.q = Settings.quality; AutoRes.k = 1; AutoRes.teto = 1; } // trocou o gráfico: começa do zero
+  RS_MAX = RS; RS = Math.max(Math.min(RS, 0.75), RS * AutoRes.k); // nitidez automática para segurar 60 FPS
   canvas.width = Math.round(SCREEN_W * RS); canvas.height = Math.round(SCREEN_H * RS);
   // a camada de luz é toda suave: resolução menor não muda o visual e alivia muito
   LS = Settings.quality === 'alta' ? 0.5 : Settings.quality === 'baixa' ? 0.28 : 0.42;
@@ -54,7 +73,7 @@ function updateCamera(dt) {
   Cam.flash = (Cam.flash || 0) * Math.exp(-5 * dt);
   const rk = regionKeyAt(Cam.x, Cam.y), RG = REGIONS[rk];
   // noite um pouco mais clara que antes: na cidade a luz dos bairros clareia o céu; na roça, o luar
-  let dk = clamp(1 - 0.9 * (1 - (RG.dark * 1.15 - RG.rural * 0.09)), 0.5, 0.94); // 10% mais escura que a versão anterior
+  let dk = clamp(1 - 0.81 * (1 - (RG.dark * 1.15 - RG.rural * 0.09)), 0.5, 0.95); // mais 10% escura (nov/2026)
   const tm = Profile.time % 1440;
   const deep = tm >= 60 && tm < 240 ? 0.025 : 0;
   const k = 1 - Math.exp(-1.2 * dt);
