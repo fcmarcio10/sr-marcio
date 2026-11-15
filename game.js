@@ -4226,7 +4226,7 @@ class AICar {
     this.sEnd = Math.max(this.sStart, e.len - (dir > 0 ? e.clearB : e.clearA));
     this.cruise = Math.min(e.T.speed * this.mul, this.vmax);
     this.committed = false;
-    this.offT = this.off; this.overtake = 0; this.lcBlink = 0;
+    this.offT = this.off; this.offV = 0; this.overtake = 0; this.lcBlink = 0;
   }
   edgePos(s) { return [this.from.x + this.dx * s - this.dy * this.off, this.from.y + this.dy * s + this.dx * this.off]; }
   allowed(e) {
@@ -4448,7 +4448,13 @@ class AICar {
       }
     }
     const dOff = this.offT + this.nudge + (this.yieldT > 0 && this.e.T.lanes.length === 1 ? 9 : 0) - this.off;
-    this.off += clamp(dOff, -42 * dt, 42 * dt);
+    // troca de faixa como carro de verdade: anda de lado só andando para frente (no máximo ~18° de esterço)
+    // e entra e sai da diagonal aos poucos; parado não desliza de lado
+    const latMax = Math.min(42, Math.max(3, this.v * 0.32));
+    const latAlvo = clamp(dOff * 2.4, -latMax, latMax);
+    this.offV = (this.offV || 0) + clamp(latAlvo - (this.offV || 0), -70 * dt, 70 * dt);
+    if (Math.abs(dOff) < 0.15 && Math.abs(this.offV) < 1) this.offV = 0;
+    this.off += clamp(this.offV * dt, -Math.abs(dOff), Math.abs(dOff));
     this.lcBlink = Math.abs(dOff) > 2 ? (dOff > 0 ? 1 : -1) : 0;
     if (this.hitT > 0) { this.hitT -= dt; target = 0; }
     this.ghost -= dt;
@@ -4497,8 +4503,10 @@ class AICar {
   pose() {
     if (this.state === 'edge') {
       const p = this.edgePos(this.s);
-      this.x = p[0] + this.ox; this.y = p[1] + this.oy; this.a = Math.atan2(this.dy, this.dx);
-      this.steerVis = 0;
+      this.x = p[0] + this.ox; this.y = p[1] + this.oy;
+      const ang = clamp(Math.atan2(this.offV || 0, Math.max(this.v, 20)), -0.42, 0.42); // bico virado para a faixa nova
+      this.a = Math.atan2(this.dy, this.dx) + ang;
+      this.steerVis = clamp(ang * 2.2, -0.5, 0.5);
     } else {
       const T = this.turn, p = bez(T.p0, T.c1, T.c2, T.p3, T.t), d = bezD(T.p0, T.c1, T.c2, T.p3, T.t);
       this.x = p[0] + this.ox; this.y = p[1] + this.oy; this.a = Math.atan2(d[1], d[0]);
@@ -4655,6 +4663,12 @@ Traffic.update = function (dt, now, cx, cy, view) {
 };
 
 /* ============================ ANIMAIS ============================ */
+const _qp = [];
+function emParede(x, y, r) {
+  colGrid.query(x - r, y - r, x + r, y + r, _qp);
+  for (const c of _qp) if (c.t === 0 && (c.tag === 'bld' || c.tag === 'wall') && c.x1 > x - r && c.x0 < x + r && c.y1 > y - r && c.y0 < y + r) return true;
+  return false;
+}
 const Animals = { list: [], soundT: 3 };
 const ANIMAL = {
   cow: { r: 11, walk: 12, flee: 55, scare: 110 },
@@ -4717,8 +4731,11 @@ class Animal {
         const ta = Math.atan2(dy, dx);
         this.a += clamp(angDiff(this.a, ta), -4 * dt, 4 * dt);
         this.v = spd;
+        const ox = this.x, oy = this.y;
         this.x += Math.cos(this.a) * spd * dt; this.y += Math.sin(this.a) * spd * dt;
         this.x = clamp(this.x, this.rect[0], this.rect[2]); this.y = clamp(this.y, this.rect[1], this.rect[3]);
+        // ninguém atravessa parede de casa, quiosque ou muro (quem já nasceu dentro consegue sair)
+        if (emParede(this.x, this.y, this.r) && !emParede(ox, oy, this.r)) { this.x = ox; this.y = oy; this.state = 'idle'; this.t = rnd(0.5, 2); this.v = 0; }
       }
     }
     const g = groundAt(this.x, this.y);
