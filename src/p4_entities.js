@@ -332,7 +332,7 @@ class Player {
       }
     }
     for (const an of Animals.list) {
-      if (an.type === 'owl') continue;
+      if (an.type === 'owl' || an.morto) continue; // corpo atropelado fica parado no lugar (o carro passa por cima)
       const dx0 = an.x - this.x, dy0 = an.y - this.y;
       if (dx0 * dx0 + dy0 * dy0 > 80 * 80) continue;
       for (const k of ks) {
@@ -590,7 +590,7 @@ class AICar {
     }
     // o jogador é visto de mais longe e com folga lateral maior: os carros mantêm distância de você
     if (player && Game.state !== 'menu') { const m = this.state === 'edge' ? 1 : 0; check(player, player.x, player.y, player.m.L + 26 * m, player.m.W + 12 * m); }
-    if (this.ghost <= 0 && this.animalGhost <= 0) for (const an of Animals.list) if (an.onRoad) check(an, an.x, an.y, an.r * 2, an.r * 2);
+    if (this.ghost <= 0 && this.animalGhost <= 0) for (const an of Animals.list) if (an.onRoad && !an.morto) check(an, an.x, an.y, an.r * 2, an.r * 2);
     if (Events.cur) Events.blocksAhead(this, check);
     return best;
   }

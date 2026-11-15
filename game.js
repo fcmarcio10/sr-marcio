@@ -4132,7 +4132,7 @@ class Player {
       }
     }
     for (const an of Animals.list) {
-      if (an.type === 'owl') continue;
+      if (an.type === 'owl' || an.morto) continue; // corpo atropelado fica parado no lugar (o carro passa por cima)
       const dx0 = an.x - this.x, dy0 = an.y - this.y;
       if (dx0 * dx0 + dy0 * dy0 > 80 * 80) continue;
       for (const k of ks) {
@@ -4390,7 +4390,7 @@ class AICar {
     }
     // o jogador é visto de mais longe e com folga lateral maior: os carros mantêm distância de você
     if (player && Game.state !== 'menu') { const m = this.state === 'edge' ? 1 : 0; check(player, player.x, player.y, player.m.L + 26 * m, player.m.W + 12 * m); }
-    if (this.ghost <= 0 && this.animalGhost <= 0) for (const an of Animals.list) if (an.onRoad) check(an, an.x, an.y, an.r * 2, an.r * 2);
+    if (this.ghost <= 0 && this.animalGhost <= 0) for (const an of Animals.list) if (an.onRoad && !an.morto) check(an, an.x, an.y, an.r * 2, an.r * 2);
     if (Events.cur) Events.blocksAhead(this, check);
     return best;
   }
@@ -9825,9 +9825,10 @@ Atropelo.update = function (dt) {
   }
   for (let i = this.mortos.length - 1; i >= 0; i--) {
     const an = this.mortos[i]; an.mortoT += dt;
+    if (an.mortoT <= 6 && an.morreuX !== undefined) { an.x = an.morreuX; an.y = an.morreuY; an.v = 0; } // fica estático onde caiu
     // corpo sumiu: a pessoa volta em outro ponto da calçada dela, longe da câmera (a cidade não fica vazia)
     if (an.mortoT > 6 && Math.hypot(an.x - Cam.x, an.y - Cam.y) > 1500) {
-      an.morto = false; an.state = 'idle'; an.t = rnd(1, 4); an.v = 0;
+      an.morto = false; an.morreuX = undefined; an.state = 'idle'; an.t = rnd(1, 4); an.v = 0;
       an.x = rnd(an.rect[0], an.rect[2]); an.y = rnd(an.rect[1], an.rect[3]);
       this.mortos.splice(i, 1);
     }
@@ -9860,7 +9861,9 @@ Atropelo.update = function (dt) {
 Atropelo.atropela = function (an, sp) {
   an.morto = true; an.mortoT = 0; an.v = 0; an.danceUntil = 0;
   const f = clamp(sp / 400, 0.3, 1);
-  an.x += Math.cos(player.a) * (8 + 16 * f); an.y += Math.sin(player.a) * (8 + 16 * f); // é jogado um pouco para frente
+  // é jogado um pouco para frente, mas nunca para dentro de casa ou muro (para antes)
+  for (let k = 8 + 16 * f; k > 0; k -= 4) { const nx = an.x + Math.cos(player.a) * k, ny = an.y + Math.sin(player.a) * k; if (!areaBlocked(nx - 4, ny - 4, nx + 4, ny + 4)) { an.x = nx; an.y = ny; break; } }
+  an.morreuX = an.x; an.morreuY = an.y;
   an.ca = player.a + rnd(-1.2, 1.2); // de que jeito ficou caído
   this.mortos.push(an); this.n++;
   this.sangue.push({ x: an.x, y: an.y, s: Math.random() * 1000, r: rnd(6.2, 8.2), a: player.a, t: 0, rastro: (10 + 14 * f) * 0.6 }); // metade do sangue de antes
