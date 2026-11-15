@@ -3828,6 +3828,13 @@ class Player {
   recalc() { this.st = carStats(this.car.id); if (typeof Cheats !== 'undefined' && Cheats.turbo) this.st = Object.assign({}, this.st, { max: this.st.max * 1.5, acc: this.st.acc * 1.6, brk: this.st.brk * 1.3 }); this.color = carCfg(this.car.id).color; }
   get speed() { return Math.hypot(this.vx, this.vy); }
   place(x, y, a) { this.x = this.px = x; this.y = this.py = y; this.a = a; this.vx = this.vy = 0; this.steer = 0; this.spin = 0; this.lastRear = null; }
+  // posição das 4 rodas: traseira esq., traseira dir., dianteira esq., dianteira dir. (lista reaproveitada)
+  rodas() {
+    const c = Math.cos(this.a), s = Math.sin(this.a), L = this.m.L * 0.3, ox = -s * (this.m.W / 2 - 3), oy = c * (this.m.W / 2 - 3), W = this._rodas || (this._rodas = new Float32Array(8));
+    const rx = this.x - c * L, ry = this.y - s * L, fx = this.x + c * L, fy = this.y + s * L;
+    W[0] = rx + ox; W[1] = ry + oy; W[2] = rx - ox; W[3] = ry - oy; W[4] = fx + ox; W[5] = fy + oy; W[6] = fx - ox; W[7] = fy - oy;
+    return W;
+  }
   update(dt, inp) {
     const st = this.st, c = Math.cos(this.a), s = Math.sin(this.a);
     let vf = this.vx * c + this.vy * s, vl = -this.vx * s + this.vy * c;
@@ -3940,19 +3947,20 @@ class Player {
       if (chance(0.35)) Particles.emit(this.surface === SF.ROAD || this.surface === SF.PAVED ? 'smoke' : 'dust', rx + (chance(0.5) ? ox : -ox), ry + (chance(0.5) ? oy : -oy), -this.vx * 0.1 + rnd(-10, 10), -this.vy * 0.1 + rnd(-10, 10), rnd(0.8, 1.4), 6);
     } else this.lastRear = null;
     // pneu junta barro na estrada de terra (muito mais na chuva) e larga o rastro no começo do asfalto
+    // cada roda junta o próprio barro e só ela marca o asfalto depois (a roda que ficou na grama ou no asfalto não marca)
     const muddy = this.surface === SF.DIRT || this.surface === SF.EARTH || this.surface === SF.FIELD;
-    if (muddy && sp > 10) this.mud = Math.min(1, (this.mud || 0) + dt * (0.25 + Weather.wet * 0.9));
-    if (paved && this.mud > 0.02 && sp > 8) {
-      const rx = this.x - c * this.m.L * 0.3, ry = this.y - s * this.m.L * 0.3, fx = this.x + c * this.m.L * 0.3, fy = this.y + s * this.m.L * 0.3;
-      const ox = -s * (this.m.W / 2 - 3), oy = c * (this.m.W / 2 - 3);
-      if (this.lastMud && Math.hypot(rx - this.lastMud[4], ry - this.lastMud[5]) > 3) {
-        const L = this.lastMud;
-        Skids.add(L[0], L[1], rx + ox, ry + oy, L[2], L[3], rx - ox, ry - oy, 'mud');
-        if (this.mud > 0.45) Skids.add(L[6], L[7], fx + ox, fy + oy, L[8], L[9], fx - ox, fy - oy, 'mud');
-      }
-      if (!this.lastMud || Math.hypot(rx - this.lastMud[4], ry - this.lastMud[5]) > 3) this.lastMud = [rx + ox, ry + oy, rx - ox, ry - oy, rx, ry, fx + ox, fy + oy, fx - ox, fy - oy];
-      this.mud = Math.max(0, this.mud - sp * dt * 0.0042); // ~240 unidades de rastro
-    } else this.lastMud = null;
+    const W = this.rodas(), wm = this.wmud || (this.wmud = [0, 0, 0, 0]), wl = this.wlast || (this.wlast = [null, null, null, null]);
+    if (sp > 8) for (let k = 0; k < 4; k++) {
+      const wx = W[k * 2], wy = W[k * 2 + 1], g = groundAt(wx, wy);
+      if ((g === SF.DIRT || g === SF.EARTH || g === SF.FIELD) && sp > 10) wm[k] = Math.min(1, wm[k] + dt * (0.25 + Weather.wet * 0.9));
+      if (wm[k] > 0.02 && (g === SF.ROAD || g === SF.PAVED || g === SF.BRIDGE || g === SF.SIDEWALK)) {
+        const L = wl[k];
+        if (!L) wl[k] = [wx, wy];
+        else if (Math.hypot(wx - L[0], wy - L[1]) > 3) { Skids.add1(L[0], L[1], wx, wy, 'mud'); L[0] = wx; L[1] = wy; }
+        wm[k] = Math.max(0, wm[k] - sp * dt * 0.0042); // ~240 unidades de rastro
+      } else wl[k] = null;
+    } else wl[0] = wl[1] = wl[2] = wl[3] = null;
+    this.mud = Math.max(wm[0], wm[1], wm[2], wm[3]);
     if (muddy && Weather.wet > 0.3) Profile.dirt = clamp(Profile.dirt + dt * 0.02 * Weather.wet * clamp(sp / 150, 0, 1.5), 0, 1);
     // spray de água atrás das rodas na pista molhada
     if (Weather.wet > 0.25 && sp > 140 && paved && chance(0.35 * Weather.wet)) Particles.emit('water', this.x - c * this.m.L * 0.45 + rnd(-6, 6), this.y - s * this.m.L * 0.45 + rnd(-6, 6), -this.vx * 0.12 + rnd(-20, 20), -this.vy * 0.12 + rnd(-20, 20), rnd(0.3, 0.6), 3);
@@ -4920,6 +4928,13 @@ const Skids = {
       this.t[j] = Game.time; this.dirt[j] = surf === 'sangue' ? 3 : surf === 'sangue2' ? 4 : surf === 'mud' ? 2 : surf === SF.ROAD || surf === SF.PAVED || surf === SF.BRIDGE ? 0 : 1;
       this.i = (j + 1) % this.N; this.count = Math.min(this.N, this.count + 1);
     }
+  },
+  // uma marca só (de uma roda)
+  add1(x0, y0, x1, y1, surf) {
+    const j = this.i;
+    this.buf[j * 4] = x0; this.buf[j * 4 + 1] = y0; this.buf[j * 4 + 2] = x1; this.buf[j * 4 + 3] = y1;
+    this.t[j] = Game.time; this.dirt[j] = surf === 'sangue' ? 3 : surf === 'sangue2' ? 4 : surf === 'mud' ? 2 : 1;
+    this.i = (j + 1) % this.N; this.count = Math.min(this.N, this.count + 1);
   },
   draw(ctx, view) {
     if (!this.count) return;
@@ -8556,7 +8571,12 @@ Weather.updatePlayer = function (dt, pl) {
     AudioSys.noise(0.35, p.mud ? 700 : 1900, 0.7, clamp(sp / 900, 0.05, 0.22), 'engine', 'bandpass');
     pl.vx *= 0.96; pl.vy *= 0.96;
     if (sp > 260) pl.spin += rnd(-0.5, 0.5) * this.wet; // aquaplanagem leve
-    if (p.mud) { pl.mud = Math.min(1, (pl.mud || 0) + 0.3); Profile.dirt = clamp(Profile.dirt + 0.04, 0, 1); }
+    if (p.mud && pl.rodas) { // só as rodas que caíram na poça pegam barro
+      const W = pl.rodas(), wm = pl.wmud || (pl.wmud = [0, 0, 0, 0]);
+      for (let k = 0; k < 4; k++) { const ex = (W[k * 2] - p.x) / (p.rx + 2), ey = (W[k * 2 + 1] - p.y) / (p.ry + 2); if (ex * ex + ey * ey <= 1) wm[k] = Math.min(1, wm[k] + 0.3); }
+      pl.mud = Math.max(wm[0], wm[1], wm[2], wm[3]);
+    }
+    if (p.mud) { Profile.dirt = clamp(Profile.dirt + 0.04, 0, 1); }
     Cam.shake = Math.max(Cam.shake, 1.5);
   }
 };
@@ -9761,15 +9781,27 @@ Atropelo.update = function (dt) {
       this.mortos.splice(i, 1);
     }
   }
-  // passou por cima da poça de sangue: os pneus de trás marcam um pouquinho nos primeiros metros
-  for (const q of this.sangue) if (Math.abs(q.x - player.x) < q.r + 8 && Math.abs(q.y - player.y) < q.r + 8 && Math.hypot(q.x - player.x, q.y - player.y) < q.r + 6) { if (!(player.sangueRodas > 50)) player.sangueRodas = 90; }
-  if (player.sangueRodas > 0 && sp > 6) {
-    const c = Math.cos(player.a), s2 = Math.sin(player.a), m = player.m, rx = player.x - c * m.L * 0.3, ry = player.y - s2 * m.L * 0.3, ox = -s2 * (m.W / 2 - 2.5), oy = c * (m.W / 2 - 2.5);
-    const L = player.rastroSangue;
-    if (L && Math.hypot(rx - L[4], ry - L[5]) > 3) Skids.add(L[0], L[1], rx + ox, ry + oy, L[2], L[3], rx - ox, ry - oy, player.sangueRodas > 45 ? 'sangue' : 'sangue2');
-    if (!L || Math.hypot(rx - L[4], ry - L[5]) > 3) player.rastroSangue = [rx + ox, ry + oy, rx - ox, ry - oy, rx, ry];
-    player.sangueRodas -= sp * dt;
-  } else if (!(player.sangueRodas > 0)) player.rastroSangue = null;
+  // roda que passou por cima da poça de sangue marca um pouquinho nos primeiros metros (só essa roda)
+  const W = player.rodas(), sr = player.sangueR || (player.sangueR = [0, 0, 0, 0]), sl = player.sangueL || (player.sangueL = [null, null, null, null]);
+  for (const q of this.sangue) {
+    if (Math.abs(q.x - player.x) > q.r + 40 || Math.abs(q.y - player.y) > q.r + 40) continue;
+    const ca = Math.cos(q.a), sa = Math.sin(q.a), Lr = (q.rastro || 0) * q.t;
+    for (let k = 0; k < 4; k++) {
+      const dx = W[k * 2] - q.x, dy = W[k * 2 + 1] - q.y;
+      const naPoca = dx * dx + dy * dy < (q.r * 0.9 + 1.5) ** 2;
+      const u = dx * ca + dy * sa, v = -dx * sa + dy * ca, noRastro = Lr > 0 && u > 0 && u < Lr && Math.abs(v) < q.r * 0.32 + 1.5; // rastro arrastado
+      if ((naPoca || noRastro) && !(sr[k] > 50)) sr[k] = 90;
+    }
+  }
+  player.sangueRodas = Math.max(sr[0], sr[1], sr[2], sr[3]);
+  for (let k = 0; k < 4; k++) {
+    if (sr[k] > 0 && sp > 6) {
+      const wx = W[k * 2], wy = W[k * 2 + 1], L = sl[k];
+      if (!L) sl[k] = [wx, wy];
+      else if (Math.hypot(wx - L[0], wy - L[1]) > 3) { Skids.add1(L[0], L[1], wx, wy, sr[k] > 45 ? 'sangue' : 'sangue2'); L[0] = wx; L[1] = wy; }
+      sr[k] -= sp * dt;
+    } else if (!(sr[k] > 0)) sl[k] = null;
+  }
   // sangue longe da tela some de vez
   const v = Cam.view, mg = 500;
   if (v && v.x1 > v.x0) for (let i = this.sangue.length - 1; i >= 0; i--) { const q = this.sangue[i]; q.age = (q.age || 0) + dt; if (q.age > 1.5 && (q.x < v.x0 - mg || q.x > v.x1 + mg || q.y < v.y0 - mg || q.y > v.y1 + mg)) this.sangue.splice(i, 1); }
@@ -10246,7 +10278,7 @@ Ambiente.pronto = function (clip) {
 Ambiente.toca = function (clip, x, y, vol, alcance) {
   const b = this.pronto(clip); if (!b) return false;
   const c = AudioSys.ctx, d = Math.hypot(x - Cam.x, y - Cam.y), g = (vol || 0.5) * clamp(1 - d / (alcance || 1500), 0.06, 1);
-  if (g < 0.02) return true;
+  if (!(g >= 0.02) || !isFinite(x) || !isFinite(y)) return true; // posição inválida: não toca
   const s = c.createBufferSource(); s.buffer = b; s.playbackRate.value = 0.92 + Math.random() * 0.16;
   const gn = c.createGain(); gn.gain.value = g; s.connect(gn);
   if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = clamp((x - Cam.x) / 750, -0.85, 0.85); gn.connect(p); p.connect(AudioSys.bus.ambient); } else gn.connect(AudioSys.bus.ambient);

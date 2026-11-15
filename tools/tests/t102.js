@@ -47,12 +47,26 @@ const { chromium } = require('playwright');
   const pneu = await p.evaluate(() => {
     const an = Animals.list.find((a) => a.type === 'person' && !a.morto && Math.abs(a.x - 2100) < 1500);
     Cam.x = an.x; Cam.y = an.y; render(); player.place(an.x - 10, an.y, 0); player.vx = 300; player.vy = 0; player.speed = 300; Atropelo.update(0.016);
-    const q = Atropelo.sangue[Atropelo.sangue.length - 1], n0 = Skids.count;
+    const q = Atropelo.sangue[Atropelo.sangue.length - 1];
+    // poça só debaixo da linha das rodas da esquerda (lado +y com o carro virado para a direita)
+    const W = player.rodas(); q.y = W[1] + 0; q.x = player.x + 30; q.rastro = 0; q.t = 1; player.sangueR = [0, 0, 0, 0]; player.sangueL = null;
+    const n0 = Skids.i;
     for (let i = 0; i < 40; i++) { player.x += 4; Atropelo.update(0.016); }
-    const marcas = []; for (let j = 0; j < Skids.count; j++) if (Skids.dirt[j] === 3 || Skids.dirt[j] === 4) marcas.push(Skids.dirt[j]);
-    return { manchas: Atropelo.sangue.length, raio: +q.r.toFixed(1), marcas: marcas.length, fortes: marcas.filter((x) => x === 3).length, resta: Math.round(player.sangueRodas) };
+    const ys = new Set(), marcas = [];
+    for (let j = 0; j < Skids.count; j++) if (Skids.dirt[j] === 3 || Skids.dirt[j] === 4) { marcas.push(Skids.dirt[j]); ys.add(Math.round(Skids.buf[j * 4 + 1])); }
+    return { raio: +q.r.toFixed(1), marcas: marcas.length, fortes: marcas.filter((x) => x === 3).length, linhas: [...ys], rodaY: Math.round(W[1]), outraY: Math.round(W[3]), resta: Math.round(player.sangueRodas) };
   });
-  console.log('sangue e pneu:', JSON.stringify(pneu)); ok.push(pneu.raio <= 8.3 && pneu.marcas > 4 && pneu.fortes > 0 && pneu.resta <= 0);
+  console.log('sangue e pneu (só a roda que pisou):', JSON.stringify(pneu));
+  ok.push(pneu.raio <= 8.3 && pneu.marcas > 4 && pneu.fortes > 0 && pneu.linhas.length === 1 && pneu.linhas[0] === pneu.rodaY);
+  // barro: só as rodas que andaram na terra marcam o asfalto
+  const barro = await p.evaluate(() => {
+    player.place(2100, 1518, 0); Cam.x = 2100; Cam.y = 1518; player.wmud = [1, 0, 0, 0]; player.wlast = null; const c0 = Skids.count; player.vx = 300; player.vy = 0;
+    const ys = new Set(); const W = player.rodas();
+    for (let i = 0; i < 30; i++) { const before = Skids.i; player.update(1 / 60, { thr: 0.6, brk: 0, steer: 0, hb: false }); }
+    for (let j = 0; j < Skids.count; j++) if (Skids.dirt[j] === 2) ys.add(Math.round(Skids.buf[j * 4 + 1]));
+    return { chao: groundAt(player.x, player.y), linhas: [...ys].length, wmud: player.wmud.map((v) => +v.toFixed(2)) };
+  });
+  console.log('barro (só uma roda suja):', JSON.stringify(barro)); ok.push(barro.linhas >= 1 && barro.wmud[1] === 0 && barro.wmud[2] === 0 && barro.wmud[3] === 0);
   console.log(ok.every(Boolean) ? 'OK: voz abaixa com a distância e atropelamento' : 'FALHOU: ' + JSON.stringify(ok));
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();

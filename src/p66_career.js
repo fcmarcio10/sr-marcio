@@ -281,15 +281,27 @@ Atropelo.update = function (dt) {
       this.mortos.splice(i, 1);
     }
   }
-  // passou por cima da poça de sangue: os pneus de trás marcam um pouquinho nos primeiros metros
-  for (const q of this.sangue) if (Math.abs(q.x - player.x) < q.r + 8 && Math.abs(q.y - player.y) < q.r + 8 && Math.hypot(q.x - player.x, q.y - player.y) < q.r + 6) { if (!(player.sangueRodas > 50)) player.sangueRodas = 90; }
-  if (player.sangueRodas > 0 && sp > 6) {
-    const c = Math.cos(player.a), s2 = Math.sin(player.a), m = player.m, rx = player.x - c * m.L * 0.3, ry = player.y - s2 * m.L * 0.3, ox = -s2 * (m.W / 2 - 2.5), oy = c * (m.W / 2 - 2.5);
-    const L = player.rastroSangue;
-    if (L && Math.hypot(rx - L[4], ry - L[5]) > 3) Skids.add(L[0], L[1], rx + ox, ry + oy, L[2], L[3], rx - ox, ry - oy, player.sangueRodas > 45 ? 'sangue' : 'sangue2');
-    if (!L || Math.hypot(rx - L[4], ry - L[5]) > 3) player.rastroSangue = [rx + ox, ry + oy, rx - ox, ry - oy, rx, ry];
-    player.sangueRodas -= sp * dt;
-  } else if (!(player.sangueRodas > 0)) player.rastroSangue = null;
+  // roda que passou por cima da poça de sangue marca um pouquinho nos primeiros metros (só essa roda)
+  const W = player.rodas(), sr = player.sangueR || (player.sangueR = [0, 0, 0, 0]), sl = player.sangueL || (player.sangueL = [null, null, null, null]);
+  for (const q of this.sangue) {
+    if (Math.abs(q.x - player.x) > q.r + 40 || Math.abs(q.y - player.y) > q.r + 40) continue;
+    const ca = Math.cos(q.a), sa = Math.sin(q.a), Lr = (q.rastro || 0) * q.t;
+    for (let k = 0; k < 4; k++) {
+      const dx = W[k * 2] - q.x, dy = W[k * 2 + 1] - q.y;
+      const naPoca = dx * dx + dy * dy < (q.r * 0.9 + 1.5) ** 2;
+      const u = dx * ca + dy * sa, v = -dx * sa + dy * ca, noRastro = Lr > 0 && u > 0 && u < Lr && Math.abs(v) < q.r * 0.32 + 1.5; // rastro arrastado
+      if ((naPoca || noRastro) && !(sr[k] > 50)) sr[k] = 90;
+    }
+  }
+  player.sangueRodas = Math.max(sr[0], sr[1], sr[2], sr[3]);
+  for (let k = 0; k < 4; k++) {
+    if (sr[k] > 0 && sp > 6) {
+      const wx = W[k * 2], wy = W[k * 2 + 1], L = sl[k];
+      if (!L) sl[k] = [wx, wy];
+      else if (Math.hypot(wx - L[0], wy - L[1]) > 3) { Skids.add1(L[0], L[1], wx, wy, sr[k] > 45 ? 'sangue' : 'sangue2'); L[0] = wx; L[1] = wy; }
+      sr[k] -= sp * dt;
+    } else if (!(sr[k] > 0)) sl[k] = null;
+  }
   // sangue longe da tela some de vez
   const v = Cam.view, mg = 500;
   if (v && v.x1 > v.x0) for (let i = this.sangue.length - 1; i >= 0; i--) { const q = this.sangue[i]; q.age = (q.age || 0) + dt; if (q.age > 1.5 && (q.x < v.x0 - mg || q.x > v.x1 + mg || q.y < v.y0 - mg || q.y > v.y1 + mg)) this.sangue.splice(i, 1); }
@@ -766,7 +778,7 @@ Ambiente.pronto = function (clip) {
 Ambiente.toca = function (clip, x, y, vol, alcance) {
   const b = this.pronto(clip); if (!b) return false;
   const c = AudioSys.ctx, d = Math.hypot(x - Cam.x, y - Cam.y), g = (vol || 0.5) * clamp(1 - d / (alcance || 1500), 0.06, 1);
-  if (g < 0.02) return true;
+  if (!(g >= 0.02) || !isFinite(x) || !isFinite(y)) return true; // posição inválida: não toca
   const s = c.createBufferSource(); s.buffer = b; s.playbackRate.value = 0.92 + Math.random() * 0.16;
   const gn = c.createGain(); gn.gain.value = g; s.connect(gn);
   if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = clamp((x - Cam.x) / 750, -0.85, 0.85); gn.connect(p); p.connect(AudioSys.bus.ambient); } else gn.connect(AudioSys.bus.ambient);

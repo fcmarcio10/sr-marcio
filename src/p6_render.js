@@ -1095,7 +1095,12 @@ Weather.updatePlayer = function (dt, pl) {
     AudioSys.noise(0.35, p.mud ? 700 : 1900, 0.7, clamp(sp / 900, 0.05, 0.22), 'engine', 'bandpass');
     pl.vx *= 0.96; pl.vy *= 0.96;
     if (sp > 260) pl.spin += rnd(-0.5, 0.5) * this.wet; // aquaplanagem leve
-    if (p.mud) { pl.mud = Math.min(1, (pl.mud || 0) + 0.3); Profile.dirt = clamp(Profile.dirt + 0.04, 0, 1); }
+    if (p.mud && pl.rodas) { // só as rodas que caíram na poça pegam barro
+      const W = pl.rodas(), wm = pl.wmud || (pl.wmud = [0, 0, 0, 0]);
+      for (let k = 0; k < 4; k++) { const ex = (W[k * 2] - p.x) / (p.rx + 2), ey = (W[k * 2 + 1] - p.y) / (p.ry + 2); if (ex * ex + ey * ey <= 1) wm[k] = Math.min(1, wm[k] + 0.3); }
+      pl.mud = Math.max(wm[0], wm[1], wm[2], wm[3]);
+    }
+    if (p.mud) { Profile.dirt = clamp(Profile.dirt + 0.04, 0, 1); }
     Cam.shake = Math.max(Cam.shake, 1.5);
   }
 };
