@@ -37,6 +37,7 @@ function pay(v, why) {
 function onPlayerImpact(imp) {
   player.impactCd = 0.35;
   const k = clamp((imp - 70) / 380, 0, 1);
+  { const hx = (player.hitX || player.x) - player.x, hy = (player.hitY || player.y) - player.y, d = Math.hypot(hx, hy) || 1; Cam.kx = (Cam.kx || 0) + hx / d * (2 + 9 * k); Cam.ky = (Cam.ky || 0) + hy / d * (2 + 9 * k); } // tranco da câmera para o lado da pancada
   // batidas leves e médias amassam 6% menos; batida forte continua igual
   const kd = k < 0.45 ? k * 0.94 : k;
   Profile.damage = clamp(Profile.damage + kd * 13, 0, 100);

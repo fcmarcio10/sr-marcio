@@ -4114,10 +4114,12 @@ class Player {
           const vtan = Math.abs(-this.vx * ny + this.vy * nx);
           if (vtan > 140 && vn > -60) { if (chance(0.5)) Particles.emit('spark', cx - nx * r, cy - ny * r, -this.vx * 0.3 + rnd(-60, 60), -this.vy * 0.3 + rnd(-60, 60), rnd(0.15, 0.35), 2); this.scrapeT = 0.12; }
           if (vn < 0) {
-            const jx = -1.25 * vn * nx, jy = -1.25 * vn * ny;
+            const e = clamp(0.32 + vn / 1400, 0.08, 0.32); // batida forte quica menos (a lataria amassa e segura)
+            const jx = -(1 + e) * vn * nx, jy = -(1 + e) * vn * ny;
             this.vx += jx; this.vy += jy;
-            const tx = -ny, ty = nx, vt = this.vx * tx + this.vy * ty;
-            this.vx -= tx * vt * 0.1; this.vy -= ty * vt * 0.1;
+            const tx = -ny, ty = nx, vt = this.vx * tx + this.vy * ty, jn = -(1 + e) * vn;
+            const atr = clamp(Math.abs(vt), 0, jn * 0.35) * Math.sign(vt); // atrito proporcional à pancada
+            this.vx -= tx * atr; this.vy -= ty * atr;
             const tau = (c * k) * jy - (s * k) * jx;
             this.spin = clamp(this.spin + tau * 0.00018, -2.5, 2.5);
             if (-vn > impact) { impact = -vn; this.hitX = cx - nx * r; this.hitY = cy - ny * r; }
@@ -4145,12 +4147,23 @@ class Player {
           const dx = cx - ox, dy = cy - oy, d2 = dx * dx + dy * dy, R = r + ar;
           if (d2 >= R * R) continue;
           const d = Math.sqrt(d2) || 0.001, nx = dx / d, ny = dy / d, pen = R - d;
-          this.x += nx * pen; this.y += ny * pen; cx += nx * pen; cy += ny * pen;
+          const share = ai.mass / (ai.mass + 1); // o mais pesado empurra mais
+          this.x += nx * pen * share; this.y += ny * pen * share; cx += nx * pen * share; cy += ny * pen * share;
+          ai.ox -= nx * pen * (1 - share); ai.oy -= ny * pen * (1 - share);
           const avx = ac * ai.v, avy = as * ai.v;
           const vn = (this.vx - avx) * nx + (this.vy - avy) * ny;
+          // raspando de lado no outro carro: faísca
+          const vtr = (this.vx - avx) * -ny + (this.vy - avy) * nx;
+          if (Math.abs(vtr) > 120 && vn > -80 && chance(0.4)) { Particles.emit('spark', cx - nx * r, cy - ny * r, -this.vx * 0.2 + rnd(-60, 60), -this.vy * 0.2 + rnd(-60, 60), rnd(0.15, 0.3), 2); this.scrapeT = 0.12; }
           if (vn < 0) {
-            const share = ai.mass / (ai.mass + 1);
-            this.vx -= 1.3 * vn * nx * share; this.vy -= 1.3 * vn * ny * share;
+            const e = clamp(0.3 + vn / 1500, 0.08, 0.3);
+            this.vx -= (1 + e) * vn * nx * share; this.vy -= (1 + e) * vn * ny * share;
+            this.vx -= -ny * vtr * 0.12 * share; this.vy -= nx * vtr * 0.12 * share; // atrito entre as latarias
+            // o outro carro: empurrado pela batida (por trás anda, de frente freia) e gira se pegou fora do centro
+            const fwd = (-nx * ac + -ny * as) * -vn * (1 + e) * (1 - share);
+            ai.v = clamp(ai.v + fwd * 0.9, 0, ai.vmax || 400);
+            const bx = (cx - nx * r) - ai.x, by = (cy - ny * r) - ai.y, alav = bx * ac + by * as; // ponto da batida ao longo do carro dele
+            ai.yaw = clamp((ai.yaw || 0) + (alav * (-nx * -as + -ny * ac)) * -vn * 0.00009 * (1 - share), -0.7, 0.7);
             const tau = (c * k) * (-vn * ny) - (s * k) * (-vn * nx);
             this.spin = clamp(this.spin + tau * 0.00015, -2.5, 2.5);
             if (-vn > impact) { impact = -vn; this.hitX = cx - nx * r; this.hitY = cy - ny * r; }
@@ -4525,7 +4538,7 @@ class AICar {
       this.turn.t += this.v * dt / this.turn.len;
       if (this.turn.t >= 1) this.finishTurn();
     }
-    this.ox *= Math.exp(-2.5 * dt); this.oy *= Math.exp(-2.5 * dt);
+    this.ox *= Math.exp(-2.5 * dt); this.oy *= Math.exp(-2.5 * dt); if (this.yaw) { this.yaw *= Math.exp(-1.8 * dt); if (Math.abs(this.yaw) < 0.002) this.yaw = 0; }
     this.roll += this.v * dt * 0.35;
     // poeira levantada na estrada de terra
     if (this.v > 50 && (this.state === 'edge' ? this.e.T.id === 'dirt' : this.dirtTurn) && chance(dt * 9)) {
@@ -4542,7 +4555,7 @@ class AICar {
       const p = this.edgePos(this.s);
       this.x = p[0] + this.ox; this.y = p[1] + this.oy;
       const ang = clamp(Math.atan2(this.offV || 0, Math.max(this.v, 20)), -0.42, 0.42); // bico virado para a faixa nova
-      this.a = Math.atan2(this.dy, this.dx) + ang;
+      this.a = Math.atan2(this.dy, this.dx) + ang + (this.yaw || 0); // gira um pouco depois de uma batida
       this.steerVis = clamp(ang * 2.2, -0.5, 0.5);
     } else {
       const T = this.turn, p = bez(T.p0, T.c1, T.c2, T.p3, T.t), d = bezD(T.p0, T.c1, T.c2, T.p3, T.t);
@@ -5177,6 +5190,7 @@ function pay(v, why) {
 function onPlayerImpact(imp) {
   player.impactCd = 0.35;
   const k = clamp((imp - 70) / 380, 0, 1);
+  { const hx = (player.hitX || player.x) - player.x, hy = (player.hitY || player.y) - player.y, d = Math.hypot(hx, hy) || 1; Cam.kx = (Cam.kx || 0) + hx / d * (2 + 9 * k); Cam.ky = (Cam.ky || 0) + hy / d * (2 + 9 * k); } // tranco da câmera para o lado da pancada
   // batidas leves e médias amassam 6% menos; batida forte continua igual
   const kd = k < 0.45 ? k * 0.94 : k;
   Profile.damage = clamp(Profile.damage + kd * 13, 0, 100);
@@ -6188,7 +6202,8 @@ const PH_ICONS = {
   trapaca: ['#7d3cff', _ln('<path d="M4 20 14 10"/><path d="M15 3l1 2.5L18.5 6.5 16 7.5 15 10l-1-2.5L11.5 6.5 14 5.5z"/><path d="M19 12l.6 1.4 1.4.6-1.4.6L19 16l-.6-1.4-1.4-.6 1.4-.6z"/>')],
   conquistas: ['#e0a21b', _ln('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>')],
   camera: ['#3c4049', _ln('<path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/>')],
-  colecao: ['#b8643a', _ln('<path d="M6.5 9.5h11l-1 8.5a2 2 0 0 1-2 1.7h-5a2 2 0 0 1-2-1.7z"/><path d="M5 9.5h14M9.5 9.5V8a2.5 2.5 0 0 1 5 0v1.5"/>')],
+  // panela de barro vista de lado: barriga redonda, tampa com pegador e as duas alças
+  colecao: ['#b8643a', _ln('<path d="M4.5 11.5h15c0 4.6-3.2 7.8-7.5 7.8s-7.5-3.2-7.5-7.8z"/><path d="M6 11.5c.6-2.4 3-3.8 6-3.8s5.4 1.4 6 3.8"/><path d="M12 7.7V6.2"/><path d="M4.5 12.5H2.8M19.5 12.5h1.7"/>')],
   ajustes: ['#7b808a', _ln('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>')],
 };
 const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
@@ -7696,12 +7711,21 @@ function updateCamera(dt) {
     Cam.zoom = lerp(Cam.zoom, screenZoomBase() * 0.95, 1 - Math.exp(-2 * dt));
   } else {
     sp = player.speed;
-    const la = clamp(0.32, 0, 1);
-    let lx = player.vx * la, ly = player.vy * la;
+    // olha para onde o carro vai: parte pela velocidade e um pouco pelo bico (devagar também mostra o caminho);
+    // o "olhar à frente" é suavizado à parte, então frear ou bater não dá tranco na tela
+    let lx = player.vx * 0.32 + Math.cos(player.a) * clamp(sp * 0.08, 0, 26), ly = player.vy * 0.32 + Math.sin(player.a) * clamp(sp * 0.08, 0, 26);
     const ll = Math.hypot(lx, ly); if (ll > 210) { lx *= 210 / ll; ly *= 210 / ll; }
-    tx = player.x + lx; ty = player.y + ly;
-    const k = 1 - Math.exp(-5 * dt);
+    const kl = 1 - Math.exp(-2.6 * dt);
+    Cam.lx = (Cam.lx || 0) + (lx - (Cam.lx || 0)) * kl; Cam.ly = (Cam.ly || 0) + (ly - (Cam.ly || 0)) * kl;
+    tx = player.x + Cam.lx; ty = player.y + Cam.ly;
+    const k = 1 - Math.exp(-7 * dt);
     Cam.x += (tx - Cam.x) * k; Cam.y += (ty - Cam.y) * k;
+    // tranco da batida: a câmera é jogada para o lado da pancada e volta com mola
+    if (Cam.kx || Cam.ky) {
+      Cam.kvx = (Cam.kvx || 0) - Cam.kx * 160 * dt - (Cam.kvx || 0) * 14 * dt; Cam.kvy = (Cam.kvy || 0) - Cam.ky * 160 * dt - (Cam.kvy || 0) * 14 * dt;
+      Cam.kx += Cam.kvx * dt; Cam.ky += Cam.kvy * dt;
+      if (Math.abs(Cam.kx) + Math.abs(Cam.ky) + Math.abs(Cam.kvx) + Math.abs(Cam.kvy) < 0.05) Cam.kx = Cam.ky = Cam.kvx = Cam.kvy = 0;
+    }
     // correndo, a câmera sobe um pouco, mas nunca passa do nível 3 (130%)
     const pct = Math.max(CAM_MIN, (Settings.zoom || 140) * (1 - clamp(sp / 700, 0, 1) * 0.22));
     const target = screenZoomBase() * (pct / 100);
@@ -9177,7 +9201,7 @@ function render() {
   const _P = window.__PROF; let _pt = _P ? performance.now() : 0; const pm = (k) => { if (_P) { const t = performance.now(); _P[k] = (_P[k] || 0) + t - _pt; _pt = t; } };
   const W = canvas.width, Hh = canvas.height;
   const z = Cam.zoom * RS;
-  const sx = (Math.random() - 0.5) * Cam.shake, sy = (Math.random() - 0.5) * Cam.shake;
+  const sx = (Math.random() - 0.5) * Cam.shake + (Cam.kx || 0), sy = (Math.random() - 0.5) * Cam.shake + (Cam.ky || 0); // tremida + tranco da batida
   const cx = Cam.x + sx, cy = Cam.y + sy;
   const vw = W / z, vh = Hh / (z * SQ);
   const view = Cam.view; view.x0 = cx - vw / 2; view.y0 = cy - vh / 2; view.x1 = cx + vw / 2; view.y1 = cy + vh / 2;

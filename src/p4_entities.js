@@ -285,10 +285,12 @@ class Player {
           const vtan = Math.abs(-this.vx * ny + this.vy * nx);
           if (vtan > 140 && vn > -60) { if (chance(0.5)) Particles.emit('spark', cx - nx * r, cy - ny * r, -this.vx * 0.3 + rnd(-60, 60), -this.vy * 0.3 + rnd(-60, 60), rnd(0.15, 0.35), 2); this.scrapeT = 0.12; }
           if (vn < 0) {
-            const jx = -1.25 * vn * nx, jy = -1.25 * vn * ny;
+            const e = clamp(0.32 + vn / 1400, 0.08, 0.32); // batida forte quica menos (a lataria amassa e segura)
+            const jx = -(1 + e) * vn * nx, jy = -(1 + e) * vn * ny;
             this.vx += jx; this.vy += jy;
-            const tx = -ny, ty = nx, vt = this.vx * tx + this.vy * ty;
-            this.vx -= tx * vt * 0.1; this.vy -= ty * vt * 0.1;
+            const tx = -ny, ty = nx, vt = this.vx * tx + this.vy * ty, jn = -(1 + e) * vn;
+            const atr = clamp(Math.abs(vt), 0, jn * 0.35) * Math.sign(vt); // atrito proporcional à pancada
+            this.vx -= tx * atr; this.vy -= ty * atr;
             const tau = (c * k) * jy - (s * k) * jx;
             this.spin = clamp(this.spin + tau * 0.00018, -2.5, 2.5);
             if (-vn > impact) { impact = -vn; this.hitX = cx - nx * r; this.hitY = cy - ny * r; }
@@ -316,12 +318,23 @@ class Player {
           const dx = cx - ox, dy = cy - oy, d2 = dx * dx + dy * dy, R = r + ar;
           if (d2 >= R * R) continue;
           const d = Math.sqrt(d2) || 0.001, nx = dx / d, ny = dy / d, pen = R - d;
-          this.x += nx * pen; this.y += ny * pen; cx += nx * pen; cy += ny * pen;
+          const share = ai.mass / (ai.mass + 1); // o mais pesado empurra mais
+          this.x += nx * pen * share; this.y += ny * pen * share; cx += nx * pen * share; cy += ny * pen * share;
+          ai.ox -= nx * pen * (1 - share); ai.oy -= ny * pen * (1 - share);
           const avx = ac * ai.v, avy = as * ai.v;
           const vn = (this.vx - avx) * nx + (this.vy - avy) * ny;
+          // raspando de lado no outro carro: faísca
+          const vtr = (this.vx - avx) * -ny + (this.vy - avy) * nx;
+          if (Math.abs(vtr) > 120 && vn > -80 && chance(0.4)) { Particles.emit('spark', cx - nx * r, cy - ny * r, -this.vx * 0.2 + rnd(-60, 60), -this.vy * 0.2 + rnd(-60, 60), rnd(0.15, 0.3), 2); this.scrapeT = 0.12; }
           if (vn < 0) {
-            const share = ai.mass / (ai.mass + 1);
-            this.vx -= 1.3 * vn * nx * share; this.vy -= 1.3 * vn * ny * share;
+            const e = clamp(0.3 + vn / 1500, 0.08, 0.3);
+            this.vx -= (1 + e) * vn * nx * share; this.vy -= (1 + e) * vn * ny * share;
+            this.vx -= -ny * vtr * 0.12 * share; this.vy -= nx * vtr * 0.12 * share; // atrito entre as latarias
+            // o outro carro: empurrado pela batida (por trás anda, de frente freia) e gira se pegou fora do centro
+            const fwd = (-nx * ac + -ny * as) * -vn * (1 + e) * (1 - share);
+            ai.v = clamp(ai.v + fwd * 0.9, 0, ai.vmax || 400);
+            const bx = (cx - nx * r) - ai.x, by = (cy - ny * r) - ai.y, alav = bx * ac + by * as; // ponto da batida ao longo do carro dele
+            ai.yaw = clamp((ai.yaw || 0) + (alav * (-nx * -as + -ny * ac)) * -vn * 0.00009 * (1 - share), -0.7, 0.7);
             const tau = (c * k) * (-vn * ny) - (s * k) * (-vn * nx);
             this.spin = clamp(this.spin + tau * 0.00015, -2.5, 2.5);
             if (-vn > impact) { impact = -vn; this.hitX = cx - nx * r; this.hitY = cy - ny * r; }
@@ -696,7 +709,7 @@ class AICar {
       this.turn.t += this.v * dt / this.turn.len;
       if (this.turn.t >= 1) this.finishTurn();
     }
-    this.ox *= Math.exp(-2.5 * dt); this.oy *= Math.exp(-2.5 * dt);
+    this.ox *= Math.exp(-2.5 * dt); this.oy *= Math.exp(-2.5 * dt); if (this.yaw) { this.yaw *= Math.exp(-1.8 * dt); if (Math.abs(this.yaw) < 0.002) this.yaw = 0; }
     this.roll += this.v * dt * 0.35;
     // poeira levantada na estrada de terra
     if (this.v > 50 && (this.state === 'edge' ? this.e.T.id === 'dirt' : this.dirtTurn) && chance(dt * 9)) {
@@ -713,7 +726,7 @@ class AICar {
       const p = this.edgePos(this.s);
       this.x = p[0] + this.ox; this.y = p[1] + this.oy;
       const ang = clamp(Math.atan2(this.offV || 0, Math.max(this.v, 20)), -0.42, 0.42); // bico virado para a faixa nova
-      this.a = Math.atan2(this.dy, this.dx) + ang;
+      this.a = Math.atan2(this.dy, this.dx) + ang + (this.yaw || 0); // gira um pouco depois de uma batida
       this.steerVis = clamp(ang * 2.2, -0.5, 0.5);
     } else {
       const T = this.turn, p = bez(T.p0, T.c1, T.c2, T.p3, T.t), d = bezD(T.p0, T.c1, T.c2, T.p3, T.t);

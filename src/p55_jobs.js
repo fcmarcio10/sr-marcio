@@ -392,7 +392,8 @@ const PH_ICONS = {
   trapaca: ['#7d3cff', _ln('<path d="M4 20 14 10"/><path d="M15 3l1 2.5L18.5 6.5 16 7.5 15 10l-1-2.5L11.5 6.5 14 5.5z"/><path d="M19 12l.6 1.4 1.4.6-1.4.6L19 16l-.6-1.4-1.4-.6 1.4-.6z"/>')],
   conquistas: ['#e0a21b', _ln('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>')],
   camera: ['#3c4049', _ln('<path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/>')],
-  colecao: ['#b8643a', _ln('<path d="M6.5 9.5h11l-1 8.5a2 2 0 0 1-2 1.7h-5a2 2 0 0 1-2-1.7z"/><path d="M5 9.5h14M9.5 9.5V8a2.5 2.5 0 0 1 5 0v1.5"/>')],
+  // panela de barro vista de lado: barriga redonda, tampa com pegador e as duas alças
+  colecao: ['#b8643a', _ln('<path d="M4.5 11.5h15c0 4.6-3.2 7.8-7.5 7.8s-7.5-3.2-7.5-7.8z"/><path d="M6 11.5c.6-2.4 3-3.8 6-3.8s5.4 1.4 6 3.8"/><path d="M12 7.7V6.2"/><path d="M4.5 12.5H2.8M19.5 12.5h1.7"/>')],
   ajustes: ['#7b808a', _ln('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>')],
 };
 const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };

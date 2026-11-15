@@ -58,12 +58,21 @@ function updateCamera(dt) {
     Cam.zoom = lerp(Cam.zoom, screenZoomBase() * 0.95, 1 - Math.exp(-2 * dt));
   } else {
     sp = player.speed;
-    const la = clamp(0.32, 0, 1);
-    let lx = player.vx * la, ly = player.vy * la;
+    // olha para onde o carro vai: parte pela velocidade e um pouco pelo bico (devagar também mostra o caminho);
+    // o "olhar à frente" é suavizado à parte, então frear ou bater não dá tranco na tela
+    let lx = player.vx * 0.32 + Math.cos(player.a) * clamp(sp * 0.08, 0, 26), ly = player.vy * 0.32 + Math.sin(player.a) * clamp(sp * 0.08, 0, 26);
     const ll = Math.hypot(lx, ly); if (ll > 210) { lx *= 210 / ll; ly *= 210 / ll; }
-    tx = player.x + lx; ty = player.y + ly;
-    const k = 1 - Math.exp(-5 * dt);
+    const kl = 1 - Math.exp(-2.6 * dt);
+    Cam.lx = (Cam.lx || 0) + (lx - (Cam.lx || 0)) * kl; Cam.ly = (Cam.ly || 0) + (ly - (Cam.ly || 0)) * kl;
+    tx = player.x + Cam.lx; ty = player.y + Cam.ly;
+    const k = 1 - Math.exp(-7 * dt);
     Cam.x += (tx - Cam.x) * k; Cam.y += (ty - Cam.y) * k;
+    // tranco da batida: a câmera é jogada para o lado da pancada e volta com mola
+    if (Cam.kx || Cam.ky) {
+      Cam.kvx = (Cam.kvx || 0) - Cam.kx * 160 * dt - (Cam.kvx || 0) * 14 * dt; Cam.kvy = (Cam.kvy || 0) - Cam.ky * 160 * dt - (Cam.kvy || 0) * 14 * dt;
+      Cam.kx += Cam.kvx * dt; Cam.ky += Cam.kvy * dt;
+      if (Math.abs(Cam.kx) + Math.abs(Cam.ky) + Math.abs(Cam.kvx) + Math.abs(Cam.kvy) < 0.05) Cam.kx = Cam.ky = Cam.kvx = Cam.kvy = 0;
+    }
     // correndo, a câmera sobe um pouco, mas nunca passa do nível 3 (130%)
     const pct = Math.max(CAM_MIN, (Settings.zoom || 140) * (1 - clamp(sp / 700, 0, 1) * 0.22));
     const target = screenZoomBase() * (pct / 100);
@@ -1539,7 +1548,7 @@ function render() {
   const _P = window.__PROF; let _pt = _P ? performance.now() : 0; const pm = (k) => { if (_P) { const t = performance.now(); _P[k] = (_P[k] || 0) + t - _pt; _pt = t; } };
   const W = canvas.width, Hh = canvas.height;
   const z = Cam.zoom * RS;
-  const sx = (Math.random() - 0.5) * Cam.shake, sy = (Math.random() - 0.5) * Cam.shake;
+  const sx = (Math.random() - 0.5) * Cam.shake + (Cam.kx || 0), sy = (Math.random() - 0.5) * Cam.shake + (Cam.ky || 0); // tremida + tranco da batida
   const cx = Cam.x + sx, cy = Cam.y + sy;
   const vw = W / z, vh = Hh / (z * SQ);
   const view = Cam.view; view.x0 = cx - vw / 2; view.y0 = cy - vh / 2; view.x1 = cx + vw / 2; view.y1 = cy + vh / 2;
