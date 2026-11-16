@@ -5633,6 +5633,7 @@ function abandonActivity() {
   if (Act.race) { Act.race = null; toast('Percurso abandonado', '', 'bad'); return true; }
   if (Act.delivery) { Act.delivery = null; toast('Entrega cancelada', 'O cliente vai ter que esperar…', 'bad'); return true; }
   if (Act.ride) { Act.ride = null; Act.rideT = 8; toast('Corrida cancelada', 'O passageiro chamou outro motorista.', 'bad'); return true; }
+  if (typeof Historia !== 'undefined' && Historia.ativa() && Historia.desiste()) return true; // missão da história: fracassada e recomeça
   if (Act.waypoint) { Act.waypoint = null; toast('Destino do GPS removido', '', 'info'); return true; }
   return false;
 }
@@ -11140,7 +11141,7 @@ const Screens = {
     if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
     if (id === 'screen-pause') renderPauseStats();
     if (id === 'screen-main') $('btn-continue').disabled = !hasSave;
-    if (id === 'screen-pause') $('btn-abandon').disabled = !(Act.race || Act.delivery || Act.waypoint);
+    if (id === 'screen-pause') $('btn-abandon').disabled = !(Act.race || Act.delivery || Act.ride || Act.waypoint || Historia.ativa());
   },
 };
 // tela livre para o jogo: nada aberto ou só o celular (o celular não pausa o jogo)
@@ -11891,8 +11892,8 @@ Missao.esconde = function (id) {
   this.timers[id] = setTimeout(() => { e.classList.remove('ms-on', 'ms-sai'); e.classList.add('ms-oculto'); }, 600);
 };
 // nome do capítulo grande no meio da tela
-Missao.titulo = function (rotulo, nome) {
-  this.mostra('ms-titulo', `<div class="ms-rot">${escapeHtml(rotulo)}</div><div class="ms-nome">${escapeHtml(nome)}</div>`, 4.5);
+Missao.titulo = function (rotulo, nome, historia) {
+  this.mostra('ms-titulo', `<div class="ms-rot">${escapeHtml(rotulo)}</div><div class="ms-nome">${escapeHtml(nome)}</div>` + (historia ? `<div class="ms-hist">${escapeHtml(historia)}</div>` : ''), historia ? 6.5 : 4.5);
   try { [196, 294, 392].forEach((f, i) => AudioSys.tone(f, 1.4, 'triangle', 0.05, 'ui', null, i * 0.12)); } catch (e) {}
 };
 // objetivo como legenda embaixo (palavra importante em amarelo)
@@ -11915,6 +11916,12 @@ Missao.lugar = function (nome, sub, tag) {
   this.mostra('ms-lugar', (tag ? `<div class="ml-tag">${escapeHtml(tag)}</div>` : '') + `<div class="ml-nome">${escapeHtml(nome)}</div>` + (sub ? `<div class="ml-sub">${escapeHtml(sub)}</div>` : ''), 0);
   try { AudioSys.tone(523, 0.25, 'sine', 0.04, 'ui'); AudioSys.tone(784, 0.35, 'sine', 0.035, 'ui', null, 0.1); } catch (e) {}
 };
+
+// missão fracassada (desistiu pelo menu): faixa escura com o texto em vermelho
+Missao.fracassou = function (sub) {
+  this.mostra('ms-passou', `<div class="ms-faixa"><div class="ms-ok ms-falhou">Missão fracassada</div><div class="ms-sub">${escapeHtml(sub || '')}</div></div>`, 4.5);
+  try { [[392, 0], [330, 0.18], [262, 0.36], [196, 0.6]].forEach(([f, d]) => AudioSys.tone(f, 0.6, 'triangle', 0.07, 'ui', null, d)); } catch (e) {}
+};
 /* ============================ HISTÓRIA: O CARRO DOS SONHOS ============================
    7 capítulos + o final. No fundo da oficina do Seu Zé tem um Opalha 6C preto à venda (R$ 35.000; R$ 29.000 com o
    desconto de quem ajudou o Juninho, o dono do outro Opalha, que empresta o carro dele para o racha):
@@ -11928,6 +11935,17 @@ const OPALHA_CHEIO = 35000, OPALHA_AMIGO = 29000;
 function precoCarro(c) { return c && c.id === SONHO && Profile.hist && Profile.hist.juninho ? OPALHA_AMIGO : c ? c.price : 0; }
 function descontoCarro(c) { return c ? c.price - precoCarro(c) : 0; }
 const corridasDe = () => Profile.rides || 0;
+// o que liga cada capítulo ao anterior (aparece embaixo do nome do capítulo e na pausa)
+const HIST_PORQUE = [
+  'Você chegou em São Gambiarra com um Gou Quadrado velho e um sonho: o Opalha 6C do fundo da oficina do Seu Zé.',
+  'Pra comprar o Opalha, primeiro o dinheiro. O Seu Zé te cadastrou no PegaAí.',
+  'As corridas ajudaram, mas o Opalha custa caro. Os comércios estão precisando de entregador.',
+  'O Seu Zé diz que quem ajuda a cidade é ajudado. De madrugada sempre tem alguém em apuros.',
+  'Agora a cidade te conhece. Falta provar que você também dirige na terra, lá na roça.',
+  'O Zé do Canecão te desafiou pro racha, mas o Gou Quadrado não aguenta. O Juninho tem um Opalha parado...',
+  'O Juninho te emprestou o Opalha dele. Hora de calar a boca do Zé do Canecão.',
+  'O Juninho falou com o Seu Zé: o seu Opalha agora sai com desconto. É só juntar o dinheiro.',
+];
 const HIST_CAPS = [
   { nome: 'Chegada', leg: 'Siga o <b>Seu Zé</b> no passo a passo.', dica: '', meta: 'Termine o passo a passo com o Seu Zé.', voz: null, premio: 200,
     val: () => (Profile.tut === undefined || Profile.tut >= TUT_STEPS.length ? 1 : 0), alvo: 1, absoluto: true },
@@ -11969,6 +11987,7 @@ const Historia = {
     return [capNome(h.cap) + ' · ' + c.nome, c.meta, c.extra ? c.extra() : (c.alvo > 1 ? f + ' de ' + c.alvo : 'Falta pouco') + (c.premio ? ' · prêmio R$ ' + fmtMoney(c.premio) : '')];
   },
   update(dt) {
+    this.rastro();
     if (Game.mode !== 'play' || !carregou(1)) return;
     const h = this.h(); if (h.fim) return;
     this.t -= dt; if (this.t > 0) return; this.t = 0.5;
@@ -11982,7 +12001,7 @@ const Historia = {
     if (Profile.tut !== undefined && Profile.tut < TUT_STEPS.length && h.cap === 0) return;
     const c = HIST_CAPS[h.cap], f = this.feito();
     // avanço do capítulo aparece como legenda (sem quadro fixo na tela)
-    if (h.cap > 0 && c.alvo > 1 && f > (this.ultimo === undefined ? f : this.ultimo) && f < c.alvo && telaLivre() && !Apresenta.on) Missao.legenda(escapeHtml(c.nome) + ': <b>' + f + ' de ' + c.alvo + '</b>', 5);
+    if (h.cap > 0 && c.alvo > 1 && f > (this.ultimo === undefined ? f : this.ultimo) && f < c.alvo && telaLivre() && !Apresenta.on && !document.querySelector('#ms-titulo.ms-on:not(.ms-sai)')) Missao.legenda(escapeHtml(c.nome) + ': <b>' + f + ' de ' + c.alvo + '</b>', 5);
     this.ultimo = f;
     if (f >= c.alvo) { this.ultimo = undefined; this.conclui(); }
   },
@@ -11998,23 +12017,62 @@ const Historia = {
     setTimeout(() => this.abre(h.cap), 6500);
   },
   // começa um capítulo: nome grande no meio, objetivo em legenda, dica no canto e áudio do Seu Zé no zap
-  abre(i) {
+  abre(i, recomeco) {
     const c = HIST_CAPS[i]; if (!c || Game.mode !== 'play') return;
-    if (c.voz && CHAR_VOICES[c.voz]) { const m = charVoice(c.voz); if (m && m.voice) setTimeout(() => VoicePlayer.play(m), 900); }
+    if (!recomeco && c.voz && CHAR_VOICES[c.voz]) { const m = charVoice(c.voz); if (m && m.voice) setTimeout(() => VoicePlayer.play(m), 900); }
     if (c.alvoMapa) { const w = c.alvoMapa(); if (w) { Act.waypoint = w; Act.gpsT = 0; } }
+    this.guia(i);
     if (i === 3) MissaoAjuda.t = 14; // o pedido de ajuda começa logo depois do título
     if (i === 5) MissaoOpalha.nasce(); // o Opalha do Juninho já aparece parado na rua (a câmera mostra onde)
     if (i === 6) Emprestimo.empresta(); // o Juninho empresta o Opalha para o racha
+    this.ultimo = undefined;
     saveGame();
-    Apresenta.comeca(lugaresDoCapitulo(i), () => {
+    Apresenta.comeca(recomeco ? [] : lugaresDoCapitulo(i), () => {
       if (Game.mode !== 'play') return;
-      Missao.titulo(i >= CAP_FINAL ? 'O final' : 'Capítulo ' + (i + 1) + ' de ' + CAP_FINAL, c.nome);
-      setTimeout(() => { if (Game.mode === 'play') Missao.legenda(c.leg, 8); }, 5000);
-      const lib = Object.keys(LIBERA).filter((k) => LIBERA[k] === i).map((k) => LIBERA_NOME[k]);
+      Missao.titulo(i >= CAP_FINAL ? 'O final' : 'Capítulo ' + (i + 1) + ' de ' + CAP_FINAL, c.nome, recomeco ? 'Tentando de novo.' : HIST_PORQUE[i]);
+      setTimeout(() => { if (Game.mode === 'play') Missao.legenda(c.leg, 8); }, 6800);
+      const lib = recomeco ? [] : Object.keys(LIBERA).filter((k) => LIBERA[k] === i).map((k) => LIBERA_NOME[k]);
       const dica = (lib.length ? '<div class="ms-ajuda-tit">Liberado</div><b>' + lib.join('</b> · <b>') + '</b><br>' : '') + (c.dica || '');
-      if (dica) setTimeout(() => { if (Game.mode === 'play') Missao.ajuda(dica, 10); }, 5600);
+      if (dica) setTimeout(() => { if (Game.mode === 'play') Missao.ajuda(dica, 10); }, 7400);
       if (i === 3) MissaoAjuda.t = 6;
     });
+  },
+  // GPS já apontando para onde a missão acontece (quando tem um lugar certo)
+  guia(i) {
+    let w = null;
+    if (i === 2) { const s = World.shops.filter((q) => q.pickup).sort((a, b) => Math.hypot(a.x - player.x, a.y - player.y) - Math.hypot(b.x - player.x, b.y - player.y))[0]; if (s) w = { x: s.x, y: s.y, label: 'Entrega: ' + s.name }; }
+    if (i === 6) { const r = World.rachas && World.rachas[0]; if (r) w = { x: r.start[0], y: r.start[1], label: 'Racha: ' + r.name }; }
+    if (i === 7 && World.home) w = { x: World.home.x, y: World.home.y, label: 'Sua garagem' };
+    if (w) { Act.waypoint = w; Act.gpsT = 0; }
+  },
+  ativa() { const h = Profile.hist; return !!(h && !h.fim && h.cap > 0 && !Apresenta.on); },
+  // desistiu pelo menu (Abandonar atividade): missão fracassada e o capítulo recomeça do zero depois de uns segundos
+  desiste() {
+    const h = this.h(), c = HIST_CAPS[h.cap]; if (!c || h.fim || h.cap === 0) return false;
+    Missao.esconde('ms-titulo'); Missao.esconde('ms-legenda'); Missao.esconde('ms-ajuda');
+    Missao.fracassou(c.nome);
+    if (Events.cur && Events.cur.missao) Events.clear();
+    if (h.cap === 4) Profile.histRali = 0;
+    if (Profile.emprestimo) Emprestimo.devolve(true);
+    Act.waypoint = null; Act.gps = null;
+    h.base = this.cru(h.cap); this.ultimo = undefined;
+    saveGame();
+    clearTimeout(this.reT); this.reT = setTimeout(() => { if (Game.mode === 'play' && !h.fim) this.abre(h.cap, true); }, 6000);
+    return true;
+  },
+  // rastreador no canto (embaixo do nome do bairro): o que fazer agora e quanto falta
+  rastro() {
+    const h = Profile.hist, el = $('missao-trk');
+    const mostra = h && !h.fim && h.cap > 0 && Game.mode === 'play' && !Apresenta.on && carregou(1);
+    if (!el) return;
+    el.classList.toggle('hidden', !mostra); document.body.classList.toggle('com-trk', !!mostra);
+    if (!mostra) return;
+    const c = HIST_CAPS[h.cap], f = Math.min(c.alvo, this.feito());
+    let det = c.extra ? c.extra() : c.alvo > 1 ? f + ' de ' + c.alvo : '';
+    if (h.cap === 6 && !rachaOpen()) det = 'O racha abre às 22h (agora ' + clockStr() + ')';
+    if (h.cap === 5 && Events.cur && Events.cur.opalha && !Events.cur.over) det = 'Siga o ponto rosa no GPS e aperte E';
+    const html = `<small>Missão · ${escapeHtml(capNome(h.cap))}</small><b>${escapeHtml(c.nome)}</b><span>${escapeHtml(c.meta)}${det ? ' · <em>' + escapeHtml(det) + '</em>' : ''}</span>`;
+    if (el.innerHTML !== html) el.innerHTML = html;
   },
   final() {
     const h = this.h(); h.fim = true; saveGame();
@@ -12029,7 +12087,7 @@ const Historia = {
     return HIST_CAPS.map((c, i) => {
       const st = h.fim || i < h.cap ? 'ok' : i === h.cap ? 'at' : '';
       return `<div class="hist-cap ${st}"><b>${i >= CAP_FINAL ? 'F' : i + 1}</b><span>${escapeHtml(c.nome)}</span></div>`;
-    }).join('');
+    }).join('') + (h.fim ? '' : `<div class="hist-agora"><em>${escapeHtml(HIST_PORQUE[h.cap] || '')}</em><b>Agora:</b> ${escapeHtml((HIST_CAPS[h.cap] || {}).meta || '')}</div>`);
   },
 };
 /* ============================ MISSÕES: APRESENTAÇÃO DOS LUGARES, MAPA EXPLORADO E FUNÇÕES LIBERADAS ============================
@@ -12175,11 +12233,11 @@ Apresenta.encerra = function () {
 };
 
 /* ---------- lugares de cada capítulo ---------- */
-function lugarShop(kind, nome, sub, extra) {
-  const ss = World.shops.filter((s) => s.kind === kind && (!extra || extra(s)));
+function lugarShop(kind, nome, sub, tag) {
+  const ss = World.shops.filter((s) => s.kind === kind);
   if (!ss.length) return null;
   const s = ss.sort((a, b) => Math.hypot(a.x - player.x, a.y - player.y) - Math.hypot(b.x - player.x, b.y - player.y))[0];
-  return { x: s.x, y: s.y, nome: nome || s.name, sub };
+  return { x: s.x, y: s.y, nome: nome || s.name, sub, tag };
 }
 function lugaresDoCapitulo(i) {
   const poi = (id) => World.pois.find((p) => p.id === id);
@@ -12291,14 +12349,14 @@ Emprestimo.empresta = function () {
   toast('Opalha emprestado', 'O Juninho te emprestou o Opalha 6C para o racha. Cuida bem!', 'good');
   saveGame();
 };
-Emprestimo.devolve = function () {
+Emprestimo.devolve = function (calado) {
   const E = Profile.emprestimo; if (!E) return;
   Profile.emprestimo = null;
   if (Profile.owned[SONHO]) return;
   const volta = Profile.owned[E.prev] ? E.prev : Object.keys(Profile.owned)[0];
   if (Profile.current === SONHO) { stashCondition(SONHO); Profile.current = volta; loadCondition(volta); Som.on = false; if (player) player.setCar(volta); }
   if (!E.tinha && Profile.cars) delete Profile.cars[SONHO];
-  setTimeout(() => toast('Opalha devolvido', 'O Juninho buscou o Opalha. Agora é juntar o dinheiro pra ter o seu.', 'info'), 5000);
+  if (!calado) setTimeout(() => toast('Opalha devolvido', 'O Juninho buscou o Opalha. Agora é juntar o dinheiro pra ter o seu.', 'info'), 5000);
   saveGame();
 };
 /* ============================ ÁGUA VIVA E CHÃO MOLHADO ============================

@@ -1330,7 +1330,7 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 #ms-titulo, #ms-legenda, #ms-ajuda, #ms-passou { position: fixed; pointer-events: none; z-index: 47; }
 .ms-on { animation: msIn 0.5s ease-out both; } .ms-on.ms-sai { animation: msOut 0.6s ease-in both; }
 @keyframes msIn { from { opacity: 0; } to { opacity: 1; } } @keyframes msOut { from { opacity: 1; } to { opacity: 0; } }
-#ms-titulo { left: 0; right: 0; top: 71%; text-align: center; }
+#ms-titulo { left: 0; right: 0; top: 63%; text-align: center; }
 #ms-titulo .ms-rot { font: 700 15px/1 var(--f-cond); letter-spacing: 0.32em; color: #f0c850; text-shadow: 0 2px 6px #000; text-transform: uppercase; }
 #ms-titulo .ms-nome { font: 400 64px/1.05 var(--f-display); color: #fff; letter-spacing: 0.02em; margin-top: 8px; text-shadow: 0 3px 0 #000, 0 0 24px rgba(0, 0, 0, 0.9); }
 #ms-titulo.ms-on .ms-nome { animation: msNome 4.5s ease-out both; }
@@ -1417,3 +1417,16 @@ body.cel-aberto #tutorial .tut-skip { position: static; margin-left: 10px; }
 /* celular aberto: a legenda do tutorial vai para o alto, no meio (não tapa o GPS nem o celular) */
 body.cel-aberto #tutorial { top: 112px; bottom: auto; left: 50%; transform: translateX(-50%); max-width: min(620px, calc(100vw - 32px)); }
 body.cel-aberto #tutorial .tut-skip { position: static; margin-left: 10px; }
+/* rastreador da missão (embaixo do nome do bairro) e "missão fracassada" */
+#missao-trk { position: fixed; left: 18px; top: 112px; max-width: 300px; padding: 8px 12px 9px; background: rgba(0, 0, 0, 0.62); border-left: 3px solid #f0c850; color: #fff; z-index: 30; pointer-events: none; font-family: var(--f-body); }
+#missao-trk small { display: block; font: 700 10px/1 var(--f-cond); letter-spacing: 0.16em; text-transform: uppercase; color: #f0c850; }
+#missao-trk b { display: block; font: 700 15px/1.2 var(--f-cond); margin: 3px 0 2px; letter-spacing: 0.02em; }
+#missao-trk span { display: block; font-size: 12.5px; line-height: 1.35; color: rgba(255, 255, 255, 0.85); }
+#missao-trk em { font-style: normal; color: #f0c850; font-weight: 600; }
+body.com-trk #ms-ajuda { top: 196px; }
+body.cinema #missao-trk { opacity: 0; }
+#ms-passou .ms-ok.ms-falhou { color: #ff4d4d; }
+#ms-titulo .ms-hist { max-width: min(640px, 86vw); margin: 10px auto 0; font: 500 17px/1.4 var(--f-body); color: rgba(255, 255, 255, 0.92); text-shadow: 0 2px 3px #000, 0 0 12px rgba(0, 0, 0, 0.9); }
+#pause-hist .hist-agora { grid-column: 1 / -1; margin-top: 8px; font: 500 13px/1.4 var(--f-body); color: rgba(255, 255, 255, 0.85); text-align: center; }
+#pause-hist .hist-agora em { display: block; font-style: italic; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px; }
+#pause-hist .hist-agora b { color: #f0c850; }

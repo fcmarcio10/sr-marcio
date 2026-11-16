@@ -76,8 +76,8 @@ Missao.esconde = function (id) {
   this.timers[id] = setTimeout(() => { e.classList.remove('ms-on', 'ms-sai'); e.classList.add('ms-oculto'); }, 600);
 };
 // nome do capítulo grande no meio da tela
-Missao.titulo = function (rotulo, nome) {
-  this.mostra('ms-titulo', `<div class="ms-rot">${escapeHtml(rotulo)}</div><div class="ms-nome">${escapeHtml(nome)}</div>`, 4.5);
+Missao.titulo = function (rotulo, nome, historia) {
+  this.mostra('ms-titulo', `<div class="ms-rot">${escapeHtml(rotulo)}</div><div class="ms-nome">${escapeHtml(nome)}</div>` + (historia ? `<div class="ms-hist">${escapeHtml(historia)}</div>` : ''), historia ? 6.5 : 4.5);
   try { [196, 294, 392].forEach((f, i) => AudioSys.tone(f, 1.4, 'triangle', 0.05, 'ui', null, i * 0.12)); } catch (e) {}
 };
 // objetivo como legenda embaixo (palavra importante em amarelo)
@@ -99,4 +99,10 @@ Missao.passou = function (titulo, sub, valor) {
 Missao.lugar = function (nome, sub, tag) {
   this.mostra('ms-lugar', (tag ? `<div class="ml-tag">${escapeHtml(tag)}</div>` : '') + `<div class="ml-nome">${escapeHtml(nome)}</div>` + (sub ? `<div class="ml-sub">${escapeHtml(sub)}</div>` : ''), 0);
   try { AudioSys.tone(523, 0.25, 'sine', 0.04, 'ui'); AudioSys.tone(784, 0.35, 'sine', 0.035, 'ui', null, 0.1); } catch (e) {}
+};
+
+// missão fracassada (desistiu pelo menu): faixa escura com o texto em vermelho
+Missao.fracassou = function (sub) {
+  this.mostra('ms-passou', `<div class="ms-faixa"><div class="ms-ok ms-falhou">Missão fracassada</div><div class="ms-sub">${escapeHtml(sub || '')}</div></div>`, 4.5);
+  try { [[392, 0], [330, 0.18], [262, 0.36], [196, 0.6]].forEach(([f, d]) => AudioSys.tone(f, 0.6, 'triangle', 0.07, 'ui', null, d)); } catch (e) {}
 };

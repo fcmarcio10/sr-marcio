@@ -236,6 +236,7 @@ function abandonActivity() {
   if (Act.race) { Act.race = null; toast('Percurso abandonado', '', 'bad'); return true; }
   if (Act.delivery) { Act.delivery = null; toast('Entrega cancelada', 'O cliente vai ter que esperar…', 'bad'); return true; }
   if (Act.ride) { Act.ride = null; Act.rideT = 8; toast('Corrida cancelada', 'O passageiro chamou outro motorista.', 'bad'); return true; }
+  if (typeof Historia !== 'undefined' && Historia.ativa() && Historia.desiste()) return true; // missão da história: fracassada e recomeça
   if (Act.waypoint) { Act.waypoint = null; toast('Destino do GPS removido', '', 'info'); return true; }
   return false;
 }

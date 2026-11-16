@@ -141,11 +141,11 @@ Apresenta.encerra = function () {
 };
 
 /* ---------- lugares de cada capítulo ---------- */
-function lugarShop(kind, nome, sub, extra) {
-  const ss = World.shops.filter((s) => s.kind === kind && (!extra || extra(s)));
+function lugarShop(kind, nome, sub, tag) {
+  const ss = World.shops.filter((s) => s.kind === kind);
   if (!ss.length) return null;
   const s = ss.sort((a, b) => Math.hypot(a.x - player.x, a.y - player.y) - Math.hypot(b.x - player.x, b.y - player.y))[0];
-  return { x: s.x, y: s.y, nome: nome || s.name, sub };
+  return { x: s.x, y: s.y, nome: nome || s.name, sub, tag };
 }
 function lugaresDoCapitulo(i) {
   const poi = (id) => World.pois.find((p) => p.id === id);
@@ -257,13 +257,13 @@ Emprestimo.empresta = function () {
   toast('Opalha emprestado', 'O Juninho te emprestou o Opalha 6C para o racha. Cuida bem!', 'good');
   saveGame();
 };
-Emprestimo.devolve = function () {
+Emprestimo.devolve = function (calado) {
   const E = Profile.emprestimo; if (!E) return;
   Profile.emprestimo = null;
   if (Profile.owned[SONHO]) return;
   const volta = Profile.owned[E.prev] ? E.prev : Object.keys(Profile.owned)[0];
   if (Profile.current === SONHO) { stashCondition(SONHO); Profile.current = volta; loadCondition(volta); Som.on = false; if (player) player.setCar(volta); }
   if (!E.tinha && Profile.cars) delete Profile.cars[SONHO];
-  setTimeout(() => toast('Opalha devolvido', 'O Juninho buscou o Opalha. Agora é juntar o dinheiro pra ter o seu.', 'info'), 5000);
+  if (!calado) setTimeout(() => toast('Opalha devolvido', 'O Juninho buscou o Opalha. Agora é juntar o dinheiro pra ter o seu.', 'info'), 5000);
   saveGame();
 };

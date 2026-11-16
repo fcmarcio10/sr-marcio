@@ -62,7 +62,7 @@ const Screens = {
     if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
     if (id === 'screen-pause') renderPauseStats();
     if (id === 'screen-main') $('btn-continue').disabled = !hasSave;
-    if (id === 'screen-pause') $('btn-abandon').disabled = !(Act.race || Act.delivery || Act.waypoint);
+    if (id === 'screen-pause') $('btn-abandon').disabled = !(Act.race || Act.delivery || Act.ride || Act.waypoint || Historia.ativa());
   },
 };
 // tela livre para o jogo: nada aberto ou só o celular (o celular não pausa o jogo)
