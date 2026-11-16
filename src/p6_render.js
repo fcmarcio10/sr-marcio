@@ -90,7 +90,7 @@ function updateCamera(dt) {
   const tm = Profile.time % 1440;
   const deep = tm >= 60 && tm < 240 ? 0.025 : 0;
   const k = 1 - Math.exp(-1.2 * dt);
-  Cam.dark = lerp(Cam.dark, dk + deep, k);
+  Cam.dark = lerp(Cam.dark, (dk + deep) * Dia.noite, Game.mode === 'play' ? k : 1); // de dia o céu clareia (p75_dia.js)
   Cam.city = lerp(Cam.city === undefined ? RG.city : Cam.city, RG.city, k); // tom do céu: roxo-alaranjado na cidade, azul de luar na roça
 }
 
@@ -488,6 +488,7 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
       const s0 = (c + (big ? 0.08 : 0.24)) / cols, s1 = (c + (big ? 0.92 : 0.76)) / cols;
       const hsh = hash2(b.seed + f * 131 + c * 7, side.charCodeAt(0));
       let on = big ? true : hsh < b.lit;
+      if (on && Dia.apaga && Dia.desligada(b.seed + f * 131 + c * 7 + side.charCodeAt(0) * 3)) on = false; // apagou com o dia
       if (!big && hsh < 0.04) on = hash2(b.seed + tflick, c) < 0.7;
       const P = emissive ? (on ? em : null) : (on ? lit : dark);
       if (!P) continue;
@@ -1077,7 +1078,8 @@ Weather.update = function (dt) {
     this.timer -= dt;
     if (this.timer <= 0) {
       const prev = this.target, r = Math.random();
-      this.target = r < 0.5 ? 0 : r < 0.78 ? 0.35 : 0.9;
+      const cedo = Dia.hora() >= 4 && Dia.hora() < 8; // de manhãzinha a garoa é mais comum
+      this.target = cedo ? (r < 0.4 ? 0 : r < 0.88 ? 0.3 : 0.9) : (r < 0.5 ? 0 : r < 0.78 ? 0.35 : 0.9);
       this.timer = this.target ? rnd(77, 165) : rnd(90, 200); // chuva 10% mais longa
       if (Game.mode === 'play') {
         if (this.target > 0.2 && prev < 0.2) toast(this.target > 0.6 ? 'Temporal chegando' : 'Começou a garoar', 'Pista molhada: o carro escorrega mais e demora mais para frear.', 'info');
@@ -1266,8 +1268,9 @@ function lightPass(view, cx, cy) {
   lctx.globalAlpha = 1;
   // escuridão da noite numa pincelada só: 'copy' substitui o quadro anterior (antes ela se acumulava e todo canto
   // sem poste ficava preto) e o degradê já escurece as bordas da tela (vinheta)
-  const cty = clamp(Cam.city === undefined ? 0.5 : Cam.city, 0, 1), dk = clamp(Cam.dark, 0.3, 0.95);
-  const cr = Math.round(20 - 4 * cty), cg = Math.round(32 - 16 * cty), cb = Math.round(66 - 24 * cty); // luar azulado na roça, céu roxo-alaranjado na cidade
+  const cty = clamp(Cam.city === undefined ? 0.5 : Cam.city, 0, 1), au = Dia.aurora, dk = clamp(Cam.dark + au * 0.12, 0, 0.95);
+  // luar azulado na roça, céu roxo-alaranjado na cidade; no amanhecer e no fim de tarde o céu fica laranja-rosado
+  const cr = Math.round(lerp(20 - 4 * cty, 170, au)), cg = Math.round(lerp(32 - 16 * cty, 80, au)), cb = Math.round(lerp(66 - 24 * cty, 60, au));
   if (Settings.quality !== 'baixa') {
     const gr = lctx.createRadialGradient(lw / 2, lh / 2, lh * 0.3, lw / 2, lh / 2, Math.hypot(lw, lh) * 0.55);
     gr.addColorStop(0, `rgba(${cr},${cg},${cb},${dk.toFixed(3)})`);
@@ -1284,6 +1287,7 @@ function lightPass(view, cx, cy) {
   for (const L of _lq) {
     let i = L.i;
     if (L.dieAt) { if (T > L.dieAt) continue; i *= Math.random() < 0.5 ? 0.1 : 1; }
+    if (Dia.apaga && Dia.desligada(L.x * 7 + L.y * 13)) continue; // de manhã as luzes apagam uma a uma (e acendem de tardinha)
     if (L.flick) { const f = Math.sin(T * 23 + L.seed * 50) + Math.sin(T * 7.3 + L.seed * 9); i *= f > 1.2 ? 0.25 : 1; }
     lctx.globalAlpha = i;
     lctx.drawImage(LSPR, L.x - L.r, L.y - L.r, L.r * 2, L.r * 2);
@@ -1332,6 +1336,7 @@ function glowPass(view, cx, cy) {
     if (L.x < view.x0 - L.r || L.x > view.x1 + L.r || L.y < view.y0 - L.r || L.y > view.y1 + L.r) continue;
     let i = L.i;
     if (L.dieAt) { if (T > L.dieAt) continue; i *= Math.random() < 0.5 ? 0.1 : 1; }
+    if (Dia.apaga && Dia.desligada(L.x * 7 + L.y * 13)) continue; // de manhã as luzes apagam uma a uma (e acendem de tardinha)
     if (L.flick) { const f = Math.sin(T * 23 + L.seed * 50) + Math.sin(T * 7.3 + L.seed * 9); i *= f > 1.2 ? 0.2 : 1; }
     const a = (L.shop ? 0.36 : L.canopy ? 0.14 : L.flood ? 0.12 : 0.21) * i;
     gctx.globalAlpha = a;
@@ -1384,7 +1389,7 @@ function glowPass(view, cx, cy) {
   gctx.globalCompositeOperation = 'source-over';
 }
 function emissivePass(view, talls) {
-  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3 + 0.7 * Dia.noite; // letreiros e janelas acesas fracos de dia
   const T = Game.time;
   EM_BATCH.on = true; EM_BATCH.norm = new Path2D(); EM_BATCH.big = new Path2D(); EM_BATCH.n = 0;
   for (const o of talls) drawTallEmissive(ctx, o);
@@ -1493,10 +1498,11 @@ function drawMarkersEmissive(view) {
     if (s.kind === 'garagem') col = '#5be38f';
     else if (s.kind === 'posto') col = '#ffb000';
     else if (s.kind === 'oficina') col = '#59e0ff';
+    else if (!lojaAberta(s)) { col = '#7d8590'; r = 22; } // fechada agora
     else if (s.pickup && !Act.delivery) { col = '#ffd24a'; r = 32; }
     ring(s.x, s.y, r + pulse * 4, col, 0.55, 3);
     ctx.globalAlpha = 0.35; ctx.drawImage(glowSprite(col), s.x - r * 1.6, s.y - r * 1.6, r * 3.2, r * 3.2);
-    if (s.pickup && !Act.delivery) {
+    if (s.pickup && !Act.delivery && lojaAberta(s)) {
       ctx.globalAlpha = 0.9; ctx.fillStyle = '#ffd24a';
       const bob = Math.sin(T * 3) * 3 - r - 16;
       ctx.fillRect(s.x - 7, s.y - 7 + bob, 14, 12); ctx.fillStyle = '#7a5a1a'; ctx.fillRect(s.x - 7, s.y - 2 + bob, 14, 1.5); ctx.fillRect(s.x - 0.75, s.y - 7 + bob, 1.5, 12);
@@ -1644,8 +1650,8 @@ function render() {
   ctx.drawImage(lightCanvas, 0, 0, W, Hh);
   pm('compLight');
   if (!lowQ) {
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.drawImage(glowCanvas, 0, 0, W, Hh);
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.25 + 0.75 * Dia.noite; // de dia o brilho quase some
+    ctx.drawImage(glowCanvas, 0, 0, W, Hh); ctx.globalAlpha = 1;
   pm('compGlow');
 
     ctx.globalCompositeOperation = 'source-over';
@@ -1657,6 +1663,7 @@ function render() {
   Weather.drawDrops(ctx);
   pm('drops');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  Dia.desenhaNeblina(ctx, W, Hh); // neblina na roça de madrugada
   Praia.desenha(ctx, W, Hh); // carro voltando do mar para a areia
   if (Cam.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${(Cam.flash * 0.6).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
 }

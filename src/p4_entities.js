@@ -363,7 +363,7 @@ class Player {
       }
     }
     for (const an of Animals.list) {
-      if (an.type === 'owl' || an.morto) continue; // corpo atropelado fica parado no lugar (o carro passa por cima)
+      if (an.type === 'owl' || an.morto || an.oculto) continue; // corpo atropelado fica parado no lugar (o carro passa por cima)
       const dx0 = an.x - this.x, dy0 = an.y - this.y;
       if (dx0 * dx0 + dy0 * dy0 > 80 * 80) continue;
       for (const k of ks) {
@@ -397,15 +397,7 @@ class Player {
 
 /* ============================ TRÁFEGO (IA) ============================ */
 const Traffic = { cars: [], idc: 1, timer: 0, cum: null, total: 0 };
-function trafficRush() {
-  // 19:30–21:00 saída do trabalho; 04:30–05:00 gente indo trabalhar; madrugada vazia
-  const t = Profile.time;
-  if (t < 21 * 60) return { k: 1.45, label: 'horário de pico' };
-  if (t < 23 * 60) return { k: 1.0, label: '' };
-  if (t < 25 * 60) return { k: 0.72, label: '' };
-  if (t < 28 * 60 + 30) return { k: 0.42, label: 'madrugada' };
-  return { k: 1.2, label: 'horário de pico' };
-}
+function trafficRush() { return Dia.movimento(); } // horários de pico de verdade (p75_dia.js)
 // área rural: 60% menos movimento que na cidade
 function ruralFactor(x, y) { const R = REGIONS[regionKeyAt(x, y)]; return 1 - 0.8 * clamp((R.rural - 0.3) / 0.5, 0, 1); }
 function lightState(n, axis, now) {
@@ -628,7 +620,7 @@ class AICar {
     }
     // o jogador é visto de mais longe e com folga lateral maior: os carros mantêm distância de você
     if (player && Game.state !== 'menu') { const m = this.state === 'edge' ? 1 : 0; check(player, player.x, player.y, player.m.L + 26 * m, player.m.W + 12 * m); }
-    if (this.ghost <= 0 && this.animalGhost <= 0) for (const an of Animals.list) if (an.onRoad && !an.morto) check(an, an.x, an.y, an.r * 2, an.r * 2);
+    if (this.ghost <= 0 && this.animalGhost <= 0) for (const an of Animals.list) if (an.onRoad && !an.morto && !an.oculto) check(an, an.x, an.y, an.r * 2, an.r * 2);
     if (Events.cur) Events.blocksAhead(this, check);
     return best;
   }
@@ -803,7 +795,8 @@ function trafficTarget(view) {
   const dens = Settings.quality === 'alta' ? 2.4 : Settings.quality === 'baixa' ? 1.6 : 2; // carros por milhão de unidades²
   const area = (view.x1 - view.x0 + TR_RING * 2) * (view.y1 - view.y0 + TR_RING * 2) / 1e6;
   const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
-  return clamp(Math.round(dens * area * Math.min(1.2, trafficRush().k) * k), k < 0.7 ? 1 : 2, 9);
+  const mov = trafficRush().k; // de dia e no pico cabem mais carros; de madrugada, poucos
+  return clamp(Math.round(dens * area * Math.min(1.35, mov) * k), k < 0.7 ? 1 : 2, mov > 1.3 ? 11 : 9);
 }
 function trInView(c, v, m) { return c.x > v.x0 - m && c.x < v.x1 + m && c.y > v.y0 - m && c.y < v.y1 + m; }
 // ruas que passam perto da tela
@@ -1046,7 +1039,12 @@ Animals.build = function () {
 // só mexe quem está na tela ou bem perto dela (o resto fica parado, ninguém vê)
 function nearView(x, y, m) { const v = Cam.view; return v && v.x1 > v.x0 ? x > v.x0 - m && x < v.x1 + m && y > v.y0 - m && y < v.y1 + m : Math.abs(x - Cam.x) < 1200 && Math.abs(y - Cam.y) < 900; }
 Animals.update = function (dt, cx, cy) {
-  for (const a of this.list) if (nearView(a.x, a.y, 220)) a.update(dt);
+  // gente na rua conforme a hora (de dia mais, de madrugada pouca); só some ou aparece fora da tela
+  const dens = Dia.pedestres();
+  for (const a of this.list) {
+    if (a.type === 'person' && !a.morto) { if (a.pk === undefined) a.pk = Math.random(); if (!nearView(a.x, a.y, 260)) a.oculto = a.pk > dens; }
+    if (!a.oculto && nearView(a.x, a.y, 220)) a.update(dt);
+  }
   for (const s of World.sparkers) if (Game.time < s.until && nearView(s.x, s.y, 60)) for (let i = 0; i < 2; i++) Particles.emit('spark', s.x, s.y, rnd(-160, 160), rnd(-160, 160), rnd(0.2, 0.5), 2);
   for (const g of World.geysers) if (Game.time < g.until && nearView(g.x, g.y, 60) && chance(0.7)) Particles.emit('water', g.x + rnd(-2, 2), g.y + rnd(-2, 2), rnd(-70, 70), rnd(-70, 70), rnd(0.5, 1.1), 2);
   for (const g of World.grills) if (g.down === undefined && nearView(g.x, g.y, 80) && chance(dt * 6)) Particles.emit('smoke', g.x + rnd(-4, 4), g.y + rnd(-3, 3), rnd(-6, 6), rnd(-14, -4), rnd(1.2, 2.2), 4);

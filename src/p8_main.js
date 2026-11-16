@@ -3,7 +3,6 @@ const Game = {
   mode: 'menu', time: 0, autosaveT: 30, fpsT: 0, fpsN: 0,
   get state() { return this.mode === 'menu' ? 'menu' : (Screens.current && Screens.current !== 'screen-phone' ? 'paused' : 'playing'); }, // celular aberto não pausa
 };
-const NIGHT_START = 19 * 60 + 30, NIGHT_END = 29 * 60;
 
 function startPlay() {
   AudioSys.init();
@@ -148,7 +147,10 @@ function handleKeys() {
 function stepPlay(dt) {
   Game.time += dt;
   Profile.time += dt;
-  if (Profile.time >= NIGHT_END) { Profile.nights = (Profile.nights || 0) + 1; Profile.time = NIGHT_START; toast('Uma nova noite começa', 'O relógio volta para as 19:30. A cidade nunca dorme.', 'info'); Finance.newDay(); }
+  if (Profile.time >= 1440) { // meia-noite: vira o dia da semana (saves antigos com 25:00 também caem aqui)
+    Profile.time -= 1440; Profile.dia = ((Profile.dia === undefined ? 5 : Profile.dia) + 1) % 7; Profile.nights = (Profile.nights || 0) + 1;
+    toast('Meia-noite', 'Começou ' + (Profile.dia === 0 || Profile.dia === 6 ? 'o ' : 'a ') + DIAS[Profile.dia] + (Profile.dia > 0 && Profile.dia < 6 ? '-feira' : '') + '.', 'info');
+  }
   const locked = Act.race && Act.race.count > 0;
   // começo do jogo e cenas de apresentação: carro desligado e parado (nada de tecla; antes o "freio" virava ré e o carro sumia)
   const trava = jogoTravado();
@@ -213,7 +215,7 @@ function frame(now) {
     updateCamera(dt);
     Apresenta.update(dt); // viagem da câmera até os lugares da missão
     updateFireflies(dt);
-    Weather.update(dt); Agua.atualiza(dt);
+    Weather.update(dt); Agua.atualiza(dt); Dia.update();
   } else accT = 0;
   // enquanto a tela de carregar está na frente: tudo mudo (volume geral a zero); volta quando ela some
   if (AudioSys.ctx && AudioSys.master && frame.mudo !== !!Game.carregando) {

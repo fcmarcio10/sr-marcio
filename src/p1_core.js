@@ -120,7 +120,7 @@ function saveSettings() { try { localStorage.setItem('brnd_settings', JSON.strin
 const START_TIME = 20 * 60 + 30; // 20:30
 function newProfile() {
   return {
-    v: 1, money: 600,
+    v: 1, money: 600, dia: 5, // começa numa sexta-feira à noite
     owned: { pampeiro: true }, current: 'pampeiro',
     cars: { pampeiro: { color: '#c0392b', up: { motor: 0, cambio: 0, freio: 0, pneu: 0 } } },
     fuel: 100, damage: 0, dirt: 0, pos: null,
@@ -317,7 +317,7 @@ const AudioSys = {
     this.gGain.gain.setTargetAtTime(on * p.surfaceRough * clamp(p.speed / 300, 0, 1) * 0.12, t, 0.1);
     this.hornGain.gain.setTargetAtTime(on && this.hornOn ? 0.16 : 0, t, 0.015);
     // ambiente
-    for (const cr of this.crickets) cr.out.gain.setTargetAtTime(cr.vol * (0.25 + p.rural * 1.1), t, 0.6);
+    for (const cr of this.crickets) cr.out.gain.setTargetAtTime(cr.vol * (0.25 + p.rural * 1.1) * (typeof Dia !== 'undefined' ? 0.15 + 0.85 * Dia.noite : 1), t, 0.6); // grilo é de noite
     this.cityGain.gain.setTargetAtTime(0.05 + p.city * 0.13, t, 0.8); // cidade como era antes (zumbido e trânsito sintetizados; sem fundo gravado)
     this.trafficGain.gain.setTargetAtTime(p.city * 0.035, t, 0.8);
     this.riverGain.gain.setTargetAtTime(p.river * 0.09, t, 0.6);

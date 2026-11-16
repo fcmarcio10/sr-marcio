@@ -118,7 +118,7 @@ const Historia = {
   // GPS já apontando para onde a missão acontece (quando tem um lugar certo)
   guia(i) {
     let w = null;
-    if (i === 2) { const s = World.shops.filter((q) => q.pickup).sort((a, b) => Math.hypot(a.x - player.x, a.y - player.y) - Math.hypot(b.x - player.x, b.y - player.y))[0]; if (s) w = { x: s.x, y: s.y, label: 'Entrega: ' + s.name }; }
+    if (i === 2) { const s = World.shops.filter((q) => q.pickup && lojaAberta(q)).sort((a, b) => Math.hypot(a.x - player.x, a.y - player.y) - Math.hypot(b.x - player.x, b.y - player.y))[0]; if (s) w = { x: s.x, y: s.y, label: 'Entrega: ' + s.name }; }
     if (i === 6) { const r = World.rachas && World.rachas[0]; if (r) w = { x: r.start[0], y: r.start[1], label: 'Racha: ' + r.name }; }
     if (i === 7 && World.home) w = { x: World.home.x, y: World.home.y, label: 'Sua garagem' };
     if (w) { Act.waypoint = w; Act.gpsT = 0; }

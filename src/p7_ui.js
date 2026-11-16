@@ -672,7 +672,7 @@ function updateHUD(dt) {
     const bn = $('region-banner'); bn.textContent = REGIONS[rk].name; bn.classList.add('show');
     clearTimeout(UI._bn); UI._bn = setTimeout(() => bn.classList.remove('show'), 2600);
   }
-  { const rush = trafficRush().label; UI.set('clock', clockStr() + (rush ? ' · ' + (Weather.rain > 0.15 ? 'pico' : rush) : '') + (Weather.rain > 0.6 ? ' · chuva' : Weather.rain > 0.15 ? ' · garoa' : '')); if (rush !== UI.rush) { if (UI.rush !== undefined && rush === 'horário de pico') toast('Horário de pico', 'As ruas de São Gambiarra estão cheias. Paciência no trânsito!', 'info'); UI.rush = rush; } }
+  { const rush = trafficRush().label; UI.set('clock', DIAS_CURTO[Dia.semana()] + ' ' + clockStr() + (rush ? ' · ' + (Weather.rain > 0.15 ? 'pico' : rush) : '') + (Weather.rain > 0.6 ? ' · chuva' : Weather.rain > 0.15 ? ' · garoa' : '')); if (rush !== UI.rush) { if (UI.rush !== undefined && rush === 'horário de pico') toast('Horário de pico', 'As ruas de São Gambiarra estão cheias. Paciência no trânsito!', 'info'); UI.rush = rush; } }
   UI.set('money-value', fmtMoney(Profile.money));
   { const C = career(), need = C.lvl >= LEVEL_MAX ? 1 : xpNeed(C.lvl); UI.set('lvl-num', String(C.lvl)); UI.set('lvl-fill', (C.lvl >= LEVEL_MAX ? 100 : Math.round(C.xp / need * 100)) + '%', 'width'); }
   // objetivo

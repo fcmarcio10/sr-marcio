@@ -75,7 +75,7 @@ function startJob(job) {
 // ---------- app de motorista ----------
 function canDriveRides() { return player && VMODELS[player.car.model].kind !== 'truck'; }
 // ---------- racha ----------
-function rachaOpen() { const t = Profile.time; return t >= 22 * 60 && t < 28 * 60 + 30; }
+function rachaOpen() { const t = Profile.time % 1440; return t >= 22 * 60 || t < 4 * 60 + 30; }
 function startRacha(r) {
   if (Profile.money < r.bet) { toast('Sem grana pra aposta', 'O racha custa R$ ' + fmtMoney(r.bet) + '.', 'bad'); AudioSys.error(); return; }
   Profile.money -= r.bet; UI.moneyDelta(-r.bet);
@@ -320,7 +320,8 @@ function cheatDo(k, v) {
   if (k === 'fix') { const L = carLife(); L.tires = L.oil = L.bat = 100; CarLife.stalled = false; Profile.damage = 0; Profile.zones = { f: 0, r: 0, l: 0, rt: 0, seed: ((Profile.zones && Profile.zones.seed) || 0) + 1 }; Profile.fuel = 100; Profile.dirt = 0; ok('Carro novo e tanque cheio'); }
   if (k === 'cars') { for (const c of CARS) Profile.owned[c.id] = true; ok('Todos os veículos liberados na garagem'); }
   if (k === 'pois') { for (const q of World.pois) if (!Profile.discovered.includes(q.id)) Profile.discovered.push(q.id); ok('Todos os pontos de interesse revelados'); }
-  if (k === 'time') { Profile.time = +v; ok('Relógio: ' + clockStr()); }
+  if (k === 'time') { Profile.time = +v; Dia.update(); ok('Relógio: ' + clockStr()); }
+  if (k === 'dia') { Profile.dia = (Dia.semana() + 1) % 7; ok('Hoje é ' + DIAS[Profile.dia]); }
   if (k === 'wx') { Settings.weather = v; if (v === 'auto') { Weather.timer = 0; } else { Weather.target = v === 'chuva' ? 0.9 : v === 'garoa' ? 0.35 : 0; if (v === 'garoa') Settings.weather = 'auto', Weather.target = 0.35, Weather.timer = 120; } saveSettings(); ok('Clima: ' + v); }
   if (k === 'police') { const n = +v; if (n === 0) { Police.level = 0; Police.units.length = 0; ok('Polícia liberada'); } else { Police.crime('Trapaça', n, player.x, player.y, true); Police.level = n; ok(n + ' estrela(s)'); } }
   if (k === 'ev') { Events.clear(); let okv = false; for (let i = 0; i < 12 && !okv; i++) okv = Events.spawn(v); Screens.closeAll(); ok(okv ? 'Evento: ' + EV_NAMES[v] : 'Não achei lugar pra esse evento aqui; tente em outra região'); return; }
@@ -546,7 +547,7 @@ const Phone = {
     const tog = (k, label) => `<button class="aj-row" data-tog="${k}"><span>${label}</span><i class="ios-tog${(k === 'autoWall' ? cfg.wall === 'auto' : cfg[k]) ? ' on' : ''}"></i></button>`;
     if (this.app === 'home') {
       const W = WALLS.find((w) => w.id === this.wall) || WALLS[0];
-      const hr = Math.floor(Profile.time / 60) % 24, temp = Math.round(27 - ((hr + 24 - 19) % 24) * 0.55 - Weather.rain * 4), wl = Weather.label();
+      const hr = Math.floor(Profile.time / 60) % 24, temp = Math.round(24 + 6 * Math.cos((Dia.hora() - 14) / 24 * TAU) - Weather.rain * 4), wl = Weather.label();
       const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
       // tela inicial simples (nov/2026): hora grande, uma grade com os apps e a barra de baixo; sem caixinhas nem textos
       html = `<div class="ph-lock simples"><div class="ph-time">${clockStr()}</div><div class="ph-date">${wl ? H(wl) + ' · ' : ''}${temp}° · R$ ${fmtMoney(Profile.money)}</div></div>` +
@@ -636,7 +637,7 @@ const Phone = {
         '<div class="ch-sec">História</div><div class="ch-grid">' + btn('missao', 0, 'Pular missão') + '</div>' +
         '<div class="ch-sec">Desafios do dia</div><div class="ch-grid">' + btn('des', 0, 'Cumprir o 1º') + btn('des', 1, 'Cumprir o 2º') + btn('des', 2, 'Cumprir o 3º') + btn('desnovo', 0, 'Outros 3 desafios') + btn('deszera', 0, 'Zerar o progresso') + '</div>' +
         '<div class="ch-sec">Dinheiro e carro</div><div class="ch-grid">' + btn('money', 0, '+R$ 10.000') + btn('fix', 0, 'Consertar e encher') + btn('cars', 0, 'Liberar veículos') + btn('pois', 0, 'Revelar pontos') + btn('god', 0, 'Indestrutível', Cheats.god) + btn('turbo', 0, 'Turbo', Cheats.turbo) + '</div>' +
-        '<div class="ch-sec">Horário</div><div class="ch-grid">' + btn('time', 19 * 60 + 40, '19:40') + btn('time', 22 * 60 + 5, '22:05 (racha)') + btn('time', 26 * 60, '02:00') + btn('time', 28 * 60 + 40, '04:40') + '</div>' +
+        '<div class="ch-sec">Horário</div><div class="ch-grid">' + btn('time', 5 * 60 + 15, '05:15 (amanhecer)') + btn('time', 12 * 60, '12:00') + btn('time', 17 * 60 + 10, '17:10 (fim de tarde)') + btn('time', 19 * 60 + 40, '19:40') + btn('time', 22 * 60 + 5, '22:05 (racha)') + btn('time', 2 * 60, '02:00') + btn('dia', 0, 'Pular um dia') + btn('time', 4 * 60 + 40, '04:40') + '</div>' +
         '<div class="ch-sec">Clima</div><div class="ch-grid">' + btn('wx', 'limpo', 'Limpo', Settings.weather === 'limpo') + btn('wx', 'garoa', 'Garoa') + btn('wx', 'chuva', 'Temporal', Settings.weather === 'chuva') + btn('wx', 'auto', 'Dinâmico', Settings.weather === 'auto') + '</div>' +
         (POLICE_ENABLED ? '<div class="ch-sec">Polícia</div><div class="ch-grid">' + btn('police', 1, '★') + btn('police', 2, '★★') + btn('police', 3, '★★★') + btn('police', 0, 'Limpar') + '</div>' : '') +
         '<div class="ch-sec">Eventos</div><div class="ch-grid">' + Object.keys(EV_NAMES).map((k) => btn('ev', k, H(EV_NAMES[k]))).join('') + '</div>' +

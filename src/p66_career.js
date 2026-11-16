@@ -301,7 +301,7 @@ Atropelo.update = function (dt) {
   if (sp > 50) {
     const m = player.m, ca = Math.cos(player.a), sa = Math.sin(player.a), hl = m.L / 2 + 2, hw = m.W / 2 + 2;
     for (const an of Animals.list) {
-      if (an.type !== 'person' || an.morto) continue;
+      if (an.type !== 'person' || an.morto || an.oculto) continue;
       const dx = an.x - player.x, dy = an.y - player.y; if (dx > 45 || dx < -45 || dy > 45 || dy < -45) continue;
       const lx = dx * ca + dy * sa, ly = -dx * sa + dy * ca;
       if (Math.abs(lx) < hl && Math.abs(ly) < hw) this.atropela(an, sp);

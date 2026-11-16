@@ -396,7 +396,8 @@ function updateActivities(dt) {
       const d = Math.hypot(s.x - p.x, s.y - p.y);
       if (d < (s.radius || 72) && d < bd) { bd = d; best = s; }
     }
-    if (best) {
+    if (best && !lojaAberta(best)) Act.prompt = { text: 'Fechada agora — ' + best.name, act: () => avisoFechada(best) }; // fora do horário: só o aviso "Loja fechada"
+    else if (best) {
       const verb = { garagem: 'Entrar na garagem', posto: 'Abastecer / lavar — ' + best.name, oficina: 'Oficina — consertar e melhorar' }[best.kind];
       Act.prompt = { text: verb || (best.pickup && !Act.delivery ? 'Pegar entrega — ' + best.name : 'Entrar — ' + best.name), act: () => openShopDialog(best) };
     } else if (!Act.race) {

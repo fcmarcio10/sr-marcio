@@ -120,7 +120,7 @@ function saveSettings() { try { localStorage.setItem('brnd_settings', JSON.strin
 const START_TIME = 20 * 60 + 30; // 20:30
 function newProfile() {
   return {
-    v: 1, money: 600,
+    v: 1, money: 600, dia: 5, // começa numa sexta-feira à noite
     owned: { pampeiro: true }, current: 'pampeiro',
     cars: { pampeiro: { color: '#c0392b', up: { motor: 0, cambio: 0, freio: 0, pneu: 0 } } },
     fuel: 100, damage: 0, dirt: 0, pos: null,
@@ -317,7 +317,7 @@ const AudioSys = {
     this.gGain.gain.setTargetAtTime(on * p.surfaceRough * clamp(p.speed / 300, 0, 1) * 0.12, t, 0.1);
     this.hornGain.gain.setTargetAtTime(on && this.hornOn ? 0.16 : 0, t, 0.015);
     // ambiente
-    for (const cr of this.crickets) cr.out.gain.setTargetAtTime(cr.vol * (0.25 + p.rural * 1.1), t, 0.6);
+    for (const cr of this.crickets) cr.out.gain.setTargetAtTime(cr.vol * (0.25 + p.rural * 1.1) * (typeof Dia !== 'undefined' ? 0.15 + 0.85 * Dia.noite : 1), t, 0.6); // grilo é de noite
     this.cityGain.gain.setTargetAtTime(0.05 + p.city * 0.13, t, 0.8); // cidade como era antes (zumbido e trânsito sintetizados; sem fundo gravado)
     this.trafficGain.gain.setTargetAtTime(p.city * 0.035, t, 0.8);
     this.riverGain.gain.setTargetAtTime(p.river * 0.09, t, 0.6);
@@ -4503,7 +4503,7 @@ class Player {
       }
     }
     for (const an of Animals.list) {
-      if (an.type === 'owl' || an.morto) continue; // corpo atropelado fica parado no lugar (o carro passa por cima)
+      if (an.type === 'owl' || an.morto || an.oculto) continue; // corpo atropelado fica parado no lugar (o carro passa por cima)
       const dx0 = an.x - this.x, dy0 = an.y - this.y;
       if (dx0 * dx0 + dy0 * dy0 > 80 * 80) continue;
       for (const k of ks) {
@@ -4537,15 +4537,7 @@ class Player {
 
 /* ============================ TRÁFEGO (IA) ============================ */
 const Traffic = { cars: [], idc: 1, timer: 0, cum: null, total: 0 };
-function trafficRush() {
-  // 19:30–21:00 saída do trabalho; 04:30–05:00 gente indo trabalhar; madrugada vazia
-  const t = Profile.time;
-  if (t < 21 * 60) return { k: 1.45, label: 'horário de pico' };
-  if (t < 23 * 60) return { k: 1.0, label: '' };
-  if (t < 25 * 60) return { k: 0.72, label: '' };
-  if (t < 28 * 60 + 30) return { k: 0.42, label: 'madrugada' };
-  return { k: 1.2, label: 'horário de pico' };
-}
+function trafficRush() { return Dia.movimento(); } // horários de pico de verdade (p75_dia.js)
 // área rural: 60% menos movimento que na cidade
 function ruralFactor(x, y) { const R = REGIONS[regionKeyAt(x, y)]; return 1 - 0.8 * clamp((R.rural - 0.3) / 0.5, 0, 1); }
 function lightState(n, axis, now) {
@@ -4768,7 +4760,7 @@ class AICar {
     }
     // o jogador é visto de mais longe e com folga lateral maior: os carros mantêm distância de você
     if (player && Game.state !== 'menu') { const m = this.state === 'edge' ? 1 : 0; check(player, player.x, player.y, player.m.L + 26 * m, player.m.W + 12 * m); }
-    if (this.ghost <= 0 && this.animalGhost <= 0) for (const an of Animals.list) if (an.onRoad && !an.morto) check(an, an.x, an.y, an.r * 2, an.r * 2);
+    if (this.ghost <= 0 && this.animalGhost <= 0) for (const an of Animals.list) if (an.onRoad && !an.morto && !an.oculto) check(an, an.x, an.y, an.r * 2, an.r * 2);
     if (Events.cur) Events.blocksAhead(this, check);
     return best;
   }
@@ -4943,7 +4935,8 @@ function trafficTarget(view) {
   const dens = Settings.quality === 'alta' ? 2.4 : Settings.quality === 'baixa' ? 1.6 : 2; // carros por milhão de unidades²
   const area = (view.x1 - view.x0 + TR_RING * 2) * (view.y1 - view.y0 + TR_RING * 2) / 1e6;
   const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
-  return clamp(Math.round(dens * area * Math.min(1.2, trafficRush().k) * k), k < 0.7 ? 1 : 2, 9);
+  const mov = trafficRush().k; // de dia e no pico cabem mais carros; de madrugada, poucos
+  return clamp(Math.round(dens * area * Math.min(1.35, mov) * k), k < 0.7 ? 1 : 2, mov > 1.3 ? 11 : 9);
 }
 function trInView(c, v, m) { return c.x > v.x0 - m && c.x < v.x1 + m && c.y > v.y0 - m && c.y < v.y1 + m; }
 // ruas que passam perto da tela
@@ -5186,7 +5179,12 @@ Animals.build = function () {
 // só mexe quem está na tela ou bem perto dela (o resto fica parado, ninguém vê)
 function nearView(x, y, m) { const v = Cam.view; return v && v.x1 > v.x0 ? x > v.x0 - m && x < v.x1 + m && y > v.y0 - m && y < v.y1 + m : Math.abs(x - Cam.x) < 1200 && Math.abs(y - Cam.y) < 900; }
 Animals.update = function (dt, cx, cy) {
-  for (const a of this.list) if (nearView(a.x, a.y, 220)) a.update(dt);
+  // gente na rua conforme a hora (de dia mais, de madrugada pouca); só some ou aparece fora da tela
+  const dens = Dia.pedestres();
+  for (const a of this.list) {
+    if (a.type === 'person' && !a.morto) { if (a.pk === undefined) a.pk = Math.random(); if (!nearView(a.x, a.y, 260)) a.oculto = a.pk > dens; }
+    if (!a.oculto && nearView(a.x, a.y, 220)) a.update(dt);
+  }
   for (const s of World.sparkers) if (Game.time < s.until && nearView(s.x, s.y, 60)) for (let i = 0; i < 2; i++) Particles.emit('spark', s.x, s.y, rnd(-160, 160), rnd(-160, 160), rnd(0.2, 0.5), 2);
   for (const g of World.geysers) if (Game.time < g.until && nearView(g.x, g.y, 60) && chance(0.7)) Particles.emit('water', g.x + rnd(-2, 2), g.y + rnd(-2, 2), rnd(-70, 70), rnd(-70, 70), rnd(0.5, 1.1), 2);
   for (const g of World.grills) if (g.down === undefined && nearView(g.x, g.y, 80) && chance(dt * 6)) Particles.emit('smoke', g.x + rnd(-4, 4), g.y + rnd(-3, 3), rnd(-6, 6), rnd(-14, -4), rnd(1.2, 2.2), 4);
@@ -5885,7 +5883,8 @@ function updateActivities(dt) {
       const d = Math.hypot(s.x - p.x, s.y - p.y);
       if (d < (s.radius || 72) && d < bd) { bd = d; best = s; }
     }
-    if (best) {
+    if (best && !lojaAberta(best)) Act.prompt = { text: 'Fechada agora — ' + best.name, act: () => avisoFechada(best) }; // fora do horário: só o aviso "Loja fechada"
+    else if (best) {
       const verb = { garagem: 'Entrar na garagem', posto: 'Abastecer / lavar — ' + best.name, oficina: 'Oficina — consertar e melhorar' }[best.kind];
       Act.prompt = { text: verb || (best.pickup && !Act.delivery ? 'Pegar entrega — ' + best.name : 'Entrar — ' + best.name), act: () => openShopDialog(best) };
     } else if (!Act.race) {
@@ -6232,7 +6231,7 @@ function startJob(job) {
 // ---------- app de motorista ----------
 function canDriveRides() { return player && VMODELS[player.car.model].kind !== 'truck'; }
 // ---------- racha ----------
-function rachaOpen() { const t = Profile.time; return t >= 22 * 60 && t < 28 * 60 + 30; }
+function rachaOpen() { const t = Profile.time % 1440; return t >= 22 * 60 || t < 4 * 60 + 30; }
 function startRacha(r) {
   if (Profile.money < r.bet) { toast('Sem grana pra aposta', 'O racha custa R$ ' + fmtMoney(r.bet) + '.', 'bad'); AudioSys.error(); return; }
   Profile.money -= r.bet; UI.moneyDelta(-r.bet);
@@ -6477,7 +6476,8 @@ function cheatDo(k, v) {
   if (k === 'fix') { const L = carLife(); L.tires = L.oil = L.bat = 100; CarLife.stalled = false; Profile.damage = 0; Profile.zones = { f: 0, r: 0, l: 0, rt: 0, seed: ((Profile.zones && Profile.zones.seed) || 0) + 1 }; Profile.fuel = 100; Profile.dirt = 0; ok('Carro novo e tanque cheio'); }
   if (k === 'cars') { for (const c of CARS) Profile.owned[c.id] = true; ok('Todos os veículos liberados na garagem'); }
   if (k === 'pois') { for (const q of World.pois) if (!Profile.discovered.includes(q.id)) Profile.discovered.push(q.id); ok('Todos os pontos de interesse revelados'); }
-  if (k === 'time') { Profile.time = +v; ok('Relógio: ' + clockStr()); }
+  if (k === 'time') { Profile.time = +v; Dia.update(); ok('Relógio: ' + clockStr()); }
+  if (k === 'dia') { Profile.dia = (Dia.semana() + 1) % 7; ok('Hoje é ' + DIAS[Profile.dia]); }
   if (k === 'wx') { Settings.weather = v; if (v === 'auto') { Weather.timer = 0; } else { Weather.target = v === 'chuva' ? 0.9 : v === 'garoa' ? 0.35 : 0; if (v === 'garoa') Settings.weather = 'auto', Weather.target = 0.35, Weather.timer = 120; } saveSettings(); ok('Clima: ' + v); }
   if (k === 'police') { const n = +v; if (n === 0) { Police.level = 0; Police.units.length = 0; ok('Polícia liberada'); } else { Police.crime('Trapaça', n, player.x, player.y, true); Police.level = n; ok(n + ' estrela(s)'); } }
   if (k === 'ev') { Events.clear(); let okv = false; for (let i = 0; i < 12 && !okv; i++) okv = Events.spawn(v); Screens.closeAll(); ok(okv ? 'Evento: ' + EV_NAMES[v] : 'Não achei lugar pra esse evento aqui; tente em outra região'); return; }
@@ -6703,7 +6703,7 @@ const Phone = {
     const tog = (k, label) => `<button class="aj-row" data-tog="${k}"><span>${label}</span><i class="ios-tog${(k === 'autoWall' ? cfg.wall === 'auto' : cfg[k]) ? ' on' : ''}"></i></button>`;
     if (this.app === 'home') {
       const W = WALLS.find((w) => w.id === this.wall) || WALLS[0];
-      const hr = Math.floor(Profile.time / 60) % 24, temp = Math.round(27 - ((hr + 24 - 19) % 24) * 0.55 - Weather.rain * 4), wl = Weather.label();
+      const hr = Math.floor(Profile.time / 60) % 24, temp = Math.round(24 + 6 * Math.cos((Dia.hora() - 14) / 24 * TAU) - Weather.rain * 4), wl = Weather.label();
       const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
       // tela inicial simples (nov/2026): hora grande, uma grade com os apps e a barra de baixo; sem caixinhas nem textos
       html = `<div class="ph-lock simples"><div class="ph-time">${clockStr()}</div><div class="ph-date">${wl ? H(wl) + ' · ' : ''}${temp}° · R$ ${fmtMoney(Profile.money)}</div></div>` +
@@ -6793,7 +6793,7 @@ const Phone = {
         '<div class="ch-sec">História</div><div class="ch-grid">' + btn('missao', 0, 'Pular missão') + '</div>' +
         '<div class="ch-sec">Desafios do dia</div><div class="ch-grid">' + btn('des', 0, 'Cumprir o 1º') + btn('des', 1, 'Cumprir o 2º') + btn('des', 2, 'Cumprir o 3º') + btn('desnovo', 0, 'Outros 3 desafios') + btn('deszera', 0, 'Zerar o progresso') + '</div>' +
         '<div class="ch-sec">Dinheiro e carro</div><div class="ch-grid">' + btn('money', 0, '+R$ 10.000') + btn('fix', 0, 'Consertar e encher') + btn('cars', 0, 'Liberar veículos') + btn('pois', 0, 'Revelar pontos') + btn('god', 0, 'Indestrutível', Cheats.god) + btn('turbo', 0, 'Turbo', Cheats.turbo) + '</div>' +
-        '<div class="ch-sec">Horário</div><div class="ch-grid">' + btn('time', 19 * 60 + 40, '19:40') + btn('time', 22 * 60 + 5, '22:05 (racha)') + btn('time', 26 * 60, '02:00') + btn('time', 28 * 60 + 40, '04:40') + '</div>' +
+        '<div class="ch-sec">Horário</div><div class="ch-grid">' + btn('time', 5 * 60 + 15, '05:15 (amanhecer)') + btn('time', 12 * 60, '12:00') + btn('time', 17 * 60 + 10, '17:10 (fim de tarde)') + btn('time', 19 * 60 + 40, '19:40') + btn('time', 22 * 60 + 5, '22:05 (racha)') + btn('time', 2 * 60, '02:00') + btn('dia', 0, 'Pular um dia') + btn('time', 4 * 60 + 40, '04:40') + '</div>' +
         '<div class="ch-sec">Clima</div><div class="ch-grid">' + btn('wx', 'limpo', 'Limpo', Settings.weather === 'limpo') + btn('wx', 'garoa', 'Garoa') + btn('wx', 'chuva', 'Temporal', Settings.weather === 'chuva') + btn('wx', 'auto', 'Dinâmico', Settings.weather === 'auto') + '</div>' +
         (POLICE_ENABLED ? '<div class="ch-sec">Polícia</div><div class="ch-grid">' + btn('police', 1, '★') + btn('police', 2, '★★') + btn('police', 3, '★★★') + btn('police', 0, 'Limpar') + '</div>' : '') +
         '<div class="ch-sec">Eventos</div><div class="ch-grid">' + Object.keys(EV_NAMES).map((k) => btn('ev', k, H(EV_NAMES[k]))).join('') + '</div>' +
@@ -8119,7 +8119,7 @@ function updateCamera(dt) {
   const tm = Profile.time % 1440;
   const deep = tm >= 60 && tm < 240 ? 0.025 : 0;
   const k = 1 - Math.exp(-1.2 * dt);
-  Cam.dark = lerp(Cam.dark, dk + deep, k);
+  Cam.dark = lerp(Cam.dark, (dk + deep) * Dia.noite, Game.mode === 'play' ? k : 1); // de dia o céu clareia (p75_dia.js)
   Cam.city = lerp(Cam.city === undefined ? RG.city : Cam.city, RG.city, k); // tom do céu: roxo-alaranjado na cidade, azul de luar na roça
 }
 
@@ -8517,6 +8517,7 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
       const s0 = (c + (big ? 0.08 : 0.24)) / cols, s1 = (c + (big ? 0.92 : 0.76)) / cols;
       const hsh = hash2(b.seed + f * 131 + c * 7, side.charCodeAt(0));
       let on = big ? true : hsh < b.lit;
+      if (on && Dia.apaga && Dia.desligada(b.seed + f * 131 + c * 7 + side.charCodeAt(0) * 3)) on = false; // apagou com o dia
       if (!big && hsh < 0.04) on = hash2(b.seed + tflick, c) < 0.7;
       const P = emissive ? (on ? em : null) : (on ? lit : dark);
       if (!P) continue;
@@ -9106,7 +9107,8 @@ Weather.update = function (dt) {
     this.timer -= dt;
     if (this.timer <= 0) {
       const prev = this.target, r = Math.random();
-      this.target = r < 0.5 ? 0 : r < 0.78 ? 0.35 : 0.9;
+      const cedo = Dia.hora() >= 4 && Dia.hora() < 8; // de manhãzinha a garoa é mais comum
+      this.target = cedo ? (r < 0.4 ? 0 : r < 0.88 ? 0.3 : 0.9) : (r < 0.5 ? 0 : r < 0.78 ? 0.35 : 0.9);
       this.timer = this.target ? rnd(77, 165) : rnd(90, 200); // chuva 10% mais longa
       if (Game.mode === 'play') {
         if (this.target > 0.2 && prev < 0.2) toast(this.target > 0.6 ? 'Temporal chegando' : 'Começou a garoar', 'Pista molhada: o carro escorrega mais e demora mais para frear.', 'info');
@@ -9295,8 +9297,9 @@ function lightPass(view, cx, cy) {
   lctx.globalAlpha = 1;
   // escuridão da noite numa pincelada só: 'copy' substitui o quadro anterior (antes ela se acumulava e todo canto
   // sem poste ficava preto) e o degradê já escurece as bordas da tela (vinheta)
-  const cty = clamp(Cam.city === undefined ? 0.5 : Cam.city, 0, 1), dk = clamp(Cam.dark, 0.3, 0.95);
-  const cr = Math.round(20 - 4 * cty), cg = Math.round(32 - 16 * cty), cb = Math.round(66 - 24 * cty); // luar azulado na roça, céu roxo-alaranjado na cidade
+  const cty = clamp(Cam.city === undefined ? 0.5 : Cam.city, 0, 1), au = Dia.aurora, dk = clamp(Cam.dark + au * 0.12, 0, 0.95);
+  // luar azulado na roça, céu roxo-alaranjado na cidade; no amanhecer e no fim de tarde o céu fica laranja-rosado
+  const cr = Math.round(lerp(20 - 4 * cty, 170, au)), cg = Math.round(lerp(32 - 16 * cty, 80, au)), cb = Math.round(lerp(66 - 24 * cty, 60, au));
   if (Settings.quality !== 'baixa') {
     const gr = lctx.createRadialGradient(lw / 2, lh / 2, lh * 0.3, lw / 2, lh / 2, Math.hypot(lw, lh) * 0.55);
     gr.addColorStop(0, `rgba(${cr},${cg},${cb},${dk.toFixed(3)})`);
@@ -9313,6 +9316,7 @@ function lightPass(view, cx, cy) {
   for (const L of _lq) {
     let i = L.i;
     if (L.dieAt) { if (T > L.dieAt) continue; i *= Math.random() < 0.5 ? 0.1 : 1; }
+    if (Dia.apaga && Dia.desligada(L.x * 7 + L.y * 13)) continue; // de manhã as luzes apagam uma a uma (e acendem de tardinha)
     if (L.flick) { const f = Math.sin(T * 23 + L.seed * 50) + Math.sin(T * 7.3 + L.seed * 9); i *= f > 1.2 ? 0.25 : 1; }
     lctx.globalAlpha = i;
     lctx.drawImage(LSPR, L.x - L.r, L.y - L.r, L.r * 2, L.r * 2);
@@ -9361,6 +9365,7 @@ function glowPass(view, cx, cy) {
     if (L.x < view.x0 - L.r || L.x > view.x1 + L.r || L.y < view.y0 - L.r || L.y > view.y1 + L.r) continue;
     let i = L.i;
     if (L.dieAt) { if (T > L.dieAt) continue; i *= Math.random() < 0.5 ? 0.1 : 1; }
+    if (Dia.apaga && Dia.desligada(L.x * 7 + L.y * 13)) continue; // de manhã as luzes apagam uma a uma (e acendem de tardinha)
     if (L.flick) { const f = Math.sin(T * 23 + L.seed * 50) + Math.sin(T * 7.3 + L.seed * 9); i *= f > 1.2 ? 0.2 : 1; }
     const a = (L.shop ? 0.36 : L.canopy ? 0.14 : L.flood ? 0.12 : 0.21) * i;
     gctx.globalAlpha = a;
@@ -9413,7 +9418,7 @@ function glowPass(view, cx, cy) {
   gctx.globalCompositeOperation = 'source-over';
 }
 function emissivePass(view, talls) {
-  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3 + 0.7 * Dia.noite; // letreiros e janelas acesas fracos de dia
   const T = Game.time;
   EM_BATCH.on = true; EM_BATCH.norm = new Path2D(); EM_BATCH.big = new Path2D(); EM_BATCH.n = 0;
   for (const o of talls) drawTallEmissive(ctx, o);
@@ -9522,10 +9527,11 @@ function drawMarkersEmissive(view) {
     if (s.kind === 'garagem') col = '#5be38f';
     else if (s.kind === 'posto') col = '#ffb000';
     else if (s.kind === 'oficina') col = '#59e0ff';
+    else if (!lojaAberta(s)) { col = '#7d8590'; r = 22; } // fechada agora
     else if (s.pickup && !Act.delivery) { col = '#ffd24a'; r = 32; }
     ring(s.x, s.y, r + pulse * 4, col, 0.55, 3);
     ctx.globalAlpha = 0.35; ctx.drawImage(glowSprite(col), s.x - r * 1.6, s.y - r * 1.6, r * 3.2, r * 3.2);
-    if (s.pickup && !Act.delivery) {
+    if (s.pickup && !Act.delivery && lojaAberta(s)) {
       ctx.globalAlpha = 0.9; ctx.fillStyle = '#ffd24a';
       const bob = Math.sin(T * 3) * 3 - r - 16;
       ctx.fillRect(s.x - 7, s.y - 7 + bob, 14, 12); ctx.fillStyle = '#7a5a1a'; ctx.fillRect(s.x - 7, s.y - 2 + bob, 14, 1.5); ctx.fillRect(s.x - 0.75, s.y - 7 + bob, 1.5, 12);
@@ -9673,8 +9679,8 @@ function render() {
   ctx.drawImage(lightCanvas, 0, 0, W, Hh);
   pm('compLight');
   if (!lowQ) {
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.drawImage(glowCanvas, 0, 0, W, Hh);
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.25 + 0.75 * Dia.noite; // de dia o brilho quase some
+    ctx.drawImage(glowCanvas, 0, 0, W, Hh); ctx.globalAlpha = 1;
   pm('compGlow');
 
     ctx.globalCompositeOperation = 'source-over';
@@ -9686,6 +9692,7 @@ function render() {
   Weather.drawDrops(ctx);
   pm('drops');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  Dia.desenhaNeblina(ctx, W, Hh); // neblina na roça de madrugada
   Praia.desenha(ctx, W, Hh); // carro voltando do mar para a areia
   if (Cam.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${(Cam.flash * 0.6).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
 }
@@ -10073,7 +10080,7 @@ function drawDynShadows(ctx, view) {
   for (const u of Police.units) if (inView(view, u.x, u.y, 60)) car(u, VMODELS.police, u.a);
   if (Socorro.job && inView(view, Socorro.job.x, Socorro.job.y, 60)) car(Socorro.job, VMODELS.guincho, Socorro.job.a);
   if (player && Game.state !== 'menu') car(player, player.m, player.a);
-  for (const an of Animals.list) if ((an.type === 'person' || an.type === 'dog') && !an.morto && inView(view, an.x, an.y, 30)) ped(an);
+  for (const an of Animals.list) if ((an.type === 'person' || an.type === 'dog') && !an.morto && !an.oculto && inView(view, an.x, an.y, 30)) ped(an);
   ctx.globalAlpha = 1;
 }
 
@@ -10449,7 +10456,7 @@ Atropelo.update = function (dt) {
   if (sp > 50) {
     const m = player.m, ca = Math.cos(player.a), sa = Math.sin(player.a), hl = m.L / 2 + 2, hw = m.W / 2 + 2;
     for (const an of Animals.list) {
-      if (an.type !== 'person' || an.morto) continue;
+      if (an.type !== 'person' || an.morto || an.oculto) continue;
       const dx = an.x - player.x, dy = an.y - player.y; if (dx > 45 || dx < -45 || dy > 45 || dy < -45) continue;
       const lx = dx * ca + dy * sa, ly = -dx * sa + dy * ca;
       if (Math.abs(lx) < hl && Math.abs(ly) < hw) this.atropela(an, sp);
@@ -11902,7 +11909,7 @@ function updateHUD(dt) {
     const bn = $('region-banner'); bn.textContent = REGIONS[rk].name; bn.classList.add('show');
     clearTimeout(UI._bn); UI._bn = setTimeout(() => bn.classList.remove('show'), 2600);
   }
-  { const rush = trafficRush().label; UI.set('clock', clockStr() + (rush ? ' · ' + (Weather.rain > 0.15 ? 'pico' : rush) : '') + (Weather.rain > 0.6 ? ' · chuva' : Weather.rain > 0.15 ? ' · garoa' : '')); if (rush !== UI.rush) { if (UI.rush !== undefined && rush === 'horário de pico') toast('Horário de pico', 'As ruas de São Gambiarra estão cheias. Paciência no trânsito!', 'info'); UI.rush = rush; } }
+  { const rush = trafficRush().label; UI.set('clock', DIAS_CURTO[Dia.semana()] + ' ' + clockStr() + (rush ? ' · ' + (Weather.rain > 0.15 ? 'pico' : rush) : '') + (Weather.rain > 0.6 ? ' · chuva' : Weather.rain > 0.15 ? ' · garoa' : '')); if (rush !== UI.rush) { if (UI.rush !== undefined && rush === 'horário de pico') toast('Horário de pico', 'As ruas de São Gambiarra estão cheias. Paciência no trânsito!', 'info'); UI.rush = rush; } }
   UI.set('money-value', fmtMoney(Profile.money));
   { const C = career(), need = C.lvl >= LEVEL_MAX ? 1 : xpNeed(C.lvl); UI.set('lvl-num', String(C.lvl)); UI.set('lvl-fill', (C.lvl >= LEVEL_MAX ? 100 : Math.round(C.xp / need * 100)) + '%', 'width'); }
   // objetivo
@@ -12209,7 +12216,7 @@ const Historia = {
   // GPS já apontando para onde a missão acontece (quando tem um lugar certo)
   guia(i) {
     let w = null;
-    if (i === 2) { const s = World.shops.filter((q) => q.pickup).sort((a, b) => Math.hypot(a.x - player.x, a.y - player.y) - Math.hypot(b.x - player.x, b.y - player.y))[0]; if (s) w = { x: s.x, y: s.y, label: 'Entrega: ' + s.name }; }
+    if (i === 2) { const s = World.shops.filter((q) => q.pickup && lojaAberta(q)).sort((a, b) => Math.hypot(a.x - player.x, a.y - player.y) - Math.hypot(b.x - player.x, b.y - player.y))[0]; if (s) w = { x: s.x, y: s.y, label: 'Entrega: ' + s.name }; }
     if (i === 6) { const r = World.rachas && World.rachas[0]; if (r) w = { x: r.start[0], y: r.start[1], label: 'Racha: ' + r.name }; }
     if (i === 7 && World.home) w = { x: World.home.x, y: World.home.y, label: 'Sua garagem' };
     if (w) { Act.waypoint = w; Act.gpsT = 0; }
@@ -13198,12 +13205,86 @@ Mata.chao = function (ctx, view) {
   ctx.restore();
 };
 Mata.dentro = function (x, y) { for (const R of this.rects) if (x > R.x0 - 4 && x < R.x1 + 4 && y > R.y0 - 4 && y < R.y1 + 4) return true; return false; };
+/* ============================ DIA E NOITE (24 horas, domingo a sábado) ============================
+   Profile.time: minutos do dia (0 a 1440; 1 minuto do jogo = 1 segundo de verdade, um dia = 24 minutos).
+   Profile.dia: 0 = domingo ... 6 = sábado. Vira à meia-noite.
+   Dia.sol (0 noite, 1 dia) clareia o céu no amanhecer (5h às 6h40) e escurece no fim da tarde (17h20 às 19h);
+   Dia.apaga (0 a 1) é a parte das luzes já apagadas: de manhã apagam uma a uma (janelas, postes, casas e
+   fazendas) e de tardinha acendem uma a uma. Neblina na roça de madrugada. Movimento (carros, pedestres,
+   passageiros) segue os horários de pico de verdade. Lojas têm horário: fechada, aparece "Loja fechada". */
+const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+const DIAS_CURTO = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+// horário de funcionamento [abre, fecha] em horas (fecha < abre = passa da meia-noite); sem entrada = 24 horas
+const LOJA_HORA = { mercado: [7, 22], padaria: [5, 20], floricultura: [8, 18], paneleiras: [8, 17], porto: [6, 18], sitio: [5, 19], fazenda: [5, 19], bar: [16, 3], churrascaria: [11, 23], moquecaria: [11, 23] };
+const Dia = { sol: 0, noite: 1, apaga: 0, aurora: 0, neblina: 0 };
+const suave = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+Dia.hora = () => ((Profile.time % 1440) + 1440) % 1440 / 60;
+Dia.semana = () => ((Profile.dia === undefined ? 5 : Profile.dia) % 7 + 7) % 7;
+Dia.fimDeSemana = () => { const d = Dia.semana(); return d === 0 || d === 6; };
+Dia.update = function () {
+  const h = Dia.hora();
+  this.sol = h < 12 ? suave(5, 6.7, h) : 1 - suave(17.3, 19, h);
+  this.noite = 1 - this.sol;
+  // luzes: apagam entre 5h20 e 7h, acendem entre 17h e 18h40 (cada uma no seu minuto)
+  this.apaga = h < 12 ? suave(5.3, 7, h) : 1 - suave(17, 18.7, h);
+  // cor de amanhecer/entardecer (laranja-rosado) no meio da virada
+  this.aurora = Math.max(Math.sin(Math.PI * clamp((h - 5) / 1.9, 0, 1)), Math.sin(Math.PI * clamp((h - 17.2) / 2, 0, 1)));
+  // neblina na roça de madrugada (4h às 7h30), mais forte por volta das 5h30
+  this.neblina = h >= 3.8 && h < 7.6 ? Math.sin(Math.PI * (h - 3.8) / 3.8) : 0;
+};
+// a luz (janela, poste, casa) já está apagada? cada uma tem o seu momento (escolhido pela posição)
+Dia.desligada = function (seed) { return this.apaga > 0 && hash2(seed | 0, 77) < this.apaga; };
+// movimento da cidade por hora (carros e passageiros): picos às 7h-9h e 17h-19h30; madrugada vazia; fim de semana mais calmo de manhã
+Dia.movimento = function () {
+  const h = Dia.hora(), fds = Dia.fimDeSemana();
+  if (h < 5) return { k: 0.35, label: 'madrugada' };
+  if (h < 6.5) return { k: 0.7, label: 'amanhecer' };
+  if (h < 9) return fds ? { k: 0.85, label: '' } : { k: 1.5, label: 'horário de pico' };
+  if (h < 17) return { k: fds ? 1.05 : 1.2, label: '' };
+  if (h < 19.5) return fds ? { k: 1.1, label: '' } : { k: 1.55, label: 'horário de pico' };
+  if (h < 22) return { k: fds ? 1.1 : 0.95, label: '' };
+  return { k: fds ? 0.75 : 0.55, label: '' };
+};
+// gente na rua: de dia todo mundo, de noite menos, de madrugada pouca
+Dia.pedestres = function () { if (navigator.webdriver && !window.__dia) return 1; const h = Dia.hora(); return h < 5 ? 0.25 : h < 6.5 ? 0.5 : h < 19 ? 1 : h < 22 ? 0.7 : 0.4; };
+// pedidos de corrida por hora (multiplica a velocidade do relógio de espera do PegaAí)
+function demandaHora() { return clamp(Dia.movimento().k, 0.45, 1.4); }
+function lojaAberta(s) {
+  if (navigator.webdriver && !window.__dia) return true; // testes antigos: tudo aberto (window.__dia liga os horários)
+  const H = LOJA_HORA[s.kind]; if (!H) return true;
+  const h = Dia.hora(); return H[0] < H[1] ? h >= H[0] && h < H[1] : h >= H[0] || h < H[1];
+}
+function lojaHorario(s) { const H = LOJA_HORA[s.kind]; return H ? 'Abre às ' + String(H[0]).padStart(2, '0') + ':00' : ''; }
+// aviso grande "Loja fechada" um pouco acima da legenda (não tapa nada nem pega clique)
+function avisoFechada(s) {
+  let el = $('loja-fechada');
+  if (!el) { el = document.createElement('div'); el.id = 'loja-fechada'; document.body.appendChild(el); }
+  el.innerHTML = '<b>Loja fechada</b><span>' + escapeHtml(s.name) + (lojaHorario(s) ? ' · ' + lojaHorario(s) : '') + '</span>';
+  el.classList.remove('sai'); el.classList.add('on');
+  clearTimeout(avisoFechada.t); avisoFechada.t = setTimeout(() => el.classList.add('sai'), 2200);
+  try { AudioSys.error(); } catch (e) {}
+}
+// neblina da roça: manchas claras e lentas por cima de tudo (tela inteira)
+Dia.desenhaNeblina = function (ctx, W, H) {
+  if (!this.neblina || Settings.quality === 'baixa' || Game.mode !== 'play') return;
+  const R = REGIONS[regionKeyAt(Cam.x, Cam.y)], k = this.neblina * clamp((R.rural - 0.2) / 0.6, 0, 1);
+  if (k < 0.02) return;
+  const T = Game.time;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = `rgba(190,200,210,${(0.16 * k).toFixed(3)})`; ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 7; i++) {
+    const x = ((hash2(i, 3) * W + T * (8 + i * 2) - Cam.x * 0.4) % (W * 1.4) + W * 1.4) % (W * 1.4) - W * 0.2, y = ((hash2(i, 9) * H - Cam.y * 0.4) % (H * 1.3) + H * 1.3) % (H * 1.3) - H * 0.15, r = (0.25 + hash2(i, 5) * 0.25) * W;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(205,214,222,${(0.22 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(205,214,222,0)');
+    ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  ctx.restore();
+};
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {
   mode: 'menu', time: 0, autosaveT: 30, fpsT: 0, fpsN: 0,
   get state() { return this.mode === 'menu' ? 'menu' : (Screens.current && Screens.current !== 'screen-phone' ? 'paused' : 'playing'); }, // celular aberto não pausa
 };
-const NIGHT_START = 19 * 60 + 30, NIGHT_END = 29 * 60;
 
 function startPlay() {
   AudioSys.init();
@@ -13348,7 +13429,10 @@ function handleKeys() {
 function stepPlay(dt) {
   Game.time += dt;
   Profile.time += dt;
-  if (Profile.time >= NIGHT_END) { Profile.nights = (Profile.nights || 0) + 1; Profile.time = NIGHT_START; toast('Uma nova noite começa', 'O relógio volta para as 19:30. A cidade nunca dorme.', 'info'); Finance.newDay(); }
+  if (Profile.time >= 1440) { // meia-noite: vira o dia da semana (saves antigos com 25:00 também caem aqui)
+    Profile.time -= 1440; Profile.dia = ((Profile.dia === undefined ? 5 : Profile.dia) + 1) % 7; Profile.nights = (Profile.nights || 0) + 1;
+    toast('Meia-noite', 'Começou ' + (Profile.dia === 0 || Profile.dia === 6 ? 'o ' : 'a ') + DIAS[Profile.dia] + (Profile.dia > 0 && Profile.dia < 6 ? '-feira' : '') + '.', 'info');
+  }
   const locked = Act.race && Act.race.count > 0;
   // começo do jogo e cenas de apresentação: carro desligado e parado (nada de tecla; antes o "freio" virava ré e o carro sumia)
   const trava = jogoTravado();
@@ -13413,7 +13497,7 @@ function frame(now) {
     updateCamera(dt);
     Apresenta.update(dt); // viagem da câmera até os lugares da missão
     updateFireflies(dt);
-    Weather.update(dt); Agua.atualiza(dt);
+    Weather.update(dt); Agua.atualiza(dt); Dia.update();
   } else accT = 0;
   // enquanto a tela de carregar está na frente: tudo mudo (volume geral a zero); volta quando ela some
   if (AudioSys.ctx && AudioSys.master && frame.mudo !== !!Game.carregando) {
