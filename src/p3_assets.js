@@ -994,7 +994,7 @@ function drawCarSides(ctx, m, base, x, y, as, lift, sq, o) {
   }
 }
 // carro com altura: com a câmera um pouco inclinada aparece a lateral de baixo (3 camadas mais escuras)
-function vehLift(m) { const h = m.kind === 'truck' || m.kind === 'bus' ? 26 : m.kind === 'tractor' ? 20 : m.kind === 'moto' ? 0 : m.id === 'van' || m.boxy ? 17 : 14; return h * TILT_H * 1.5; }
+function vehLift(m) { return 0; } // lateral dos carros desligada (voltou para a vista de cima)
 function drawLightsFR(ctx, hl, hw, o, m) {
   if (m && m.boxy) {
     // grade de frisos e faróis retangulares, lanternas em bloco

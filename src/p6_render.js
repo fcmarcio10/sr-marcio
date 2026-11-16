@@ -24,9 +24,9 @@ AutoRes.quadro = function (dtReal, trabalhoMs, cap) {
   if (nk !== this.k && Game.state === 'playing') { this.k = nk; resize(); }
 };
 const Cam = { x: 1000, y: 2700, zoom: 1, shake: 0, quick: 1, view: { x0: 0, y0: 0, x1: 0, y1: 0 }, dark: 0.84, menuTarget: null, menuT: 0 };
-const PAR = 1 / 1150; // mais profundidade (nov/2026): prédios e árvores inclinam mais conforme a distância do centro
+const PAR = 1 / 1700;
 const SQ = 1;      // visão de cima (sem achatamento vertical)
-const TILT_H = 0.1; // câmera levemente inclinada (vista 3/4): mostra a fachada de baixo dos prédios e a lateral dos carros
+const TILT_H = 0;  // sem inclinação extra: só a paralaxe 2.5D a partir do centro da tela (a vista 3/4 foi testada e voltou, nov/2026)
 
 function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
@@ -381,7 +381,7 @@ function signGlow(b) {
 /* ---------- prédios em 2.5D ---------- */
 function bldOffset(b) {
   let ox = (b.cx - Cam.x) * b.h * PAR, oy = (b.cy - Cam.y) * b.h * PAR;
-  const m = b.h * 0.95, l = Math.hypot(ox, oy);
+  const m = b.h * 0.85, l = Math.hypot(ox, oy);
   if (l > m) { ox *= m / l; oy *= m / l; }
   return [ox, oy - b.h * TILT_H];
 }
@@ -1673,19 +1673,20 @@ const MAP_S = 0.1;
 function buildMapImage() {
   const c = makeCanvas(GW, GH), g = c.getContext('2d');
   const img = g.createImageData(GW, GH), d = img.data;
-  // estilo noturno: chão escuro, água azul forte, ruas claras por cima
-  const COLS = [[26, 36, 30], [42, 48, 59], [52, 58, 70], [74, 58, 42], [20, 70, 110], [58, 63, 74], [44, 50, 64], [34, 48, 28], [62, 50, 36], [122, 106, 72]];
+  // estilo radar clássico (nov/2026): chão claro (grama, calçada, areia), água azul e todas as ruas de asfalto em cinza escuro;
+  // só as de terra ficam marrons. Ordem: GRASS, ROAD, SIDEWALK, DIRT, WATER, BRIDGE, PAVED, FIELD, EARTH, SAND
+  const COLS = [[92, 108, 78], [58, 58, 61], [146, 144, 136], [124, 94, 60], [62, 104, 142], [66, 66, 69], [136, 134, 126], [116, 124, 80], [126, 102, 72], [196, 180, 136]];
   for (let i = 0; i < GW * GH; i++) { const col = COLS[ground[i]] || COLS[0]; d[i * 4] = col[0]; d[i * 4 + 1] = col[1]; d[i * 4 + 2] = col[2]; d[i * 4 + 3] = 255; }
   g.putImageData(img, 0, 0);
-  g.fillStyle = 'rgba(16,40,24,0.92)';
+  g.fillStyle = 'rgba(58,86,54,0.95)';
   colGrid.query(0, 0, WORLD_W, WORLD_H, _q);
   for (const o of _q) if (o.tag === 'forest') g.fillRect(o.x0 * MAP_S - 1.4, o.y0 * MAP_S - 1.4, (o.x1 - o.x0) * MAP_S + 2.8, (o.y1 - o.y0) * MAP_S + 2.8);
-  for (const b of World.buildings) { g.fillStyle = b.h > 60 ? '#4f5a70' : '#3b4456'; g.fillRect(b.x0 * MAP_S, b.y0 * MAP_S, (b.x1 - b.x0) * MAP_S, (b.y1 - b.y0) * MAP_S); }
+  for (const b of World.buildings) { g.fillStyle = b.h > 60 ? '#7a7872' : '#8e8b83'; g.fillRect(b.x0 * MAP_S, b.y0 * MAP_S, (b.x1 - b.x0) * MAP_S, (b.y1 - b.y0) * MAP_S); }
   g.lineCap = 'round';
   for (const pass of [0, 1]) for (const e of World.edges) {
     const w = e.T.id === 'avenue' || e.T.id === 'highway' ? 3.4 : e.T.id === 'dirt' ? 1.6 : 2.3;
-    g.lineWidth = pass ? w : w + 1.4;
-    g.strokeStyle = pass ? (e.T.id === 'dirt' ? '#a8804e' : e.T.id === 'highway' ? '#ffb52e' : e.T.id === 'avenue' ? '#ffe7a0' : '#d6dbe4') : 'rgba(5,7,11,0.8)';
+    g.lineWidth = pass ? w : w + 1;
+    g.strokeStyle = pass ? (e.T.id === 'dirt' ? '#8a6842' : '#3a3a3d') : 'rgba(22,22,24,0.55)';
     g.beginPath(); g.moveTo(e.a.x * MAP_S, e.a.y * MAP_S); g.lineTo(e.b.x * MAP_S, e.b.y * MAP_S); g.stroke();
   }
   MAPIMG = c;
@@ -1734,7 +1735,7 @@ function drawMinimap() {
   const R = Math.round(1250 / 1.2); // 20% mais perto da cidade
   const scale = (S / 2) / R;
   mm.setTransform(1, 0, 0, 1, 0, 0);
-  mm.fillStyle = '#0b1210'; mm.fillRect(0, 0, S, S);
+  mm.fillStyle = '#3e6890'; mm.fillRect(0, 0, S, S);
   mm.save();
   mm.beginPath(); mm.arc(S / 2, S / 2, S / 2, 0, TAU); mm.clip();
   mm.translate(S / 2, S / 2);
@@ -1820,7 +1821,7 @@ class MapView {
     if (this.st.follow && player) { this.st.cx = player.x; this.st.cy = player.y; }
     const z = this.st.z, s = z * dpr, k = 1 / z; // k: unidades do mundo por px de tela
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.fillStyle = '#0b1a2a'; g.fillRect(0, 0, Wp, Hp);
+    g.fillStyle = '#3e6890'; g.fillRect(0, 0, Wp, Hp);
     g.setTransform(s, 0, 0, s, Wp / 2 - this.st.cx * s, Hp / 2 - this.st.cy * s);
     g.imageSmoothingEnabled = true;
     g.drawImage(MAPIMG, 0, 0, WORLD_W, WORLD_H);
@@ -1828,13 +1829,13 @@ class MapView {
     const x0 = this.st.cx - r.width / 2 * k - 200, x1 = this.st.cx + r.width / 2 * k + 200, y0 = this.st.cy - r.height / 2 * k - 200, y1 = this.st.cy + r.height / 2 * k + 200;
     const vis = (e) => Math.max(e.a.x, e.b.x) > x0 && Math.min(e.a.x, e.b.x) < x1 && Math.max(e.a.y, e.b.y) > y0 && Math.min(e.a.y, e.b.y) < y1;
     const RW = { highway: 1, avenue: 0.9, street: 0.75, road: 0.75, dirt: 0.55 };
-    const RC = { highway: '#ffb52e', avenue: '#ffe7a0', street: '#d6dbe4', road: '#d6dbe4', dirt: '#a8804e' };
+    const RC = { highway: '#3a3a3d', avenue: '#3a3a3d', street: '#3a3a3d', road: '#3a3a3d', dirt: '#8a6842' }; // todas cinza escuro; terra marrom
     g.lineCap = 'round'; g.lineJoin = 'round';
     for (const pass of [0, 1]) for (const e of World.edges) {
       if (!vis(e)) continue;
       const id = e.T.id, w = Math.max((RW[id] || 0.7) * 3.2 * k, e.T.w * 0.62);
       g.lineWidth = pass ? w : w + 2.4 * k;
-      g.strokeStyle = pass ? (RC[id] || '#d6dbe4') : 'rgba(5,7,11,0.85)';
+      g.strokeStyle = pass ? (RC[id] || '#3a3a3d') : 'rgba(22,22,24,0.5)';
       g.beginPath(); g.moveTo(e.a.x, e.a.y); g.lineTo(e.b.x, e.b.y); g.stroke();
     }
     // nomes de rua de perto

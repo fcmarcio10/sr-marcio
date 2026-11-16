@@ -59,7 +59,7 @@ Nevoa.img = function () {
     const g = this.cv.getContext('2d'), im = g.createImageData(NEV_W + 2, NEV_H + 2), d = im.data;
     for (let y = 0; y < NEV_H + 2; y++) for (let x = 0; x < NEV_W + 2; x++) {
       const gx = clamp(x - 1, 0, NEV_W - 1), gy = clamp(y - 1, 0, NEV_H - 1), o = (y * (NEV_W + 2) + x) * 4;
-      d[o] = 9; d[o + 1] = 16; d[o + 2] = 28; d[o + 3] = this.a[gy * NEV_W + gx] ? 0 : 238;
+      d[o] = 34; d[o + 1] = 38; d[o + 2] = 44; d[o + 3] = this.a[gy * NEV_W + gx] ? 0 : 236;
     }
     g.putImageData(im, 0, 0); this.sujo = false;
   }
