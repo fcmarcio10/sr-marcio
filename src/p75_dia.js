@@ -75,7 +75,7 @@ Dia.desenhaNeblina = function (ctx, W, H) {
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = `rgba(222,226,230,${(0.38 * k).toFixed(3)})`; ctx.fillRect(0, 0, W, H); // neblina branca e densa: a visibilidade cai
   for (let i = 0; i < 7; i++) {
-    const zz = Cam.zoom * (typeof RS !== 'undefined' ? RS : 1), x = ((hash2(i, 3) * W + T * (6 + i) - Cam.x * zz) % (W * 1.4) + W * 1.4) % (W * 1.4) - W * 0.2, y = ((hash2(i, 9) * H - Cam.y * zz * SQ) % (H * 1.3) + H * 1.3) % (H * 1.3) - H * 0.15 // anda junto com o chão (antes ia em outra velocidade e enjoava), r = (0.25 + hash2(i, 5) * 0.25) * W;
+    const zz = Cam.zoom * (typeof RS !== 'undefined' ? RS : 1), x = ((hash2(i, 3) * W + T * (6 + i) - Cam.x * zz) % (W * 1.4) + W * 1.4) % (W * 1.4) - W * 0.2, y = ((hash2(i, 9) * H - Cam.y * zz * SQ) % (H * 1.3) + H * 1.3) % (H * 1.3) - H * 0.15, r = (0.25 + hash2(i, 5) * 0.25) * W; // anda junto com o chão (antes ia em outra velocidade e enjoava)
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, `rgba(235,238,240,${(0.42 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(235,238,240,0)');
     ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
