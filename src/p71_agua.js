@@ -21,67 +21,79 @@ Agua.prepara = function () {
 const _sob = (P, x, y) => { for (const p of P) if (y > p.y0 && y < p.y1 && x > p.x0 - 20 && x < p.x1 + 20) return true; return false; };
 
 // ---------- rio ----------
+// tudo preso ao mapa (nada depende de onde a câmera está): parar o carro não muda nada na água
 Agua.rio = function (ctx, view) {
-  const ya = Math.max(view.y0 - 30, 0), yb = Math.min(view.y1 + 30, SEA_Y);
+  const ya = Math.max(view.y0 - 40, 0), yb = Math.min(view.y1 + 40, SEA_Y);
   if (yb <= ya) return;
   const cxm = riverCX((ya + yb) / 2);
   if (cxm + 260 < view.x0 || cxm - 260 > view.x1) return;
   const T = Game.time, P = this.pontes || [];
-  const fl = 22 + Weather.rain * 16; // velocidade da correnteza (a chuva engrossa)
+  const fl = 20 + Weather.rain * 14; // velocidade da correnteza (a chuva engrossa)
   const X = (y, f) => riverCX(y) + f * riverHW(y); // f de -1 (margem esquerda) a 1 (direita)
+  // percorre as marcas de uma faixa que desce com a correnteza: cada marca tem número fixo (n) e sorteio próprio
+  const faixa = (passo, vel, sem, fn) => {
+    const off = ((T * vel + sem * passo) % passo + passo) % passo;
+    for (let n = Math.floor((ya - off) / passo) - 1, y; (y = n * passo + off) < yb; n++) {
+      if (y < ya - 60 || _sob(P, cxm, y)) continue;
+      fn(y, n);
+    }
+  };
   ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  // 1) faixas largas e suaves (o corpo da água se mexendo)
-  ctx.strokeStyle = 'rgba(120,170,200,0.07)'; ctx.lineWidth = 7;
+  // 1) o corpo da água: veios largos e macios, mais lentos perto da margem
+  ctx.lineWidth = 9; ctx.strokeStyle = 'rgba(130,180,210,0.06)';
   ctx.beginPath();
   for (let k = -3; k <= 3; k++) {
-    const passo = 150, vel = fl * 0.7 * (1.2 - Math.abs(k) / 5), off = (T * vel + hash2(k + 30, 7) * passo) % passo;
-    for (let y = Math.floor(ya / passo) * passo + off - passo; y < yb; y += passo) {
-      if (_sob(P, cxm, y)) continue;
-      const f = k / 3.6, L = 38 + hash2(Math.round(y), k + 3) * 30;
-      ctx.moveTo(X(y, f), y); ctx.quadraticCurveTo(X(y + L / 2, f) + Math.sin(y * 0.02 + T * 0.4) * 4, y + L / 2, X(y + L, f), y + L);
-    }
+    const vel = fl * 0.65 * (1.15 - Math.abs(k) / 6);
+    faixa(170, vel, hash2(k + 30, 7), (y, n) => {
+      const f = k / 3.8 + (hash2(n, k + 40) - 0.5) * 0.12, L = 60 + hash2(n, k + 3) * 50, s = (hash2(n, k + 5) - 0.5) * 10;
+      ctx.moveTo(X(y, f), y); ctx.quadraticCurveTo(X(y + L / 2, f) + s, y + L / 2, X(y + L, f), y + L);
+    });
   }
   ctx.stroke();
-  // 2) riscos finos e rápidos (mais rápidos no meio)
-  ctx.strokeStyle = 'rgba(210,232,244,0.17)'; ctx.lineWidth = 1.3;
+  // 2) riscos finos de correnteza, curvinhos, em dois tons (uns mais fortes, outros quase sumindo)
+  ctx.lineWidth = 1.2;
+  for (const [cor, par] of [['rgba(215,235,246,0.10)', 0], ['rgba(225,242,250,0.22)', 1]]) {
+    ctx.strokeStyle = cor; ctx.beginPath();
+    for (let k = -5; k <= 5; k++) {
+      const vel = fl * (1.3 - Math.abs(k) / 7), passo = 70 + (k & 1) * 26;
+      faixa(passo, vel, hash2(k + 9, 3), (y, n) => {
+        if (((n + k) & 1) !== par) return;
+        const f = k / 5.8 + (hash2(n, k + 21) - 0.5) * 0.1, L = 12 + hash2(n, k) * 20, s = (hash2(n, k + 22) - 0.5) * 4;
+        ctx.moveTo(X(y, f), y); ctx.quadraticCurveTo(X(y + L / 2, f) + s, y + L / 2, X(y + L, f), y + L);
+      });
+    }
+    ctx.stroke();
+  }
+  // 3) ondinhas em "V" descendo atrás de pedrinhas (abrem e fecham devagar)
+  ctx.strokeStyle = 'rgba(228,242,250,0.2)'; ctx.lineWidth = 1;
   ctx.beginPath();
-  for (let k = -6; k <= 6; k++) {
-    const vel = fl * (1.35 - Math.abs(k) / 7.5), passo = 62 + (k & 1) * 21, off = (T * vel + hash2(k + 9, 3) * passo) % passo;
-    for (let y = Math.floor(ya / passo) * passo + off - passo; y < yb; y += passo) {
-      if (y < ya - 30 || _sob(P, cxm, y)) continue;
-      const f = k / 6.6 + Math.sin(y * 0.011 + k) * 0.03, L = 10 + hash2(Math.round(y), k) * 18;
-      ctx.moveTo(X(y, f), y); ctx.lineTo(X(y + L, f) + Math.sin(y * 0.02 + T * 0.6) * 1.4, y + L);
-    }
+  for (let i = 0; i < 12; i++) {
+    faixa(320, fl * 0.85, hash2(i, 52), (y, n) => {
+      const f = (hash2(n, i + 51) - 0.5) * 1.3, x = X(y, f), w = 4 + hash2(n, i + 53) * 4 + Math.sin(T * 1.3 + n + i) * 1.2;
+      ctx.moveTo(x - w, y - w * 0.8); ctx.quadraticCurveTo(x - w * 0.3, y - w * 0.1, x, y); ctx.quadraticCurveTo(x + w * 0.3, y - w * 0.1, x + w, y - w * 0.8);
+    });
   }
   ctx.stroke();
-  // 3) ondinhas em "V" descendo com a correnteza
-  ctx.strokeStyle = 'rgba(225,240,250,0.2)'; ctx.lineWidth = 1;
+  // 4) redemoinhos fixos no mapa, perto das margens, girando
+  ctx.strokeStyle = 'rgba(215,235,245,0.2)'; ctx.lineWidth = 1;
   ctx.beginPath();
-  for (let i = 0; i < 18; i++) {
-    const passo = 260, f = (hash2(i, 51) - 0.5) * 1.4, off = (T * fl * 0.9 + hash2(i, 52) * passo) % passo;
-    for (let y = Math.floor(ya / passo) * passo + off - passo + i * 14; y < yb; y += passo) {
-      if (_sob(P, cxm, y)) continue;
-      const x = X(y, f), w = 5 + hash2(i, 53) * 5;
-      ctx.moveTo(x - w, y - w * 0.7); ctx.lineTo(x, y); ctx.lineTo(x + w, y - w * 0.7);
-    }
+  const PR = 230;
+  for (let c = Math.floor(ya / PR); c * PR < yb; c++) {
+    if (hash2(c, 60) < 0.35) continue;
+    const y = c * PR + hash2(c, 61) * PR; if (y < ya || y > yb || _sob(P, cxm, y)) continue;
+    const sd = hash2(c, 65) < 0.5 ? 1 : -1, x = X(y, sd * (0.72 + hash2(c, 62) * 0.14)), r = 5 + hash2(c, 63) * 4, a0 = T * (1.1 + hash2(c, 64) * 0.6) * sd;
+    ctx.moveTo(x + Math.cos(a0) * r, y + Math.sin(a0) * r * 0.75); ctx.ellipse(x, y, r, r * 0.75, 0, a0, a0 + 3.6);
+    const a1 = a0 + 2.4; ctx.moveTo(x + Math.cos(a1) * r * 0.45, y + Math.sin(a1) * r * 0.34); ctx.ellipse(x, y, r * 0.45, r * 0.34, 0, a1, a1 + 3.2);
   }
   ctx.stroke();
-  // 4) redemoinhos girando perto das margens
-  ctx.strokeStyle = 'rgba(215,235,245,0.22)'; ctx.lineWidth = 1;
-  for (let i = 0; i < 10; i++) {
-    const y = ya + ((hash2(i, 61) * 4000 + i * 377) % Math.max(1, yb - ya)); if (_sob(P, cxm, y)) continue;
-    const sd = i & 1 ? 1 : -1, x = X(y, sd * (0.78 + hash2(i, 62) * 0.12)), r = 5 + hash2(i, 63) * 5, a0 = T * (1.6 + hash2(i, 64)) * sd;
-    ctx.beginPath(); ctx.arc(x, y, r, a0, a0 + 4.2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x, y, r * 0.5, a0 + 2, a0 + 5); ctx.stroke();
-  }
-  // 5) marolinha batendo nas margens
-  ctx.strokeStyle = 'rgba(225,240,248,0.3)'; ctx.lineWidth = 1.2;
+  // 5) marolinha batendo nas margens (linha macia que respira)
+  ctx.strokeStyle = 'rgba(225,240,248,0.26)'; ctx.lineWidth = 1.2;
   ctx.beginPath();
   for (const sd of [-1, 1]) {
     let first = true;
-    for (let y = ya; y <= yb; y += 8) {
+    for (let y = Math.floor(ya / 8) * 8; y <= yb; y += 8) {
       if (_sob(P, cxm, y)) { first = true; continue; }
-      const x = riverCX(y) + sd * (riverHW(y) - 4 - (1 + Math.sin(y * 0.09 - T * 2.4 + sd)) * 2.4);
+      const x = riverCX(y) + sd * (riverHW(y) - 4 - (1 + Math.sin(y * 0.07 - T * 1.8 + sd)) * 2);
       if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
     }
   }
@@ -97,24 +109,23 @@ Agua.rio = function (ctx, view) {
     ctx.globalAlpha = 1;
   }
   // 7) folhas e galhinhos boiando, descendo devagar e balançando
-  for (let i = 0; i < 14; i++) {
-    const passo = 900, f = (hash2(i, 71) - 0.5) * 1.5, off = (T * fl * 0.55 + hash2(i, 72) * passo) % passo;
-    for (let y = Math.floor(ya / passo) * passo + off - passo + i * 61; y < yb; y += passo) {
-      if (_sob(P, cxm, y)) continue;
-      const x = X(y, f) + Math.sin(T * 0.8 + i) * 3, a = T * 0.3 + i;
+  for (let i = 0; i < 10; i++) {
+    faixa(1100, fl * 0.5, hash2(i, 72), (y, n) => {
+      const f = (hash2(n, i + 71) - 0.5) * 1.4, x = X(y, f) + Math.sin(T * 0.7 + i + n) * 3, a = T * 0.25 + i + n;
       ctx.save(); ctx.translate(x, y); ctx.rotate(a);
-      ctx.fillStyle = i % 3 ? 'rgba(70,90,40,0.85)' : 'rgba(92,64,38,0.85)';
-      if (i % 3) { ctx.beginPath(); ctx.ellipse(0, 0, 2.6, 1.2, 0, 0, TAU); ctx.fill(); } else ctx.fillRect(-4, -0.6, 8, 1.2);
+      ctx.fillStyle = (i + n) % 3 ? 'rgba(70,90,40,0.85)' : 'rgba(92,64,38,0.85)';
+      if ((i + n) % 3) { ctx.beginPath(); ctx.ellipse(0, 0, 2.6, 1.2, 0, 0, TAU); ctx.fill(); } else ctx.fillRect(-4, -0.6, 8, 1.2);
       ctx.restore();
-    }
+    });
   }
-  // 8) brilho da lua piscando na água
-  ctx.fillStyle = 'rgba(235,245,255,0.6)';
-  for (let i = 0; i < 30; i++) {
-    const y = ya + hash2(i, 77) * (yb - ya), ph = (T * 0.9 + hash2(i, 5) * 10) % 3;
-    if (ph > 0.6 || _sob(P, cxm, y)) continue;
-    const x = X(y, (hash2(i, 13) - 0.5) * 1.6), a = Math.sin(ph / 0.6 * Math.PI);
-    ctx.globalAlpha = a * 0.8; ctx.fillRect(x - 2.5, y - 0.6, 5, 1.2);
+  // 8) brilho da lua piscando, preso ao mapa e descendo junto com a água
+  ctx.fillStyle = 'rgb(235,245,255)';
+  for (let i = 0; i < 6; i++) {
+    faixa(140, fl * 0.8, hash2(i, 77), (y, n) => {
+      const ph = (T * 0.7 + hash2(n, i + 5) * 9) % 3; if (ph > 0.9) return;
+      const x = X(y, (hash2(n, i + 13) - 0.5) * 1.5), a = Math.sin(ph / 0.9 * Math.PI);
+      ctx.globalAlpha = a * 0.55; ctx.fillRect(x - 3, y - 0.6, 6, 1.2); ctx.fillRect(x - 1.2, y + 1.6, 2.4, 1);
+    });
   }
   ctx.restore();
 };
