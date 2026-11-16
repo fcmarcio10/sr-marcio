@@ -9,7 +9,7 @@ fs.writeFileSync(path.join(dst, 'game.js'), js);
 const shim = `<script>
 (function () {
   var T = window.__TAURI__;
-  if (T && T.core) window.brnd = { desktop: true, quit: function () { T.core.invoke('quit_game'); } };
+  if (T && T.core) window.brnd = { desktop: true, quit: function () { T.core.invoke('quit_game'); }, abrir: function (u) { T.core.invoke('open_link', { url: u }); } };
   window.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   window.addEventListener('keydown', function (e) {
     var k = e.key, c = e.ctrlKey || e.metaKey;

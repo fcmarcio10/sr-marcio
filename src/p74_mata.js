@@ -63,8 +63,8 @@ Mata.chao = function (ctx, view) {
   for (const R of this.rects) {
     const x0 = Math.max(R.x0 + 16, view.x0), x1 = Math.min(R.x1 - 16, view.x1), y0 = Math.max(R.y0 + 16, view.y0), y1 = Math.min(R.y1 - 16, view.y1);
     if (x1 <= x0 || y1 <= y0) continue;
-    const pos = ((T * 32) % 900) - 450, gx = view.x0 + pos;
-    const gr = ctx.createLinearGradient(gx, view.y0, gx + 380, view.y0 + 220);
+    const larg = R.x1 - R.x0 + 900, gx = R.x0 - 450 + ((T * 18) % larg); // faixa presa à mata (antes andava junto com a câmera)
+    const gr = ctx.createLinearGradient(gx, R.y0, gx + 380, R.y0 + 220);
     gr.addColorStop(0, 'rgba(150,200,120,0)'); gr.addColorStop(0.5, 'rgba(150,200,120,0.07)'); gr.addColorStop(1, 'rgba(150,200,120,0)');
     ctx.fillStyle = gr; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
   }

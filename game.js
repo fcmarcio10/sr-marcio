@@ -13375,8 +13375,8 @@ Mata.chao = function (ctx, view) {
   for (const R of this.rects) {
     const x0 = Math.max(R.x0 + 16, view.x0), x1 = Math.min(R.x1 - 16, view.x1), y0 = Math.max(R.y0 + 16, view.y0), y1 = Math.min(R.y1 - 16, view.y1);
     if (x1 <= x0 || y1 <= y0) continue;
-    const pos = ((T * 32) % 900) - 450, gx = view.x0 + pos;
-    const gr = ctx.createLinearGradient(gx, view.y0, gx + 380, view.y0 + 220);
+    const larg = R.x1 - R.x0 + 900, gx = R.x0 - 450 + ((T * 18) % larg); // faixa presa à mata (antes andava junto com a câmera)
+    const gr = ctx.createLinearGradient(gx, R.y0, gx + 380, R.y0 + 220);
     gr.addColorStop(0, 'rgba(150,200,120,0)'); gr.addColorStop(0.5, 'rgba(150,200,120,0.07)'); gr.addColorStop(1, 'rgba(150,200,120,0)');
     ctx.fillStyle = gr; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
   }
@@ -13471,7 +13471,7 @@ Dia.desenhaNeblina = function (ctx, W, H) {
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = `rgba(222,226,230,${(0.38 * k).toFixed(3)})`; ctx.fillRect(0, 0, W, H); // neblina branca e densa: a visibilidade cai
   for (let i = 0; i < 7; i++) {
-    const x = ((hash2(i, 3) * W + T * (8 + i * 2) - Cam.x * 0.4) % (W * 1.4) + W * 1.4) % (W * 1.4) - W * 0.2, y = ((hash2(i, 9) * H - Cam.y * 0.4) % (H * 1.3) + H * 1.3) % (H * 1.3) - H * 0.15, r = (0.25 + hash2(i, 5) * 0.25) * W;
+    const zz = Cam.zoom * (typeof RS !== 'undefined' ? RS : 1), x = ((hash2(i, 3) * W + T * (6 + i) - Cam.x * zz) % (W * 1.4) + W * 1.4) % (W * 1.4) - W * 0.2, y = ((hash2(i, 9) * H - Cam.y * zz * SQ) % (H * 1.3) + H * 1.3) % (H * 1.3) - H * 0.15 // anda junto com o chão (antes ia em outra velocidade e enjoava), r = (0.25 + hash2(i, 5) * 0.25) * W;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, `rgba(235,238,240,${(0.42 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(235,238,240,0)');
     ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
