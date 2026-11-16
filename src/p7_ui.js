@@ -538,7 +538,7 @@ function renderMapDests() {
   const of = near('oficina'); if (of) opts.push(['Oficina do Seu Zé', of.x, of.y]);
   const mq = near('moquecaria'); if (mq) opts.push(['Moquecaria', mq.x, mq.y]);
   let poi = null, pd = Infinity; for (const p of World.pois) if (!Profile.discovered.includes(p.id)) { const d = Math.hypot(p.x - player.x, p.y - player.y); if (d < pd) { pd = d; poi = p; } }
-  if (poi) opts.push(['Ponto "?" mais perto', poi.x, poi.y]);
+  if (poi) opts.push(['Lugar novo mais perto', poi.x, poi.y]);
   let rc = null, rd = Infinity; for (const r of World.races) { const d = Math.hypot(r.start[0] - player.x, r.start[1] - player.y); if (d < rd) { rd = d; rc = r; } }
   if (rc) opts.push(['Percurso: ' + rc.name, rc.start[0], rc.start[1]]);
   for (const id of ['map-dests', 'ph-map-dests']) {

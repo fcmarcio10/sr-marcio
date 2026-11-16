@@ -1736,7 +1736,7 @@ function drawMinimap() {
   { const ep = Events.mapPoint(); if (ep) ic(ep[0], ep[1], 'event'); }
   for (const u of Police.units) { mm.save(); mm.translate(u.x, u.y); mm.rotate(-rot); const s = 1 / scale * k; mm.fillStyle = Math.floor(Game.time * 6) % 2 ? '#ff3b30' : '#2a6aff'; mm.beginPath(); mm.arc(0, 0, 6 * s, 0, TAU); mm.fill(); mm.strokeStyle = '#fff'; mm.lineWidth = 1.5 * s; mm.stroke(); mm.restore(); }
   if (!Act.race) for (const r of World.races) ic(r.start[0], r.start[1], 'race');
-  for (const s of World.parkSpots) if (!Profile.parks[s.id]) ic(s.x, s.y, 'park');
+  // (vagas de estacionar não aparecem mais no GPS: menos coisa na tela)
   for (const p of World.pois) if (Profile.discovered.includes(p.id)) ic(p.x, p.y, 'poi');
   const t = currentTarget();
   if (t) ic(t.x, t.y, 'gps');
@@ -1820,8 +1820,8 @@ class MapView {
       g.beginPath(); g.moveTo(e.a.x, e.a.y); g.lineTo(e.b.x, e.b.y); g.stroke();
     }
     // nomes de rua de perto
-    if (z > 0.11) {
-      g.font = `700 ${11 * k}px "BRND Cond", Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    if (z > 0.35) { // nomes de rua só bem de perto (mapa mais limpo)
+      g.font = `700 ${9 * k}px "BRND Cond", Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
       const seen = new Set();
       for (const e of World.edges) {
         if (!e.name || !vis(e) || e.len < 260 || seen.has(e.name + (e.h ? 'h' : 'v') + Math.round((e.h ? e.a.y : e.a.x) / 50))) continue;
@@ -1837,9 +1837,9 @@ class MapView {
     Nevoa.desenha(g);
     // bairros
     g.textAlign = 'center'; g.textBaseline = 'middle';
-    const ls = clamp(19 * k, 62, 300);
+    const ls = clamp(11 * k, 34, 160); // nomes de bairro menores (nov/2026)
     g.font = `${ls}px "BRND Anton", Impact, sans-serif`; g.lineJoin = 'round';
-    g.globalAlpha = z > 0.12 ? 0.45 : 0.95;
+    g.globalAlpha = z > 0.12 ? 0.35 : 0.8;
     const boxes = [];
     for (const [t, x, y] of MAP_LABELS) {
       const words = t.split(' '), lines = [];
@@ -1858,13 +1858,12 @@ class MapView {
       g.strokeStyle = 'rgba(5,7,11,0.9)'; g.lineWidth = 9 * k; g.stroke(); g.strokeStyle = '#ffcc2e'; g.lineWidth = 5.5 * k; g.stroke();
     }
     const ic = (x, y, kind) => { if (x < x0 || x > x1 || y < y0 || y > y1 || !Nevoa.aberto(x, y)) return; const sp = mapIconSprite(kind, 1.2, k * 1.35); g.drawImage(sp, x - sp.width / 2, y - sp.height / 2); };
-    for (const p of World.pois) ic(p.x, p.y, Profile.discovered.includes(p.id) ? 'poi' : 'unknown');
-    for (const sp of World.parkSpots) if (!Profile.parks[sp.id]) ic(sp.x, sp.y, 'park');
+    for (const p of World.pois) if (Profile.discovered.includes(p.id)) ic(p.x, p.y, 'poi'); // sem os "?" e sem as vagas: mapa mais limpo
     for (const r2 of World.races) ic(r2.start[0], r2.start[1], 'race');
     for (const s2 of World.shops) ic(s2.x, s2.y, shopIconKind(s2));
     { const ep = Events.mapPoint(); if (ep) ic(ep[0], ep[1], 'event'); }
-    if (z > 0.09) {
-      g.font = `700 ${11 * k}px "BRND Cond", Arial`; g.textBaseline = 'alphabetic';
+    if (z > 0.3) { // nome das lojas só bem de perto
+      g.font = `700 ${9 * k}px "BRND Cond", Arial`; g.textBaseline = 'alphabetic';
       for (const s2 of World.shops) if (s2.x > x0 && s2.x < x1 && s2.y > y0 && s2.y < y1 && Nevoa.aberto(s2.x, s2.y)) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(s2.name, s2.x, s2.y - 12 * k); g.fillStyle = '#ffe2c4'; g.fillText(s2.name, s2.x, s2.y - 12 * k); }
       for (const p of World.pois) if (Profile.discovered.includes(p.id)) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(p.name, p.x, p.y - 12 * k); g.fillStyle = '#ecd6ff'; g.fillText(p.name, p.x, p.y - 12 * k); }
     }
@@ -1907,7 +1906,7 @@ function mapSetWaypoint(x, y, label) {
 }
 function buildMapLegend() {
   const box = document.getElementById('map-legend'); if (!box || box.dataset.ok) return;
-  const items = [['you', 'Você'], ['home', 'Garagem'], ['job', 'Entregas'], ['shop', 'Comércios'], ['fuel', 'Posto'], ['repair', 'Oficina'], ['race', 'Percursos'], ['park', 'Vagas'], ['poi', 'Pontos'], ['event', 'Eventos'], ['route', 'Rota'], ['dest', 'Destino']];
+  const items = [['you', 'Você'], ['home', 'Garagem'], ['job', 'Entregas'], ['fuel', 'Posto'], ['repair', 'Oficina'], ['event', 'Eventos'], ['dest', 'Destino']]; // legenda curta
   box.innerHTML = '';
   for (const [kind, label] of items) {
     const sp = document.createElement('span'), c = document.createElement('canvas'); c.width = c.height = 36; const g = c.getContext('2d'); g.scale(2, 2);

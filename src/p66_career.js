@@ -92,7 +92,7 @@ function vozBatida(nome, tipo) {
   const g = genderOf(nome || '') === 'f' ? 'f' : 'm';
   let clip = tipo === 'vip' ? BATIDA_VOZ.vip[g] : tipo === 'quebra' ? BATIDA_VOZ.quebra[g] : pick(BATIDA_VOZ[g].filter((c) => c !== vozBatida.ult));
   vozBatida.ult = clip; const C = VOICE_CLIPS[clip]; if (!C) return;
-  try { const a = new Audio(C.src); a.volume = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.9; a.play().catch(() => {}); } catch (e) {}
+  try { const a = new Audio(C.src); a.volume = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.55; a.play().catch(() => {}); } catch (e) {} // mais baixa (nov/2026: 0,9 → 0,55)
 }
 function rideHit(R) {
   R.hits++;
@@ -261,7 +261,7 @@ PedVoz.fala = function (an, tipo) {
   const c = VOICE_CLIPS[F[0]];
   if (c) {
     const d = player ? Math.hypot(an.x - player.x, an.y - player.y) : 0;
-    const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 288, 0.2, 1) * 0.782;
+    const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 288, 0.2, 1) * 0.5;
     try { if (this.a) this.a.pause(); const a = this.a = new Audio(c.src); a.volume = vol; a.play().catch(() => {}); } catch (e) { this.a = null; }
   }
   return true;
@@ -272,7 +272,7 @@ PedVoz.update = function () {
   if (!a || !an) return;
   if (a.ended || a.paused) { this.a = null; this.quem = null; return; }
   const d = Math.hypot(an.x - Cam.x, an.y - Cam.y), k = an.morto ? 0 : clamp(1 - (d - 34.5) / 198, 0, 1); // some a uns 232 de distância (+15%)
-  const v = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.782 * k; // 8% mais baixa (nov/2026)
+  const v = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.5 * k; // mais baixa (nov/2026: 0,782 → 0,5)
   if (v < 0.015) { try { a.pause(); } catch (e) {} this.a = null; this.quem = null; return; }
   a.volume = v;
 };
@@ -855,7 +855,7 @@ Ambiente.resto = function (dt) {
   // só quando eu estou rápido (acima de 85 km/h): devagar, carro passando não faz barulho nenhum
   if (this.passouT <= 0 && player.speed * 0.3 > 85) {
     for (const a of Traffic.cars) {
-      const dx = a.x - player.x, dy = a.y - player.y; if (dx * dx + dy * dy > 150 * 150) continue;
+      const dx = a.x - player.x, dy = a.y - player.y; if (dx * dx + dy * dy > 68 * 68) continue; // 55% mais perto que antes (150 → 68)
       const rel = Math.hypot((a.vx || Math.cos(a.a) * (a.v || 0)) - player.vx, (a.vy || Math.sin(a.a) * (a.v || 0)) - player.vy);
       if (rel < 280 || (this.passou.get(a) || -9) > Game.time - 6) continue;
       this.passou.set(a, Game.time); this.passouT = 1.1;

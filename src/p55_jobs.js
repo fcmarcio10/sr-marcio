@@ -515,20 +515,17 @@ const Phone = {
     const scr = $('phone-screen'), cfg = phoneCfg();
     if (scr) { scr.style.backgroundImage = wallURL(this.wall || 'penha'); scr.classList.toggle('inapp', this.app !== 'home'); }
     body.classList.toggle('home', this.app === 'home');
+    if (this.ultApp !== this.app) { this.ultApp = this.app; body.classList.remove('entra'); void body.offsetWidth; body.classList.add('entra'); } // troca de app com animação (só quando muda)
     const row = (go, label, val, cls) => `<button class="aj-row${cls ? ' ' + cls : ''}" ${go ? `data-go="${go}"` : ''}><span>${label}</span><em>${val || ''}${go ? '<i class="chev"></i>' : ''}</em></button>`;
     const tog = (k, label) => `<button class="aj-row" data-tog="${k}"><span>${label}</span><i class="ios-tog${(k === 'autoWall' ? cfg.wall === 'auto' : cfg[k]) ? ' on' : ''}"></i></button>`;
     if (this.app === 'home') {
       const W = WALLS.find((w) => w.id === this.wall) || WALLS[0];
       const hr = Math.floor(Profile.time / 60) % 24, temp = Math.round(27 - ((hr + 24 - 19) % 24) * 0.55 - Weather.rain * 4), wl = Weather.label();
       const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
-      html = `<div class="ph-lock"><div class="ph-date">São Gambiarra</div><div class="ph-time">${clockStr()}</div></div>` +
-        `<div class="ph-widgets"><div class="ph-wid wid-sky${Weather.rain > 0.15 ? ' rain' : ''}"><small>São Gambiarra</small><b>${temp}°</b><span>${wl || (hr >= 19 || hr < 5 ? 'Noite abafada' : 'Céu limpo')}</span><span class="wid-sub">Máx. 31° Mín. 21°</span></div>` +
-        `<button class="ph-wid wid-money" data-app="carteira"><small>Carteira</small><b>R$ ${fmtMoney(Profile.money)}</b><span>${Profile.deliveries || 0} entregas · ${Profile.rides || 0} corridas</span><span class="wid-sub">${job ? H(job) : dest ? 'Destino: ' + H(dest) : 'Nenhum serviço ativo'}</span></button></div>` +
-        // apps em grupos com nome, para achar fácil
-        '<div class="ph-sec">Trabalho e dinheiro</div><div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].map((id) => phIcon(id, id === 'fretes' ? frUnread() : 0)).join('') + '</div>' +
-        '<div class="ph-sec">Explorar a cidade</div><div class="ph-grid">' + ['camera', 'colecao'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id, 0)).join('') + '</div>' +
-        `<div class="ph-wname">${H(W.name)} · ${H(W.place)}</div>` +
-        '<div class="ph-dock">' + ['mapa', 'msgs', 'pegaai', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>';
+      // tela inicial simples (nov/2026): hora grande, uma grade com os apps e a barra de baixo; sem caixinhas nem textos
+      html = `<div class="ph-lock simples"><div class="ph-time">${clockStr()}</div><div class="ph-date">${wl ? H(wl) + ' · ' : ''}${temp}° · R$ ${fmtMoney(Profile.money)}</div></div>` +
+        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'conquistas', 'camera', 'colecao'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
+        '<div class="ph-dock">' + ['mapa', 'msgs', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
         `<div class="aj-group"><div class="aj-prof"><span class="aj-ava">${PERA_LOGO}</span><div><b>Motorista de São Gambiarra</b><small>Pera ID · Nuvem Gambiarra</small></div></div></div>` +
@@ -632,7 +629,7 @@ const Phone = {
       html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div>` + walletHTML(this.wtab);
     }
     if (this.app === 'camera') html = cameraHTML(); else if (this.app === 'colecao') html = colecaoHTML();
-    html = phComDescricao(this.app, html);
+    // (sem a linha explicando cada app: celular mais limpo)
     body.innerHTML = html;
     if (this.app === 'mapa') { phoneMap = new MapView($('phonemap'), MapState.phone); renderMapDests(); requestAnimationFrame(() => phoneMap && phoneMap.draw()); } else phoneMap = null;
     if (this.chat) { const ch = body.querySelector('.wa-chat'); if (ch) body.scrollTop = body.scrollHeight; }

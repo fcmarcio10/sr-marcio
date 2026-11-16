@@ -1390,3 +1390,18 @@ body.cel-aberto #toasts { top: 150px; }
 /* celular aberto: legenda do tutorial (qualquer passo) à esquerda do celular e o "Pular" junto do texto, sem tapar os apps */
 body.cel-aberto #tutorial { top: auto; bottom: 92px; left: calc((100vw - var(--dash-w, 240px) - 306px * var(--ph-s, 0.78) - 46px) / 2); max-width: calc(100vw - var(--dash-w, 240px) - 306px * var(--ph-s, 0.78) - 90px); }
 body.cel-aberto #tutorial .tut-skip { position: static; margin-left: 10px; }
+/* ===== celular simples (nov/2026): hora grande, uma grade só, barra de baixo com 3 apps; abre deslizando ===== */
+.ph-lock.simples { padding: 26px 0 26px; }
+.ph-lock.simples .ph-time { font-size: 72px; font-weight: 300; }
+.ph-lock.simples .ph-date { margin-top: 8px; font-size: 14px; opacity: 0.85; }
+.ph-grid.simples { padding: 6px 10px 0; gap: 22px 8px; }
+.ph-dock { grid-template-columns: repeat(3, 1fr); }
+#screen-phone:not(.hidden) .phone { animation: celSobe 0.32s cubic-bezier(.2, .9, .3, 1) backwards; }
+@keyframes celSobe { from { transform: translateY(40px) scale(calc(var(--ph-s, 0.78) * 0.96)); opacity: 0; } to { transform: scale(var(--ph-s, 0.78)); opacity: 1; } }
+#phone-body.entra > * { animation: appEntra 0.24s ease-out backwards; }
+@keyframes appEntra { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
+.ph-app .ph-ico { transition: transform 0.15s ease, filter 0.15s ease; }
+.ph-app:active .ph-ico { transform: scale(0.9); filter: brightness(0.85); }
+/* avisos e cartões entram deslizando e somem suave */
+.toast { animation: toastEntra 0.35s cubic-bezier(.2, .9, .3, 1) backwards; }
+@keyframes toastEntra { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }

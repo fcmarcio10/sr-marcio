@@ -6574,20 +6574,17 @@ const Phone = {
     const scr = $('phone-screen'), cfg = phoneCfg();
     if (scr) { scr.style.backgroundImage = wallURL(this.wall || 'penha'); scr.classList.toggle('inapp', this.app !== 'home'); }
     body.classList.toggle('home', this.app === 'home');
+    if (this.ultApp !== this.app) { this.ultApp = this.app; body.classList.remove('entra'); void body.offsetWidth; body.classList.add('entra'); } // troca de app com animação (só quando muda)
     const row = (go, label, val, cls) => `<button class="aj-row${cls ? ' ' + cls : ''}" ${go ? `data-go="${go}"` : ''}><span>${label}</span><em>${val || ''}${go ? '<i class="chev"></i>' : ''}</em></button>`;
     const tog = (k, label) => `<button class="aj-row" data-tog="${k}"><span>${label}</span><i class="ios-tog${(k === 'autoWall' ? cfg.wall === 'auto' : cfg[k]) ? ' on' : ''}"></i></button>`;
     if (this.app === 'home') {
       const W = WALLS.find((w) => w.id === this.wall) || WALLS[0];
       const hr = Math.floor(Profile.time / 60) % 24, temp = Math.round(27 - ((hr + 24 - 19) % 24) * 0.55 - Weather.rain * 4), wl = Weather.label();
       const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
-      html = `<div class="ph-lock"><div class="ph-date">São Gambiarra</div><div class="ph-time">${clockStr()}</div></div>` +
-        `<div class="ph-widgets"><div class="ph-wid wid-sky${Weather.rain > 0.15 ? ' rain' : ''}"><small>São Gambiarra</small><b>${temp}°</b><span>${wl || (hr >= 19 || hr < 5 ? 'Noite abafada' : 'Céu limpo')}</span><span class="wid-sub">Máx. 31° Mín. 21°</span></div>` +
-        `<button class="ph-wid wid-money" data-app="carteira"><small>Carteira</small><b>R$ ${fmtMoney(Profile.money)}</b><span>${Profile.deliveries || 0} entregas · ${Profile.rides || 0} corridas</span><span class="wid-sub">${job ? H(job) : dest ? 'Destino: ' + H(dest) : 'Nenhum serviço ativo'}</span></button></div>` +
-        // apps em grupos com nome, para achar fácil
-        '<div class="ph-sec">Trabalho e dinheiro</div><div class="ph-grid">' + ['fretes', 'racha', 'carteira', 'conquistas'].map((id) => phIcon(id, id === 'fretes' ? frUnread() : 0)).join('') + '</div>' +
-        '<div class="ph-sec">Explorar a cidade</div><div class="ph-grid">' + ['camera', 'colecao'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id, 0)).join('') + '</div>' +
-        `<div class="ph-wname">${H(W.name)} · ${H(W.place)}</div>` +
-        '<div class="ph-dock">' + ['mapa', 'msgs', 'pegaai', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>';
+      // tela inicial simples (nov/2026): hora grande, uma grade com os apps e a barra de baixo; sem caixinhas nem textos
+      html = `<div class="ph-lock simples"><div class="ph-time">${clockStr()}</div><div class="ph-date">${wl ? H(wl) + ' · ' : ''}${temp}° · R$ ${fmtMoney(Profile.money)}</div></div>` +
+        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'conquistas', 'camera', 'colecao'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
+        '<div class="ph-dock">' + ['mapa', 'msgs', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
         `<div class="aj-group"><div class="aj-prof"><span class="aj-ava">${PERA_LOGO}</span><div><b>Motorista de São Gambiarra</b><small>Pera ID · Nuvem Gambiarra</small></div></div></div>` +
@@ -6691,7 +6688,7 @@ const Phone = {
       html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div>` + walletHTML(this.wtab);
     }
     if (this.app === 'camera') html = cameraHTML(); else if (this.app === 'colecao') html = colecaoHTML();
-    html = phComDescricao(this.app, html);
+    // (sem a linha explicando cada app: celular mais limpo)
     body.innerHTML = html;
     if (this.app === 'mapa') { phoneMap = new MapView($('phonemap'), MapState.phone); renderMapDests(); requestAnimationFrame(() => phoneMap && phoneMap.draw()); } else phoneMap = null;
     if (this.chat) { const ch = body.querySelector('.wa-chat'); if (ch) body.scrollTop = body.scrollHeight; }
@@ -9641,7 +9638,7 @@ function drawMinimap() {
   { const ep = Events.mapPoint(); if (ep) ic(ep[0], ep[1], 'event'); }
   for (const u of Police.units) { mm.save(); mm.translate(u.x, u.y); mm.rotate(-rot); const s = 1 / scale * k; mm.fillStyle = Math.floor(Game.time * 6) % 2 ? '#ff3b30' : '#2a6aff'; mm.beginPath(); mm.arc(0, 0, 6 * s, 0, TAU); mm.fill(); mm.strokeStyle = '#fff'; mm.lineWidth = 1.5 * s; mm.stroke(); mm.restore(); }
   if (!Act.race) for (const r of World.races) ic(r.start[0], r.start[1], 'race');
-  for (const s of World.parkSpots) if (!Profile.parks[s.id]) ic(s.x, s.y, 'park');
+  // (vagas de estacionar não aparecem mais no GPS: menos coisa na tela)
   for (const p of World.pois) if (Profile.discovered.includes(p.id)) ic(p.x, p.y, 'poi');
   const t = currentTarget();
   if (t) ic(t.x, t.y, 'gps');
@@ -9725,8 +9722,8 @@ class MapView {
       g.beginPath(); g.moveTo(e.a.x, e.a.y); g.lineTo(e.b.x, e.b.y); g.stroke();
     }
     // nomes de rua de perto
-    if (z > 0.11) {
-      g.font = `700 ${11 * k}px "BRND Cond", Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    if (z > 0.35) { // nomes de rua só bem de perto (mapa mais limpo)
+      g.font = `700 ${9 * k}px "BRND Cond", Arial`; g.textAlign = 'center'; g.textBaseline = 'middle';
       const seen = new Set();
       for (const e of World.edges) {
         if (!e.name || !vis(e) || e.len < 260 || seen.has(e.name + (e.h ? 'h' : 'v') + Math.round((e.h ? e.a.y : e.a.x) / 50))) continue;
@@ -9742,9 +9739,9 @@ class MapView {
     Nevoa.desenha(g);
     // bairros
     g.textAlign = 'center'; g.textBaseline = 'middle';
-    const ls = clamp(19 * k, 62, 300);
+    const ls = clamp(11 * k, 34, 160); // nomes de bairro menores (nov/2026)
     g.font = `${ls}px "BRND Anton", Impact, sans-serif`; g.lineJoin = 'round';
-    g.globalAlpha = z > 0.12 ? 0.45 : 0.95;
+    g.globalAlpha = z > 0.12 ? 0.35 : 0.8;
     const boxes = [];
     for (const [t, x, y] of MAP_LABELS) {
       const words = t.split(' '), lines = [];
@@ -9763,13 +9760,12 @@ class MapView {
       g.strokeStyle = 'rgba(5,7,11,0.9)'; g.lineWidth = 9 * k; g.stroke(); g.strokeStyle = '#ffcc2e'; g.lineWidth = 5.5 * k; g.stroke();
     }
     const ic = (x, y, kind) => { if (x < x0 || x > x1 || y < y0 || y > y1 || !Nevoa.aberto(x, y)) return; const sp = mapIconSprite(kind, 1.2, k * 1.35); g.drawImage(sp, x - sp.width / 2, y - sp.height / 2); };
-    for (const p of World.pois) ic(p.x, p.y, Profile.discovered.includes(p.id) ? 'poi' : 'unknown');
-    for (const sp of World.parkSpots) if (!Profile.parks[sp.id]) ic(sp.x, sp.y, 'park');
+    for (const p of World.pois) if (Profile.discovered.includes(p.id)) ic(p.x, p.y, 'poi'); // sem os "?" e sem as vagas: mapa mais limpo
     for (const r2 of World.races) ic(r2.start[0], r2.start[1], 'race');
     for (const s2 of World.shops) ic(s2.x, s2.y, shopIconKind(s2));
     { const ep = Events.mapPoint(); if (ep) ic(ep[0], ep[1], 'event'); }
-    if (z > 0.09) {
-      g.font = `700 ${11 * k}px "BRND Cond", Arial`; g.textBaseline = 'alphabetic';
+    if (z > 0.3) { // nome das lojas só bem de perto
+      g.font = `700 ${9 * k}px "BRND Cond", Arial`; g.textBaseline = 'alphabetic';
       for (const s2 of World.shops) if (s2.x > x0 && s2.x < x1 && s2.y > y0 && s2.y < y1 && Nevoa.aberto(s2.x, s2.y)) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(s2.name, s2.x, s2.y - 12 * k); g.fillStyle = '#ffe2c4'; g.fillText(s2.name, s2.x, s2.y - 12 * k); }
       for (const p of World.pois) if (Profile.discovered.includes(p.id)) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(p.name, p.x, p.y - 12 * k); g.fillStyle = '#ecd6ff'; g.fillText(p.name, p.x, p.y - 12 * k); }
     }
@@ -9812,7 +9808,7 @@ function mapSetWaypoint(x, y, label) {
 }
 function buildMapLegend() {
   const box = document.getElementById('map-legend'); if (!box || box.dataset.ok) return;
-  const items = [['you', 'Você'], ['home', 'Garagem'], ['job', 'Entregas'], ['shop', 'Comércios'], ['fuel', 'Posto'], ['repair', 'Oficina'], ['race', 'Percursos'], ['park', 'Vagas'], ['poi', 'Pontos'], ['event', 'Eventos'], ['route', 'Rota'], ['dest', 'Destino']];
+  const items = [['you', 'Você'], ['home', 'Garagem'], ['job', 'Entregas'], ['fuel', 'Posto'], ['repair', 'Oficina'], ['event', 'Eventos'], ['dest', 'Destino']]; // legenda curta
   box.innerHTML = '';
   for (const [kind, label] of items) {
     const sp = document.createElement('span'), c = document.createElement('canvas'); c.width = c.height = 36; const g = c.getContext('2d'); g.scale(2, 2);
@@ -10103,7 +10099,7 @@ function vozBatida(nome, tipo) {
   const g = genderOf(nome || '') === 'f' ? 'f' : 'm';
   let clip = tipo === 'vip' ? BATIDA_VOZ.vip[g] : tipo === 'quebra' ? BATIDA_VOZ.quebra[g] : pick(BATIDA_VOZ[g].filter((c) => c !== vozBatida.ult));
   vozBatida.ult = clip; const C = VOICE_CLIPS[clip]; if (!C) return;
-  try { const a = new Audio(C.src); a.volume = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.9; a.play().catch(() => {}); } catch (e) {}
+  try { const a = new Audio(C.src); a.volume = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.55; a.play().catch(() => {}); } catch (e) {} // mais baixa (nov/2026: 0,9 → 0,55)
 }
 function rideHit(R) {
   R.hits++;
@@ -10272,7 +10268,7 @@ PedVoz.fala = function (an, tipo) {
   const c = VOICE_CLIPS[F[0]];
   if (c) {
     const d = player ? Math.hypot(an.x - player.x, an.y - player.y) : 0;
-    const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 288, 0.2, 1) * 0.782;
+    const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 288, 0.2, 1) * 0.5;
     try { if (this.a) this.a.pause(); const a = this.a = new Audio(c.src); a.volume = vol; a.play().catch(() => {}); } catch (e) { this.a = null; }
   }
   return true;
@@ -10283,7 +10279,7 @@ PedVoz.update = function () {
   if (!a || !an) return;
   if (a.ended || a.paused) { this.a = null; this.quem = null; return; }
   const d = Math.hypot(an.x - Cam.x, an.y - Cam.y), k = an.morto ? 0 : clamp(1 - (d - 34.5) / 198, 0, 1); // some a uns 232 de distância (+15%)
-  const v = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.782 * k; // 8% mais baixa (nov/2026)
+  const v = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.5 * k; // mais baixa (nov/2026: 0,782 → 0,5)
   if (v < 0.015) { try { a.pause(); } catch (e) {} this.a = null; this.quem = null; return; }
   a.volume = v;
 };
@@ -10866,7 +10862,7 @@ Ambiente.resto = function (dt) {
   // só quando eu estou rápido (acima de 85 km/h): devagar, carro passando não faz barulho nenhum
   if (this.passouT <= 0 && player.speed * 0.3 > 85) {
     for (const a of Traffic.cars) {
-      const dx = a.x - player.x, dy = a.y - player.y; if (dx * dx + dy * dy > 150 * 150) continue;
+      const dx = a.x - player.x, dy = a.y - player.y; if (dx * dx + dy * dy > 68 * 68) continue; // 55% mais perto que antes (150 → 68)
       const rel = Math.hypot((a.vx || Math.cos(a.a) * (a.v || 0)) - player.vx, (a.vy || Math.sin(a.a) * (a.v || 0)) - player.vy);
       if (rel < 280 || (this.passou.get(a) || -9) > Game.time - 6) continue;
       this.passou.set(a, Game.time); this.passouT = 1.1;
@@ -11618,7 +11614,7 @@ function renderMapDests() {
   const of = near('oficina'); if (of) opts.push(['Oficina do Seu Zé', of.x, of.y]);
   const mq = near('moquecaria'); if (mq) opts.push(['Moquecaria', mq.x, mq.y]);
   let poi = null, pd = Infinity; for (const p of World.pois) if (!Profile.discovered.includes(p.id)) { const d = Math.hypot(p.x - player.x, p.y - player.y); if (d < pd) { pd = d; poi = p; } }
-  if (poi) opts.push(['Ponto "?" mais perto', poi.x, poi.y]);
+  if (poi) opts.push(['Lugar novo mais perto', poi.x, poi.y]);
   let rc = null, rd = Infinity; for (const r of World.races) { const d = Math.hypot(r.start[0] - player.x, r.start[1] - player.y); if (d < rd) { rd = d; rc = r; } }
   if (rc) opts.push(['Percurso: ' + rc.name, rc.start[0], rc.start[1]]);
   for (const id of ['map-dests', 'ph-map-dests']) {
