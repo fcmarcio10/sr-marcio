@@ -6,9 +6,10 @@
    - Plantação: ondas de vento passando por cima e pontas das plantas balançando. */
 const Vento = {
   // força do vento num ponto (0 a 1): duas ondas lentas atravessando o mapa
-  f(x, y) { const T = Game.time; return 0.5 + 0.3 * Math.sin(T * 0.55 - x * 0.0032 - y * 0.0011) + 0.2 * Math.sin(T * 0.23 + y * 0.0021); },
+  f(x, y) { const T = Game.time; return 0.5 + 0.3 * Math.sin(T * 0.3 - x * 0.0026 - y * 0.0009) + 0.2 * Math.sin(T * 0.13 + y * 0.0018); },
   // deslocamento de balanço (para a direita e um pouco para baixo, seguindo o vento)
-  bal(x, y, fase, amp) { const g = this.f(x, y), T = Game.time; return Math.sin(T * (1.4 + g * 0.8) + fase) * amp * (0.35 + g); },
+  // balanço lento e macio: uma onda principal e uma menor por cima (folhagem não balança como pêndulo)
+  bal(x, y, fase, amp) { const g = this.f(x, y), T = Game.time, w = 0.75 + g * 0.3; return (Math.sin(T * w + fase) * 0.75 + Math.sin(T * w * 2.3 + fase * 1.7) * 0.25) * amp * (0.3 + g * 0.85); },
 };
 const Mata = { rects: [], plantas: [] };
 const MATA_CORES = ['#1d3c1c', '#244621', '#2a5226', '#1a361a', '#30592a'];
@@ -62,7 +63,7 @@ Mata.chao = function (ctx, view) {
   for (const R of this.rects) {
     const x0 = Math.max(R.x0 + 16, view.x0), x1 = Math.min(R.x1 - 16, view.x1), y0 = Math.max(R.y0 + 16, view.y0), y1 = Math.min(R.y1 - 16, view.y1);
     if (x1 <= x0 || y1 <= y0) continue;
-    const pos = ((T * 60) % 900) - 450, gx = view.x0 + pos;
+    const pos = ((T * 32) % 900) - 450, gx = view.x0 + pos;
     const gr = ctx.createLinearGradient(gx, view.y0, gx + 380, view.y0 + 220);
     gr.addColorStop(0, 'rgba(150,200,120,0)'); gr.addColorStop(0.5, 'rgba(150,200,120,0.07)'); gr.addColorStop(1, 'rgba(150,200,120,0)');
     ctx.fillStyle = gr; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
@@ -72,7 +73,7 @@ Mata.chao = function (ctx, view) {
   for (const P of this.plantas) {
     const x0 = Math.max(P.x0 + 4, view.x0), x1 = Math.min(P.x1 - 4, view.x1), y0 = Math.max(P.y0 + 4, view.y0), y1 = Math.min(P.y1 - 4, view.y1);
     if (x1 <= x0 || y1 <= y0) continue;
-    const pos = ((T * 45 + P.x0) % 700) - 350, gx = P.x0 + pos;
+    const pos = ((T * 24 + P.x0) % 700) - 350, gx = P.x0 + pos;
     const gr = ctx.createLinearGradient(gx, P.y0, gx + 260, P.y0 + 160);
     gr.addColorStop(0, 'rgba(200,220,150,0)'); gr.addColorStop(0.5, 'rgba(200,220,150,0.1)'); gr.addColorStop(1, 'rgba(200,220,150,0)');
     ctx.fillStyle = gr; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);

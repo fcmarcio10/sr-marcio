@@ -54,6 +54,19 @@ function rideTypeCheck(id) {
   if (id === 'vip' && (Profile.damage > 30 || (Profile.dirt || 0) > 0.4)) return 'Carro amassado ou sujo demais pra VIP';
   return null;
 }
+// ponto na calçada mais perto (rua da cidade) ou no acostamento (estrada e roça), do lado em que o lugar fica
+function naCalcada(x, y) {
+  let best = null, bd = Infinity;
+  for (const e of World.edges) {
+    if (e.bridge) continue;
+    const t = clamp(((x - e.a.x) * e.dx + (y - e.a.y) * e.dy), 0, e.len), px = e.a.x + e.dx * t, py = e.a.y + e.dy * t, d = Math.hypot(x - px, y - py);
+    if (d < bd) { bd = d; best = { e, px, py }; }
+  }
+  if (!best || bd > 400) return { x, y };
+  const { e, px, py } = best, nx = -e.dy, ny = e.dx, lado = (x - px) * nx + (y - py) * ny >= 0 ? 1 : -1;
+  const off = e.hw + (e.T.sw ? e.T.sw * 0.55 : 12);
+  return { x: px + nx * off * lado, y: py + ny * off * lado };
+}
 function airportPt() {
   if (!World.airport) { const e = World.edges.filter((x) => x.T.id === 'highway').sort((a, b) => Math.max(b.a.x, b.b.x) - Math.max(a.a.x, a.b.x))[0], x = Math.max(e.a.x, e.b.x) - 70; World.airport = { x, y: e.a.y + e.T.lanes[e.T.lanes.length - 1], name: 'Aeroporto de Vitorinha (acesso pela BR)' }; }
   return World.airport;
@@ -71,7 +84,8 @@ function newRideRequest() {
   else if (type === 'mudanca') { const dd = World.homes.filter((h) => { const d = Math.hypot(h.x - pk.x, h.y - pk.y); return d > 1200 && d < 3500; }); ds = pick(dd.length ? dd : World.homes); }
   else { const dd = near.filter((h) => { const d = Math.hypot(h.x - pk.x, h.y - pk.y); return d > 900 && d < 3600; }); ds = pick(dd.length ? dd : near); }
   const len = routeLen(pk, ds);
-  const R = { type, name: type === 'vip' ? pick(VIPS) : pick(PASSAGEIROS), pick: { x: pk.x, y: pk.y, name: pk.name }, dest: { x: ds.x, y: ds.y, name: ds.name }, len, fare: Math.round((8 + len * 0.048) * T.mult), stage: 'pickup', hits: 0, t: 0, seed: rnd(), broke: [] };
+  const pc = naCalcada(pk.x, pk.y); // o passageiro espera na calçada (ou no acostamento, na roça), nunca no meio da pista
+  const R = { type, name: type === 'vip' ? pick(VIPS) : pick(PASSAGEIROS), pick: { x: pc.x, y: pc.y, name: pk.name }, dest: { x: ds.x, y: ds.y, name: ds.name }, len, fare: Math.round((8 + len * 0.048) * T.mult), stage: 'pickup', hits: 0, t: 0, seed: rnd(), broke: [] };
   if (type === 'aero' || type === 'vip') R.tmax = len / (type === 'aero' ? 235 : 210) + (type === 'aero' ? 28 : 35);
   R.rid = 'r' + Date.now().toString(36) + Math.floor(Math.random() * 1e4);
   Act.ride = R; Act.gpsT = 0;

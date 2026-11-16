@@ -126,13 +126,13 @@ function updateJobs(dt) {
   gasJingle(dt);
   // app de motorista
   if (Act.rideOnline && !Act.ride && !Act.delivery && !Act.race) {
-    Act.rideT -= dt;
+    Act.rideT -= dt / 1.35 * (typeof demandaHora === 'function' ? demandaHora() : 1); // achar passageiro demora 35% mais (e muda com a hora do dia)
     if (Act.rideT <= 0) newRideRequest();
   }
   if (Act.ride) {
     const R = Act.ride;
     R.t += dt;
-    if (R.stage === 'pickup' && Math.hypot(R.pick.x - p.x, R.pick.y - p.y) < 70 && sp < 35) {
+    if (R.stage === 'pickup' && Math.hypot(R.pick.x - p.x, R.pick.y - p.y) < 82 && sp < 35) {
       R.stage = 'drive'; R.t = 0; Act.gpsT = 0; AudioSys.thud();
       toast(R.name + ' entrou', rideOnBoard(R), 'info');
     } else if (R.stage === 'drive' && Math.hypot(R.dest.x - p.x, R.dest.y - p.y) < 70 && sp < 35) {

@@ -6283,13 +6283,13 @@ function updateJobs(dt) {
   gasJingle(dt);
   // app de motorista
   if (Act.rideOnline && !Act.ride && !Act.delivery && !Act.race) {
-    Act.rideT -= dt;
+    Act.rideT -= dt / 1.35 * (typeof demandaHora === 'function' ? demandaHora() : 1); // achar passageiro demora 35% mais (e muda com a hora do dia)
     if (Act.rideT <= 0) newRideRequest();
   }
   if (Act.ride) {
     const R = Act.ride;
     R.t += dt;
-    if (R.stage === 'pickup' && Math.hypot(R.pick.x - p.x, R.pick.y - p.y) < 70 && sp < 35) {
+    if (R.stage === 'pickup' && Math.hypot(R.pick.x - p.x, R.pick.y - p.y) < 82 && sp < 35) {
       R.stage = 'drive'; R.t = 0; Act.gpsT = 0; AudioSys.thud();
       toast(R.name + ' entrou', rideOnBoard(R), 'info');
     } else if (R.stage === 'drive' && Math.hypot(R.dest.x - p.x, R.dest.y - p.y) < 70 && sp < 35) {
@@ -9629,7 +9629,7 @@ function render() {
   if (player && Game.state !== 'menu') {
     const D = Act.delivery;
     if (D && D.type === 'guincho' && D.stage === 'pickup' && inView(view, D.pick.x, D.pick.y, 60)) drawVehicle(ctx, VMODELS.quadrado, D.color, D.pick.x, D.pick.y, 0.4, { parked: true, zones: { f: 0.9, r: 0, l: 0.3, rt: 0 } });
-    if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 40)) drawAnimal(ctx, { type: 'person', x: Act.ride.pick.x, y: Act.ride.pick.y - 14, a: Math.PI / 2, v: 0, phase: 0, seed: Act.ride.seed, col: '#ffd24a', skin: '#c68642', hair: '#1a1410', pants: '#2b3a55', dance: true, state: 'idle' });
+    if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 40)) drawAnimal(ctx, { type: 'person', x: Act.ride.pick.x, y: Act.ride.pick.y, a: Math.PI / 2, v: 0, phase: 0, seed: Act.ride.seed, col: '#ffd24a', skin: '#c68642', hair: '#1a1410', pants: '#2b3a55', dance: true, state: 'idle' });
     if (Act.race && Act.race.racha && Act.race.count <= 0) {
       const g = rachaGhostPos(Act.race);
       ctx.globalAlpha = 0.85; drawVehicle(ctx, VMODELS.muscle, '#e63946', g[0] - Math.sin(g[2]) * 30, g[1] + Math.cos(g[2]) * 30, g[2], { roll: Game.time * 40 }); ctx.globalAlpha = 1;
@@ -10202,6 +10202,19 @@ function rideTypeCheck(id) {
   if (id === 'vip' && (Profile.damage > 30 || (Profile.dirt || 0) > 0.4)) return 'Carro amassado ou sujo demais pra VIP';
   return null;
 }
+// ponto na calçada mais perto (rua da cidade) ou no acostamento (estrada e roça), do lado em que o lugar fica
+function naCalcada(x, y) {
+  let best = null, bd = Infinity;
+  for (const e of World.edges) {
+    if (e.bridge) continue;
+    const t = clamp(((x - e.a.x) * e.dx + (y - e.a.y) * e.dy), 0, e.len), px = e.a.x + e.dx * t, py = e.a.y + e.dy * t, d = Math.hypot(x - px, y - py);
+    if (d < bd) { bd = d; best = { e, px, py }; }
+  }
+  if (!best || bd > 400) return { x, y };
+  const { e, px, py } = best, nx = -e.dy, ny = e.dx, lado = (x - px) * nx + (y - py) * ny >= 0 ? 1 : -1;
+  const off = e.hw + (e.T.sw ? e.T.sw * 0.55 : 12);
+  return { x: px + nx * off * lado, y: py + ny * off * lado };
+}
 function airportPt() {
   if (!World.airport) { const e = World.edges.filter((x) => x.T.id === 'highway').sort((a, b) => Math.max(b.a.x, b.b.x) - Math.max(a.a.x, a.b.x))[0], x = Math.max(e.a.x, e.b.x) - 70; World.airport = { x, y: e.a.y + e.T.lanes[e.T.lanes.length - 1], name: 'Aeroporto de Vitorinha (acesso pela BR)' }; }
   return World.airport;
@@ -10219,7 +10232,8 @@ function newRideRequest() {
   else if (type === 'mudanca') { const dd = World.homes.filter((h) => { const d = Math.hypot(h.x - pk.x, h.y - pk.y); return d > 1200 && d < 3500; }); ds = pick(dd.length ? dd : World.homes); }
   else { const dd = near.filter((h) => { const d = Math.hypot(h.x - pk.x, h.y - pk.y); return d > 900 && d < 3600; }); ds = pick(dd.length ? dd : near); }
   const len = routeLen(pk, ds);
-  const R = { type, name: type === 'vip' ? pick(VIPS) : pick(PASSAGEIROS), pick: { x: pk.x, y: pk.y, name: pk.name }, dest: { x: ds.x, y: ds.y, name: ds.name }, len, fare: Math.round((8 + len * 0.048) * T.mult), stage: 'pickup', hits: 0, t: 0, seed: rnd(), broke: [] };
+  const pc = naCalcada(pk.x, pk.y); // o passageiro espera na calçada (ou no acostamento, na roça), nunca no meio da pista
+  const R = { type, name: type === 'vip' ? pick(VIPS) : pick(PASSAGEIROS), pick: { x: pc.x, y: pc.y, name: pk.name }, dest: { x: ds.x, y: ds.y, name: ds.name }, len, fare: Math.round((8 + len * 0.048) * T.mult), stage: 'pickup', hits: 0, t: 0, seed: rnd(), broke: [] };
   if (type === 'aero' || type === 'vip') R.tmax = len / (type === 'aero' ? 235 : 210) + (type === 'aero' ? 28 : 35);
   R.rid = 'r' + Date.now().toString(36) + Math.floor(Math.random() * 1e4);
   Act.ride = R; Act.gpsT = 0;
@@ -13089,9 +13103,10 @@ MenuCar.desenha = function (ctx, view) {
    - Plantação: ondas de vento passando por cima e pontas das plantas balançando. */
 const Vento = {
   // força do vento num ponto (0 a 1): duas ondas lentas atravessando o mapa
-  f(x, y) { const T = Game.time; return 0.5 + 0.3 * Math.sin(T * 0.55 - x * 0.0032 - y * 0.0011) + 0.2 * Math.sin(T * 0.23 + y * 0.0021); },
+  f(x, y) { const T = Game.time; return 0.5 + 0.3 * Math.sin(T * 0.3 - x * 0.0026 - y * 0.0009) + 0.2 * Math.sin(T * 0.13 + y * 0.0018); },
   // deslocamento de balanço (para a direita e um pouco para baixo, seguindo o vento)
-  bal(x, y, fase, amp) { const g = this.f(x, y), T = Game.time; return Math.sin(T * (1.4 + g * 0.8) + fase) * amp * (0.35 + g); },
+  // balanço lento e macio: uma onda principal e uma menor por cima (folhagem não balança como pêndulo)
+  bal(x, y, fase, amp) { const g = this.f(x, y), T = Game.time, w = 0.75 + g * 0.3; return (Math.sin(T * w + fase) * 0.75 + Math.sin(T * w * 2.3 + fase * 1.7) * 0.25) * amp * (0.3 + g * 0.85); },
 };
 const Mata = { rects: [], plantas: [] };
 const MATA_CORES = ['#1d3c1c', '#244621', '#2a5226', '#1a361a', '#30592a'];
@@ -13145,7 +13160,7 @@ Mata.chao = function (ctx, view) {
   for (const R of this.rects) {
     const x0 = Math.max(R.x0 + 16, view.x0), x1 = Math.min(R.x1 - 16, view.x1), y0 = Math.max(R.y0 + 16, view.y0), y1 = Math.min(R.y1 - 16, view.y1);
     if (x1 <= x0 || y1 <= y0) continue;
-    const pos = ((T * 60) % 900) - 450, gx = view.x0 + pos;
+    const pos = ((T * 32) % 900) - 450, gx = view.x0 + pos;
     const gr = ctx.createLinearGradient(gx, view.y0, gx + 380, view.y0 + 220);
     gr.addColorStop(0, 'rgba(150,200,120,0)'); gr.addColorStop(0.5, 'rgba(150,200,120,0.07)'); gr.addColorStop(1, 'rgba(150,200,120,0)');
     ctx.fillStyle = gr; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
@@ -13155,7 +13170,7 @@ Mata.chao = function (ctx, view) {
   for (const P of this.plantas) {
     const x0 = Math.max(P.x0 + 4, view.x0), x1 = Math.min(P.x1 - 4, view.x1), y0 = Math.max(P.y0 + 4, view.y0), y1 = Math.min(P.y1 - 4, view.y1);
     if (x1 <= x0 || y1 <= y0) continue;
-    const pos = ((T * 45 + P.x0) % 700) - 350, gx = P.x0 + pos;
+    const pos = ((T * 24 + P.x0) % 700) - 350, gx = P.x0 + pos;
     const gr = ctx.createLinearGradient(gx, P.y0, gx + 260, P.y0 + 160);
     gr.addColorStop(0, 'rgba(200,220,150,0)'); gr.addColorStop(0.5, 'rgba(200,220,150,0.1)'); gr.addColorStop(1, 'rgba(200,220,150,0)');
     ctx.fillStyle = gr; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
