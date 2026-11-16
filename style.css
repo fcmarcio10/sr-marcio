@@ -1521,3 +1521,31 @@ body.cinema #hud-objective { display: none !important; }
 #screen-settings #cam-prev .cp-cap b { display: block; width: auto; text-align: left; font: 700 15px/1.2 var(--f-cond); letter-spacing: 0.06em; text-transform: uppercase; color: #fff; margin-bottom: 2px; }
 #screen-settings #cam-prev.hidden { display: none; }
 @media (max-width: 720px) { #screen-settings #cam-prev { flex-basis: 100%; } #screen-settings #cam-prev canvas { width: 180px; } }
+
+/* ---------- app Desafios do dia ---------- */
+.des-top { display: flex; align-items: baseline; gap: 8px; margin: 2px 2px 10px; }
+.des-top b { font: 400 26px/1 var(--f-display); color: #fff; }
+.des-top span { font-size: 12px; color: rgba(255, 255, 255, 0.6); }
+.des { display: flex; align-items: center; gap: 10px; padding: 11px 12px; margin-bottom: 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.07); border-left: 3px solid #e8590c; }
+.des-txt { flex: 1; min-width: 0; }
+.des-txt b { display: block; font-size: 13.5px; line-height: 1.25; color: #fff; }
+.des-txt small { display: block; font-size: 11.5px; color: rgba(255, 255, 255, 0.6); margin: 3px 0 5px; }
+.des em { font-style: normal; font-weight: 700; font-size: 13px; color: #7fe08a; white-space: nowrap; }
+.des.ok { border-left-color: #3aa655; opacity: 0.8; } .des.ok b { text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, 0.4); }
+.des.trav { opacity: 0.5; border-left-color: #777; }
+.des-bonus { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 12px; border: 1px dashed rgba(255, 210, 63, 0.5); color: #ffd23f; font-size: 13px; }
+.des-bonus em { font-style: normal; font-weight: 700; }
+.des-bonus.ok { border-style: solid; border-color: #3aa655; color: #7fe08a; }
+
+/* ---------- menu inicial: entrada suave ---------- */
+@keyframes menuLogoIn { from { opacity: 0; transform: translateY(-18px); } to { opacity: 1; transform: none; } }
+@keyframes menuBtnIn { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
+#screen-main:not(.hidden) .logo { animation: menuLogoIn 0.9s cubic-bezier(.2, .8, .2, 1) both; }
+#screen-main:not(.hidden) .menu-list .mbtn { animation: menuBtnIn 0.55s cubic-bezier(.2, .8, .2, 1) both; }
+#screen-main:not(.hidden) .menu-list .mbtn:nth-child(1) { animation-delay: 0.25s; }
+#screen-main:not(.hidden) .menu-list .mbtn:nth-child(2) { animation-delay: 0.32s; }
+#screen-main:not(.hidden) .menu-list .mbtn:nth-child(3) { animation-delay: 0.39s; }
+#screen-main:not(.hidden) .menu-list .mbtn:nth-child(4) { animation-delay: 0.46s; }
+#screen-main:not(.hidden) .menu-list .mbtn:nth-child(5) { animation-delay: 0.53s; }
+#screen-main:not(.hidden) .menu-list .mbtn:nth-child(6) { animation-delay: 0.6s; }
+#screen-main:not(.hidden) .main-foot { animation: menuLogoIn 0.8s 0.7s ease-out both; }

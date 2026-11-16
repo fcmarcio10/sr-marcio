@@ -3776,6 +3776,8 @@ function drawCar(ctx, m, color, o) {
   const tw = K && K.wheels === 'tala' ? 6.6 : 5, wy = K && K.low ? 2.4 : 1.6, tww = K && K.low ? tw * 0.82 : tw;
   drawWheel(ctx, xf, -hw + wy, wl, tww, o.steer, o.roll, rim); drawWheel(ctx, xf, hw - wy, wl, tww, o.steer, o.roll, rim);
   drawWheel(ctx, xr, -hw + wy, wl, tww, 0, o.roll, rim); drawWheel(ctx, xr, hw - wy, wl, tww, 0, o.roll, rim);
+  // carroceria se mexe sobre as rodas: inclina na curva (lean) e mergulha/senta na freada/arrancada (pitch)
+  if (o.pitch || o.lean) ctx.translate(-clamp(o.pitch || 0, -1, 1) * 1.6, clamp(o.lean || 0, -1, 1) * 1.5);
   const bp = bodyPath(m);
   if (m.beetle) {
     // para-lamas redondos do besouro
@@ -4275,6 +4277,8 @@ class Player {
     // visuais e consumo
     this.roll += vf * dt * 0.35;
     this.lean = lerp(this.lean, clamp(-yaw * vf / 1500, -1, 1), 1 - Math.exp(-8 * dt));
+    // carroceria mergulha na freada e senta na arrancada (só visual: o corpo anda um pouco sobre as rodas)
+    { const ac = (vf - (this.vfAnt === undefined ? vf : this.vfAnt)) / Math.max(dt, 0.001); this.vfAnt = vf; this.pitch = lerp(this.pitch || 0, clamp(ac / 700, -1, 1), 1 - Math.exp(-7 * dt)); }
     this.rev = vf < -3 && inp.brk;
     this.thr = lerp(this.thr, inp.thr ? 1 : 0, 1 - Math.exp(-10 * dt));
     const sp = Math.abs(vf);
@@ -4288,6 +4292,8 @@ class Player {
     const bounds = [0, 0.18, 0.36, 0.55, 0.76, 1.05];
     const fr = sp / Math.max(1, st.max);
     let gear = 1; while (gear < 5 && fr > bounds[gear]) gear++;
+    if (gear > (this.gearAnt || 1) && this.thr > 0.5 && vf > 30) { this.rpm *= 0.74; if (AudioSys.ok) { AudioSys.tone(140, 0.05, 'triangle', 0.05, 'engine'); AudioSys.noise(0.04, 600, 1, 0.05, 'engine', 'lowpass'); } this.shiftT = 0.12; }
+    this.gearAnt = gear;
     this.gear = vf < -3 ? -1 : gear;
     const lo = bounds[gear - 1], hi = bounds[gear];
     let rpmT = sp < 6 ? 850 + this.thr * 1600 : 1300 + clamp((fr - lo) / (hi - lo), 0, 1.1) * 5200;
@@ -4304,6 +4310,8 @@ class Player {
       const ox = -s * (this.m.W / 2 - 2.5), oy = c * (this.m.W / 2 - 2.5);
       if (this.lastRear) Skids.add(this.lastRear[0], this.lastRear[1], rx + ox, ry + oy, this.lastRear[2], this.lastRear[3], rx - ox, ry - oy, this.surface);
       this.lastRear = [rx + ox, ry + oy, rx - ox, ry - oy];
+      const asf = this.surface === SF.ROAD || this.surface === SF.PAVED || this.surface === SF.BRIDGE, forte = asf && this.slip > 0.6 && sp > 120;
+      if (forte) for (const sd of [1, -1]) Particles.emit('smoke', rx + sd * ox, ry + sd * oy, -this.vx * 0.06 + rnd(-14, 14), -this.vy * 0.06 + rnd(-14, 14), rnd(1.1, 2), rnd(5, 8)); // drift: fumaça das duas rodas de trás
       if (chance(0.35)) Particles.emit(this.surface === SF.ROAD || this.surface === SF.PAVED ? 'smoke' : 'dust', rx + (chance(0.5) ? ox : -ox), ry + (chance(0.5) ? oy : -oy), -this.vx * 0.1 + rnd(-10, 10), -this.vy * 0.1 + rnd(-10, 10), rnd(0.8, 1.4), 6);
     } else this.lastRear = null;
     // pneu junta barro na estrada de terra (muito mais na chuva) e larga o rastro no começo do asfalto
@@ -4359,7 +4367,15 @@ class Player {
     }
     if (Zf > 0.62 && chance(0.06 + (Zf - 0.62) * 0.5)) Particles.emit(Zf > 0.85 ? 'smoke' : 'steam', this.x + c * this.m.L * 0.38, this.y + s * this.m.L * 0.38, rnd(-10, 10), rnd(-10, 10), rnd(0.8, 1.6), 4);
     if (this.thr > 0.6 && chance(0.12)) Particles.emit('exhaust', this.x - c * this.m.L * 0.52, this.y - s * this.m.L * 0.52, -c * 30 + rnd(-8, 8), -s * 30 + rnd(-8, 8), rnd(0.4, 0.8), 2.5);
-    if (this.prevThr > 0.8 && !inp.thr && this.rpm > 4300 && chance(0.6)) { Particles.emit('flame', this.x - c * this.m.L * 0.55, this.y - s * this.m.L * 0.55, -c * 60, -s * 60, 0.18, 5); AudioSys.noise(0.06, 900, 1, 0.25, 'engine', 'lowpass'); AudioSys.tone(70, 0.08, 'square', 0.12, 'engine'); }
+    if (this.prevThr > 0.8 && !inp.thr && (this.rpm > 3600 || sp * 0.3 > 90) && sp > 120 && chance(0.8)) { this.estalos = 2 + Math.floor(Math.random() * 3); this.estaloT = 0; }
+    if (this.estalos > 0 && !inp.thr) {
+      this.estaloT -= dt;
+      if (this.estaloT <= 0) {
+        this.estalos--; this.estaloT = rnd(0.06, 0.15);
+        Particles.emit('flame', this.x - c * this.m.L * 0.55, this.y - s * this.m.L * 0.55, -c * 60 + rnd(-15, 15), -s * 60 + rnd(-15, 15), rnd(0.1, 0.2), 5);
+        if (AudioSys.ok) { AudioSys.noise(0.05, rnd(700, 1300), 1, 0.2, 'engine', 'lowpass'); AudioSys.tone(rnd(60, 90), 0.06, 'square', 0.09, 'engine'); }
+      }
+    } else if (inp.thr) this.estalos = 0;
     this.prevThr = inp.thr ? 1 : 0;
     if (this.scrapeT > 0) { this.scrapeT -= dt; if (chance(0.25)) AudioSys.noise(0.08, 3400, 3, 0.05, 'engine', 'bandpass'); }
     if (Profile.damage > 84 && chance(0.15)) Particles.emit('smoke', this.x + c * this.m.L * 0.35, this.y + s * this.m.L * 0.35, rnd(-8, 8), rnd(-8, 8), rnd(0.8, 1.5), 5);
@@ -5482,6 +5498,7 @@ function pay(v, why) {
 }
 function onPlayerImpact(imp) {
   player.impactCd = 0.35;
+  Desafios.bateu(); // batida zera o "rode sem bater"
   const k = clamp((imp - 70) / 380, 0, 1);
   { const hx = (player.hitX || player.x) - player.x, hy = (player.hitY || player.y) - player.y, d = Math.hypot(hx, hy) || 1; Cam.kx = (Cam.kx || 0) + hx / d * (2 + 9 * k); Cam.ky = (Cam.ky || 0) + hy / d * (2 + 9 * k); } // tranco da câmera para o lado da pancada
   // batidas leves e médias amassam 6% menos; batida forte continua igual
@@ -5645,6 +5662,7 @@ function finishDelivery() {
   frFim(d, d.t > d.par * 1.6, d.hits >= 3 || (d.fragile && d.hits >= 2)); // cliente agradece (ou reclama) no chat do app de Fretes
   Act.delivery = null;
   Profile.deliveries++;
+  Desafios.conta('entrega'); if (bonus) Desafios.conta('prazo');
   pay(v + bonus);
   Resultado.mostra({ titulo: 'Entrega concluída', sub: d.item + (bonus ? ' · no prazo!' : d.t > d.par * 1.6 ? ' · atrasou' : ''), estrelas: null, linhas: [['Frete', Math.round(v)], ['Bônus no prazo', bonus]], total: Math.round(v) + bonus });
   saveGame();
@@ -5661,6 +5679,7 @@ function distToSeg(x, y, a, b) {
 function finishRace() {
   if (Act.race.racha) { finishRacha(Act.race); return; }
   const R = Act.race, r = R.r, t = R.t;
+  Desafios.conta('percurso');
   const medal = t <= r.gold ? 3 : t <= r.silver ? 2 : t <= r.bronze ? 1 : 0;
   const names = ['Sem medalha', 'Bronze', 'Prata', 'Ouro'];
   const rewards = [60, 300, 550, 900];
@@ -6194,7 +6213,7 @@ function startRacha(r) {
 function finishRacha(R) {
   const r = R.r;
   Act.race = null;
-  if (R.t < r.rivalTime) { AudioSys.chime(); Profile.rachaWins = (Profile.rachaWins || 0) + 1; pay(r.bet * 2, 'Ganhou o racha de ' + r.rival + '! (' + fmtTime(R.t) + ')'); }
+  if (R.t < r.rivalTime) { AudioSys.chime(); Profile.rachaWins = (Profile.rachaWins || 0) + 1; Desafios.conta('racha'); pay(r.bet * 2, 'Ganhou o racha de ' + r.rival + '! (' + fmtTime(R.t) + ')'); }
   else toast('Perdeu o racha', r.rival + ' chegou antes (' + fmtTime(r.rivalTime) + ' contra ' + fmtTime(R.t) + '). Já era a aposta.', 'bad');
   saveGame();
 }
@@ -6434,6 +6453,9 @@ function cheatDo(k, v) {
   if (k === 'police') { const n = +v; if (n === 0) { Police.level = 0; Police.units.length = 0; ok('Polícia liberada'); } else { Police.crime('Trapaça', n, player.x, player.y, true); Police.level = n; ok(n + ' estrela(s)'); } }
   if (k === 'ev') { Events.clear(); let okv = false; for (let i = 0; i < 12 && !okv; i++) okv = Events.spawn(v); Screens.closeAll(); ok(okv ? 'Evento: ' + EV_NAMES[v] : 'Não achei lugar pra esse evento aqui; tente em outra região'); return; }
   if (k === 'wear') { const L = carLife(), n = +v; L.tires = L.oil = L.bat = n; CarLife.warned = {}; if (n > 5) CarLife.stalled = false; ok('Pneus, óleo e bateria em ' + n + '%'); }
+  if (k === 'des') { const D = Desafios.d(), id = D.lista[+v]; if (id && !D.feito[id]) { Desafios.cumpre(id); ok('Desafio cumprido: ' + DES_POR_ID[id].txt); } else ok('Esse já foi feito'); }
+  if (k === 'desnovo') { const D = Desafios.d(); D.lista = Desafios.sorteia('x' + Math.random()); D.prog = {}; D.feito = {}; D.bonus = false; D.ganho0 = Profile.earned || 0; ok('Três desafios novos'); }
+  if (k === 'deszera') { const D = Desafios.d(); D.prog = {}; D.feito = {}; D.bonus = false; D.ganho0 = Profile.earned || 0; ok('Progresso dos desafios zerado'); }
   if (k === 'missao') { if (Historia.pula()) { Screens.closeAll(); ok('Missão cumprida (trapaça)'); } else ok('A história já terminou'); return; }
   if (k === 'god') { Cheats.god = !Cheats.god; ok('Modo indestrutível ' + (Cheats.god ? 'ligado' : 'desligado')); }
   if (k === 'turbo') { Cheats.turbo = !Cheats.turbo; player.recalc(); ok('Turbo ' + (Cheats.turbo ? 'ligado' : 'desligado')); }
@@ -6512,6 +6534,7 @@ const PH_ICONS = {
   fretes: ['#f08a24', _ln('<path d="M12 3.5 19.5 7.5v9L12 20.5 4.5 16.5v-9z"/><path d="M4.5 7.5 12 11.5l7.5-4M12 11.5v9"/>')],
   racha: ['#e0353b', _ln('<path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/>')],
   carteira: ['#2f6fdf', _ln('<rect x="3.5" y="6" width="17" height="13" rx="2.5"/><path d="M3.5 10h17"/><circle cx="16.5" cy="14.5" r="1" fill="#fff"/>')],
+  desafios: ['#e8590c', _ln('<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="M8.5 15l2.3 2.2L15.5 13"/>')],
   trapaca: ['#7d3cff', _ln('<path d="M4 20 14 10"/><path d="M15 3l1 2.5L18.5 6.5 16 7.5 15 10l-1-2.5L11.5 6.5 14 5.5z"/><path d="M19 12l.6 1.4 1.4.6-1.4.6L19 16l-.6-1.4-1.4-.6 1.4-.6z"/>')],
   conquistas: ['#e0a21b', _ln('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>')],
   camera: ['#3c4049', _ln('<path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/>')],
@@ -6519,10 +6542,10 @@ const PH_ICONS = {
   colecao: ['#b8643a', _ln('<path d="M4.5 11.5h15c0 4.6-3.2 7.8-7.5 7.8s-7.5-3.2-7.5-7.8z"/><path d="M6 11.5c.6-2.4 3-3.8 6-3.8s5.4 1.4 6 3.8"/><path d="M12 7.7V6.2"/><path d="M4.5 12.5H2.8M19.5 12.5h1.7"/>')],
   ajustes: ['#7b808a', _ln('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>')],
 };
-const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
+const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', desafios: 'Desafios', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
-  const tr = ['fretes', 'racha', 'camera', 'colecao'].includes(id) && !liberado(id); // PegaAí sempre liberado (faz parte da primeira missão) // ainda não liberado pela história: cadeado
+  const tr = ['fretes', 'racha', 'camera', 'colecao', 'desafios'].includes(id) && !liberado(id); // PegaAí sempre liberado (faz parte da primeira missão) // ainda não liberado pela história: cadeado
   return `<button class="ph-app${tr ? ' ph-trancado' : ''}" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge && !tr ? `<i class="ph-badge">${badge}</i>` : ''}${tr ? '<i class="ph-cadeado"><svg viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3h1v11H6V10h1zm2 0h6V7a3 3 0 0 0-6 0v3z"/></svg></i>' : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
 }
 // papéis de parede: paisagens de São Gambiarra e arredores (e a bandeira), desenhadas em SVG
@@ -6655,7 +6678,7 @@ const Phone = {
       const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
       // tela inicial simples (nov/2026): hora grande, uma grade com os apps e a barra de baixo; sem caixinhas nem textos
       html = `<div class="ph-lock simples"><div class="ph-time">${clockStr()}</div><div class="ph-date">${wl ? H(wl) + ' · ' : ''}${temp}° · R$ ${fmtMoney(Profile.money)}</div></div>` +
-        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'camera', 'colecao'].concat(CHEATS_ENABLED && modoDono() ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
+        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'desafios', 'camera', 'colecao'].concat(CHEATS_ENABLED && modoDono() ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
         '<div class="ph-dock">' + ['mapa', 'msgs', 'conquistas', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
@@ -6739,6 +6762,7 @@ const Phone = {
       const btn = (k, v, label, on) => `<button class="ch-btn${on ? ' on' : ''}" data-cheat="${k}" data-cv="${v}">${label}</button>`;
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Trapaças</div><p class="ph-note">App temporário de testes.</p>' +
         '<div class="ch-sec">História</div><div class="ch-grid">' + btn('missao', 0, 'Pular missão') + '</div>' +
+        '<div class="ch-sec">Desafios do dia</div><div class="ch-grid">' + btn('des', 0, 'Cumprir o 1º') + btn('des', 1, 'Cumprir o 2º') + btn('des', 2, 'Cumprir o 3º') + btn('desnovo', 0, 'Outros 3 desafios') + btn('deszera', 0, 'Zerar o progresso') + '</div>' +
         '<div class="ch-sec">Dinheiro e carro</div><div class="ch-grid">' + btn('money', 0, '+R$ 10.000') + btn('fix', 0, 'Consertar e encher') + btn('cars', 0, 'Liberar veículos') + btn('pois', 0, 'Revelar pontos') + btn('god', 0, 'Indestrutível', Cheats.god) + btn('turbo', 0, 'Turbo', Cheats.turbo) + '</div>' +
         '<div class="ch-sec">Horário</div><div class="ch-grid">' + btn('time', 19 * 60 + 40, '19:40') + btn('time', 22 * 60 + 5, '22:05 (racha)') + btn('time', 26 * 60, '02:00') + btn('time', 28 * 60 + 40, '04:40') + '</div>' +
         '<div class="ch-sec">Clima</div><div class="ch-grid">' + btn('wx', 'limpo', 'Limpo', Settings.weather === 'limpo') + btn('wx', 'garoa', 'Garoa') + btn('wx', 'chuva', 'Temporal', Settings.weather === 'chuva') + btn('wx', 'auto', 'Dinâmico', Settings.weather === 'auto') + '</div>' +
@@ -6760,6 +6784,7 @@ const Phone = {
     } else if (this.app === 'carteira') {
       html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div>` + walletHTML(this.wtab);
     }
+    if (this.app === 'desafios') html = desafiosHTML();
     if (this.app === 'camera') html = cameraHTML(); else if (this.app === 'colecao') html = colecaoHTML();
     // (sem a linha explicando cada app: celular mais limpo)
     body.innerHTML = html;
@@ -6768,7 +6793,7 @@ const Phone = {
   },
   click(e) {
     const t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.app) { const ap = t.dataset.app; if (['fretes', 'racha', 'camera', 'colecao'].includes(ap) && !liberado(ap)) { AudioSys.error(); toast(PH_APPS[ap], ap === 'pegaai' ? 'O Seu Zé libera no passo a passo.' : travaTexto(ap) + '.', 'info'); return; } this.go(ap); return; }
+    if (t.dataset.app) { const ap = t.dataset.app; if (['fretes', 'racha', 'camera', 'colecao', 'desafios'].includes(ap) && !liberado(ap)) { AudioSys.error(); toast(PH_APPS[ap], ap === 'pegaai' ? 'O Seu Zé libera no passo a passo.' : travaTexto(ap) + '.', 'info'); return; } this.go(ap); return; }
     if (t.dataset.foto) { Colecao.fotografa(); return; }
     if (t.dataset.mz) { if (phoneMap) mapCtrl(phoneMap, t.dataset.mz); return; }
     if (t.dataset.sos) { if (t.dataset.sos === 'cancel') socorroCancel(); else socorroCall(t.dataset.sos); phoneTone(1760, 0.05, 0.04); this.render(); return; }
@@ -6937,7 +6962,7 @@ function evChurches() {
   }
   return out;
 }
-function evStat(type) { Profile.evDone = Profile.evDone || {}; Profile.evDone[type] = (Profile.evDone[type] || 0) + 1; Profile.evTotal = (Profile.evTotal || 0) + 1; }
+function evStat(type) { if (type !== 'blitz') Desafios.conta('ajuda'); Profile.evDone = Profile.evDone || {}; Profile.evDone[type] = (Profile.evDone[type] || 0) + 1; Profile.evTotal = (Profile.evTotal || 0) + 1; }
 function evSay(who, line) { toast(who, line, 'info'); }
 
 /* ---------- criação ---------- */
@@ -8026,11 +8051,15 @@ function updateCamera(dt) {
       const city = Traffic.cars.filter((c) => c.x < 4600 && c.y < 5300 && c.model !== 'tractor');
       Cam.menuTarget = pick(city.length ? city : Traffic.cars) || null; Cam.menuT = 14;
     }
-    if (Cam.menuTarget) { tx = Cam.menuTarget.x + Math.cos(Cam.menuTarget.a) * 60; ty = Cam.menuTarget.y + Math.sin(Cam.menuTarget.a) * 60; sp = Cam.menuTarget.v; }
+    if (MenuCar.on) { // menu animado: segue o seu carro rodando pela cidade, com a câmera passeando devagar em volta dele
+      const T = Game.time;
+      const vw = Math.max(200, (Cam.view.x1 - Cam.view.x0) || 1200); // o menu fica à esquerda: o carro aparece no lado direito da tela
+      tx = MenuCar.x - vw * 0.2 + Math.cos(MenuCar.a) * 50 + Math.sin(T * 0.11) * 60; ty = MenuCar.y + Math.sin(MenuCar.a) * 50 + Math.cos(T * 0.08) * 45; sp = MenuCar.v;
+    } else if (Cam.menuTarget) { tx = Cam.menuTarget.x + Math.cos(Cam.menuTarget.a) * 60; ty = Cam.menuTarget.y + Math.sin(Cam.menuTarget.a) * 60; sp = Cam.menuTarget.v; }
     else { tx = 1756; ty = 1260; }
     const k = 1 - Math.exp(-1.6 * dt);
     Cam.x += (tx - Cam.x) * k; Cam.y += (ty - Cam.y) * k;
-    Cam.zoom = lerp(Cam.zoom, screenZoomBase() * 0.95, 1 - Math.exp(-2 * dt));
+    Cam.zoom = lerp(Cam.zoom, screenZoomBase() * (MenuCar.on ? 1.12 + Math.sin(Game.time * 0.07) * 0.1 : 0.95), 1 - Math.exp(-1.2 * dt));
   } else {
     sp = player.speed;
     // olha para onde o carro vai: parte pela velocidade e um pouco pelo bico (devagar também mostra o caminho);
@@ -9271,6 +9300,7 @@ function lightPass(view, cx, cy) {
     if (c.x < view.x0 - 400 || c.x > view.x1 + 400 || c.y < view.y0 - 400 || c.y > view.y1 + 400) continue;
     cone(c, c.big ? 300 : 250, 0.85);
   }
+  if (MenuCar.on && Game.state === 'menu') cone(MenuCar, 300, 0.9);
   Events.drawLights(lctx, view);
   for (const u of Police.units) { if (!inView(view, u.x, u.y, 400)) continue; cone(u, 280, 0.85); lctx.globalAlpha = 0.5; lctx.drawImage(LSPR, u.x - 120, u.y - 120, 240, 240); }
   if (player && Game.state !== 'menu') {
@@ -9333,6 +9363,7 @@ function glowPass(view, cx, cy) {
     gctx.restore();
   };
   for (const c of Traffic.cars) if (inView(view, c.x, c.y, 300)) cone(c, c.big ? 300 : 250, 0.07);
+  if (MenuCar.on && Game.state === 'menu') cone(MenuCar, 300, 0.07);
   // giroflex pintando a rua de azul e vermelho
   for (const u of Police.units) { if (!inView(view, u.x, u.y, 260)) continue; const ph = Math.floor(T * 7 + u.id * 10) % 2; gctx.globalAlpha = 0.28; gctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 200, u.y - 200, 400, 400); }
   if (player && Game.state !== 'menu') {
@@ -9387,6 +9418,7 @@ function emissivePass(view, talls) {
     if (c.model === 'taxi') { ctx.globalAlpha = 0.8; ctx.drawImage(amber, c.x - 7, c.y - 7, 14, 14); }
     if (c.model === 'bus') { ctx.globalAlpha = 0.6; ctx.drawImage(amber, I.fx - I.ca * 4 - 10, I.fy - I.sa * 4 - 10, 20, 20); }
   };
+  if (MenuCar.on && Game.state === 'menu') carGlow(MenuCar, MenuCar.v < 90, false, 0, false);
   for (const c of Traffic.cars) {
     if (c.x < view.x0 - 300 || c.x > view.x1 + 300 || c.y < view.y0 - 300 || c.y > view.y1 + 300) continue;
     const nearNode = c.state === 'turn' || (c.sEnd - c.s) < 150;
@@ -9522,7 +9554,9 @@ function render() {
   const _P = window.__PROF; let _pt = _P ? performance.now() : 0; const pm = (k) => { if (_P) { const t = performance.now(); _P[k] = (_P[k] || 0) + t - _pt; _pt = t; } };
   const W = canvas.width, Hh = canvas.height;
   const z = Cam.zoom * RS;
-  const sx = (Math.random() - 0.5) * Cam.shake + (Cam.kx || 0), sy = (Math.random() - 0.5) * Cam.shake + (Cam.ky || 0); // tremida + tranco da batida
+  // tremida + tranco da batida + vibração leve que cresce com a velocidade (acima de ~110 km/h; macia, sem sorteio)
+  const vib = Game.mode === 'play' && player && !Apresenta.on ? clamp((player.speed * 0.3 - 110) / 110, 0, 1) * 0.9 : 0, T9 = Game.time;
+  const sx = (Math.random() - 0.5) * Cam.shake + (Cam.kx || 0) + vib * (Math.sin(T9 * 31) * 0.6 + Math.sin(T9 * 53 + 1) * 0.4), sy = (Math.random() - 0.5) * Cam.shake + (Cam.ky || 0) + vib * (Math.sin(T9 * 37 + 2) * 0.6 + Math.sin(T9 * 47) * 0.4);
   const cx = Cam.x + sx, cy = Cam.y + sy;
   const vw = W / z, vh = Hh / (z * SQ);
   const view = Cam.view; view.x0 = cx - vw / 2; view.y0 = cy - vh / 2; view.x1 = cx + vw / 2; view.y1 = cy + vh / 2;
@@ -9558,8 +9592,9 @@ function render() {
   Events.draw(ctx, view);
   for (const u of Police.units) if (inView(view, u.x, u.y, 80)) drawVehicle(ctx, VMODELS.police, '#f2f2ee', u.x, u.y, u.a, { roll: 0, brake: u.v < 30 });
   if (Socorro.job && inView(view, Socorro.job.x, Socorro.job.y, 120)) { const J = Socorro.job; ctx.globalAlpha = clamp(1 - (J.fade || 0), 0, 1); drawVehicle(ctx, VMODELS.guincho, '#c8302a', J.x, J.y, J.a, { roll: 0, brake: J.state === 'arrived' || (J.v || 0) < 20 }); ctx.globalAlpha = 1; }
+  if (Game.state === 'menu') MenuCar.desenha(ctx, view);
   if (player && Game.state !== 'menu') {
-    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery || !!(Act.ride && Act.ride.type === 'mudanca' && Act.ride.stage === 'drive'), zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null, kit: carKit(player.car.id) });
+    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, pitch: player.pitch, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery || !!(Act.ride && Act.ride.type === 'mudanca' && Act.ride.stage === 'drive'), zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null, kit: carKit(player.car.id) });
   }
   if (player && Game.state !== 'menu') {
     const D = Act.delivery;
@@ -10194,6 +10229,7 @@ function rideFinish(R) {
   if (R.type === 'aero' && late) v = Math.round(R.fare * 0.4);
   const tip = Math.round(v * tipK);
   Profile.rides++; Profile.ratingSum += stars;
+  Desafios.conta('corrida'); if (stars >= 5) Desafios.conta('corrida5');
   const C = career(); C.ratings.push(stars); if (C.ratings.length > 30) C.ratings.shift();
   if (R.type === 'vip' && stars === 5) Profile.vipOk = (Profile.vipOk || 0) + 1;
   pgChat(R).stars = stars;
@@ -11042,7 +11078,7 @@ Colecao.update = function (dt) {
   this.t -= dt; if (this.t > 0) return; this.t = 0.15;
   const C = colSave(), px = player.x, py = player.y;
   for (const q of this.panelas) if (!C.p[q.id] && Math.abs(q.x - px) < 24 && Math.abs(q.y - py) < 24) {
-    C.p[q.id] = clockStr(); AudioSys.chime(); pay(50);
+    C.p[q.id] = clockStr(); AudioSys.chime(); pay(50); Desafios.conta('panela');
     toast('Panela de barro ' + Object.keys(C.p).length + '/' + this.panelas.length, 'Achou uma panela das paneleiras escondida em ' + REGIONS[q.reg].name + '.', 'good');
     this.premio('p');
   }
@@ -12215,8 +12251,8 @@ const Historia = {
 
 /* ---------- funções liberadas pela história ---------- */
 // capítulo (índice de HIST_CAPS) em que cada coisa fica liberada
-const LIBERA = { camera: 1, colecao: 1, entregas: 2, fretes: 2, eventos: 3, percursos: 4, racha: 6 };
-const LIBERA_NOME = { camera: 'App Câmera', colecao: 'App Coleção', entregas: 'Entregas nos comércios', fretes: 'App Fretes', eventos: 'Pedidos de ajuda pela cidade', percursos: 'Percursos cronometrados', racha: 'Racha da madrugada' };
+const LIBERA = { camera: 1, colecao: 1, desafios: 1, entregas: 2, fretes: 2, eventos: 3, percursos: 4, racha: 6 };
+const LIBERA_NOME = { desafios: 'App Desafios do dia', camera: 'App Câmera', colecao: 'App Coleção', entregas: 'Entregas nos comércios', fretes: 'App Fretes', eventos: 'Pedidos de ajuda pela cidade', percursos: 'Percursos cronometrados', racha: 'Racha da madrugada' };
 function liberado(f) {
   if (navigator.webdriver && !window.__travas) return true; // testes e gravadores de vídeo antigos: tudo liberado
   const h = Profile.hist;
@@ -12819,6 +12855,176 @@ Agua.luar = function (ctx, view) {
   ctx.restore();
   if (this.espuma.length) { ctx.save(); ctx.globalAlpha = 0.5; ctx.fillStyle = '#eef6fa'; for (const f of this.espuma) { ctx.globalAlpha = 0.45 * (1 - f.t / f.vida); ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 + f.t * 0.8), 0, TAU); ctx.fill(); } ctx.restore(); }
 };
+/* ============================ DESAFIOS DIÁRIOS ============================
+   Três desafios por dia, sorteados pela data de hoje (todo mundo que joga no mesmo dia recebe os mesmos).
+   Cada um paga um prêmio; fazer os três dá um bônus. Viram no dia seguinte (meia-noite do relógio do computador).
+   Salvo em Profile.des = { dia, lista: [ids], prog: {id: n}, feito: {id: hora}, bonus }.
+   Contagem: Desafios.conta(tipo, n, info) nos ganchos (corrida, entrega, percurso, ajuda, panela, racha, batida)
+   e Desafios.update(dt) para os que medem direção (km, velocidade, derrapagem, chuva, rodovia, sem bater). */
+const DESAFIOS = [
+  { id: 'corridas3', txt: 'Faça 3 corridas no PegaAí', alvo: 3, premio: 400, tipo: 'corrida' },
+  { id: 'nota5', txt: 'Faça 2 corridas com nota 5', alvo: 2, premio: 500, tipo: 'corrida5' },
+  { id: 'entregas3', txt: 'Faça 3 entregas ou fretes', alvo: 3, premio: 450, tipo: 'entrega', trava: 'entregas' },
+  { id: 'prazo2', txt: 'Entregue 2 cargas no prazo', alvo: 2, premio: 550, tipo: 'prazo', trava: 'entregas' },
+  { id: 'km10', txt: 'Rode 10 km pela cidade', alvo: 10, premio: 350, tipo: 'km', un: 'km' },
+  { id: 'br5', txt: 'Rode 5 km na rodovia', alvo: 5, premio: 400, tipo: 'kmBR', un: 'km' },
+  { id: 'semBater', txt: 'Rode 4 km sem bater em nada', alvo: 4, premio: 600, tipo: 'semBater', un: 'km' },
+  { id: 'veloz', txt: 'Chegue a 150 km/h', alvo: 1, premio: 300, tipo: 'veloz' },
+  { id: 'drift', txt: 'Derrape de lado por 8 segundos', alvo: 8, premio: 450, tipo: 'drift', un: 's' },
+  { id: 'ajuda1', txt: 'Ajude alguém num pedido de ajuda', alvo: 1, premio: 500, tipo: 'ajuda', trava: 'eventos' },
+  { id: 'percurso1', txt: 'Termine um percurso cronometrado', alvo: 1, premio: 450, tipo: 'percurso', trava: 'percursos' },
+  { id: 'panela1', txt: 'Ache uma panela de barro escondida', alvo: 1, premio: 400, tipo: 'panela' },
+  { id: 'racha1', txt: 'Ganhe um racha de madrugada', alvo: 1, premio: 700, tipo: 'racha', trava: 'racha' },
+  { id: 'ganho', txt: 'Ganhe R$ 1.500 hoje', alvo: 1500, premio: 500, tipo: 'ganho', un: 'R$' },
+];
+const DES_BONUS = 1000;
+const DES_POR_ID = Object.fromEntries(DESAFIOS.map((d) => [d.id, d]));
+const Desafios = { kmPassado: 0, avisoT: 0 };
+Desafios.hoje = function () { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+// sorteio do dia: a data vira a semente (o sorteio do mapa não é tocado)
+Desafios.sorteia = function (dia) {
+  let s = 0; for (const ch of dia) s = (s * 31 + ch.charCodeAt(0)) >>> 0;
+  const R = mulberry32(s ^ 0x5eed), pool = DESAFIOS.filter((d) => this.ativo(d.id)), out = []; // só o que já está liberado pela história
+  // um de trabalho, um de direção e um qualquer: o dia fica variado
+  const trab = ['corridas3', 'nota5', 'entregas3', 'prazo2', 'ganho'], dir = ['km10', 'br5', 'semBater', 'veloz', 'drift'];
+  const pega = (lista) => { const ops = pool.filter((d) => lista.includes(d.id) && !out.includes(d.id)); if (ops.length) out.push(ops[Math.floor(R() * ops.length)].id); };
+  pega(trab); pega(dir); pega(pool.map((d) => d.id));
+  return out;
+};
+Desafios.d = function () {
+  const hoje = this.hoje();
+  if (!Profile.des || Profile.des.dia !== hoje) Profile.des = { dia: hoje, lista: this.sorteia(hoje), prog: {}, feito: {}, bonus: false };
+  return Profile.des;
+};
+// o desafio está valendo? (se a função ainda está travada pela história, ele espera: aparece com cadeado)
+Desafios.ativo = function (id) { const d = DES_POR_ID[id]; return !d.trava || (typeof liberado !== 'function' || liberado(d.trava)); };
+Desafios.conta = function (tipo, n, abs) {
+  if (Game.mode !== 'play' || !Profile) return;
+  const D = this.d();
+  for (const id of D.lista) {
+    const d = DES_POR_ID[id]; if (!d || d.tipo !== tipo || D.feito[id] || !this.ativo(id)) continue;
+    D.prog[id] = abs ? Math.max(D.prog[id] || 0, n) : (D.prog[id] || 0) + (n === undefined ? 1 : n);
+    if (D.prog[id] >= d.alvo) this.cumpre(id);
+  }
+};
+Desafios.zera = function (tipo) { const D = this.d(); for (const id of D.lista) if (DES_POR_ID[id].tipo === tipo && !D.feito[id]) D.prog[id] = 0; };
+Desafios.cumpre = function (id) {
+  const D = this.d(), d = DES_POR_ID[id]; if (D.feito[id]) return;
+  D.prog[id] = d.alvo; D.feito[id] = clockStr();
+  pay(d.premio);
+  const todos = D.lista.every((x) => D.feito[x]);
+  if (todos && !D.bonus) { D.bonus = true; pay(DES_BONUS); Missao.passou('Desafios do dia completos', 'Os três desafios de hoje. Amanhã tem mais!', d.premio + DES_BONUS); if (typeof confete === 'function') confete(70); }
+  else Missao.passou('Desafio cumprido', d.txt, d.premio);
+  if (typeof saveGame === 'function') saveGame();
+  if (Phone.app === 'desafios' && Screens.current === 'screen-phone') Phone.render();
+};
+// direção: medido a cada passo do jogo
+Desafios.update = function (dt) {
+  if (!player || Game.mode !== 'play') return;
+  const D = this.d(), km = (Profile.distance || 0) * 0.09 / 1000, dk = Math.max(0, km - (this.kmPassado || km));
+  this.kmPassado = km;
+  const kmh = player.speed * 0.3;
+  if (dk > 0 && dk < 0.05) {
+    this.conta('km', dk);
+    if (regionKeyAt(player.x, player.y) === 'rodovia') this.conta('kmBR', dk);
+    this.conta('semBater', dk);
+  }
+  if (kmh >= 150) this.conta('veloz', 1, true);
+  if (player.slip > 0.5 && kmh > 35) this.conta('drift', dt);
+  this.conta('ganho', Math.max(0, (Profile.earned || 0) - (D.ganho0 === undefined ? (D.ganho0 = Profile.earned || 0) : D.ganho0)), true);
+};
+// batida forte zera o "sem bater"
+Desafios.bateu = function () { this.zera('semBater'); };
+// quanto falta para trocar (meia-noite)
+Desafios.faltaTxt = function () {
+  const a = new Date(), b = new Date(a); b.setHours(24, 0, 0, 0);
+  const m = Math.max(1, Math.round((b - a) / 60000)), h = Math.floor(m / 60);
+  return h ? h + ' h ' + (m % 60) + ' min' : m + ' min';
+};
+const fmtProg = (d, v) => d.un === 'km' ? v.toFixed(1).replace('.', ',') + ' de ' + d.alvo + ' km' : d.un === 's' ? Math.floor(v) + ' de ' + d.alvo + ' s' : d.un === 'R$' ? 'R$ ' + fmtMoney(Math.floor(v)) + ' de R$ ' + fmtMoney(d.alvo) : Math.floor(v) + ' de ' + d.alvo;
+function desafiosHTML() {
+  const D = Desafios.d(), feitos = D.lista.filter((x) => D.feito[x]).length;
+  let h = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Desafios</div>' +
+    `<div class="des-top"><b>${feitos} de 3</b><span>feitos hoje · novos em ${Desafios.faltaTxt()}</span></div>`;
+  for (const id of D.lista) {
+    const d = DES_POR_ID[id], ok = !!D.feito[id], trav = !Desafios.ativo(id), v = Math.min(d.alvo, D.prog[id] || 0);
+    h += `<div class="des${ok ? ' ok' : ''}${trav ? ' trav' : ''}"><div class="des-txt"><b>${escapeHtml(d.txt)}</b>` +
+      (trav ? '<small>Libera mais adiante na história</small>' : ok ? `<small>Feito às ${escapeHtml(D.feito[id])}</small>` : `<small>${fmtProg(d, v)}</small><div class="ach-bar sm"><i style="width:${(v / d.alvo * 100).toFixed(0)}%"></i></div>`) +
+      `</div><em>R$ ${fmtMoney(d.premio)}</em></div>`;
+  }
+  h += `<div class="des-bonus${D.bonus ? ' ok' : ''}"><b>Bônus dos três</b><em>${D.bonus ? 'Recebido' : 'R$ ' + fmtMoney(DES_BONUS)}</em></div>`;
+  return h;
+}
+/* ============================ MENU INICIAL ANIMADO ============================
+   No menu, o carro do jogador (modelo e cor da garagem) roda sozinho pelas ruas do centro, de farol aceso,
+   virando nas esquinas por uma curva suave, e a câmera acompanha de longe com um movimento lento de cinema.
+   Só visual: não tem colisão nem mexe no sorteio do mapa (usa Math.random só para escolher a próxima rua). */
+const MenuCar = { on: false, pts: [], i: 0, f: 0, x: 0, y: 0, a: 0, v: 135, roll: 0, steer: 0, lean: 0 };
+const MENU_AREA = { x0: 300, y0: 300, x1: 4400, y1: 5000 }; // centro e bairros em volta (asfalto, iluminado)
+MenuCar.okEdge = (e) => e.T.asphalt && (e.T.id === 'street' || e.T.id === 'avenue') && !e.bridge &&
+  Math.min(e.a.x, e.b.x) > MENU_AREA.x0 && Math.max(e.a.x, e.b.x) < MENU_AREA.x1 && Math.min(e.a.y, e.b.y) > MENU_AREA.y0 && Math.max(e.a.y, e.b.y) < MENU_AREA.y1;
+MenuCar.comeca = function () {
+  const ok = World.edges.filter(this.okEdge); if (!ok.length) { this.on = false; return; }
+  // começa numa avenida do centro, perto de onde a câmera do menu nasce
+  ok.sort((p, q) => Math.hypot((p.a.x + p.b.x) / 2 - 1756, (p.a.y + p.b.y) / 2 - 1260) - Math.hypot((q.a.x + q.b.x) / 2 - 1756, (q.a.y + q.b.y) / 2 - 1260));
+  const e = ok[0];
+  this.pts = []; this.i = 0; this.f = 0; this.no = e.b; this.ultima = e;
+  this.trecho(e, e.a);
+  while (this.pts.length < 200) this.estende();
+  const c = carById(Profile.current || 'gou'); this.m = VMODELS[c.model] || VMODELS.quadrado; this.color = carCfg(c.id).color;
+  this.kit = typeof carKit === 'function' ? carKit(c.id) : null;
+  this.pos(); this.on = true;
+};
+// faixa da direita de uma rua, do nó "de" até o outro, cortando o cruzamento
+MenuCar.faixa = function (e, de) {
+  const para = e.a === de ? e.b : e.a, dx = Math.sign(para.x - de.x), dy = Math.sign(para.y - de.y);
+  const off = e.T.lanes[e.T.lanes.length - 1], rx = -dy * off, ry = dx * off; // direita de quem anda (y para baixo)
+  const r0 = (e.h ? de.hx : de.hy) || 30, r1 = (e.h ? para.hx : para.hy) || 30;
+  return { de, para, dx, dy, rx, ry, p0: [de.x + dx * r0 + rx, de.y + dy * r0 + ry], p1: [para.x - dx * r1 + rx, para.y - dy * r1 + ry] };
+};
+MenuCar.trecho = function (e, de) {
+  const F = this.faixa(e, de), L = Math.hypot(F.p1[0] - F.p0[0], F.p1[1] - F.p0[1]), n = Math.max(2, Math.ceil(L / 12));
+  for (let k = 0; k <= n; k++) this.pts.push([lerp(F.p0[0], F.p1[0], k / n), lerp(F.p0[1], F.p1[1], k / n)]);
+  this.no = F.para; this.ultima = e; this.ultF = F;
+};
+// escolhe a próxima rua no cruzamento (evita voltar) e liga as duas com uma curva
+MenuCar.estende = function () {
+  const n = this.no, sai = n.edges.filter((e) => e !== this.ultima && this.okEdge(e));
+  const e = sai.length ? sai[Math.floor(Math.random() * sai.length)] : this.ultima;
+  const A = this.ultF, B = this.faixa(e, n);
+  // curva: do fim da faixa de chegada até o começo da faixa de saída, com o ponto de controle onde as duas faixas se cruzam
+  const ctl = A.dx === -B.dx && A.dy === -B.dy ? [n.x, n.y] : (A.dx ? [B.p0[0], A.p1[1]] : [A.p1[0], B.p0[1]]);
+  const m = 8;
+  for (let k = 1; k < m; k++) { const t = k / m, u = 1 - t; this.pts.push([u * u * A.p1[0] + 2 * u * t * ctl[0] + t * t * B.p0[0], u * u * A.p1[1] + 2 * u * t * ctl[1] + t * t * B.p0[1]]); }
+  this.trecho(e, n);
+};
+MenuCar.pos = function () {
+  const P = this.pts, a = P[this.i], b = P[this.i + 1] || a;
+  this.x = lerp(a[0], b[0], this.f); this.y = lerp(a[1], b[1], this.f);
+  const c = P[Math.min(P.length - 1, this.i + 3)], ang = Math.atan2(c[1] - this.y, c[0] - this.x);
+  if (Math.hypot(c[0] - this.x, c[1] - this.y) > 1) { let d = ang - this.a; d = Math.atan2(Math.sin(d), Math.cos(d)); this.steer = clamp(d * 2.5, -0.5, 0.5); this.a += d * 0.25; }
+};
+MenuCar.update = function (dt) {
+  if (!this.on) return;
+  // devagar nas curvas, mais solto na reta
+  const P = this.pts, ahead = P[Math.min(P.length - 1, this.i + 6)], here = P[this.i];
+  const curva = Math.abs(Math.atan2(Math.sin(Math.atan2(ahead[1] - here[1], ahead[0] - here[0]) - this.a), Math.cos(Math.atan2(ahead[1] - here[1], ahead[0] - here[0]) - this.a)));
+  const alvo = curva > 0.3 ? 75 : 150; this.v = lerp(this.v, alvo, 1 - Math.exp(-1.5 * dt));
+  let d = this.v * dt;
+  while (d > 0) {
+    const a = P[this.i], b = P[this.i + 1]; if (!b) break;
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 0.01, resto = (1 - this.f) * L;
+    if (d < resto) { this.f += d / L; d = 0; } else { d -= resto; this.i++; this.f = 0; }
+  }
+  if (P.length - this.i < 120) this.estende();
+  if (this.i > 300) { this.pts.splice(0, 200); this.i -= 200; }
+  this.roll += this.v * dt * 0.35; this.lean = lerp(this.lean, clamp(-this.steer * 0.8, -1, 1), 1 - Math.exp(-5 * dt));
+  this.pos();
+};
+MenuCar.desenha = function (ctx, view) {
+  if (!this.on || !inView(view, this.x, this.y, 80)) return;
+  drawVehicle(ctx, this.m, this.color, this.x, this.y, this.a, { steer: this.steer, roll: this.roll, lean: this.lean, kit: this.kit });
+};
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {
   mode: 'menu', time: 0, autosaveT: 30, fpsT: 0, fpsN: 0,
@@ -12914,6 +13120,7 @@ function saveGame() {
 }
 function toMenu() {
   Game.mode = 'menu';
+  MenuCar.on = false; // escolhe de novo o carro (pode ter trocado na garagem)
   player = null;
   Act.reset(); Events.reset(); CarLife.reset(); Som.on = false; Radio.stop();
   Screens.closeAll();
@@ -12976,6 +13183,7 @@ function stepPlay(dt) {
   if (trava) { player.vx = player.vy = 0; if (player.spin) player.spin = 0; }
   player.update(dt, inp);
   if (trava) { player.vx = player.vy = 0; }
+  if (!trava) Desafios.update(dt);
   Traffic.update(dt, Game.time, player.x, player.y, Cam.view);
   Animals.update(dt, Cam.x, Cam.y);
   if (Settings.quality !== 'baixa') Peladas.update(dt, Cam.x, Cam.y);
@@ -12997,6 +13205,8 @@ function stepPlay(dt) {
 }
 function stepMenu(dt) {
   Game.time += dt;
+  if (!MenuCar.on && World.edges.length) MenuCar.comeca();
+  MenuCar.update(dt);
   Traffic.update(dt, Game.time, Cam.x, Cam.y, Cam.view);
   Animals.update(dt, Cam.x, Cam.y);
   if (Settings.quality !== 'baixa') Peladas.update(dt, Cam.x, Cam.y);

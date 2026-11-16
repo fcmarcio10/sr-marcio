@@ -1027,6 +1027,8 @@ function drawCar(ctx, m, color, o) {
   const tw = K && K.wheels === 'tala' ? 6.6 : 5, wy = K && K.low ? 2.4 : 1.6, tww = K && K.low ? tw * 0.82 : tw;
   drawWheel(ctx, xf, -hw + wy, wl, tww, o.steer, o.roll, rim); drawWheel(ctx, xf, hw - wy, wl, tww, o.steer, o.roll, rim);
   drawWheel(ctx, xr, -hw + wy, wl, tww, 0, o.roll, rim); drawWheel(ctx, xr, hw - wy, wl, tww, 0, o.roll, rim);
+  // carroceria se mexe sobre as rodas: inclina na curva (lean) e mergulha/senta na freada/arrancada (pitch)
+  if (o.pitch || o.lean) ctx.translate(-clamp(o.pitch || 0, -1, 1) * 1.6, clamp(o.lean || 0, -1, 1) * 1.5);
   const bp = bodyPath(m);
   if (m.beetle) {
     // para-lamas redondos do besouro

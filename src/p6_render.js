@@ -51,11 +51,15 @@ function updateCamera(dt) {
       const city = Traffic.cars.filter((c) => c.x < 4600 && c.y < 5300 && c.model !== 'tractor');
       Cam.menuTarget = pick(city.length ? city : Traffic.cars) || null; Cam.menuT = 14;
     }
-    if (Cam.menuTarget) { tx = Cam.menuTarget.x + Math.cos(Cam.menuTarget.a) * 60; ty = Cam.menuTarget.y + Math.sin(Cam.menuTarget.a) * 60; sp = Cam.menuTarget.v; }
+    if (MenuCar.on) { // menu animado: segue o seu carro rodando pela cidade, com a câmera passeando devagar em volta dele
+      const T = Game.time;
+      const vw = Math.max(200, (Cam.view.x1 - Cam.view.x0) || 1200); // o menu fica à esquerda: o carro aparece no lado direito da tela
+      tx = MenuCar.x - vw * 0.2 + Math.cos(MenuCar.a) * 50 + Math.sin(T * 0.11) * 60; ty = MenuCar.y + Math.sin(MenuCar.a) * 50 + Math.cos(T * 0.08) * 45; sp = MenuCar.v;
+    } else if (Cam.menuTarget) { tx = Cam.menuTarget.x + Math.cos(Cam.menuTarget.a) * 60; ty = Cam.menuTarget.y + Math.sin(Cam.menuTarget.a) * 60; sp = Cam.menuTarget.v; }
     else { tx = 1756; ty = 1260; }
     const k = 1 - Math.exp(-1.6 * dt);
     Cam.x += (tx - Cam.x) * k; Cam.y += (ty - Cam.y) * k;
-    Cam.zoom = lerp(Cam.zoom, screenZoomBase() * 0.95, 1 - Math.exp(-2 * dt));
+    Cam.zoom = lerp(Cam.zoom, screenZoomBase() * (MenuCar.on ? 1.12 + Math.sin(Game.time * 0.07) * 0.1 : 0.95), 1 - Math.exp(-1.2 * dt));
   } else {
     sp = player.speed;
     // olha para onde o carro vai: parte pela velocidade e um pouco pelo bico (devagar também mostra o caminho);
@@ -1296,6 +1300,7 @@ function lightPass(view, cx, cy) {
     if (c.x < view.x0 - 400 || c.x > view.x1 + 400 || c.y < view.y0 - 400 || c.y > view.y1 + 400) continue;
     cone(c, c.big ? 300 : 250, 0.85);
   }
+  if (MenuCar.on && Game.state === 'menu') cone(MenuCar, 300, 0.9);
   Events.drawLights(lctx, view);
   for (const u of Police.units) { if (!inView(view, u.x, u.y, 400)) continue; cone(u, 280, 0.85); lctx.globalAlpha = 0.5; lctx.drawImage(LSPR, u.x - 120, u.y - 120, 240, 240); }
   if (player && Game.state !== 'menu') {
@@ -1358,6 +1363,7 @@ function glowPass(view, cx, cy) {
     gctx.restore();
   };
   for (const c of Traffic.cars) if (inView(view, c.x, c.y, 300)) cone(c, c.big ? 300 : 250, 0.07);
+  if (MenuCar.on && Game.state === 'menu') cone(MenuCar, 300, 0.07);
   // giroflex pintando a rua de azul e vermelho
   for (const u of Police.units) { if (!inView(view, u.x, u.y, 260)) continue; const ph = Math.floor(T * 7 + u.id * 10) % 2; gctx.globalAlpha = 0.28; gctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 200, u.y - 200, 400, 400); }
   if (player && Game.state !== 'menu') {
@@ -1412,6 +1418,7 @@ function emissivePass(view, talls) {
     if (c.model === 'taxi') { ctx.globalAlpha = 0.8; ctx.drawImage(amber, c.x - 7, c.y - 7, 14, 14); }
     if (c.model === 'bus') { ctx.globalAlpha = 0.6; ctx.drawImage(amber, I.fx - I.ca * 4 - 10, I.fy - I.sa * 4 - 10, 20, 20); }
   };
+  if (MenuCar.on && Game.state === 'menu') carGlow(MenuCar, MenuCar.v < 90, false, 0, false);
   for (const c of Traffic.cars) {
     if (c.x < view.x0 - 300 || c.x > view.x1 + 300 || c.y < view.y0 - 300 || c.y > view.y1 + 300) continue;
     const nearNode = c.state === 'turn' || (c.sEnd - c.s) < 150;
@@ -1547,7 +1554,9 @@ function render() {
   const _P = window.__PROF; let _pt = _P ? performance.now() : 0; const pm = (k) => { if (_P) { const t = performance.now(); _P[k] = (_P[k] || 0) + t - _pt; _pt = t; } };
   const W = canvas.width, Hh = canvas.height;
   const z = Cam.zoom * RS;
-  const sx = (Math.random() - 0.5) * Cam.shake + (Cam.kx || 0), sy = (Math.random() - 0.5) * Cam.shake + (Cam.ky || 0); // tremida + tranco da batida
+  // tremida + tranco da batida + vibração leve que cresce com a velocidade (acima de ~110 km/h; macia, sem sorteio)
+  const vib = Game.mode === 'play' && player && !Apresenta.on ? clamp((player.speed * 0.3 - 110) / 110, 0, 1) * 0.9 : 0, T9 = Game.time;
+  const sx = (Math.random() - 0.5) * Cam.shake + (Cam.kx || 0) + vib * (Math.sin(T9 * 31) * 0.6 + Math.sin(T9 * 53 + 1) * 0.4), sy = (Math.random() - 0.5) * Cam.shake + (Cam.ky || 0) + vib * (Math.sin(T9 * 37 + 2) * 0.6 + Math.sin(T9 * 47) * 0.4);
   const cx = Cam.x + sx, cy = Cam.y + sy;
   const vw = W / z, vh = Hh / (z * SQ);
   const view = Cam.view; view.x0 = cx - vw / 2; view.y0 = cy - vh / 2; view.x1 = cx + vw / 2; view.y1 = cy + vh / 2;
@@ -1583,8 +1592,9 @@ function render() {
   Events.draw(ctx, view);
   for (const u of Police.units) if (inView(view, u.x, u.y, 80)) drawVehicle(ctx, VMODELS.police, '#f2f2ee', u.x, u.y, u.a, { roll: 0, brake: u.v < 30 });
   if (Socorro.job && inView(view, Socorro.job.x, Socorro.job.y, 120)) { const J = Socorro.job; ctx.globalAlpha = clamp(1 - (J.fade || 0), 0, 1); drawVehicle(ctx, VMODELS.guincho, '#c8302a', J.x, J.y, J.a, { roll: 0, brake: J.state === 'arrived' || (J.v || 0) < 20 }); ctx.globalAlpha = 1; }
+  if (Game.state === 'menu') MenuCar.desenha(ctx, view);
   if (player && Game.state !== 'menu') {
-    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery || !!(Act.ride && Act.ride.type === 'mudanca' && Act.ride.stage === 'drive'), zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null, kit: carKit(player.car.id) });
+    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, pitch: player.pitch, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery || !!(Act.ride && Act.ride.type === 'mudanca' && Act.ride.stage === 'drive'), zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null, kit: carKit(player.car.id) });
   }
   if (player && Game.state !== 'menu') {
     const D = Act.delivery;

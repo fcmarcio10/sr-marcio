@@ -114,7 +114,7 @@ function evChurches() {
   }
   return out;
 }
-function evStat(type) { Profile.evDone = Profile.evDone || {}; Profile.evDone[type] = (Profile.evDone[type] || 0) + 1; Profile.evTotal = (Profile.evTotal || 0) + 1; }
+function evStat(type) { if (type !== 'blitz') Desafios.conta('ajuda'); Profile.evDone = Profile.evDone || {}; Profile.evDone[type] = (Profile.evDone[type] || 0) + 1; Profile.evTotal = (Profile.evTotal || 0) + 1; }
 function evSay(who, line) { toast(who, line, 'info'); }
 
 /* ---------- criação ---------- */

@@ -6,8 +6,8 @@
 
 /* ---------- funções liberadas pela história ---------- */
 // capítulo (índice de HIST_CAPS) em que cada coisa fica liberada
-const LIBERA = { camera: 1, colecao: 1, entregas: 2, fretes: 2, eventos: 3, percursos: 4, racha: 6 };
-const LIBERA_NOME = { camera: 'App Câmera', colecao: 'App Coleção', entregas: 'Entregas nos comércios', fretes: 'App Fretes', eventos: 'Pedidos de ajuda pela cidade', percursos: 'Percursos cronometrados', racha: 'Racha da madrugada' };
+const LIBERA = { camera: 1, colecao: 1, desafios: 1, entregas: 2, fretes: 2, eventos: 3, percursos: 4, racha: 6 };
+const LIBERA_NOME = { desafios: 'App Desafios do dia', camera: 'App Câmera', colecao: 'App Coleção', entregas: 'Entregas nos comércios', fretes: 'App Fretes', eventos: 'Pedidos de ajuda pela cidade', percursos: 'Percursos cronometrados', racha: 'Racha da madrugada' };
 function liberado(f) {
   if (navigator.webdriver && !window.__travas) return true; // testes e gravadores de vídeo antigos: tudo liberado
   const h = Profile.hist;

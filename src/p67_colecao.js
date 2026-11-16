@@ -55,7 +55,7 @@ Colecao.update = function (dt) {
   this.t -= dt; if (this.t > 0) return; this.t = 0.15;
   const C = colSave(), px = player.x, py = player.y;
   for (const q of this.panelas) if (!C.p[q.id] && Math.abs(q.x - px) < 24 && Math.abs(q.y - py) < 24) {
-    C.p[q.id] = clockStr(); AudioSys.chime(); pay(50);
+    C.p[q.id] = clockStr(); AudioSys.chime(); pay(50); Desafios.conta('panela');
     toast('Panela de barro ' + Object.keys(C.p).length + '/' + this.panelas.length, 'Achou uma panela das paneleiras escondida em ' + REGIONS[q.reg].name + '.', 'good');
     this.premio('p');
   }

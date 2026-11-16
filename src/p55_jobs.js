@@ -85,7 +85,7 @@ function startRacha(r) {
 function finishRacha(R) {
   const r = R.r;
   Act.race = null;
-  if (R.t < r.rivalTime) { AudioSys.chime(); Profile.rachaWins = (Profile.rachaWins || 0) + 1; pay(r.bet * 2, 'Ganhou o racha de ' + r.rival + '! (' + fmtTime(R.t) + ')'); }
+  if (R.t < r.rivalTime) { AudioSys.chime(); Profile.rachaWins = (Profile.rachaWins || 0) + 1; Desafios.conta('racha'); pay(r.bet * 2, 'Ganhou o racha de ' + r.rival + '! (' + fmtTime(R.t) + ')'); }
   else toast('Perdeu o racha', r.rival + ' chegou antes (' + fmtTime(r.rivalTime) + ' contra ' + fmtTime(R.t) + '). Já era a aposta.', 'bad');
   saveGame();
 }
@@ -325,6 +325,9 @@ function cheatDo(k, v) {
   if (k === 'police') { const n = +v; if (n === 0) { Police.level = 0; Police.units.length = 0; ok('Polícia liberada'); } else { Police.crime('Trapaça', n, player.x, player.y, true); Police.level = n; ok(n + ' estrela(s)'); } }
   if (k === 'ev') { Events.clear(); let okv = false; for (let i = 0; i < 12 && !okv; i++) okv = Events.spawn(v); Screens.closeAll(); ok(okv ? 'Evento: ' + EV_NAMES[v] : 'Não achei lugar pra esse evento aqui; tente em outra região'); return; }
   if (k === 'wear') { const L = carLife(), n = +v; L.tires = L.oil = L.bat = n; CarLife.warned = {}; if (n > 5) CarLife.stalled = false; ok('Pneus, óleo e bateria em ' + n + '%'); }
+  if (k === 'des') { const D = Desafios.d(), id = D.lista[+v]; if (id && !D.feito[id]) { Desafios.cumpre(id); ok('Desafio cumprido: ' + DES_POR_ID[id].txt); } else ok('Esse já foi feito'); }
+  if (k === 'desnovo') { const D = Desafios.d(); D.lista = Desafios.sorteia('x' + Math.random()); D.prog = {}; D.feito = {}; D.bonus = false; D.ganho0 = Profile.earned || 0; ok('Três desafios novos'); }
+  if (k === 'deszera') { const D = Desafios.d(); D.prog = {}; D.feito = {}; D.bonus = false; D.ganho0 = Profile.earned || 0; ok('Progresso dos desafios zerado'); }
   if (k === 'missao') { if (Historia.pula()) { Screens.closeAll(); ok('Missão cumprida (trapaça)'); } else ok('A história já terminou'); return; }
   if (k === 'god') { Cheats.god = !Cheats.god; ok('Modo indestrutível ' + (Cheats.god ? 'ligado' : 'desligado')); }
   if (k === 'turbo') { Cheats.turbo = !Cheats.turbo; player.recalc(); ok('Turbo ' + (Cheats.turbo ? 'ligado' : 'desligado')); }
@@ -403,6 +406,7 @@ const PH_ICONS = {
   fretes: ['#f08a24', _ln('<path d="M12 3.5 19.5 7.5v9L12 20.5 4.5 16.5v-9z"/><path d="M4.5 7.5 12 11.5l7.5-4M12 11.5v9"/>')],
   racha: ['#e0353b', _ln('<path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/>')],
   carteira: ['#2f6fdf', _ln('<rect x="3.5" y="6" width="17" height="13" rx="2.5"/><path d="M3.5 10h17"/><circle cx="16.5" cy="14.5" r="1" fill="#fff"/>')],
+  desafios: ['#e8590c', _ln('<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="M8.5 15l2.3 2.2L15.5 13"/>')],
   trapaca: ['#7d3cff', _ln('<path d="M4 20 14 10"/><path d="M15 3l1 2.5L18.5 6.5 16 7.5 15 10l-1-2.5L11.5 6.5 14 5.5z"/><path d="M19 12l.6 1.4 1.4.6-1.4.6L19 16l-.6-1.4-1.4-.6 1.4-.6z"/>')],
   conquistas: ['#e0a21b', _ln('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>')],
   camera: ['#3c4049', _ln('<path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/>')],
@@ -410,10 +414,10 @@ const PH_ICONS = {
   colecao: ['#b8643a', _ln('<path d="M4.5 11.5h15c0 4.6-3.2 7.8-7.5 7.8s-7.5-3.2-7.5-7.8z"/><path d="M6 11.5c.6-2.4 3-3.8 6-3.8s5.4 1.4 6 3.8"/><path d="M12 7.7V6.2"/><path d="M4.5 12.5H2.8M19.5 12.5h1.7"/>')],
   ajustes: ['#7b808a', _ln('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>')],
 };
-const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
+const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', desafios: 'Desafios', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
-  const tr = ['fretes', 'racha', 'camera', 'colecao'].includes(id) && !liberado(id); // PegaAí sempre liberado (faz parte da primeira missão) // ainda não liberado pela história: cadeado
+  const tr = ['fretes', 'racha', 'camera', 'colecao', 'desafios'].includes(id) && !liberado(id); // PegaAí sempre liberado (faz parte da primeira missão) // ainda não liberado pela história: cadeado
   return `<button class="ph-app${tr ? ' ph-trancado' : ''}" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge && !tr ? `<i class="ph-badge">${badge}</i>` : ''}${tr ? '<i class="ph-cadeado"><svg viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3h1v11H6V10h1zm2 0h6V7a3 3 0 0 0-6 0v3z"/></svg></i>' : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
 }
 // papéis de parede: paisagens de São Gambiarra e arredores (e a bandeira), desenhadas em SVG
@@ -546,7 +550,7 @@ const Phone = {
       const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
       // tela inicial simples (nov/2026): hora grande, uma grade com os apps e a barra de baixo; sem caixinhas nem textos
       html = `<div class="ph-lock simples"><div class="ph-time">${clockStr()}</div><div class="ph-date">${wl ? H(wl) + ' · ' : ''}${temp}° · R$ ${fmtMoney(Profile.money)}</div></div>` +
-        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'camera', 'colecao'].concat(CHEATS_ENABLED && modoDono() ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
+        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'desafios', 'camera', 'colecao'].concat(CHEATS_ENABLED && modoDono() ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
         '<div class="ph-dock">' + ['mapa', 'msgs', 'conquistas', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
@@ -630,6 +634,7 @@ const Phone = {
       const btn = (k, v, label, on) => `<button class="ch-btn${on ? ' on' : ''}" data-cheat="${k}" data-cv="${v}">${label}</button>`;
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Trapaças</div><p class="ph-note">App temporário de testes.</p>' +
         '<div class="ch-sec">História</div><div class="ch-grid">' + btn('missao', 0, 'Pular missão') + '</div>' +
+        '<div class="ch-sec">Desafios do dia</div><div class="ch-grid">' + btn('des', 0, 'Cumprir o 1º') + btn('des', 1, 'Cumprir o 2º') + btn('des', 2, 'Cumprir o 3º') + btn('desnovo', 0, 'Outros 3 desafios') + btn('deszera', 0, 'Zerar o progresso') + '</div>' +
         '<div class="ch-sec">Dinheiro e carro</div><div class="ch-grid">' + btn('money', 0, '+R$ 10.000') + btn('fix', 0, 'Consertar e encher') + btn('cars', 0, 'Liberar veículos') + btn('pois', 0, 'Revelar pontos') + btn('god', 0, 'Indestrutível', Cheats.god) + btn('turbo', 0, 'Turbo', Cheats.turbo) + '</div>' +
         '<div class="ch-sec">Horário</div><div class="ch-grid">' + btn('time', 19 * 60 + 40, '19:40') + btn('time', 22 * 60 + 5, '22:05 (racha)') + btn('time', 26 * 60, '02:00') + btn('time', 28 * 60 + 40, '04:40') + '</div>' +
         '<div class="ch-sec">Clima</div><div class="ch-grid">' + btn('wx', 'limpo', 'Limpo', Settings.weather === 'limpo') + btn('wx', 'garoa', 'Garoa') + btn('wx', 'chuva', 'Temporal', Settings.weather === 'chuva') + btn('wx', 'auto', 'Dinâmico', Settings.weather === 'auto') + '</div>' +
@@ -651,6 +656,7 @@ const Phone = {
     } else if (this.app === 'carteira') {
       html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div>` + walletHTML(this.wtab);
     }
+    if (this.app === 'desafios') html = desafiosHTML();
     if (this.app === 'camera') html = cameraHTML(); else if (this.app === 'colecao') html = colecaoHTML();
     // (sem a linha explicando cada app: celular mais limpo)
     body.innerHTML = html;
@@ -659,7 +665,7 @@ const Phone = {
   },
   click(e) {
     const t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.app) { const ap = t.dataset.app; if (['fretes', 'racha', 'camera', 'colecao'].includes(ap) && !liberado(ap)) { AudioSys.error(); toast(PH_APPS[ap], ap === 'pegaai' ? 'O Seu Zé libera no passo a passo.' : travaTexto(ap) + '.', 'info'); return; } this.go(ap); return; }
+    if (t.dataset.app) { const ap = t.dataset.app; if (['fretes', 'racha', 'camera', 'colecao', 'desafios'].includes(ap) && !liberado(ap)) { AudioSys.error(); toast(PH_APPS[ap], ap === 'pegaai' ? 'O Seu Zé libera no passo a passo.' : travaTexto(ap) + '.', 'info'); return; } this.go(ap); return; }
     if (t.dataset.foto) { Colecao.fotografa(); return; }
     if (t.dataset.mz) { if (phoneMap) mapCtrl(phoneMap, t.dataset.mz); return; }
     if (t.dataset.sos) { if (t.dataset.sos === 'cancel') socorroCancel(); else socorroCall(t.dataset.sos); phoneTone(1760, 0.05, 0.04); this.render(); return; }

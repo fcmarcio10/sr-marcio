@@ -153,6 +153,8 @@ class Player {
     // visuais e consumo
     this.roll += vf * dt * 0.35;
     this.lean = lerp(this.lean, clamp(-yaw * vf / 1500, -1, 1), 1 - Math.exp(-8 * dt));
+    // carroceria mergulha na freada e senta na arrancada (só visual: o corpo anda um pouco sobre as rodas)
+    { const ac = (vf - (this.vfAnt === undefined ? vf : this.vfAnt)) / Math.max(dt, 0.001); this.vfAnt = vf; this.pitch = lerp(this.pitch || 0, clamp(ac / 700, -1, 1), 1 - Math.exp(-7 * dt)); }
     this.rev = vf < -3 && inp.brk;
     this.thr = lerp(this.thr, inp.thr ? 1 : 0, 1 - Math.exp(-10 * dt));
     const sp = Math.abs(vf);
@@ -166,6 +168,8 @@ class Player {
     const bounds = [0, 0.18, 0.36, 0.55, 0.76, 1.05];
     const fr = sp / Math.max(1, st.max);
     let gear = 1; while (gear < 5 && fr > bounds[gear]) gear++;
+    if (gear > (this.gearAnt || 1) && this.thr > 0.5 && vf > 30) { this.rpm *= 0.74; if (AudioSys.ok) { AudioSys.tone(140, 0.05, 'triangle', 0.05, 'engine'); AudioSys.noise(0.04, 600, 1, 0.05, 'engine', 'lowpass'); } this.shiftT = 0.12; }
+    this.gearAnt = gear;
     this.gear = vf < -3 ? -1 : gear;
     const lo = bounds[gear - 1], hi = bounds[gear];
     let rpmT = sp < 6 ? 850 + this.thr * 1600 : 1300 + clamp((fr - lo) / (hi - lo), 0, 1.1) * 5200;
@@ -182,6 +186,8 @@ class Player {
       const ox = -s * (this.m.W / 2 - 2.5), oy = c * (this.m.W / 2 - 2.5);
       if (this.lastRear) Skids.add(this.lastRear[0], this.lastRear[1], rx + ox, ry + oy, this.lastRear[2], this.lastRear[3], rx - ox, ry - oy, this.surface);
       this.lastRear = [rx + ox, ry + oy, rx - ox, ry - oy];
+      const asf = this.surface === SF.ROAD || this.surface === SF.PAVED || this.surface === SF.BRIDGE, forte = asf && this.slip > 0.6 && sp > 120;
+      if (forte) for (const sd of [1, -1]) Particles.emit('smoke', rx + sd * ox, ry + sd * oy, -this.vx * 0.06 + rnd(-14, 14), -this.vy * 0.06 + rnd(-14, 14), rnd(1.1, 2), rnd(5, 8)); // drift: fumaça das duas rodas de trás
       if (chance(0.35)) Particles.emit(this.surface === SF.ROAD || this.surface === SF.PAVED ? 'smoke' : 'dust', rx + (chance(0.5) ? ox : -ox), ry + (chance(0.5) ? oy : -oy), -this.vx * 0.1 + rnd(-10, 10), -this.vy * 0.1 + rnd(-10, 10), rnd(0.8, 1.4), 6);
     } else this.lastRear = null;
     // pneu junta barro na estrada de terra (muito mais na chuva) e larga o rastro no começo do asfalto
@@ -237,7 +243,15 @@ class Player {
     }
     if (Zf > 0.62 && chance(0.06 + (Zf - 0.62) * 0.5)) Particles.emit(Zf > 0.85 ? 'smoke' : 'steam', this.x + c * this.m.L * 0.38, this.y + s * this.m.L * 0.38, rnd(-10, 10), rnd(-10, 10), rnd(0.8, 1.6), 4);
     if (this.thr > 0.6 && chance(0.12)) Particles.emit('exhaust', this.x - c * this.m.L * 0.52, this.y - s * this.m.L * 0.52, -c * 30 + rnd(-8, 8), -s * 30 + rnd(-8, 8), rnd(0.4, 0.8), 2.5);
-    if (this.prevThr > 0.8 && !inp.thr && this.rpm > 4300 && chance(0.6)) { Particles.emit('flame', this.x - c * this.m.L * 0.55, this.y - s * this.m.L * 0.55, -c * 60, -s * 60, 0.18, 5); AudioSys.noise(0.06, 900, 1, 0.25, 'engine', 'lowpass'); AudioSys.tone(70, 0.08, 'square', 0.12, 'engine'); }
+    if (this.prevThr > 0.8 && !inp.thr && (this.rpm > 3600 || sp * 0.3 > 90) && sp > 120 && chance(0.8)) { this.estalos = 2 + Math.floor(Math.random() * 3); this.estaloT = 0; }
+    if (this.estalos > 0 && !inp.thr) {
+      this.estaloT -= dt;
+      if (this.estaloT <= 0) {
+        this.estalos--; this.estaloT = rnd(0.06, 0.15);
+        Particles.emit('flame', this.x - c * this.m.L * 0.55, this.y - s * this.m.L * 0.55, -c * 60 + rnd(-15, 15), -s * 60 + rnd(-15, 15), rnd(0.1, 0.2), 5);
+        if (AudioSys.ok) { AudioSys.noise(0.05, rnd(700, 1300), 1, 0.2, 'engine', 'lowpass'); AudioSys.tone(rnd(60, 90), 0.06, 'square', 0.09, 'engine'); }
+      }
+    } else if (inp.thr) this.estalos = 0;
     this.prevThr = inp.thr ? 1 : 0;
     if (this.scrapeT > 0) { this.scrapeT -= dt; if (chance(0.25)) AudioSys.noise(0.08, 3400, 3, 0.05, 'engine', 'bandpass'); }
     if (Profile.damage > 84 && chance(0.15)) Particles.emit('smoke', this.x + c * this.m.L * 0.35, this.y + s * this.m.L * 0.35, rnd(-8, 8), rnd(-8, 8), rnd(0.8, 1.5), 5);

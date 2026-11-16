@@ -113,6 +113,7 @@ function rideFinish(R) {
   if (R.type === 'aero' && late) v = Math.round(R.fare * 0.4);
   const tip = Math.round(v * tipK);
   Profile.rides++; Profile.ratingSum += stars;
+  Desafios.conta('corrida'); if (stars >= 5) Desafios.conta('corrida5');
   const C = career(); C.ratings.push(stars); if (C.ratings.length > 30) C.ratings.shift();
   if (R.type === 'vip' && stars === 5) Profile.vipOk = (Profile.vipOk || 0) + 1;
   pgChat(R).stars = stars;

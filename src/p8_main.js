@@ -93,6 +93,7 @@ function saveGame() {
 }
 function toMenu() {
   Game.mode = 'menu';
+  MenuCar.on = false; // escolhe de novo o carro (pode ter trocado na garagem)
   player = null;
   Act.reset(); Events.reset(); CarLife.reset(); Som.on = false; Radio.stop();
   Screens.closeAll();
@@ -155,6 +156,7 @@ function stepPlay(dt) {
   if (trava) { player.vx = player.vy = 0; if (player.spin) player.spin = 0; }
   player.update(dt, inp);
   if (trava) { player.vx = player.vy = 0; }
+  if (!trava) Desafios.update(dt);
   Traffic.update(dt, Game.time, player.x, player.y, Cam.view);
   Animals.update(dt, Cam.x, Cam.y);
   if (Settings.quality !== 'baixa') Peladas.update(dt, Cam.x, Cam.y);
@@ -176,6 +178,8 @@ function stepPlay(dt) {
 }
 function stepMenu(dt) {
   Game.time += dt;
+  if (!MenuCar.on && World.edges.length) MenuCar.comeca();
+  MenuCar.update(dt);
   Traffic.update(dt, Game.time, Cam.x, Cam.y, Cam.view);
   Animals.update(dt, Cam.x, Cam.y);
   if (Settings.quality !== 'baixa') Peladas.update(dt, Cam.x, Cam.y);

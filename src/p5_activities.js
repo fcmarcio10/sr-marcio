@@ -36,6 +36,7 @@ function pay(v, why) {
 }
 function onPlayerImpact(imp) {
   player.impactCd = 0.35;
+  Desafios.bateu(); // batida zera o "rode sem bater"
   const k = clamp((imp - 70) / 380, 0, 1);
   { const hx = (player.hitX || player.x) - player.x, hy = (player.hitY || player.y) - player.y, d = Math.hypot(hx, hy) || 1; Cam.kx = (Cam.kx || 0) + hx / d * (2 + 9 * k); Cam.ky = (Cam.ky || 0) + hy / d * (2 + 9 * k); } // tranco da câmera para o lado da pancada
   // batidas leves e médias amassam 6% menos; batida forte continua igual
@@ -199,6 +200,7 @@ function finishDelivery() {
   frFim(d, d.t > d.par * 1.6, d.hits >= 3 || (d.fragile && d.hits >= 2)); // cliente agradece (ou reclama) no chat do app de Fretes
   Act.delivery = null;
   Profile.deliveries++;
+  Desafios.conta('entrega'); if (bonus) Desafios.conta('prazo');
   pay(v + bonus);
   Resultado.mostra({ titulo: 'Entrega concluída', sub: d.item + (bonus ? ' · no prazo!' : d.t > d.par * 1.6 ? ' · atrasou' : ''), estrelas: null, linhas: [['Frete', Math.round(v)], ['Bônus no prazo', bonus]], total: Math.round(v) + bonus });
   saveGame();
@@ -215,6 +217,7 @@ function distToSeg(x, y, a, b) {
 function finishRace() {
   if (Act.race.racha) { finishRacha(Act.race); return; }
   const R = Act.race, r = R.r, t = R.t;
+  Desafios.conta('percurso');
   const medal = t <= r.gold ? 3 : t <= r.silver ? 2 : t <= r.bronze ? 1 : 0;
   const names = ['Sem medalha', 'Bronze', 'Prata', 'Ouro'];
   const rewards = [60, 300, 550, 900];
