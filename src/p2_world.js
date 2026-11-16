@@ -1324,7 +1324,7 @@ function buildHighwayStrip() {
   scatterTrees(385, 5600, 1370, 6080, 14, ['mango', 'round', 'palm', 'pine']);
   // Posto Estrela Cadente
   decal(1521, y0, 1988, y1, 'lawn');
-  World.posto2 = gasStation({ x0: 1521, y0: 5760, x1: 1988, y1: y1 }, { name: 'Posto Estrela Cadente', color: '#ffb000', front: 'N', canopy: [1580, 5920, 1880, 6070], store: [1560, 5780, 1760, 5880], totem: [1974, 6082], region: 'rodovia' });
+  World.posto2 = gasStation({ x0: 1521, y0: 5760, x1: 1988, y1: y1 }, { name: 'Posto Estrela Cadente', color: '#ffb000', front: 'N', canopy: [1580, 5920, 1880, 6070], store: [1560, 5780, 1760, 5880], wash: [1790, 5780, 1950, 5880], totem: [1974, 6082], region: 'rodovia' }); // lava jato ao lado da loja (nov/2026)
   decal(1521, y0 + 20, 1988, 5740, 'paved');
   const sx0 = 1540, SW = 34;
   bake(sx0, 5400, sx0 + 13 * SW, 5470, 6, (g) => { g.strokeStyle = 'rgba(240,240,230,0.7)'; g.lineWidth = 2; g.beginPath(); for (let i = 0; i <= 13; i++) { g.moveTo(sx0 + i * SW, 5400); g.lineTo(sx0 + i * SW, 5470); } g.moveTo(sx0, 5400); g.lineTo(sx0 + 13 * SW, 5400); g.stroke(); });

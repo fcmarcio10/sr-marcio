@@ -2009,7 +2009,7 @@ function buildHighwayStrip() {
   scatterTrees(385, 5600, 1370, 6080, 14, ['mango', 'round', 'palm', 'pine']);
   // Posto Estrela Cadente
   decal(1521, y0, 1988, y1, 'lawn');
-  World.posto2 = gasStation({ x0: 1521, y0: 5760, x1: 1988, y1: y1 }, { name: 'Posto Estrela Cadente', color: '#ffb000', front: 'N', canopy: [1580, 5920, 1880, 6070], store: [1560, 5780, 1760, 5880], totem: [1974, 6082], region: 'rodovia' });
+  World.posto2 = gasStation({ x0: 1521, y0: 5760, x1: 1988, y1: y1 }, { name: 'Posto Estrela Cadente', color: '#ffb000', front: 'N', canopy: [1580, 5920, 1880, 6070], store: [1560, 5780, 1760, 5880], wash: [1790, 5780, 1950, 5880], totem: [1974, 6082], region: 'rodovia' }); // lava jato ao lado da loja (nov/2026)
   decal(1521, y0 + 20, 1988, 5740, 'paved');
   const sx0 = 1540, SW = 34;
   bake(sx0, 5400, sx0 + 13 * SW, 5470, 6, (g) => { g.strokeStyle = 'rgba(240,240,230,0.7)'; g.lineWidth = 2; g.beginPath(); for (let i = 0; i <= 13; i++) { g.moveTo(sx0 + i * SW, 5400); g.lineTo(sx0 + i * SW, 5470); } g.moveTo(sx0, 5400); g.lineTo(sx0 + 13 * SW, 5400); g.stroke(); });
@@ -3420,16 +3420,21 @@ function drawProp(g, p) {
       g.fillStyle = '#e0c04a'; g.beginPath(); g.arc(0, 0, 1.2, 0, TAU); g.fill();
       break;
     case 'island': {
+      // ilha com meio-fio amarelo e preto, bombas com visor, mangueiras e extintor
       const w = p.w, h = p.h;
-      g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(-w / 2 + 3, -h / 2 + 4, w, h);
+      g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(-w / 2 + 3, -h / 2 + 4, w, h + 2);
       g.fillStyle = '#d8d6cf'; g.fillRect(-w / 2, -h / 2, w, h);
-      g.fillStyle = '#3a3a3a'; g.fillRect(-w / 2, -h / 2, w, 2); g.fillRect(-w / 2, h / 2 - 2, w, 2);
-      for (let x = -w / 2 + 18; x < w / 2 - 10; x += 46) {
-        g.fillStyle = '#f2f2ee'; g.fillRect(x - 7, -5, 14, 10);
-        g.fillStyle = p.c || '#ff3d3d'; g.fillRect(x - 7, -5, 14, 3);
-        g.fillStyle = '#222'; g.fillRect(x - 4, 0, 8, 3);
-        g.strokeStyle = '#1a1a1a'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x + 7, 0); g.quadraticCurveTo(x + 12, 6, x + 9, 9); g.stroke();
+      for (let x = -w / 2; x < w / 2; x += 8) { g.fillStyle = Math.round((x + w / 2) / 8) % 2 ? '#1c1c1c' : '#f2c200'; g.fillRect(x, -h / 2, Math.min(8, w / 2 - x), 2); g.fillRect(x, h / 2 - 2, Math.min(8, w / 2 - x), 2); }
+      let n = 1;
+      for (let x = -w / 2 + 22; x < w / 2 - 12; x += 46, n++) {
+        g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x - 7, -5, 16, 12);
+        g.fillStyle = '#f4f4f0'; g.fillRect(x - 8, -6, 16, 12);
+        g.fillStyle = p.c || '#ff3d3d'; g.fillRect(x - 8, -6, 16, 3.5);
+        g.fillStyle = '#102030'; g.fillRect(x - 5, -1.5, 10, 4); g.fillStyle = '#5fe3a0'; g.fillRect(x - 4, -0.8, 6, 1.2);
+        g.fillStyle = '#111'; g.font = 'bold 4px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(n), x, 4.6);
+        g.strokeStyle = '#1a1a1a'; g.lineWidth = 1.3; g.beginPath(); g.moveTo(x + 8, -2); g.quadraticCurveTo(x + 14, 4, x + 10, 9); g.moveTo(x - 8, -2); g.quadraticCurveTo(x - 14, 4, x - 10, 9); g.stroke();
       }
+      g.fillStyle = '#d0201a'; g.fillRect(w / 2 - 6, -3, 3, 6); // extintor
       break;
     }
     case 'tires':
@@ -8792,27 +8797,49 @@ function drawTall(ctx, o) {
     }
     case 'canopy': {
       const [ox, oy] = offAt(o.cx, o.cy, o.h);
-      ctx.strokeStyle = '#d8d8d2'; ctx.lineWidth = 4;
-      ctx.beginPath();
+      const w = o.x1 - o.x0, h = o.y1 - o.y0, X = o.x0 + ox, Y = o.y0 + oy;
+      // colunas (com sombra e base)
+      ctx.strokeStyle = '#c9c9c2'; ctx.lineWidth = 6; ctx.beginPath();
       for (const [px, py] of [[o.x0 + 14, o.y0 + 14], [o.x1 - 14, o.y0 + 14], [o.x0 + 14, o.y1 - 14], [o.x1 - 14, o.y1 - 14]]) { ctx.moveTo(px, py); ctx.lineTo(px + ox, py + oy); }
       ctx.stroke();
-      let a = 1;
-      if (player && Game.state !== 'menu' && player.x > o.x0 + ox && player.x < o.x1 + ox && player.y > o.y0 + oy && player.y < o.y1 + oy) a = 0.32;
-      ctx.globalAlpha = a;
-      const w = o.x1 - o.x0, h = o.y1 - o.y0;
-      ctx.fillStyle = '#e9e9e4'; ctx.fillRect(o.x0 + ox, o.y0 + oy, w, h);
-      ctx.fillStyle = o.color; ctx.fillRect(o.x0 + ox, o.y0 + oy, w, 7); ctx.fillRect(o.x0 + ox, o.y1 + oy - 7, w, 7); ctx.fillRect(o.x0 + ox, o.y0 + oy, 7, h); ctx.fillRect(o.x1 + ox - 7, o.y0 + oy, 7, h);
-      ctx.fillStyle = 'rgba(0,0,0,0.08)'; for (let x = o.x0 + 20; x < o.x1 - 10; x += 20) ctx.fillRect(x + ox, o.y0 + oy + 7, 1.5, h - 14);
-      ctx.font = '800 16px "Segoe UI", Arial, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = shade(o.color, -0.2); ctx.fillText(o.name.toUpperCase(), o.cx + ox, o.cy + oy);
-      ctx.globalAlpha = 1;
+      ctx.save();
+      // carro embaixo da cobertura: abre um recorte em volta dele (o resto continua inteiro)
+      if (player && Game.state !== 'menu' && player.x > X - 30 && player.x < X + w + 30 && player.y > Y - 30 && player.y < Y + h + 30) {
+        ctx.beginPath(); ctx.rect(X - 2, Y - 2, w + 4, h + 4); ctx.moveTo(player.x + 42, player.y); ctx.arc(player.x, player.y, 42, 0, TAU, true); ctx.clip('evenodd');
+      }
+      // sombra própria (o telhado é mais alto que tudo em volta)
+      ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(X + 5, Y + 7, w, h);
+      // telhado: chapa branca com leve degradê e painéis de luz embutidos
+      const gr = ctx.createLinearGradient(X, Y, X, Y + h); gr.addColorStop(0, '#f4f4f0'); gr.addColorStop(1, '#d9d9d3'); ctx.fillStyle = gr; ctx.fillRect(X, Y, w, h);
+      ctx.fillStyle = 'rgba(0,0,0,0.06)'; for (let x = X + 24; x < X + w - 14; x += 24) ctx.fillRect(x, Y + 12, 1.2, h - 24);
+      ctx.fillStyle = 'rgba(255,255,240,0.55)'; for (let x = X + 40; x < X + w - 30; x += 60) for (const yy of [Y + 26, Y + h - 34]) ctx.fillRect(x - 10, yy, 20, 8);
+      // faixa da marca (testeira) em volta, com friso branco
+      ctx.fillStyle = o.color; ctx.fillRect(X, Y, w, 11); ctx.fillRect(X, Y + h - 11, w, 11); ctx.fillRect(X, Y, 9, h); ctx.fillRect(X + w - 9, Y, 9, h);
+      ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.fillRect(X, Y + 11, w, 1.5); ctx.fillRect(X, Y + h - 12.5, w, 1.5);
+      // logo redondo no meio (estrela ou gota) e o nome pequeno na testeira
+      const lx = X + w / 2, ly = Y + h / 2;
+      ctx.fillStyle = o.color; ctx.beginPath(); ctx.arc(lx, ly, 20, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath();
+      for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 6 : 13; ctx.lineTo(lx + Math.cos(a) * r, ly + Math.sin(a) * r); }
+      ctx.closePath(); ctx.fill();
+      ctx.font = '800 9px "Segoe UI", Arial, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
+      ctx.fillText(o.name.toUpperCase(), X + w / 2, Y + 6); ctx.fillText(o.name.toUpperCase(), X + w / 2, Y + h - 5.5);
+      ctx.restore();
       break;
     }
     case 'totem': {
       const [ox, oy] = offAt(o.x, o.y, o.h);
-      ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + ox, o.y + oy); ctx.stroke();
-      ctx.fillStyle = '#1a1c20'; ctx.fillRect(o.x + ox - 16, o.y + oy - 22, 32, 44);
-      ctx.fillStyle = o.color; ctx.fillRect(o.x + ox - 16, o.y + oy - 22, 32, 10);
+      ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + ox, o.y + oy); ctx.stroke();
+      const X = o.x + ox, Y = o.y + oy;
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(X - 15, Y - 25, 34, 52);
+      ctx.fillStyle = '#16181c'; ctx.fillRect(X - 18, Y - 28, 36, 54);
+      ctx.fillStyle = o.color; ctx.fillRect(X - 18, Y - 28, 36, 14);
+      ctx.fillStyle = '#fff'; ctx.font = '900 8px "Segoe UI", Arial, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('POSTO', X, Y - 21);
+      ctx.font = '700 6px "Segoe UI", Arial, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#cfd3da';
+      ctx.fillText('GAS', X - 15, Y - 7); ctx.fillText('ETA', X - 15, Y + 5); ctx.fillText('DIE', X - 15, Y + 17);
+      ctx.textAlign = 'right'; ctx.font = '800 7px "Segoe UI", Arial, sans-serif'; ctx.fillStyle = '#ffd23f';
+      ctx.fillText('5,89', X + 15, Y - 7); ctx.fillText('4,19', X + 15, Y + 5); ctx.fillText('6,02', X + 15, Y + 17);
       break;
     }
     case 'wires': {
@@ -9074,10 +9101,10 @@ function drawTallEmissive(ctx, o) {
     }
     case 'totem': {
       const [ox, oy] = offAt(o.x, o.y, o.h);
-      ctx.fillStyle = 'rgba(255,90,60,0.9)';
-      ctx.font = '700 9px monospace'; ctx.textAlign = 'center';
-      ctx.fillText('5,89', o.x + ox, o.y + oy + 3); ctx.fillText('4,19', o.x + ox, o.y + oy + 14);
-      ctx.globalAlpha = 0.6; ctx.drawImage(glowSprite(lightHex(o.color)), o.x + ox - 30, o.y + oy - 30, 60, 60); ctx.globalAlpha = 1;
+      // os preços em LED brilham por cima dos números da placa (mesmo lugar)
+      ctx.fillStyle = 'rgba(255,210,63,0.55)'; ctx.font = '800 7px "Segoe UI", Arial, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillText('5,89', o.x + ox + 15, o.y + oy - 7); ctx.fillText('4,19', o.x + ox + 15, o.y + oy + 5); ctx.fillText('6,02', o.x + ox + 15, o.y + oy + 17);
+      ctx.globalAlpha = 0.45; ctx.drawImage(glowSprite(lightHex(o.color)), o.x + ox - 30, o.y + oy - 30, 60, 60); ctx.globalAlpha = 1;
       break;
     }
     case 'canopy': {

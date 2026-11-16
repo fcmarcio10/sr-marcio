@@ -647,16 +647,21 @@ function drawProp(g, p) {
       g.fillStyle = '#e0c04a'; g.beginPath(); g.arc(0, 0, 1.2, 0, TAU); g.fill();
       break;
     case 'island': {
+      // ilha com meio-fio amarelo e preto, bombas com visor, mangueiras e extintor
       const w = p.w, h = p.h;
-      g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(-w / 2 + 3, -h / 2 + 4, w, h);
+      g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(-w / 2 + 3, -h / 2 + 4, w, h + 2);
       g.fillStyle = '#d8d6cf'; g.fillRect(-w / 2, -h / 2, w, h);
-      g.fillStyle = '#3a3a3a'; g.fillRect(-w / 2, -h / 2, w, 2); g.fillRect(-w / 2, h / 2 - 2, w, 2);
-      for (let x = -w / 2 + 18; x < w / 2 - 10; x += 46) {
-        g.fillStyle = '#f2f2ee'; g.fillRect(x - 7, -5, 14, 10);
-        g.fillStyle = p.c || '#ff3d3d'; g.fillRect(x - 7, -5, 14, 3);
-        g.fillStyle = '#222'; g.fillRect(x - 4, 0, 8, 3);
-        g.strokeStyle = '#1a1a1a'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x + 7, 0); g.quadraticCurveTo(x + 12, 6, x + 9, 9); g.stroke();
+      for (let x = -w / 2; x < w / 2; x += 8) { g.fillStyle = Math.round((x + w / 2) / 8) % 2 ? '#1c1c1c' : '#f2c200'; g.fillRect(x, -h / 2, Math.min(8, w / 2 - x), 2); g.fillRect(x, h / 2 - 2, Math.min(8, w / 2 - x), 2); }
+      let n = 1;
+      for (let x = -w / 2 + 22; x < w / 2 - 12; x += 46, n++) {
+        g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x - 7, -5, 16, 12);
+        g.fillStyle = '#f4f4f0'; g.fillRect(x - 8, -6, 16, 12);
+        g.fillStyle = p.c || '#ff3d3d'; g.fillRect(x - 8, -6, 16, 3.5);
+        g.fillStyle = '#102030'; g.fillRect(x - 5, -1.5, 10, 4); g.fillStyle = '#5fe3a0'; g.fillRect(x - 4, -0.8, 6, 1.2);
+        g.fillStyle = '#111'; g.font = 'bold 4px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(n), x, 4.6);
+        g.strokeStyle = '#1a1a1a'; g.lineWidth = 1.3; g.beginPath(); g.moveTo(x + 8, -2); g.quadraticCurveTo(x + 14, 4, x + 10, 9); g.moveTo(x - 8, -2); g.quadraticCurveTo(x - 14, 4, x - 10, 9); g.stroke();
       }
+      g.fillStyle = '#d0201a'; g.fillRect(w / 2 - 6, -3, 3, 6); // extintor
       break;
     }
     case 'tires':
