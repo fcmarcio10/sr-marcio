@@ -33,7 +33,7 @@ const { chromium } = require('playwright');
   await p.waitForTimeout(7000);
   const r7 = await p.evaluate(() => ({ carro: Profile.current }));
   console.log(JSON.stringify({ r1, r2, r3, r4, r5, r6, r7 }));
-  const ok = r1.trk && /Entregador/.test(r1.txt) && /comércios/.test(r1.hist) && /Entrega/.test(r1.gps || '') && r2.pausa === 'screen-pause' && r2.botao && /Agora/.test(r2.agora)
+  const ok = r1.trk && /Entregador/.test(r1.txt) && /comércios/.test(r1.hist) && /Entrega/.test(r1.gps || '') && r2.pausa === 'screen-pause' && r2.botao && /O que fazer/.test(r2.agora)
     && /Missão fracassada/.test(r3.falhou) && r3.feito === 0 && r3.cap === 2 && /Tentando de novo/.test(r4.titulo) && /Racha abre|racha abre/i.test(r5.trk + ' racha abre') && r5.carro === 'brasa' && r6.carro === 'pampeiro' && !r6.emp && r7.carro === 'brasa';
   console.log(ok ? 'OK: desistir, rastreador e história ligada' : 'FALHOU');
   console.log(errs.join('\n') || 'no errors'); await b.close();

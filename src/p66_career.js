@@ -784,7 +784,7 @@ function frListHTML() {
    conforme a câmera anda. Sons soltos saem do lugar certo (vaca perto das vacas, risada perto dos bares,
    carro passando de verdade quando um carro do trânsito passa raspando) com volume pela distância e lado.
    Cada som é preparado (decodificado) só quando é usado pela primeira vez, sem pesar no começo. */
-const AMB_FUNDO = { cidade: ['amb_cidade', 0.3], favela: ['amb_favela', 0.42], roca: ['amb_roca', 0.26], praia: ['amb_praia', 0.45], mata: ['amb_mata', 0.32], rio: ['amb_rio', 0.4] }; // cidade suave, roça baixa (pedido do dono)
+const AMB_FUNDO = { favela: ['amb_favela', 0.42], roca: ['amb_roca', 0.26], praia: ['amb_praia', 0.45], mata: ['amb_mata', 0.32], rio: ['amb_rio', 0.4] }; // cidade suave, roça baixa (pedido do dono)
 const AMB_FAVELAS = { saopedro: 1, terravermelha: 1, feurosa: 1, carapina: 1 };
 const Ambiente = { buf: {}, pedido: {}, fundos: {}, t0: 0, passou: new Map(), passouT: 0, pessoasT: 0, n: 0 };
 Ambiente.pronto = function (clip) {
@@ -801,23 +801,23 @@ Ambiente.pronto = function (clip) {
 // som solto num ponto do mundo: volume pela distância da câmera e lado esquerdo/direito
 Ambiente.toca = function (clip, x, y, vol, alcance) {
   const b = this.pronto(clip); if (!b) return false;
+  if (this.tocando > 0) return true; // um som solto de cada vez (dois juntos somavam e chiavam)
   const c = AudioSys.ctx, d = Math.hypot(x - Cam.x, y - Cam.y), g = (vol || 0.5) * clamp(1 - d / (alcance || 1500), 0.06, 1);
   if (!(g >= 0.02) || !isFinite(x) || !isFinite(y)) return true; // posição inválida: não toca
   const s = c.createBufferSource(); s.buffer = b; s.playbackRate.value = 0.92 + Math.random() * 0.16;
   const gn = c.createGain(); gn.gain.value = g; s.connect(gn);
   if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = clamp((x - Cam.x) / 750, -0.85, 0.85); gn.connect(p); p.connect(AudioSys.bus.ambient); } else gn.connect(AudioSys.bus.ambient);
+  this.tocando = (this.tocando || 0) + 1; s.onended = () => { this.tocando--; };
   s.start(); this.n++;
   return true;
 };
-// cachorro latindo de verdade quando o carro assusta (cai no latido sintetizado se ainda não carregou)
-Ambiente.latido = function (x, y) { return this.toca('sfx_cachorro', x, y, 0.55, 1300); };
 // peso de cada fundo conforme o lugar da câmera
 Ambiente.pesos = function () {
   const rk = regionKeyAt(Cam.x, Cam.y), R = REGIONS[rk], fav = AMB_FAVELAS[rk] ? 1 : 0;
   const praia = Cam.x > ORLA_X0 - 300 ? clamp(1 - (SAND_Y - Cam.y) / 650, 0, 1) : 0;
   const rio = clamp(1 - (Math.abs(Cam.x - riverCX(Cam.y)) - 160) / 650, 0, 1);
   const mata = rk === 'mata' ? 1 : 0;
-  return { cidade: R.city * (1 - fav) * (1 - praia * 0.5), favela: fav, roca: R.rural * (1 - mata * 0.7) * (1 - rio * 0.6), praia, mata, rio };
+  return { favela: fav, roca: R.rural * (1 - mata * 0.7) * (1 - rio * 0.6), praia, mata, rio };
 };
 Ambiente.update = function (dt) {
   if (!AudioSys.ok) return;
@@ -884,21 +884,18 @@ Ambiente.sorteia = function (rk, R, cx, cy) {
   const add = (w, clip, p, vol) => { if (w > 0) op.push([w, clip, p[0], p[1], vol]); };
   const hr = (Profile.time % 1440) / 60, madrugada = hr >= 4 && hr < 6.5;
   // roça e mata: bicho só faz barulho se existir um de verdade por perto (nada de vaca mugindo no meio do nada)
-  const v = perto('cow', 800), cv = perto('horse', 800), gl = perto('chicken', 700), dg = perto('dog', 700), ow = perto('owl', 900);
+  const v = perto('cow', 800), cv = perto('horse', 800), gl = perto('chicken', 700), ow = perto('owl', 900);
   if (rk === 'mata' || R.rural > 0.5) {
     if (v) add(3, 'sfx_vaca', [v.x, v.y], 0.55);
     if (cv) add(2, 'sfx_cavalo', [cv.x, cv.y], 0.5);
     if (gl) { add(2, 'sfx_galinha', [gl.x, gl.y], 0.45); add(madrugada ? 3 : 0.35, 'sfx_galo', [gl.x, gl.y], 0.5); }
-    if (dg) add(1.5, 'sfx_cachorro', [dg.x, dg.y], 0.45);
     if (ow) add(1.2, 'sfx_coruja', [ow.x, ow.y], 0.4);
     if (rk === 'rodovia') { add(2.5, 'sfx_caminhao', longe(), 0.5); add(1.5, 'sfx_carro', longe(), 0.45); }
   } else if (AMB_FAVELAS[rk]) {
-    add(2, 'sfx_moto', longe(), 0.45); add(1.5, 'sfx_risada', longe(), 0.4); add(1.5, 'sfx_cachorro', longe(), 0.45);
+    add(2, 'sfx_moto', longe(), 0.45); add(1.5, 'sfx_risada', longe(), 0.4);
     add(0.4, 'buzina', longe(), 0); // rojão e galo saíram (pedido do dono: menos sons)
   } else {
-    add(2, 'sfx_carro', longe(), 0.4); add(1.2, 'sfx_moto', longe(), 0.4);
-    add(1, 'sfx_cachorro', longe(), 0.4); // sem risada na cidade (pedido do dono): só som de cidade
-    add(0.5, 'buzina', longe(), 0); // alarme, sirene, rojão e ônibus ao longe saíram: cidade mais simples
+    add(1, 'buzina', longe(), 0); // cidade como era antes: só buzina ao longe (sem sons gravados nem cachorro)
   }
   const campo = rk === 'mata' || R.rural > 0.5;
   if (!op.length) return true; // sem bicho por perto: só o fundo (grilos, sapos) toca

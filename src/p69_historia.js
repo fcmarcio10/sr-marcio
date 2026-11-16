@@ -170,6 +170,26 @@ const Historia = {
     this.conclui(); return true;
   },
   // tela de pausa: lista dos capítulos
+  // pausa: o capítulo de agora em destaque e a história inteira numa linha de passos
+  pausaHTML() {
+    const h = this.h(), c = HIST_CAPS[h.cap];
+    const passos = HIST_CAPS.map((k, i) => {
+      const st = h.fim || i < h.cap ? 'ok' : i === h.cap ? 'at' : '';
+      return `<i class="hp-passo ${st}" title="${escapeHtml(k.nome)}">${i + 1}</i>`;
+    }).join('<s class="hp-liga"></s>');
+    let card;
+    if (h.fim || !c) card = '<div class="hp-card fim"><small>O carro dos sonhos</small><b>História concluída</b><p>Agora a cidade é sua.</p></div>';
+    else {
+      const f = Math.min(c.alvo, this.feito());
+      let det = c.extra ? c.extra() : c.alvo > 1 ? f + ' de ' + c.alvo : '';
+      if (h.cap === 6 && !rachaOpen()) det = 'o racha abre às 22h';
+      card = `<div class="hp-card"><small>Capítulo ${h.cap + 1} de ${CAP_FINAL}</small><b>${escapeHtml(c.nome)}</b>` +
+        `<p class="hp-porque">${escapeHtml(HIST_PORQUE[h.cap] || '')}</p>` +
+        `<p class="hp-agora"><span>O que fazer</span>${escapeHtml(c.meta)}${det ? ' <em>' + escapeHtml(det) + '</em>' : ''}</p>` +
+        (c.premio ? `<p class="hp-premio">Prêmio: R$ ${fmtMoney(c.premio)}</p>` : '') + '</div>';
+    }
+    return card + `<div class="hp-linha"><span>História</span><div class="hp-passos">${passos}</div></div>`;
+  },
   listaHTML() {
     const h = this.h();
     return HIST_CAPS.map((c, i) => {

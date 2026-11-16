@@ -1455,3 +1455,37 @@ body.cinema #hud-objective { display: none !important; }
 #phone-body.home .ph-grid.simples .ph-app, #phone-body.home .ph-dock .ph-app { min-width: 0; }
 #phone-body.home .ph-grid.simples .ph-lbl, #phone-body.home .ph-dock .ph-lbl { font-size: 10px; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #phone-body.home .ph-dock { grid-template-columns: repeat(4, 1fr); }
+
+/* ---------- pausa: menu à esquerda, missão e progresso à direita ---------- */
+.panel-card.pausa { width: min(860px, 94vw); padding: 26px 30px 24px; }
+.pausa h2 { margin-bottom: 18px; }
+.pausa-cols { display: grid; grid-template-columns: 250px 1fr; gap: 28px; align-items: start; }
+.pausa-menu { display: flex; flex-direction: column; gap: 16px; }
+.pausa-menu .menu-list { gap: 6px; }
+#screen-pause .pausa-cont { background: #ffd23f; color: #16130a; }
+#screen-pause .pausa-cont:hover { background: #ffe07a; }
+.pausa-sair { padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+#screen-pause .pausa-perigo { color: #ff8a7a; }
+#screen-pause .mbtn.hidden { display: none; }
+.pausa-info { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.pausa-tit { font: 700 11px/1 var(--f-cond); letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255, 255, 255, 0.5); margin-bottom: 8px; }
+#pause-hist { margin: 0; }
+.hp-card { background: rgba(255, 255, 255, 0.05); border-left: 3px solid #ffd23f; border-radius: 4px; padding: 12px 14px; }
+.hp-card small { display: block; font: 700 11px/1 var(--f-cond); letter-spacing: 0.14em; text-transform: uppercase; color: #ffd23f; }
+.hp-card b { display: block; font: 400 26px/1.15 var(--f-display, 'Anton'), sans-serif; color: #fff; margin: 6px 0 4px; letter-spacing: 0.02em; }
+.hp-card p { margin: 0; font: 500 13.5px/1.4 var(--f-body); color: rgba(255, 255, 255, 0.82); }
+.hp-card .hp-porque { font-style: italic; color: rgba(255, 255, 255, 0.55); margin-bottom: 8px; }
+.hp-agora span { display: block; font: 700 11px/1 var(--f-cond); letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255, 255, 255, 0.5); margin-bottom: 4px; }
+.hp-agora em { font-style: normal; color: #ffd23f; font-weight: 700; white-space: nowrap; }
+.hp-premio { margin-top: 6px !important; color: #7fe08a !important; font-weight: 700 !important; }
+.hp-card.fim { border-left-color: #3aa655; }
+.hp-linha { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.hp-linha > span { font: 700 11px/1 var(--f-cond); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 255, 255, 0.5); }
+.hp-passos { display: flex; align-items: center; flex: 1; }
+.hp-passo { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font: 700 12px/1 var(--f-cond); font-style: normal; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.5); }
+.hp-passo.ok { background: #3aa655; color: #fff; }
+.hp-passo.at { background: #ffd23f; color: #16130a; box-shadow: 0 0 0 3px rgba(255, 210, 63, 0.25); }
+.hp-liga { flex: 1; height: 2px; min-width: 6px; background: rgba(255, 255, 255, 0.12); text-decoration: none; }
+#screen-pause .stats-grid { margin-top: 0; gap: 7px 22px; }
+@media (max-width: 720px) { .pausa-cols { grid-template-columns: 1fr; gap: 18px; } }
+#screen-pause, #screen-settings, #screen-confirm { z-index: 60; } /* pausa por cima dos avisos de missão */

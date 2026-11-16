@@ -920,7 +920,7 @@ class Animal {
   }
   scare(px, py, hard) {
     if (this.type === 'owl' || this.morto) return;
-    if (this.state !== 'flee' && this.type === 'dog' && Game.state === 'playing' && !Ambiente.latido(this.x, this.y)) AudioSys.bark(player ? Math.hypot(this.x - player.x, this.y - player.y) : 400);
+    // cachorro não late mais (pedido do dono: o latido somava com outros sons e chiava)
     if (this.cruza) { this.cruzaV = 1; return; } // atravessando: apressa o passo e termina de atravessar
     this.state = 'flee'; this.t = hard ? 2.2 : 1.6;
     let a = Math.atan2(this.y - py, this.x - px) + rnd(-0.5, 0.5);
@@ -1031,9 +1031,9 @@ Animals.update = function (dt, cx, cy) {
     this.soundT = R.rural > 0.5 ? rnd(5, 10) : rnd(4, 8);
     if (Ambiente.sorteia(rk, R, cx, cy)) return; // som gravado do lugar (bichos, carros, gente); sintetizado enquanto não carrega
     const r = rnd();
-    if (R.rural > 0.6) { if (r < 0.3) AudioSys.owl(); else if (r < 0.55) AudioSys.moo(); else if (r < 0.75) AudioSys.bark(900); }
+    if (R.rural > 0.6) { if (r < 0.3) AudioSys.owl(); else if (r < 0.55) AudioSys.moo(); else if (r < 0.75) AudioSys.frog(); }
     else if (rk === 'rio') { if (r < 0.6) AudioSys.frog(); else AudioSys.owl(); }
-    else { if (r < 0.35) AudioSys.bark(rnd(500, 1100)); else if (r < 0.5) { /* sem sirene */ } else if (r < 0.7) AudioSys.aiHorn(rnd(500, 850), pick(Object.keys(HORNS)), rnd(-0.8, 0.8)); }
+    else { if (r < 0.5) { /* sem sirene */ } else if (r < 0.7) AudioSys.aiHorn(rnd(500, 850), pick(Object.keys(HORNS)), rnd(-0.8, 0.8)); }
   }
 };
 /* ---------- pelada nos campos de várzea ---------- */

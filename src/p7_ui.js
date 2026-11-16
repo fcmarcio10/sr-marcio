@@ -65,7 +65,7 @@ const Screens = {
     if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
     if (id === 'screen-pause') renderPauseStats();
     if (id === 'screen-main') $('btn-continue').disabled = !hasSave;
-    if (id === 'screen-pause') $('btn-abandon').disabled = !(Act.race || Act.delivery || Act.ride || Act.waypoint || Historia.ativa());
+    if (id === 'screen-pause') { const b = $('btn-abandon'); b.disabled = !(Act.race || Act.delivery || Act.ride || Act.waypoint || Historia.ativa()); b.classList.toggle('hidden', b.disabled); }
   },
 };
 // tela livre para o jogo: nada aberto ou só o celular (o celular não pausa o jogo)
@@ -640,7 +640,7 @@ function renderPauseStats() {
     ['Medalhas de ouro', medals + '/' + World.races.length], ['Carros', Object.keys(Profile.owned).length + '/' + CARS.length],
   ];
   $('pause-stats').innerHTML = rows.map(([a, b]) => `<div>${a} <b>${b}</b></div>`).join('');
-  { const ph = $('pause-hist'); if (ph) ph.innerHTML = '<div class="hist-tit">HISTÓRIA · O CARRO DOS SONHOS</div><div class="hist-lista">' + Historia.listaHTML() + '</div>'; }
+  { const ph = $('pause-hist'); if (ph) ph.innerHTML = Historia.pausaHTML(); }
 }
 
 /* ---------- HUD ---------- */

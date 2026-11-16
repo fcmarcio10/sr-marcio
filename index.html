@@ -89,17 +89,25 @@
 
 <!-- ===================== PAUSA ===================== -->
 <div id="screen-pause" class="screen hidden">
-  <div class="panel-card narrow">
+  <div class="panel-card pausa">
     <h2>PAUSADO</h2>
-    <nav class="menu-list">
-      <button class="mbtn" data-act="resume">CONTINUAR</button>
-      <button class="mbtn" data-act="abandon" id="btn-abandon">ABANDONAR ATIVIDADE</button>
-      <button class="mbtn" data-act="reset">REPOSICIONAR VEÍCULO</button>
-      <button class="mbtn" data-act="settings">CONFIGURAÇÕES</button>
-      <button class="mbtn" data-act="save-quit">SALVAR E VOLTAR AO MENU</button>
-    </nav>
-    <div id="pause-hist"></div>
-    <div id="pause-stats" class="stats-grid"></div>
+    <div class="pausa-cols">
+      <div class="pausa-menu">
+        <nav class="menu-list">
+          <button class="mbtn pausa-cont" data-act="resume">CONTINUAR</button>
+          <button class="mbtn" data-act="reset">REPOSICIONAR VEÍCULO</button>
+          <button class="mbtn" data-act="settings">CONFIGURAÇÕES</button>
+        </nav>
+        <nav class="menu-list pausa-sair">
+          <button class="mbtn pausa-perigo" data-act="abandon" id="btn-abandon">ABANDONAR ATIVIDADE</button>
+          <button class="mbtn" data-act="save-quit">SALVAR E VOLTAR AO MENU</button>
+        </nav>
+      </div>
+      <div class="pausa-info">
+        <section class="pausa-sec"><div class="pausa-tit">Missão atual</div><div id="pause-hist"></div></section>
+        <section class="pausa-sec"><div class="pausa-tit">Seu progresso</div><div id="pause-stats" class="stats-grid"></div></section>
+      </div>
+    </div>
   </div>
 </div>
 

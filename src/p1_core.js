@@ -318,8 +318,8 @@ const AudioSys = {
     this.hornGain.gain.setTargetAtTime(on && this.hornOn ? 0.16 : 0, t, 0.015);
     // ambiente
     for (const cr of this.crickets) cr.out.gain.setTargetAtTime(cr.vol * (0.25 + p.rural * 1.1), t, 0.6);
-    this.cityGain.gain.setTargetAtTime(0.015 + p.city * 0.03, t, 0.8); // cidade mais simples: o fundo gravado faz o trabalho
-    this.trafficGain.gain.setTargetAtTime(0, t, 0.8);
+    this.cityGain.gain.setTargetAtTime(0.05 + p.city * 0.13, t, 0.8); // cidade como era antes (zumbido e trânsito sintetizados; sem fundo gravado)
+    this.trafficGain.gain.setTargetAtTime(p.city * 0.035, t, 0.8);
     this.riverGain.gain.setTargetAtTime(p.river * 0.09, t, 0.6);
   },
   tone(freq, dur, type, vol, bus, slide, delay) {
