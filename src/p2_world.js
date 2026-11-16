@@ -2086,6 +2086,13 @@ function elevaPredios() {
     if (h > 0.42 * r) continue;
     b.h = Math.min(150, Math.round(b.h * (1.35 + hash2(b.x1 | 0, b.y1 | 0) * 0.4)));
   }
+  // área nobre (Camburiso, orla e parte do Centrão): prédio comercial alto vira torre de vidro espelhado
+  const NOBRE = { camburi: 1, orla: 1, centro: 0.4 };
+  for (const b of World.buildings) {
+    if (b.style !== 'office' || b.h < 70 || b.sign) continue;
+    const r = NOBRE[regionKeyAt(b.cx, b.cy)]; if (!r || hash2((b.x0 | 0) + 77, b.y1 | 0) > 0.6 * r) continue;
+    b.vidro = true; b.wall = hash2(b.x1 | 0, 31) < 0.5 ? '#3f6f8c' : '#4a7a72'; b.roofColor = '#5b6066'; b.lit = Math.min(b.lit, 0.45);
+  }
 }
 
 /* ---------- sombra de contato no pé das construções (dá volume, como luz batendo de cima) ---------- */

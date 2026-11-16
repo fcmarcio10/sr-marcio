@@ -82,3 +82,28 @@ Dia.desenhaNeblina = function (ctx, W, H) {
   }
   ctx.restore();
 };
+
+// sombras do sol: cada prédio projeta a própria sombra (contorno do prédio arrastado pelo chão), na direção
+// oposta ao sol; de manhã cedo e no fim da tarde ficam compridas, ao meio-dia curtas. Tudo numa pincelada só.
+Dia.sombrasSol = function (ctx, view) {
+  if (this.sol < 0.04 || Settings.quality === 'baixa') return;
+  const h = this.hora(), th = clamp(Math.PI * (h - 6) / 12, 0.08, Math.PI - 0.08);
+  const comp = 0.32 + 1.25 * Math.pow(1 - Math.sin(th), 1.4); // tamanho da sombra por altura
+  const dx = -Math.cos(th), dy = 0.5; // sol do leste de manhã, do oeste à tarde, um pouco ao norte (hemisfério sul)
+  const P = new Path2D(), m = 160 * comp + 40;
+  const hull = (pts) => { pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]); const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); const lo = [], up = []; for (const p of pts) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); } for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); } return lo.slice(0, -1).concat(up.slice(0, -1)); };
+  for (const b of World.buildings) {
+    if (b.x1 < view.x0 - m || b.x0 > view.x1 + m || b.y1 < view.y0 - m || b.y0 > view.y1 + m || b.h < 8) continue;
+    const L = b.h * comp, ox = dx * L, oy = dy * L;
+    const H = hull([[b.x0, b.y0], [b.x1, b.y0], [b.x1, b.y1], [b.x0, b.y1], [b.x0 + ox, b.y0 + oy], [b.x1 + ox, b.y0 + oy], [b.x1 + ox, b.y1 + oy], [b.x0 + ox, b.y1 + oy]]);
+    H.forEach((p, i) => (i ? P.lineTo(p[0], p[1]) : P.moveTo(p[0], p[1]))); P.closePath();
+  }
+  ctx.save(); ctx.fillStyle = `rgba(18,22,44,${(0.36 * this.sol).toFixed(3)})`; ctx.fill(P); ctx.restore();
+};
+// luz do sol de dia: um toque quente e mais contraste (estilo cinema), por cima de tudo
+Dia.luzSol = function (ctx, W, H) {
+  if (this.sol < 0.04 || Settings.quality === 'baixa') return;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'soft-light';
+  ctx.fillStyle = `rgba(255,200,130,${(0.42 * this.sol).toFixed(3)})`; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+};

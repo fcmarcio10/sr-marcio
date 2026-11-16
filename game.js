@@ -2779,6 +2779,13 @@ function elevaPredios() {
     if (h > 0.42 * r) continue;
     b.h = Math.min(150, Math.round(b.h * (1.35 + hash2(b.x1 | 0, b.y1 | 0) * 0.4)));
   }
+  // área nobre (Camburiso, orla e parte do Centrão): prédio comercial alto vira torre de vidro espelhado
+  const NOBRE = { camburi: 1, orla: 1, centro: 0.4 };
+  for (const b of World.buildings) {
+    if (b.style !== 'office' || b.h < 70 || b.sign) continue;
+    const r = NOBRE[regionKeyAt(b.cx, b.cy)]; if (!r || hash2((b.x0 | 0) + 77, b.y1 | 0) > 0.6 * r) continue;
+    b.vidro = true; b.wall = hash2(b.x1 | 0, 31) < 0.5 ? '#3f6f8c' : '#4a7a72'; b.roofColor = '#5b6066'; b.lit = Math.min(b.lit, 0.45);
+  }
 }
 
 /* ---------- sombra de contato no pé das construções (dá volume, como luz batendo de cima) ---------- */
@@ -8432,11 +8439,13 @@ function roofSprite(b) {
     for (let x = vx0 + 2; x < vx1 - 5; x += 6 + R() * 3) { g.fillStyle = clothes[(R() * clothes.length) | 0]; g.fillRect(x, vy, 4 + R() * 2, 4 + R() * 3); }
   }
   detalhesBR(b, g, w, h, occ);
-  if (b.sign) {
-    const fs = clamp(Math.min(w / (b.sign.length * 0.62), h * 0.42), 7, 22);
-    g.font = `800 ${fs}px "Segoe UI", Roboto, Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,0.75)'; g.strokeText(b.sign, w / 2, h / 2);
-    g.fillStyle = b.signColor; g.fillText(b.sign, w / 2, h / 2);
+  if (b.sign) { // placa de fachada: painel escuro com faixa na cor da loja e letra branca (perto da frente)
+    const P = placaLoja(b, w, h, g);
+    g.fillStyle = 'rgba(0,0,0,0.35)'; rrect(g, P.x + 1.5, P.y + 2, P.w, P.h, 2.5); g.fill();
+    g.fillStyle = '#15181e'; rrect(g, P.x, P.y, P.w, P.h, 2.5); g.fill();
+    g.fillStyle = b.signColor; g.fillRect(P.x + 2, P.y + P.h - 3, P.w - 4, 1.8);
+    g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = 0.8; rrect(g, P.x + 0.5, P.y + 0.5, P.w - 1, P.h - 1, 2.5); g.stroke();
+    g.fillStyle = '#f4f4f0'; g.fillText(b.sign, P.x + P.w / 2, P.y + P.h / 2 - 0.8);
   }
   b.roof = c;
   return c;
@@ -8479,17 +8488,32 @@ function detalhesBR(b, g, w, h, occ) {
   } else if ((b.roofType === 'flat' || !b.roofType) && b.h > 40) {
     // prédio: caixa d'água de fibra azul em cima
     poe(16, 16, (x, y) => { g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.arc(x + 9.5, y + 9.5, 7.5, 0, TAU); g.fill(); g.fillStyle = '#2f78c8'; g.beginPath(); g.arc(x + 8, y + 8, 7.5, 0, TAU); g.fill(); g.fillStyle = '#4f97e2'; g.beginPath(); g.arc(x + 7, y + 7, 4.3, 0, TAU); g.fill(); g.strokeStyle = '#1f5a9a'; g.lineWidth = 1; g.beginPath(); g.arc(x + 8, y + 8, 7.5, 0, TAU); g.stroke(); });
+    // laje de prédio de verdade: casa de máquinas do elevador, condensadoras de ar, placas solares e antena
+    poe(24, 18, (x, y) => { g.fillStyle = 'rgba(0,0,0,0.32)'; g.fillRect(x + 3, y + 4, 22, 16); g.fillStyle = shade(b.wall || '#cfcac0', -0.12); g.fillRect(x, y, 22, 16); g.fillStyle = 'rgba(255,255,255,0.18)'; g.fillRect(x, y, 22, 2); g.fillStyle = '#3a3e45'; g.fillRect(x + 8, y + 12, 6, 4); });
+    const nc = 2 + Math.floor(Q() * 4);
+    for (let k = 0; k < nc; k++) poe(11, 9, (x, y) => { g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x + 1.5, y + 2, 10, 8); g.fillStyle = '#d4d6d8'; g.fillRect(x, y, 10, 8); g.strokeStyle = '#6d7277'; g.lineWidth = 0.7; g.beginPath(); g.arc(x + 5, y + 4, 2.8, 0, TAU); g.moveTo(x + 2.2, y + 4); g.lineTo(x + 7.8, y + 4); g.stroke(); });
+    if (w > 70 && Q() < 0.6) poe(30, 18, (x, y) => { g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x + 2, y + 2, 30, 18); g.fillStyle = '#1d3a63'; g.fillRect(x, y, 30, 18); g.strokeStyle = 'rgba(160,200,240,0.55)'; g.lineWidth = 0.6; g.beginPath(); for (let k = 1; k < 5; k++) { g.moveTo(x + k * 6, y); g.lineTo(x + k * 6, y + 18); } g.moveTo(x, y + 9); g.lineTo(x + 30, y + 9); g.stroke(); g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(x, y, 30, 4); });
+    if (Q() < 0.5) poe(8, 8, (x, y) => { g.strokeStyle = '#8c9096'; g.lineWidth = 1; g.beginPath(); g.moveTo(x + 4, y + 8); g.lineTo(x + 4, y); g.moveTo(x, y + 2); g.lineTo(x + 8, y + 2); g.moveTo(x + 1, y + 5); g.lineTo(x + 7, y + 5); g.stroke(); });
   }
+}
+// tamanho e lugar da placa no telhado (mesma conta para o desenho e para o brilho de noite)
+function placaLoja(b, w, h, g) {
+  const fs = clamp(Math.min((w - 16) / (b.sign.length * 0.5), h * 0.22), 6, 13);
+  g.font = `700 ${fs}px "BRND Cond", "Arial Narrow", "Segoe UI", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const tw = Math.min(w - 8, g.measureText(b.sign).width + 14), ph = fs + 9;
+  const py = b.front === 'S' ? h - ph - 5 : b.front === 'N' ? 5 : (h - ph) / 2;
+  return { x: (w - tw) / 2, y: py, w: tw, h: ph, fs };
 }
 function signGlow(b) {
   if (b.glowSign) return b.glowSign;
   const w = Math.ceil(b.x1 - b.x0) + 20, h = Math.ceil(b.y1 - b.y0) + 20;
   const c = makeCanvas(w, h), g = c.getContext('2d');
-  const fs = clamp(Math.min((w - 20) / (b.sign.length * 0.62), (h - 20) * 0.42), 7, 22);
-  g.font = `800 ${fs}px "Segoe UI", Roboto, Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.shadowColor = b.signColor; g.shadowBlur = 10; g.fillStyle = b.signColor;
-  g.fillText(b.sign, w / 2, h / 2); g.fillText(b.sign, w / 2, h / 2);
-  g.shadowBlur = 0; g.globalAlpha = 0.85; g.fillStyle = '#ffffff'; g.fillText(b.sign, w / 2, h / 2);
+  g.translate(10, 10);
+  const P = placaLoja(b, w - 20, h - 20, g);
+  // de noite: a faixa e a letra acendem (brilho suave na cor da loja), nada de neon gigante
+  g.shadowColor = b.signColor; g.shadowBlur = 6; g.fillStyle = b.signColor; g.fillRect(P.x + 2, P.y + P.h - 3, P.w - 4, 1.8);
+  g.globalAlpha = 0.55; g.fillText(b.sign, P.x + P.w / 2, P.y + P.h / 2 - 0.8);
+  g.shadowBlur = 0; g.globalAlpha = 0.5; g.fillStyle = '#ffffff'; g.fillText(b.sign, P.x + P.w / 2, P.y + P.h / 2 - 0.8);
   b.glowSign = c;
   return c;
 }
@@ -8517,7 +8541,7 @@ function wsClear() { WS_CACHE.clear(); WS_K = RS >= 1.5 ? 2.5 : 1.6; }
 const WS_LINES = { warehouse: 1, barn: 1, container: 1, shed: 1 };
 function wallKey(b, side, len, Lb) {
   const ws = WIN_STYLES[b.style];
-  let k = b.style + '|' + b.wall + '|' + side + '|' + Lb + (b.front === side ? 'F' : '') + (b.brick ? 'B' : '');
+  let k = b.style + '|' + b.wall + '|' + side + '|' + Lb + (b.front === side ? 'F' : '') + (b.brick ? 'B' : '') + (b.vidro ? 'V' + Math.floor(b.h / 15) : '');
   if (WS_LINES[b.style]) k += '|' + Math.floor(len / 5);
   if (b.style === 'colonial') k += '|' + (b.seed % 2) + Math.floor(len / 18);
   if (b.style === 'apart') k += '|' + Math.floor(b.h / 15);
@@ -8680,6 +8704,28 @@ function janelasDetalhe(ctx, b, ax, ay, ex, ey, ox, oy, wins, big) {
     ctx.strokeStyle = 'rgba(40,40,44,0.7)'; ctx.lineWidth = WS_BAKE * 0.45; ctx.stroke(grade);
   }
 }
+// fachada de vidro espelhado (prédio chique): degradê do chão ao céu, reflexo diagonal, montantes e lajes
+function vidroFachada(ctx, b, ax, ay, bx, by, ox, oy) {
+  const P = (s, f) => [ax + (bx - ax) * s + ox * f, ay + (by - ay) * s + oy * f];
+  const quad = (s0, s1, f0, f1) => { const a = P(s0, f0), b2 = P(s1, f0), c = P(s1, f1), d = P(s0, f1); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b2[0], b2[1]); ctx.lineTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.closePath(); };
+  const g0 = P(0, 0), g1 = P(0, 1), gr = ctx.createLinearGradient(g0[0], g0[1], g1[0], g1[1]);
+  const dia = Dia.sol > 0.5;
+  gr.addColorStop(0, shade(b.wall, -0.35)); gr.addColorStop(0.6, b.wall); gr.addColorStop(1, dia ? '#a9cbe0' : shade(b.wall, 0.1));
+  ctx.fillStyle = gr; quad(0, 1, 0.02, 1); ctx.fill();
+  // reflexo do céu e dos prédios em frente (faixas diagonais claras)
+  ctx.fillStyle = dia ? 'rgba(255,255,255,0.16)' : 'rgba(170,200,230,0.07)';
+  for (const [s, l] of [[0.12, 0.1], [0.45, 0.05], [0.7, 0.14]]) { const a = P(s, 0.05), b2 = P(s + l, 0.05), c = P(s + l + 0.18, 0.98), d = P(s + 0.18, 0.98); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b2[0], b2[1]); ctx.lineTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.closePath(); ctx.fill(); }
+  // montantes verticais e lajes de cada andar
+  const len = WS_LEN || Math.hypot(bx - ax, by - ay), cols = Math.max(2, Math.floor(len / 9)), floors = Math.max(2, Math.floor(b.h / 12));
+  ctx.strokeStyle = 'rgba(20,28,36,0.55)'; ctx.lineWidth = WS_BAKE * 0.5; ctx.beginPath();
+  for (let c = 1; c < cols; c++) { const a = P(c / cols, 0.02), d = P(c / cols, 1); ctx.moveTo(a[0], a[1]); ctx.lineTo(d[0], d[1]); }
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(235,240,245,0.35)'; ctx.lineWidth = WS_BAKE * 0.6; ctx.beginPath();
+  for (let f = 1; f < floors; f++) { const a = P(0, f / floors), d = P(1, f / floors); ctx.moveTo(a[0], a[1]); ctx.lineTo(d[0], d[1]); }
+  ctx.stroke();
+  // base de pedra escura (térreo)
+  ctx.fillStyle = 'rgba(30,30,34,0.85)'; quad(0, 1, 0, 0.05); ctx.fill();
+}
 const SIDE_SHADE = { N: 0.04, W: -0.08, S: -0.3, E: -0.4 };
 function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
   ctx.fillStyle = shade(b.wall, SIDE_SHADE[side]);
@@ -8700,6 +8746,7 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
       for (let f = 0.12; f < 1; f += 0.11) { ctx.moveTo(ax + ox * f, ay + oy * f); ctx.lineTo(bx + ox * f, by + oy * f); }
       ctx.stroke();
     }
+    if (b.vidro) { vidroFachada(ctx, b, ax, ay, bx, by, ox, oy); return; }
     wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, false);
     if (b.style === 'colonial') {
       // janelas coloniais com venezianas coloridas
@@ -8732,7 +8779,7 @@ function drawBuilding(ctx, b) {
   const [ox, oy] = bldOffset(b);
   const { x0, y0, x1, y1 } = b;
   let alpha = 1;
-  if (b.alphaNear && player && player.x > x0 + ox - 10 && player.x < x1 + ox + 10 && player.y > y0 + oy - 10 && player.y < y1 + oy + 10) alpha = 0.4;
+  if (b.alphaNear && player && player.x > x0 + ox - 10 && player.x < x1 + ox + 10 && player.y > y0 + oy - 10 && player.y < y1 + oy + 10) alpha = 0.72; // só um leve transparente (antes 0.4)
   if (alpha < 1) ctx.globalAlpha = alpha;
   const dw = wsUse(ctx, b) ? wallFast : drawWall;
   if (ox > 0.3) dw(ctx, b, x0, y1, x0, y0, ox, oy, 'W'); else if (ox < -0.3) dw(ctx, b, x1, y0, x1, y1, ox, oy, 'E');
@@ -8812,7 +8859,7 @@ function drawTall(ctx, o) {
       const spr = treeSprite(o.type, o.v);
       const S = 64 * o.size * (o.type === 'bush' ? 0.55 : 1);
       let a = 1;
-      if (player && Game.state !== 'menu') { const d = Math.hypot(player.x - o.x - ox, player.y - o.y - oy); if (d < S * 0.45) a = 0.42; }
+      if (player && Game.state !== 'menu') { const d = Math.hypot(player.x - o.x - ox, player.y - o.y - oy); if (d < S * 0.32) a = 0.7; }
       if (a < 1) ctx.globalAlpha = a;
       if (o.type !== 'bush' && Math.hypot(ox, oy) > 3) { ctx.strokeStyle = '#3a2a1c'; ctx.lineWidth = 3 * o.size; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + ox * 0.8, o.y + oy * 0.8); ctx.stroke(); }
       ctx.drawImage(spr, o.x + ox - S / 2, o.y + oy + bv * 0.3 - S / 2, S, S);
@@ -8873,9 +8920,11 @@ function drawTall(ctx, o) {
       ctx.stroke();
       ctx.save();
       // carro embaixo da cobertura: abre um recorte em volta dele (o resto continua inteiro)
-      if (player && Game.state !== 'menu' && player.x > X - 30 && player.x < X + w + 30 && player.y > Y - 30 && player.y < Y + h + 30) {
-        ctx.beginPath(); ctx.rect(X - 2, Y - 2, w + 4, h + 4); ctx.moveTo(player.x + 42, player.y); ctx.arc(player.x, player.y, 42, 0, TAU, true); ctx.clip('evenodd');
-      }
+      // (círculo pequeno em volta do carro fica só um pouco transparente)
+      const embaixo = player && Game.state !== 'menu' && player.x > X - 30 && player.x < X + w + 30 && player.y > Y - 30 && player.y < Y + h + 30;
+      for (let passe = embaixo ? 0 : 1; passe < 2; passe++) {
+      ctx.save();
+      if (embaixo) { ctx.beginPath(); if (passe === 1) { ctx.rect(X - 2, Y - 2, w + 4, h + 4); ctx.moveTo(player.x + 26, player.y); ctx.arc(player.x, player.y, 26, 0, TAU, true); ctx.clip('evenodd'); } else { ctx.arc(player.x, player.y, 26, 0, TAU); ctx.clip(); ctx.globalAlpha = 0.6; } }
       // sombra própria (o telhado é mais alto que tudo em volta)
       ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(X + 5, Y + 7, w, h);
       // telhado: chapa branca com leve degradê e painéis de luz embutidos
@@ -8888,11 +8937,13 @@ function drawTall(ctx, o) {
       // logo redondo no meio (estrela ou gota) e o nome pequeno na testeira
       const lx = X + w / 2, ly = Y + h / 2;
       ctx.fillStyle = o.color; ctx.beginPath(); ctx.arc(lx, ly, 20, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.beginPath();
-      for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 6 : 13; ctx.lineTo(lx + Math.cos(a) * r, ly + Math.sin(a) * r); }
-      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); // gota de combustível (sem estrela)
+      ctx.moveTo(lx, ly - 12); ctx.bezierCurveTo(lx + 3, ly - 6, lx + 9, ly - 1, lx + 9, ly + 4); ctx.arc(lx, ly + 4, 9, 0, Math.PI); ctx.bezierCurveTo(lx - 9, ly - 1, lx - 3, ly - 6, lx, ly - 12); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = o.color; ctx.beginPath(); ctx.arc(lx - 3, ly + 5, 2.5, 0, TAU); ctx.fill();
       ctx.font = '800 9px "Segoe UI", Arial, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
       ctx.fillText(o.name.toUpperCase(), X + w / 2, Y + 6); ctx.fillText(o.name.toUpperCase(), X + w / 2, Y + h - 5.5);
+      ctx.restore();
+      }
       ctx.restore();
       break;
     }
@@ -9785,6 +9836,7 @@ function render() {
   Particles.draw(ctx);
   Agua.respingosCarro(ctx, view);
   Mata.copa(ctx, view); // copas na borda da mata (por cima do carro que encosta nela)
+  Dia.sombrasSol(ctx, view); // sombra dos prédios pelo sol (direção e tamanho pela hora)
   pm('vehicles');
   // objetos altos ordenados por distância à câmera (longe primeiro)
   rendGrid.query(view.x0 - 170, view.y0 - 170, view.x1 + 170, view.y1 + 170, _rq);
@@ -9832,6 +9884,7 @@ function render() {
   Weather.drawDrops(ctx);
   pm('drops');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  Dia.luzSol(ctx, W, Hh); // luz quente do sol de dia
   Dia.desenhaNeblina(ctx, W, Hh); // neblina na roça de madrugada
   Praia.desenha(ctx, W, Hh); // carro voltando do mar para a areia
   if (Cam.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${(Cam.flash * 0.6).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
@@ -13423,6 +13476,31 @@ Dia.desenhaNeblina = function (ctx, W, H) {
     g.addColorStop(0, `rgba(235,238,240,${(0.42 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(235,238,240,0)');
     ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
+  ctx.restore();
+};
+
+// sombras do sol: cada prédio projeta a própria sombra (contorno do prédio arrastado pelo chão), na direção
+// oposta ao sol; de manhã cedo e no fim da tarde ficam compridas, ao meio-dia curtas. Tudo numa pincelada só.
+Dia.sombrasSol = function (ctx, view) {
+  if (this.sol < 0.04 || Settings.quality === 'baixa') return;
+  const h = this.hora(), th = clamp(Math.PI * (h - 6) / 12, 0.08, Math.PI - 0.08);
+  const comp = 0.32 + 1.25 * Math.pow(1 - Math.sin(th), 1.4); // tamanho da sombra por altura
+  const dx = -Math.cos(th), dy = 0.5; // sol do leste de manhã, do oeste à tarde, um pouco ao norte (hemisfério sul)
+  const P = new Path2D(), m = 160 * comp + 40;
+  const hull = (pts) => { pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]); const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); const lo = [], up = []; for (const p of pts) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); } for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); } return lo.slice(0, -1).concat(up.slice(0, -1)); };
+  for (const b of World.buildings) {
+    if (b.x1 < view.x0 - m || b.x0 > view.x1 + m || b.y1 < view.y0 - m || b.y0 > view.y1 + m || b.h < 8) continue;
+    const L = b.h * comp, ox = dx * L, oy = dy * L;
+    const H = hull([[b.x0, b.y0], [b.x1, b.y0], [b.x1, b.y1], [b.x0, b.y1], [b.x0 + ox, b.y0 + oy], [b.x1 + ox, b.y0 + oy], [b.x1 + ox, b.y1 + oy], [b.x0 + ox, b.y1 + oy]]);
+    H.forEach((p, i) => (i ? P.lineTo(p[0], p[1]) : P.moveTo(p[0], p[1]))); P.closePath();
+  }
+  ctx.save(); ctx.fillStyle = `rgba(18,22,44,${(0.36 * this.sol).toFixed(3)})`; ctx.fill(P); ctx.restore();
+};
+// luz do sol de dia: um toque quente e mais contraste (estilo cinema), por cima de tudo
+Dia.luzSol = function (ctx, W, H) {
+  if (this.sol < 0.04 || Settings.quality === 'baixa') return;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'soft-light';
+  ctx.fillStyle = `rgba(255,200,130,${(0.42 * this.sol).toFixed(3)})`; ctx.fillRect(0, 0, W, H);
   ctx.restore();
 };
 /* ============================ SALVAMENTOS, TECLAS, CONTROLE E LEGENDAS ============================
