@@ -6474,7 +6474,7 @@ const PH_ICONS = {
 const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
-  const tr = ['pegaai', 'fretes', 'racha', 'camera', 'colecao'].includes(id) && !liberado(id); // ainda não liberado pela história: cadeado
+  const tr = ['fretes', 'racha', 'camera', 'colecao'].includes(id) && !liberado(id); // PegaAí sempre liberado (faz parte da primeira missão) // ainda não liberado pela história: cadeado
   return `<button class="ph-app${tr ? ' ph-trancado' : ''}" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge && !tr ? `<i class="ph-badge">${badge}</i>` : ''}${tr ? '<i class="ph-cadeado"><svg viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3h1v11H6V10h1zm2 0h6V7a3 3 0 0 0-6 0v3z"/></svg></i>' : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
 }
 // papéis de parede: paisagens de São Gambiarra e arredores (e a bandeira), desenhadas em SVG
@@ -6607,8 +6607,8 @@ const Phone = {
       const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
       // tela inicial simples (nov/2026): hora grande, uma grade com os apps e a barra de baixo; sem caixinhas nem textos
       html = `<div class="ph-lock simples"><div class="ph-time">${clockStr()}</div><div class="ph-date">${wl ? H(wl) + ' · ' : ''}${temp}° · R$ ${fmtMoney(Profile.money)}</div></div>` +
-        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'conquistas', 'camera', 'colecao'].concat(CHEATS_ENABLED && modoDono() ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
-        '<div class="ph-dock">' + ['mapa', 'msgs', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
+        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'camera', 'colecao'].concat(CHEATS_ENABLED && modoDono() ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
+        '<div class="ph-dock">' + ['mapa', 'msgs', 'conquistas', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
         `<div class="aj-group"><div class="aj-prof"><span class="aj-ava">${PERA_LOGO}</span><div><b>Motorista de São Gambiarra</b><small>Pera ID · Nuvem Gambiarra</small></div></div></div>` +
@@ -6720,7 +6720,7 @@ const Phone = {
   },
   click(e) {
     const t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.app) { const ap = t.dataset.app; if (['pegaai', 'fretes', 'racha', 'camera', 'colecao'].includes(ap) && !liberado(ap)) { AudioSys.error(); toast(PH_APPS[ap], ap === 'pegaai' ? 'O Seu Zé libera no passo a passo.' : travaTexto(ap) + '.', 'info'); return; } this.go(ap); return; }
+    if (t.dataset.app) { const ap = t.dataset.app; if (['fretes', 'racha', 'camera', 'colecao'].includes(ap) && !liberado(ap)) { AudioSys.error(); toast(PH_APPS[ap], ap === 'pegaai' ? 'O Seu Zé libera no passo a passo.' : travaTexto(ap) + '.', 'info'); return; } this.go(ap); return; }
     if (t.dataset.foto) { Colecao.fotografa(); return; }
     if (t.dataset.mz) { if (phoneMap) mapCtrl(phoneMap, t.dataset.mz); return; }
     if (t.dataset.sos) { if (t.dataset.sos === 'cancel') socorroCancel(); else socorroCall(t.dataset.sos); phoneTone(1760, 0.05, 0.04); this.render(); return; }
@@ -11127,7 +11127,10 @@ const UI = {
 };
 function toast(title, text, kind) {
   const box = $('toasts');
-  const d = document.createElement('div');
+  // aviso igual que ainda está na tela não repete (ex.: duas mensagens iguais seguidas)
+  const chave = title + '|' + (text || '');
+  for (const o of box.children) if (o.dataset.k === chave && !o.classList.contains('out')) return;
+  const d = document.createElement('div'); d.dataset.k = chave;
   d.className = 'toast ' + (kind || '');
   const b = document.createElement('b'); b.textContent = title; d.appendChild(b);
   if (text) d.appendChild(document.createTextNode(text));
@@ -11708,7 +11711,7 @@ const Tutorial = {
   // aviso grande no meio da tela anunciando o passo (some sozinho e deixa a caixa de baixo)
   popup(st) {
     const n = TUT_STEPS.indexOf(st) + 1, h = typeof st.html === 'function' ? st.html() : st.html;
-    Missao.ajuda(`<div class="ms-ajuda-tit">Passo ${n} de ${TUT_STEPS.length} · ${escapeHtml(st.titulo || '')}</div>${h}`, 8);
+    Missao.ajuda(`<div class="ms-ajuda-tit">Passo ${n} de ${TUT_STEPS.length}</div><b>${escapeHtml(st.titulo || '')}</b>`, 6); // só o título: a instrução fica na legenda do Seu Zé (sem repetir)
   },
   // seta pulando em cima do lugar certo (no chão do jogo)
   desenha(ctx, view) {
@@ -12058,7 +12061,7 @@ const Historia = {
     Apresenta.comeca(recomeco ? [] : lugaresDoCapitulo(i), () => {
       if (Game.mode !== 'play') return;
       Missao.titulo(i >= CAP_FINAL ? 'O final' : 'Capítulo ' + (i + 1) + ' de ' + CAP_FINAL, c.nome, recomeco ? 'Tentando de novo.' : HIST_PORQUE[i]);
-      setTimeout(() => { if (Game.mode === 'play') Missao.legenda(c.leg, 8); }, 6800);
+      // (sem legenda do objetivo: o quadro de missão no topo já mostra)
       const lib = recomeco ? [] : Object.keys(LIBERA).filter((k) => LIBERA[k] === i).map((k) => LIBERA_NOME[k]);
       const dica = (lib.length ? '<div class="ms-ajuda-tit">Liberado</div><b>' + lib.join('</b> · <b>') + '</b><br>' : '') + (c.dica || '');
       if (dica) setTimeout(() => { if (Game.mode === 'play') Missao.ajuda(dica, 10); }, 7400);
@@ -12672,6 +12675,10 @@ function startPlay() {
 function withTransit(fn) {
   const el = $('transit'), fill = $('transit-fill'), txt = $('transit-text');
   if (!el) { fn(); return; }
+  // na versão do navegador não tem a tela de carregar entre o menu e o jogo (o app do Windows continua com ela);
+  // os testes automáticos continuam usando a tela (navigator.webdriver)
+  const desktop = !!(window.brnd && window.brnd.desktop);
+  if (!desktop && !navigator.webdriver) { Game.carregando = false; Game.posCarga = 0; fn(); return; }
   const MSG = ['Procurando a chave…', 'Ligando o motor…', 'Esquentando o óleo…', 'Ajustando o retrovisor…', 'Acordando a cidade…', 'Acendendo os postes…', 'Chamando o trânsito…', 'Bora rodar!'];
   // 3 dicas diferentes, uma a cada 2 segundos
   const tips = LOAD_TIPS.slice().sort(() => Math.random() - 0.5).slice(0, 3), tipEl = $('transit-tip');

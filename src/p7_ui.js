@@ -24,7 +24,10 @@ const UI = {
 };
 function toast(title, text, kind) {
   const box = $('toasts');
-  const d = document.createElement('div');
+  // aviso igual que ainda está na tela não repete (ex.: duas mensagens iguais seguidas)
+  const chave = title + '|' + (text || '');
+  for (const o of box.children) if (o.dataset.k === chave && !o.classList.contains('out')) return;
+  const d = document.createElement('div'); d.dataset.k = chave;
   d.className = 'toast ' + (kind || '');
   const b = document.createElement('b'); b.textContent = title; d.appendChild(b);
   if (text) d.appendChild(document.createTextNode(text));
@@ -605,7 +608,7 @@ const Tutorial = {
   // aviso grande no meio da tela anunciando o passo (some sozinho e deixa a caixa de baixo)
   popup(st) {
     const n = TUT_STEPS.indexOf(st) + 1, h = typeof st.html === 'function' ? st.html() : st.html;
-    Missao.ajuda(`<div class="ms-ajuda-tit">Passo ${n} de ${TUT_STEPS.length} · ${escapeHtml(st.titulo || '')}</div>${h}`, 8);
+    Missao.ajuda(`<div class="ms-ajuda-tit">Passo ${n} de ${TUT_STEPS.length}</div><b>${escapeHtml(st.titulo || '')}</b>`, 6); // só o título: a instrução fica na legenda do Seu Zé (sem repetir)
   },
   // seta pulando em cima do lugar certo (no chão do jogo)
   desenha(ctx, view) {

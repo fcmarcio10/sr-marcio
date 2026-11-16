@@ -1454,3 +1454,4 @@ body.cinema #hud-objective { display: none !important; }
 #phone-body.home .ph-grid.simples .ph-ico svg, #phone-body.home .ph-dock .ph-ico svg { width: 30px; height: 30px; }
 #phone-body.home .ph-grid.simples .ph-app, #phone-body.home .ph-dock .ph-app { min-width: 0; }
 #phone-body.home .ph-grid.simples .ph-lbl, #phone-body.home .ph-dock .ph-lbl { font-size: 10px; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#phone-body.home .ph-dock { grid-template-columns: repeat(4, 1fr); }

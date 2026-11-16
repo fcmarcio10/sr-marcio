@@ -108,7 +108,7 @@ const Historia = {
     Apresenta.comeca(recomeco ? [] : lugaresDoCapitulo(i), () => {
       if (Game.mode !== 'play') return;
       Missao.titulo(i >= CAP_FINAL ? 'O final' : 'Capítulo ' + (i + 1) + ' de ' + CAP_FINAL, c.nome, recomeco ? 'Tentando de novo.' : HIST_PORQUE[i]);
-      setTimeout(() => { if (Game.mode === 'play') Missao.legenda(c.leg, 8); }, 6800);
+      // (sem legenda do objetivo: o quadro de missão no topo já mostra)
       const lib = recomeco ? [] : Object.keys(LIBERA).filter((k) => LIBERA[k] === i).map((k) => LIBERA_NOME[k]);
       const dica = (lib.length ? '<div class="ms-ajuda-tit">Liberado</div><b>' + lib.join('</b> · <b>') + '</b><br>' : '') + (c.dica || '');
       if (dica) setTimeout(() => { if (Game.mode === 'play') Missao.ajuda(dica, 10); }, 7400);

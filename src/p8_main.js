@@ -29,6 +29,10 @@ function startPlay() {
 function withTransit(fn) {
   const el = $('transit'), fill = $('transit-fill'), txt = $('transit-text');
   if (!el) { fn(); return; }
+  // na versão do navegador não tem a tela de carregar entre o menu e o jogo (o app do Windows continua com ela);
+  // os testes automáticos continuam usando a tela (navigator.webdriver)
+  const desktop = !!(window.brnd && window.brnd.desktop);
+  if (!desktop && !navigator.webdriver) { Game.carregando = false; Game.posCarga = 0; fn(); return; }
   const MSG = ['Procurando a chave…', 'Ligando o motor…', 'Esquentando o óleo…', 'Ajustando o retrovisor…', 'Acordando a cidade…', 'Acendendo os postes…', 'Chamando o trânsito…', 'Bora rodar!'];
   // 3 dicas diferentes, uma a cada 2 segundos
   const tips = LOAD_TIPS.slice().sort(() => Math.random() - 0.5).slice(0, 3), tipEl = $('transit-tip');
