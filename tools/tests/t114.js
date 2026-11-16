@@ -29,7 +29,7 @@ const { chromium } = require('playwright');
   await p.evaluate(() => { Screens.open && Screens.open('screen-pause'); });
   console.log(JSON.stringify({ durante, depois, m0, c1, abre2, c2, fim }));
   const ok = durante.carregando && !durante.toasts && !durante.tut && !durante.voz && !durante.radio && !depois.carregando && depois.tut && /Passo 1/.test(depois.pop) && !depois.radio && !depois.boasVindas && !depois.vozZap
-    && c1.cap === 1 && c1.money >= m0 + 200 && /Missão cumprida/.test(c1.passou) && /Capítulo 2/.test(abre2.pop) && /5 corridas/.test(abre2.leg) && /online/.test(abre2.ajuda) && abre2.tag === 'HISTÓRIA' && /Capítulo 2/.test(abre2.titulo) && abre2.msg && c2 === 2 && fim.fim && /História concluída/.test(fim.pop);
+    && c1.cap === 1 && c1.money >= m0 + 200 && /Missão cumprida/.test(c1.passou) && /Capítulo 2/.test(abre2.pop) && /5 corridas/.test(abre2.leg) && /online/.test(abre2.ajuda) && /MISSÃO/.test(abre2.tag) && /Ganha-pão/.test(abre2.titulo) && abre2.msg && c2 === 2 && fim.fim && /História concluída/.test(fim.pop);
   console.log(ok ? 'OK: espera o carregamento, rádio desligada, tutorial e história' : 'FALHOU');
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();

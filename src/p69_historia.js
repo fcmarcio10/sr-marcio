@@ -58,7 +58,10 @@ const Historia = {
   hud() {
     const h = this.h(), c = this.cap(); if (!c || h.cap === 0) return null;
     const f = Math.min(c.alvo, this.feito());
-    return [capNome(h.cap) + ' · ' + c.nome, c.meta, c.extra ? c.extra() : (c.alvo > 1 ? f + ' de ' + c.alvo : 'Falta pouco') + (c.premio ? ' · prêmio R$ ' + fmtMoney(c.premio) : '')];
+    let det = c.extra ? c.extra() : c.alvo > 1 ? f + ' de ' + c.alvo : '';
+    if (h.cap === 6 && !rachaOpen()) det = 'o racha abre às 22h (agora ' + clockStr() + ')';
+    if (h.cap === 5 && Events.cur && Events.cur.opalha && !Events.cur.over) det = 'siga o ponto rosa e aperte E';
+    return [c.nome, c.meta, (det ? det + ' · ' : '') + (c.premio ? 'prêmio R$ ' + fmtMoney(c.premio) : '')];
   },
   update(dt) {
     this.rastro();
@@ -138,7 +141,7 @@ const Historia = {
   // rastreador no canto (embaixo do nome do bairro): o que fazer agora e quanto falta
   rastro() {
     const h = Profile.hist, el = $('missao-trk');
-    const mostra = h && !h.fim && h.cap > 0 && Game.mode === 'play' && !Apresenta.on && carregou(1);
+    const mostra = false; // substituído pelo quadro de objetivo (só em missão)
     if (!el) return;
     el.classList.toggle('hidden', !mostra); document.body.classList.toggle('com-trk', !!mostra);
     if (!mostra) return;

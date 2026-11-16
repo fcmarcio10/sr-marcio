@@ -11175,7 +11175,7 @@ function ajustaCelular() {
   const d = $('hud-dash'), ph = document.querySelector('#screen-phone .phone'); if (!d || !ph) return;
   const dw = d.offsetWidth || 240, h = ph.offsetHeight || 640, livre = window.innerHeight - 18 - 96; // do chão até abaixo do quadro de objetivo
   document.documentElement.style.setProperty('--dash-w', dw + 'px');
-  document.documentElement.style.setProperty('--ph-s', (clamp(livre / h, 0.45, 0.85) * 0.75).toFixed(3)); // 25% menor (nov/2026)
+  document.documentElement.style.setProperty('--ph-s', (clamp(livre / h, 0.45, 0.85) * 0.81).toFixed(3)); // 25% menor e depois 8% maior (nov/2026)
 }
 window.addEventListener('resize', () => { if (Screens.current === 'screen-phone') ajustaCelular(); });
 function updateHudVisibility() {
@@ -11792,18 +11792,20 @@ function updateHUD(dt) {
     meta = Math.round(dist * 0.09) + ' m · ' + (left > 0 ? 'prazo ' + fmtTime(left).replace(/\.\d$/, '') : 'atrasado') + ' · R$ ' + fmtMoney(d.reward);
   } else if (Events.cur && Events.cur.stage !== 'wait' && Events.hud()) {
     const h = Events.hud(); title = h[0]; desc = h[1]; meta = h[2]; cls = 'event';
-  } else if (Act.waypoint) {
+  } else if (Act.waypoint && !(Historia.ativa() && Historia.hud())) {
     title = 'Destino no GPS'; desc = 'Siga as setas verdes no chão.';
     meta = Math.round((Act.gps ? Act.gps.len : 0) * 0.09) + ' m';
   } else if (Events.hud()) { const h = Events.hud(); title = h[0]; desc = h[1]; meta = h[2]; cls = 'event'; }
-  else { const hs = (Profile.fuel >= 22 && Profile.damage <= 55) && Historia.hud(); if (hs) { title = hs[0]; desc = hs[1]; meta = hs[2]; cls = 'historia'; } else { const h = freeRoamHint(); title = h[0]; desc = h[1]; } }
-  UI.set('obj-tag', cls === 'historia' ? 'HISTÓRIA' : 'OBJETIVO');
+  else { const hs = (Profile.fuel >= 22 && Profile.damage <= 55) && Historia.hud(); if (hs) { title = hs[0]; desc = hs[1]; meta = hs[2] + (Act.gps && Act.waypoint ? ' · ' + Math.round(Act.gps.len * 0.09) + ' m no GPS' : ''); cls = 'historia'; } else { const h = freeRoamHint(); title = h[0]; desc = h[1]; } }
+  // quadro de objetivo só em missão, entrega, corrida, percurso ou evento (na exploração livre a tela fica limpa)
+  { const h = Profile.hist, tag = cls === 'historia' ? 'MISSÃO · ' + capNome(h ? h.cap : 0).toUpperCase() : cls === 'race' ? (Act.race && Act.race.racha ? 'RACHA' : 'PERCURSO') : cls === 'event' ? 'EVENTO' : Act.ride ? 'CORRIDA' : Act.delivery ? 'ENTREGA' : 'OBJETIVO';
+    UI.set('obj-tag', tag); document.body.classList.toggle('obj-on', !!cls && !Apresenta.on); }
   UI.set('obj-title', title); UI.set('obj-desc', desc); UI.set('obj-meta', meta);
   if (UI.last.objcls !== cls) { UI.last.objcls = cls; $('hud-objective').className = 'glass ' + cls; }
   // tela limpa: o quadro de objetivo não aparece mais; quando o objetivo muda, ele vem como legenda embaixo (uma vez)
   if (cls && cls !== 'historia') {
     const key = cls + '|' + title + '|' + (cls === 'race' ? '' : desc);
-    if (key !== UI.last.objKey) { UI.last.objKey = key; if (telaLivre() && !Apresenta.on) Missao.legenda(objLegenda(title, desc), 6); }
+    if (key !== UI.last.objKey) { UI.last.objKey = key; } // o quadro de objetivo já mostra (sem legenda repetida)
   } else UI.last.objKey = '';
   // aviso de prazo acabando (entrega e corrida com hora marcada)
   { const D = Act.delivery, R = Act.ride;
@@ -12006,7 +12008,10 @@ const Historia = {
   hud() {
     const h = this.h(), c = this.cap(); if (!c || h.cap === 0) return null;
     const f = Math.min(c.alvo, this.feito());
-    return [capNome(h.cap) + ' · ' + c.nome, c.meta, c.extra ? c.extra() : (c.alvo > 1 ? f + ' de ' + c.alvo : 'Falta pouco') + (c.premio ? ' · prêmio R$ ' + fmtMoney(c.premio) : '')];
+    let det = c.extra ? c.extra() : c.alvo > 1 ? f + ' de ' + c.alvo : '';
+    if (h.cap === 6 && !rachaOpen()) det = 'o racha abre às 22h (agora ' + clockStr() + ')';
+    if (h.cap === 5 && Events.cur && Events.cur.opalha && !Events.cur.over) det = 'siga o ponto rosa e aperte E';
+    return [c.nome, c.meta, (det ? det + ' · ' : '') + (c.premio ? 'prêmio R$ ' + fmtMoney(c.premio) : '')];
   },
   update(dt) {
     this.rastro();
@@ -12086,7 +12091,7 @@ const Historia = {
   // rastreador no canto (embaixo do nome do bairro): o que fazer agora e quanto falta
   rastro() {
     const h = Profile.hist, el = $('missao-trk');
-    const mostra = h && !h.fim && h.cap > 0 && Game.mode === 'play' && !Apresenta.on && carregou(1);
+    const mostra = false; // substituído pelo quadro de objetivo (só em missão)
     if (!el) return;
     el.classList.toggle('hidden', !mostra); document.body.classList.toggle('com-trk', !!mostra);
     if (!mostra) return;

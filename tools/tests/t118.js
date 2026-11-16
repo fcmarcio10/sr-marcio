@@ -12,7 +12,7 @@ const { chromium } = require('playwright');
   await p.waitForTimeout(2000);
   await p.evaluate(() => { Profile.tut = TUT_STEPS.length; Profile.hist.cap = 2; Profile.hist.base = Profile.deliveries || 0; Profile.hist.apres = true; Historia.abre(2); });
   await p.waitForTimeout(1500);
-  const r1 = await p.evaluate(() => ({ trk: !document.getElementById('missao-trk').classList.contains('hidden'), txt: document.getElementById('missao-trk').textContent, hist: (document.getElementById('ms-titulo') || {}).textContent, gps: Act.waypoint && Act.waypoint.label }));
+  const r1 = await p.evaluate(() => ({ trk: document.body.classList.contains('obj-on'), txt: document.getElementById('hud-objective').textContent, hist: (document.getElementById('ms-titulo') || {}).textContent, gps: Act.waypoint && Act.waypoint.label }));
   await p.screenshot({ path: 't118_rastro.png' });
   // faz uma entrega e desiste
   await p.evaluate(() => { Profile.deliveries = (Profile.deliveries || 0) + 1; });
@@ -27,7 +27,7 @@ const { chromium } = require('playwright');
   // no racha: desistir devolve o Opalha emprestado
   await p.evaluate(() => { Profile.hist.cap = 6; Profile.hist.juninho = true; Historia.abre(6); });
   await p.waitForTimeout(1500);
-  const r5 = await p.evaluate(() => ({ carro: Profile.current, trk: document.getElementById('missao-trk').textContent }));
+  const r5 = await p.evaluate(() => ({ carro: Profile.current, trk: document.getElementById('hud-objective').textContent }));
   await p.evaluate(() => abandonActivity()); await p.waitForTimeout(800);
   const r6 = await p.evaluate(() => ({ carro: Profile.current, emp: !!Profile.emprestimo }));
   await p.waitForTimeout(7000);

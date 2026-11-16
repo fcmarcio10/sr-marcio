@@ -1437,3 +1437,20 @@ body.cinema #missao-trk { opacity: 0; }
 #phone-body.home .ph-grid.simples .ph-lbl, #phone-body.home .ph-dock .ph-lbl { font-size: 10px; margin-top: 5px; opacity: 0.9; }
 .aj-sec { font: 600 12px/1 -apple-system, "Segoe UI", sans-serif; color: rgba(255, 255, 255, 0.55); text-transform: uppercase; letter-spacing: 0.06em; margin: 14px 4px 8px; }
 .aj-walls.cores span { background-size: cover; }
+/* quadro de objetivo de volta, só em missão/entrega/corrida/percurso/evento (body.obj-on) */
+#hud-objective { display: none !important; }
+body.obj-on #hud-objective { display: block !important; animation: objEntra 0.35s cubic-bezier(.2, .9, .3, 1) backwards; }
+@keyframes objEntra { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; } }
+#hud-objective.historia { border-top-color: #f0c850; box-shadow: 0 0 0 1px rgba(240, 200, 80, 0.35), 0 8px 24px rgba(0, 0, 0, 0.45); }
+#hud-objective.historia .tag { background: #f0c850; }
+body.cinema #hud-objective { display: none !important; }
+/* barra de botões do celular: bolinha cheia, seta mais grossa, os dois mais perto do centro */
+.phone-nav { padding-left: 59px !important; padding-right: 59px !important; }
+.pn-dot { background: rgba(255, 255, 255, 0.92); border: 0; width: 15px; height: 15px; }
+.pn-seta { border-left-width: 3.4px; border-bottom-width: 3.4px; width: 12px; height: 12px; }
+/* ícones cabendo certinho na largura do celular (4 por linha) */
+#phone-body.home .ph-grid.simples { gap: 18px 2px; padding: 0 2px; }
+#phone-body.home .ph-grid.simples .ph-ico, #phone-body.home .ph-dock .ph-ico { width: 56px; height: 56px; border-radius: 15px; }
+#phone-body.home .ph-grid.simples .ph-ico svg, #phone-body.home .ph-dock .ph-ico svg { width: 30px; height: 30px; }
+#phone-body.home .ph-grid.simples .ph-app, #phone-body.home .ph-dock .ph-app { min-width: 0; }
+#phone-body.home .ph-grid.simples .ph-lbl, #phone-body.home .ph-dock .ph-lbl { font-size: 10px; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

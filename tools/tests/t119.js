@@ -27,7 +27,7 @@ const { chromium } = require('playwright');
   await p.screenshot({ path: 't119_celular.png' });
   console.log(JSON.stringify({ carregando, depois, caps, fim, cel, wall }));
   const ok = carregando.c && carregando.vol < 0.05 && depois > 0.3 && caps[1].faixa && /Missão cumprida/.test(caps[1].faixa) && fim.fim && fim.n === 7 && fim.juninho && fim.carro === 'pampeiro' && fim.preco === 29000
-    && cel.s > 0 && cel.s < 0.66 && cel.dono === 1 && /gradient/.test(wall.bg) && wall.cores >= 5;
+    && cel.s > 0 && cel.s < 0.72 && cel.dono === 1 && /gradient/.test(wall.bg) && wall.cores >= 5;
   console.log(ok ? 'OK: pular missão, fim no racha, celular menor e silêncio no carregamento' : 'FALHOU');
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();
