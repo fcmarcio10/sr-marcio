@@ -148,9 +148,3 @@ function colecaoHTML() {
   h += card('f', '<div class="col-hint">Use o app Câmera perto dos pontos turísticos.</div>');
   return h;
 }
-// uma linha explicando cada app (embaixo do título)
-const PH_DESC = {
-  mapa: 'Veja a cidade e marque um destino no GPS.', msgs: 'Conversas com o Seu Zé, o Seu Biu e o banco.', pegaai: 'Fique online, aceite corridas e leve passageiros.',
-  fretes: 'Entregas e cargas. Um frete por vez.', carteira: 'Seu dinheiro, contas e empréstimo.', racha: 'Corridas de madrugada valendo dinheiro.',
-  conquistas: 'Desafios cumpridos e os prêmios de cada um.', ajustes: 'Som, mensagens, notificações e papel de parede.',
-};
