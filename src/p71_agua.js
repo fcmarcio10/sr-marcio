@@ -277,15 +277,44 @@ Agua.atualiza = function (dt) {
   if (!molhado) this.bateu = false;
   this.molhaCarro = molhado ? Math.min(1, (this.molhaCarro || 0) + dt * 3) : Math.max(0, (this.molhaCarro || 0) - dt * 1.2);
 };
+// espuma só onde a água está de fato encostando, seguindo o desenho do carro (carroceria e rodas: roda tala larga
+// aparece para fora e a espuma contorna ela também). Feito numa telinha à parte: contorno largo menos o carro, recortado pela água.
+Agua.contornoMolhado = function (ctx) {
+  const m = player.m, K = carKit(player.car.id), Q = 3, S = Math.ceil(m.L + 26), N = S * Q;
+  const cv = this._cv || (this._cv = document.createElement('canvas'));
+  if (cv.width !== N) { cv.width = cv.height = N; }
+  const g = cv.getContext('2d'), x0 = player.x - S / 2, y0 = player.y - S / 2, T = Game.time;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, N, N);
+  // silhueta do carro (mesma conta de drawCar: rodas com a largura do kit)
+  const hl = m.L / 2, hw = m.W / 2, wl = m.L * 0.2, xf = hl - m.L * 0.215, xr = -hl + m.L * 0.2;
+  const tw = K && K.wheels === 'tala' ? 6.6 : 5, wy = K && K.low ? 2.4 : 1.6, tww = K && K.low ? tw * 0.82 : tw;
+  const forma = (fn) => {
+    g.save(); g.setTransform(Q, 0, 0, Q, 0, 0); g.translate(S / 2, S / 2); g.rotate(player.a);
+    fn(bodyPath(m));
+    const rodas = new Path2D();
+    for (const x of [xf, xr]) for (const sy of [-1, 1]) rodas.rect(x - wl / 2, sy * (hw - wy) - tww / 2, wl, tww);
+    fn(rodas);
+    g.restore();
+  };
+  // contorno: um largo e macio e um fino mais forte, que mexem um pouco (água batendo)
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  g.strokeStyle = 'rgba(235,245,250,0.4)'; g.lineWidth = 6 + Math.sin(T * 5) * 1.2; forma((p) => g.stroke(p));
+  g.strokeStyle = 'rgba(248,252,255,0.9)'; g.lineWidth = 3 + Math.sin(T * 7 + 1) * 0.6; forma((p) => g.stroke(p));
+  // tira o que ficou em cima do carro: a espuma só fica do lado de fora
+  g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; forma((p) => g.fill(p));
+  // e só onde a água chegou (da ponta da onda para o lado do mar)
+  g.globalCompositeOperation = 'destination-in'; g.setTransform(Q, 0, 0, Q, -x0 * Q, -y0 * Q);
+  g.beginPath(); g.moveTo(x0 - 2, y0 + S + 2);
+  for (let x = x0 - 2; x <= x0 + S + 2; x += 3) { const P = this.pontaY(x); g.lineTo(x, P ? P.y + Math.sin(x * 0.4 + T * 3) * 0.6 : y0 + S + 4); }
+  g.lineTo(x0 + S + 2, y0 + S + 2); g.closePath(); g.fill();
+  g.globalCompositeOperation = 'source-over'; g.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = this.molhaCarro; ctx.drawImage(cv, x0, y0, S, S); ctx.globalAlpha = 1;
+};
 // espuminha e a água lambendo o pneu (desenhado por cima do carro)
 Agua.respingosCarro = function (ctx) {
   if (!player || (!this.espuma.length && !(this.molhaCarro > 0.02))) return;
   ctx.save();
-  if (this.molhaCarro > 0.02) { // anel de espuma em volta do carro enquanto a água está nele
-    const T = Game.time;
-    ctx.globalAlpha = 0.5 * this.molhaCarro; ctx.strokeStyle = '#eef6fa'; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.ellipse(player.x, player.y, player.m.L / 2 + 3 + Math.sin(T * 5) * 1.2, player.m.W / 2 + 3 + Math.cos(T * 4) * 1, player.a, 0, TAU); ctx.stroke();
-  }
+  if (this.molhaCarro > 0.02) this.contornoMolhado(ctx);
   ctx.fillStyle = '#f4fafd';
   for (const f of this.espuma) { ctx.globalAlpha = 0.85 * (1 - f.t / f.vida); ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 + f.t * 0.8), 0, TAU); ctx.fill(); }
   ctx.restore();
