@@ -186,18 +186,23 @@
     // velocidade alvo: curvas, carro na frente, gente atravessando e o fim do caminho
     const h = (s) => { const a = at(R, s), b = at(R, s + 12); return Math.atan2(b[1] - a[1], b[0] - a[0]); };
     let curva = 0; for (let d = 10; d <= 130; d += 30) curva = Math.max(curva, Math.abs(ang(h(R.s + d) - h(R.s))) * (1 - d / 260));
-    let v = R.vel * (1 - Math.min(1, curva / 1.2) * 0.62);
+    let v = R.vel * (1 - Math.min(1, curva / 1.2) * 0.62); const vAntes = v;
     const ha = h(R.s);
     for (const a of Traffic.cars) {
       const dx = a.x - p.x, dy = a.y - p.y, u = dx * Math.cos(ha) + dy * Math.sin(ha), l = Math.abs(-dx * Math.sin(ha) + dy * Math.cos(ha));
-      if (u > 0 && u < 150 && l < 18) v = Math.min(v, Math.max(0, (a.v || 0) * 0.9 + (u - 55) * 1.6));
+      if (u > 0 && u < 150 && l < 18 && !(R.ignora > 0)) v = Math.min(v, Math.max(0, (a.v || 0) * 0.9 + (u - 55) * 1.6));
       if (Math.hypot(dx, dy) < 40) a.ghost = 2;
     }
     for (const a of Animals.list) {
-      if (a.morto || a.oculto) continue;
+      if (a.morto || a.oculto || R.ignora > 0) continue;
+      if (R.alvo && Math.hypot(a.x - R.alvo[0], a.y - R.alvo[1]) < 90) continue; // quem está esperando no destino
       const dx = a.x - p.x, dy = a.y - p.y, u = dx * Math.cos(ha) + dy * Math.sin(ha), l = Math.abs(-dx * Math.sin(ha) + dy * Math.cos(ha));
       if (u > 0 && u < 130 && l < 20) v = Math.min(v, Math.max(0, (u - 40) * 1.4));
     }
+    // esperando alguém sair da frente há muito tempo: passa devagar (o carro/pessoa vira "fantasma")
+    if (v < 12 && vAntes > 40 && Math.abs(vf) < 12) R.trava = (R.trava || 0) + 1 / 60; else R.trava = 0;
+    if (R.trava > 2.5) { R.ignora = 2; R.trava = 0; }
+    if (R.ignora > 0) { R.ignora -= 1 / 60; v = Math.max(v, Math.min(vAntes, 90)); for (const a of Traffic.cars) if (Math.hypot(a.x - p.x, a.y - p.y) < 80) a.ghost = 2; }
     const resto = R.len - R.s; v = Math.min(v, Math.sqrt(2 * 330 * Math.max(0, resto - 4)));
     if (Act.race && Act.race.count > 0) v = 0;
     if (P.limite !== undefined) v = Math.min(v, P.limite);
@@ -210,12 +215,14 @@
     if (resto < 10 && Math.abs(vf) < 14) { R.fimT += 1 / 60; if (R.fimT > 0.25) { P.R = null; if (P.fim) { const f = P.fim; P.fim = null; f(); } } }
     // preso ou fora do caminho: volta para o caminho (raro)
     if (Math.abs(vf) < 8 && v > 50) R.preso += 1 / 60; else R.preso = 0;
-    if (lat > 70 && R.preso < 1.6 && !R.refeito) { // saiu do caminho: refaz a rota de onde está (sem pular)
+    if (R.preso > 0.8 && resto < 70) { P.R = null; REC.log.push('parou perto'); if (P.fim) { const f = P.fim; P.fim = null; f(); } return out; } // encostou em algo já chegando: fica por aqui
+    if (lat > 70 && R.preso < 1.6 && !(R.refeito && performance.now() - R.refeito < 3000)) { // saiu do caminho: refaz a rota de onde está (sem pular)
       const N = R.alvo && gpsRoute(p.x, p.y, R.alvo[0], R.alvo[1]);
-      if (N) { const pts = N.pts.slice(1, -1); if (pts.length < 2) pts.unshift([p.x, p.y]); const R2 = rail(pts, 24); estica(R2, R.alvo[0], R.alvo[1], 30); Object.assign(R2, { vel: R.vel, alvo: R.alvo, fimT: 0, preso: 0, refeito: true }); R2.s = P.perto(R2, 0, 140); P.R = R2; REC.log.push('refez rota ' + Math.round(lat)); return out; }
+      if (N) { const pts = N.pts.slice(1, -1); if (pts.length < 2) pts.unshift([p.x, p.y]); const R2 = rail(pts, 24); estica(R2, R.alvo[0], R.alvo[1], 30); Object.assign(R2, { vel: R.vel, alvo: R.alvo, fimT: 0, preso: 0, refeito: performance.now() }); R2.s = P.perto(R2, 0, 140); P.R = R2; REC.log.push('refez rota ' + Math.round(lat)); return out; }
     }
     if (R.preso > 1.6 || lat > 110) {
-      const s2 = Math.min(R.len, R.s + 14), a = at(R, s2), b = at(R, s2 + 12); REC.log.push('reposicionou ' + Math.round(lat));
+      R.npreso = (R.npreso || 0) + 1; for (const c of Traffic.cars) if (Math.hypot(c.x - p.x, c.y - p.y) < 120) c.ghost = 3;
+      const s2 = Math.min(R.len, R.s + 14 + (R.npreso - 1) * 40), a = at(R, s2), b = at(R, s2 + 12); REC.log.push('reposicionou ' + Math.round(lat));
       p.place(a[0], a[1], Math.atan2(b[1] - a[1], b[0] - a[0])); R.s = s2; R.preso = 0;
     }
     return out;

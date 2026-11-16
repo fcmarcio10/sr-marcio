@@ -2,8 +2,8 @@
 const U0 = require('./_util.js');
 module.exports = async (G) => {
   const U = U0(G);
-  await U0.novoJogo(G, 6, { hora: 7 * 60 + 35, dinheiro: 9800, rides: 14, entregas: 8 });
-  await G.js(() => { Profile.hist.fim = true; Profile.hist.anunciar = false; Profile.hist.tudo = true; Act.waypoint = null; Events.spawnT = 1e9; });
+  await U0.novoJogo(G, 6, { hora: 7 * 60 + 35, dinheiro: 9800, rides: 14, entregas: 8, fim: true });
+  await G.js(() => { Act.waypoint = null; Events.spawnT = 1e9; });
   await G.grava(1);
   // passeio de manhã: vai até a garagem dando uma volta pela cidade
   const h = await G.js(() => [World.home.x, World.home.y]);

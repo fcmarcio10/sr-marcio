@@ -20,5 +20,5 @@ module.exports = async (G) => {
   await G.js(() => { Profile.deliveries = Historia.h().base + 2; });   // mais uma entrega (corte)
   await G.pula(6);
   await pega(false);
-  await G.grava(9, () => Historia.h().cap >= 3); await G.grava(6);
+  await G.grava(30, () => !Act.delivery); await G.grava(9, () => Historia.h().cap >= 3); await G.grava(7);
 };

@@ -9,7 +9,7 @@ module.exports = (G) => {
     const longe = () => G.js(([x, y, f]) => Math.hypot(player.x - x, player.y - y) > f && !!REC.piloto.R, [x, y, fim]);
     await G.grava(ini, () => !REC.piloto.R);
     if (opt.inteiro) await G.grava(opt.max || 120, () => !REC.piloto.R);
-    else if (await longe()) await G.pula(opt.max || 200, `!REC.piloto.R || Math.hypot(player.x - ${x}, player.y - ${y}) < ${fim}`);
+    else if (await longe()) await G.pula(opt.max || 90, `!REC.piloto.R || Math.hypot(player.x - ${x}, player.y - ${y}) < ${fim}`);
     await G.grava(40, () => !REC.piloto.R);
     return true;
   };
@@ -28,6 +28,7 @@ module.exports.novoJogo = async (G, cap, o) => {
     Profile.money = o.dinheiro || 900; Profile.time = o.hora || 22 * 60; Profile.rides = o.rides || 6; Profile.deliveries = o.entregas || 0;
     Profile.hist = { cap, base: 0, fim: false, v: 4, apres: true, anunciar: true, juninho: false };
     Profile.hist.base = Historia.cru(cap);
+    if (o.fim) { Profile.hist.fim = true; Profile.hist.anunciar = false; Profile.hist.tudo = true; Profile.hist.juninho = true; Profile.owned.brasa = true; Profile.current = 'brasa'; carCfg('brasa').color = '#141416'; player.setCar('brasa'); }
     if (o.nevoa !== false && typeof Nevoa !== 'undefined' && Nevoa.tudo) try { Nevoa.tudo(); } catch (e) {}
     Weather.rain = Weather.target = o.chuva || 0; Weather.wet = o.chuva || 0; Weather.timer = 1e9;
     if (o.x) { player.place(o.x, o.y, o.a || 0); Cam.x = o.x; Cam.y = o.y; }
@@ -46,7 +47,7 @@ module.exports.segue = async (G, cond, opt) => {
       await G.foco('#ev-offer', 3, 1.12); await G.grava(2.2); await G.toque('#ev-offer .evo-yes'); await G.grava(2.5); continue;
     }
     if (await G.js(() => Screens.current === 'screen-garage' || Screens.current === 'screen-dialog')) { await G.js(() => Screens.closeAll()); await G.grava(1); }
-    if (opt.apertaE && await G.js(() => { const q = currentTarget(); return !!Act.prompt && !Screens.current && !/garagem|Entrar —|Abastecer|Oficina/i.test(Act.prompt.text || '') && !!q && Math.hypot(q.x - player.x, q.y - player.y) < 150; })) { await G.tecla('KeyE'); await G.grava(3); continue; }
+    if (opt.apertaE && await G.js(() => { const q = currentTarget(); return !!Act.prompt && !Screens.current && !/garagem|Entrar —|Abastecer|Oficina/i.test(Act.prompt.text || '') && (!q || Math.hypot(q.x - player.x, q.y - player.y) < 260); })) { await G.tecla('KeyE'); await G.grava(3); continue; }
     const t = await U.alvo();
     if (!t) { await G.grava(2, cond); continue; }
     if (t[2] === 'race') {

@@ -11,7 +11,7 @@ module.exports = async (G) => {
   await G.grava(60, () => !Apresenta.on && !!document.querySelector('#ms-titulo.ms-on'));
   await G.grava(7);
   await U0.segue(G, () => !!Act.race, { vel: 300, ini: 8, espera: 4, apertaE: true, voltas: 4 });
-  await G.js(() => { const R = Act.race; if (R) R.r.rivalTime = Math.max(R.r.rivalTime, 1); });
+  await G.js(() => { const R = Act.race; if (R && !R.r._lento) { R.r._lento = true; R.r.rivalTime *= 1.4; } }); // o Zé do Canecão sai devagar nesta noite
   await U0.segue(G, () => !Act.race, { velCorrida: 560, corridaInteira: true, voltas: 2 });
-  await G.grava(14);
+  await G.grava(16);
 };
