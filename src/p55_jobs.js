@@ -711,7 +711,7 @@ const Phone = {
     const a = t.dataset.act2;
     if (t.dataset.cheat && CHEATS_ENABLED && modoDono()) { cheatDo(t.dataset.cheat, t.dataset.cv); return; }
     if (a === 'map-full') { Object.assign(MapState.full, MapState.phone); Screens.open('screen-map'); AudioSys.click(); return; }
-    if (a === 'save') { saveGame(); phoneCfg().lastSave = clockStr(); writeProfile(); AudioSys.chime(); toast('Jogo salvo', 'Progresso, dinheiro e carros guardados neste navegador.', 'good'); this.render(); return; }
+    if (a === 'save') { saveGame(); phoneCfg().lastSave = clockStr(); writeProfile(); AudioSys.chime(); toast('Jogo salvo', '', 'good'); this.render(); return; }
     if (a === 'ride-toggle') { Act.rideOnline = !Act.rideOnline; Act.rideT = rnd(3, 6); if (!Act.rideOnline) Act.ride = null; AudioSys.click(); this.render(); }
     if (a === 'job-cancel') { Act.delivery = null; toast('Frete cancelado', '', 'bad'); AudioSys.back(); this.render(); }
   },

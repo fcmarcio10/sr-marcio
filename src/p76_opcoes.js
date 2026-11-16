@@ -111,9 +111,10 @@ function renderSlots() {
     const t = Math.floor((p.time || 0) % 1440), hh = String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
     const quando = p.salvoEm ? new Date(p.salvoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
     const carro = carById(p.current).name;
-    return `<div class="slot${cur === n ? ' atual' : ''}"><div class="slot-top"><b>Espaço ${n}</b><small>${quando ? 'Salvo em ' + quando : ''}</small></div>` +
+    let foto = ''; try { foto = localStorage.getItem(slotFoto(n)) || ''; } catch (e) {}
+    return `<div class="slot com-foto${cur === n ? ' atual' : ''}">${foto ? `<img class="slot-foto" src="${foto}" alt="">` : '<div class="slot-foto vazia"></div>'}<div class="slot-dir"><div class="slot-top"><b>Espaço ${n}</b><small>${quando ? 'Salvo em ' + quando : ''}</small></div>` +
       `<div class="slot-info"><span>${cap}</span><span>R$ ${fmtMoney(Math.floor(p.money || 0))}</span><span>${DIAS_CURTO[((p.dia === undefined ? 5 : p.dia) % 7 + 7) % 7]} ${hh}</span><span>${escapeHtml(carro)}</span></div>` +
-      `<div class="slot-acoes"><button class="mbtn small" data-slot-jogar="${n}">Jogar</button><button class="mbtn small" data-slot-novo="${n}">Novo jogo</button><button class="mbtn small slot-apagar" data-slot-apagar="${n}">Apagar</button></div></div>`;
+      `<div class="slot-acoes"><button class="mbtn small" data-slot-jogar="${n}">Jogar</button><button class="mbtn small" data-slot-novo="${n}">Novo jogo</button><button class="mbtn small slot-apagar" data-slot-apagar="${n}">Apagar</button></div></div></div>`;
   }).join('');
 }
 document.addEventListener('click', (e) => {
@@ -125,6 +126,25 @@ document.addEventListener('click', (e) => {
     if (slotInfo(n)) confirmBox('Novo jogo no Espaço ' + n, 'O que está salvo neste espaço será apagado.', vai); else vai();
   } else if (t.dataset.slotApagar) {
     const n = +t.dataset.slotApagar;
-    confirmBox('Apagar o Espaço ' + n, 'Isso não pode ser desfeito.', () => { try { localStorage.removeItem(slotChave(n)); } catch (er) {} if ((+Settings.slot || 1) === n) hasSave = false; Screens.open('screen-slots'); });
+    confirmBox('Apagar o Espaço ' + n, 'Isso não pode ser desfeito.', () => { try { localStorage.removeItem(slotChave(n)); localStorage.removeItem(slotFoto(n)); } catch (er) {} if ((+Settings.slot || 1) === n) hasSave = false; Screens.open('screen-slots'); });
   }
 });
+
+// foto pequena de onde o jogo parou (guardada junto do espaço; no máximo a cada 20 s)
+const slotFoto = (n) => 'brnd_foto_' + ((+n || 1));
+function tiraFotoSlot() {
+  try {
+    if (Game.mode !== 'play' || !canvas || Date.now() - (tiraFotoSlot.t || 0) < 20000) return;
+    tiraFotoSlot.t = Date.now();
+    const c = tiraFotoSlot.c || (tiraFotoSlot.c = makeCanvas(192, 108)), g = c.getContext('2d');
+    const W = canvas.width, H = canvas.height, r = 192 / 108; let sw = W, sh = W / r; if (sh > H) { sh = H; sw = H * r; }
+    g.drawImage(canvas, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, 192, 108);
+    localStorage.setItem(slotFoto(Settings.slot), c.toDataURL('image/jpeg', 0.72));
+  } catch (e) {}
+}
+// aba Criador: abre o Instagram do criador (no app do Windows, no navegador do computador)
+const CRIADOR_URL = 'https://www.instagram.com/marciomotta.777/';
+function abreCriador() {
+  try { if (window.brnd && window.brnd.abrir) { window.brnd.abrir(CRIADOR_URL); return; } } catch (e) {}
+  try { window.open(CRIADOR_URL, '_blank', 'noopener'); } catch (e) {}
+}

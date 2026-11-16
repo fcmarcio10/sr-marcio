@@ -3,7 +3,7 @@
    Jogo de exploração noturna top-down 2.5D — HTML5 Canvas + JS puro
    ===================================================================== */
 'use strict';
-const GAME_VERSION = '1.8.0';
+const GAME_VERSION = '0.02.0'; // primeira versão oficial (a 1.x era de testes)
 try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
 // dica na tela de carregamento
 const LOAD_TIPS = ['Parado com o farol aceso por muito tempo, a bateria arria. Aperte H.', 'Sem dinheiro? O Seu Zé faz fiado. Só não some, que ele cobra.', 'De ré na vaga azul vale mais dinheiro.', 'Casca de banana na pista escorrega de verdade.', 'Na blitz da Lei Seca, pare ao lado do guarda de colete.', 'Depois das 22h tem racha. Cuidado com a viatura.', 'Pneus gastam mais quando você derrapa.', 'O Banestresse empresta, mas desconta toda virada de noite.', 'Q abre o celular. O mapa fica no app Mapa.', 'Óleo vencido faz o motor soltar fumaça e perder força.', 'Carona na BR rende gorjeta se você não bater.', 'Na chuva o carro escorrega mais, e no barro mais ainda.', 'F11 deixa o jogo em tela cheia.'];
@@ -140,7 +140,7 @@ function loadProfileFromStorage() {
   return null;
 }
 function writeProfile() {
-  Profile.salvoEm = Date.now();
+  Profile.salvoEm = Date.now(); if (typeof tiraFotoSlot === 'function') tiraFotoSlot();
   try { localStorage.setItem(slotChave(Settings.slot), JSON.stringify(Profile)); hasSave = true; } catch (e) { /* sem storage */ }
 }
 

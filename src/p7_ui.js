@@ -66,7 +66,6 @@ const Screens = {
     if (id === 'screen-phone' && typeof Phone !== 'undefined') { Phone.render(); requestAnimationFrame(ajustaCelular); }
     if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
     if (id === 'screen-pause') renderPauseStats();
-    if (id === 'screen-main') $('btn-continue').disabled = !hasSave;
     if (id === 'screen-pause') { const b = $('btn-abandon'); b.disabled = !(Act.race || Act.delivery || Act.ride || Act.waypoint || Historia.ativa()); b.classList.toggle('hidden', b.disabled); }
   },
 };
@@ -104,8 +103,12 @@ function bindMenus() {
     const act = b.dataset.act;
     if (act !== 'back') AudioSys.click();
     switch (act) {
-      case 'play': if (hasSave) confirmBox('Novo jogo', 'Começar do zero? Seu progresso salvo (dinheiro, carros e descobertas) será apagado.', () => newGame()); else newGame(); break;
+      case 'play': // abre os 3 espaços de jogo (testes antigos começam direto)
+        if (navigator.webdriver && !window.__slots) { if (hasSave) confirmBox('Novo jogo', 'Começar do zero?', () => newGame()); else newGame(); }
+        else Screens.open('screen-slots');
+        break;
       case 'continue': continueGame(); break;
+      case 'criador': abreCriador(); break;
       case 'quit': confirmBox('Sair do jogo', 'Fechar o BR Night Drive? Seu progresso fica salvo.', () => { if (player && Game.mode === 'play') saveGame(); setTimeout(() => window.brnd && window.brnd.quit(), 120); }); break;
       case 'garage': Garage.sel = Profile.current; Screens.open('screen-garage'); break;
       case 'settings': Screens.open('screen-settings'); break;

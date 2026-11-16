@@ -3,10 +3,10 @@ const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1280, height: 760 } });
   const errs = []; p.on('pageerror', (e) => errs.push(e.message));
-  await p.addInitScript(() => { const pad = { connected: true, id: 'Controle de teste', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ value: 0, pressed: false })) }; window.__pad = pad; navigator.getGamepads = () => [pad]; });
+  await p.addInitScript(() => { window.__slots = true; const pad = { connected: true, id: 'Controle de teste', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ value: 0, pressed: false })) }; window.__pad = pad; navigator.getGamepads = () => [pad]; });
   await p.goto('file://' + process.cwd() + '/wrapped.html'); await p.waitForTimeout(2500);
   // salvamentos
-  await p.click('[data-act="slots"]'); await p.waitForTimeout(300);
+  await p.click('[data-act="play"]'); await p.waitForTimeout(300);
   const vazios = await p.evaluate(() => document.querySelectorAll('.slot.vazio').length);
   await p.screenshot({ path: 't123_slots_vazio.png' });
   await p.click('[data-slot-novo="2"]'); await p.waitForTimeout(400);

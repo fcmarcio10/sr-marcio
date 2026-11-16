@@ -3,7 +3,7 @@
    Jogo de exploração noturna top-down 2.5D — HTML5 Canvas + JS puro
    ===================================================================== */
 'use strict';
-const GAME_VERSION = '1.8.0';
+const GAME_VERSION = '0.02.0'; // primeira versão oficial (a 1.x era de testes)
 try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
 // dica na tela de carregamento
 const LOAD_TIPS = ['Parado com o farol aceso por muito tempo, a bateria arria. Aperte H.', 'Sem dinheiro? O Seu Zé faz fiado. Só não some, que ele cobra.', 'De ré na vaga azul vale mais dinheiro.', 'Casca de banana na pista escorrega de verdade.', 'Na blitz da Lei Seca, pare ao lado do guarda de colete.', 'Depois das 22h tem racha. Cuidado com a viatura.', 'Pneus gastam mais quando você derrapa.', 'O Banestresse empresta, mas desconta toda virada de noite.', 'Q abre o celular. O mapa fica no app Mapa.', 'Óleo vencido faz o motor soltar fumaça e perder força.', 'Carona na BR rende gorjeta se você não bater.', 'Na chuva o carro escorrega mais, e no barro mais ainda.', 'F11 deixa o jogo em tela cheia.'];
@@ -140,7 +140,7 @@ function loadProfileFromStorage() {
   return null;
 }
 function writeProfile() {
-  Profile.salvoEm = Date.now();
+  Profile.salvoEm = Date.now(); if (typeof tiraFotoSlot === 'function') tiraFotoSlot();
   try { localStorage.setItem(slotChave(Settings.slot), JSON.stringify(Profile)); hasSave = true; } catch (e) { /* sem storage */ }
 }
 
@@ -6953,7 +6953,7 @@ const Phone = {
     const a = t.dataset.act2;
     if (t.dataset.cheat && CHEATS_ENABLED && modoDono()) { cheatDo(t.dataset.cheat, t.dataset.cv); return; }
     if (a === 'map-full') { Object.assign(MapState.full, MapState.phone); Screens.open('screen-map'); AudioSys.click(); return; }
-    if (a === 'save') { saveGame(); phoneCfg().lastSave = clockStr(); writeProfile(); AudioSys.chime(); toast('Jogo salvo', 'Progresso, dinheiro e carros guardados neste navegador.', 'good'); this.render(); return; }
+    if (a === 'save') { saveGame(); phoneCfg().lastSave = clockStr(); writeProfile(); AudioSys.chime(); toast('Jogo salvo', '', 'good'); this.render(); return; }
     if (a === 'ride-toggle') { Act.rideOnline = !Act.rideOnline; Act.rideT = rnd(3, 6); if (!Act.rideOnline) Act.ride = null; AudioSys.click(); this.render(); }
     if (a === 'job-cancel') { Act.delivery = null; toast('Frete cancelado', '', 'bad'); AudioSys.back(); this.render(); }
   },
@@ -11440,7 +11440,6 @@ const Screens = {
     if (id === 'screen-phone' && typeof Phone !== 'undefined') { Phone.render(); requestAnimationFrame(ajustaCelular); }
     if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
     if (id === 'screen-pause') renderPauseStats();
-    if (id === 'screen-main') $('btn-continue').disabled = !hasSave;
     if (id === 'screen-pause') { const b = $('btn-abandon'); b.disabled = !(Act.race || Act.delivery || Act.ride || Act.waypoint || Historia.ativa()); b.classList.toggle('hidden', b.disabled); }
   },
 };
@@ -11478,8 +11477,12 @@ function bindMenus() {
     const act = b.dataset.act;
     if (act !== 'back') AudioSys.click();
     switch (act) {
-      case 'play': if (hasSave) confirmBox('Novo jogo', 'Começar do zero? Seu progresso salvo (dinheiro, carros e descobertas) será apagado.', () => newGame()); else newGame(); break;
+      case 'play': // abre os 3 espaços de jogo (testes antigos começam direto)
+        if (navigator.webdriver && !window.__slots) { if (hasSave) confirmBox('Novo jogo', 'Começar do zero?', () => newGame()); else newGame(); }
+        else Screens.open('screen-slots');
+        break;
       case 'continue': continueGame(); break;
+      case 'criador': abreCriador(); break;
       case 'quit': confirmBox('Sair do jogo', 'Fechar o BR Night Drive? Seu progresso fica salvo.', () => { if (player && Game.mode === 'play') saveGame(); setTimeout(() => window.brnd && window.brnd.quit(), 120); }); break;
       case 'garage': Garage.sel = Profile.current; Screens.open('screen-garage'); break;
       case 'settings': Screens.open('screen-settings'); break;
@@ -13535,9 +13538,10 @@ function renderSlots() {
     const t = Math.floor((p.time || 0) % 1440), hh = String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
     const quando = p.salvoEm ? new Date(p.salvoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
     const carro = carById(p.current).name;
-    return `<div class="slot${cur === n ? ' atual' : ''}"><div class="slot-top"><b>Espaço ${n}</b><small>${quando ? 'Salvo em ' + quando : ''}</small></div>` +
+    let foto = ''; try { foto = localStorage.getItem(slotFoto(n)) || ''; } catch (e) {}
+    return `<div class="slot com-foto${cur === n ? ' atual' : ''}">${foto ? `<img class="slot-foto" src="${foto}" alt="">` : '<div class="slot-foto vazia"></div>'}<div class="slot-dir"><div class="slot-top"><b>Espaço ${n}</b><small>${quando ? 'Salvo em ' + quando : ''}</small></div>` +
       `<div class="slot-info"><span>${cap}</span><span>R$ ${fmtMoney(Math.floor(p.money || 0))}</span><span>${DIAS_CURTO[((p.dia === undefined ? 5 : p.dia) % 7 + 7) % 7]} ${hh}</span><span>${escapeHtml(carro)}</span></div>` +
-      `<div class="slot-acoes"><button class="mbtn small" data-slot-jogar="${n}">Jogar</button><button class="mbtn small" data-slot-novo="${n}">Novo jogo</button><button class="mbtn small slot-apagar" data-slot-apagar="${n}">Apagar</button></div></div>`;
+      `<div class="slot-acoes"><button class="mbtn small" data-slot-jogar="${n}">Jogar</button><button class="mbtn small" data-slot-novo="${n}">Novo jogo</button><button class="mbtn small slot-apagar" data-slot-apagar="${n}">Apagar</button></div></div></div>`;
   }).join('');
 }
 document.addEventListener('click', (e) => {
@@ -13549,9 +13553,28 @@ document.addEventListener('click', (e) => {
     if (slotInfo(n)) confirmBox('Novo jogo no Espaço ' + n, 'O que está salvo neste espaço será apagado.', vai); else vai();
   } else if (t.dataset.slotApagar) {
     const n = +t.dataset.slotApagar;
-    confirmBox('Apagar o Espaço ' + n, 'Isso não pode ser desfeito.', () => { try { localStorage.removeItem(slotChave(n)); } catch (er) {} if ((+Settings.slot || 1) === n) hasSave = false; Screens.open('screen-slots'); });
+    confirmBox('Apagar o Espaço ' + n, 'Isso não pode ser desfeito.', () => { try { localStorage.removeItem(slotChave(n)); localStorage.removeItem(slotFoto(n)); } catch (er) {} if ((+Settings.slot || 1) === n) hasSave = false; Screens.open('screen-slots'); });
   }
 });
+
+// foto pequena de onde o jogo parou (guardada junto do espaço; no máximo a cada 20 s)
+const slotFoto = (n) => 'brnd_foto_' + ((+n || 1));
+function tiraFotoSlot() {
+  try {
+    if (Game.mode !== 'play' || !canvas || Date.now() - (tiraFotoSlot.t || 0) < 20000) return;
+    tiraFotoSlot.t = Date.now();
+    const c = tiraFotoSlot.c || (tiraFotoSlot.c = makeCanvas(192, 108)), g = c.getContext('2d');
+    const W = canvas.width, H = canvas.height, r = 192 / 108; let sw = W, sh = W / r; if (sh > H) { sh = H; sw = H * r; }
+    g.drawImage(canvas, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, 192, 108);
+    localStorage.setItem(slotFoto(Settings.slot), c.toDataURL('image/jpeg', 0.72));
+  } catch (e) {}
+}
+// aba Criador: abre o Instagram do criador (no app do Windows, no navegador do computador)
+const CRIADOR_URL = 'https://www.instagram.com/marciomotta.777/';
+function abreCriador() {
+  try { if (window.brnd && window.brnd.abrir) { window.brnd.abrir(CRIADOR_URL); return; } } catch (e) {}
+  try { window.open(CRIADOR_URL, '_blank', 'noopener'); } catch (e) {}
+}
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {
   mode: 'menu', time: 0, autosaveT: 30, fpsT: 0, fpsN: 0,

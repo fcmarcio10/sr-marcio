@@ -1540,3 +1540,13 @@ body.cinema #fala-leg { opacity: 0 !important; }
 
 /* avisos curtos: no máximo duas linhas de texto */
 .toast .t-text, .toast p, .toast span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* espaços de jogo com foto de onde parou */
+.slot.com-foto { display: flex; gap: 12px; align-items: stretch; }
+.slot-foto { width: 150px; height: 84px; flex: none; border-radius: 3px; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.15); background: #0b0f18; }
+.slot-foto.vazia { background: repeating-linear-gradient(135deg, #10151f 0 8px, #0c1018 8px 16px); }
+.slot-dir { flex: 1; min-width: 0; }
+@media (max-width: 560px) { .slot-foto { width: 96px; height: 54px; } }
+/* aviso de jogo em desenvolvimento no menu */
+.logo-dev { margin-top: 8px; font: 700 12px/1 var(--f-cond); letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); }
+.logo-dev .game-ver { color: #ffd23f; }

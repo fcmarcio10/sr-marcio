@@ -88,8 +88,8 @@ const OUT = process.argv[2];
   // 9. salvar e sair, continuar
   await p.keyboard.press('Escape'); await p.waitForTimeout(200);
   await p.click('#screen-pause [data-act="save-quit"]'); await p.waitForTimeout(300);
-  log('menu:', await p.evaluate(() => [Game.mode, Screens.current, document.getElementById('btn-continue').disabled]));
-  await p.click('[data-act="continue"]'); await p.waitForFunction(() => Game.carregando === false, null, { timeout: 30000 }); await p.waitForTimeout(500);
+  log('menu:', await p.evaluate(() => [Game.mode, Screens.current, hasSave]));
+  await p.evaluate(() => continueGame()); await p.waitForFunction(() => Game.carregando === false, null, { timeout: 30000 }); await p.waitForTimeout(500);
   log('continued:', await p.evaluate(() => [Game.mode, player.car.id, Profile.money]));
   console.log(errs.join('\n') || 'no errors');
   await b.close();
