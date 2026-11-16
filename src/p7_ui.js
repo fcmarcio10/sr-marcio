@@ -59,7 +59,7 @@ const Screens = {
   },
   closeAll() { if (this.current) this.hide(this.current); for (const s of this.stack) this.hide(s); this.stack.length = 0; this.current = null; updateHudVisibility(); },
   onOpen(id) {
-    if (id === 'screen-settings') syncSettingsUI();
+    if (id === 'screen-settings') { syncSettingsUI(); const v = document.querySelector('.set-pane[data-pane="video"]'); if (v && !v.classList.contains('hidden')) setTimeout(() => CamPrev.show(String(Settings.cam)), 0); }
     if (id === 'screen-garage') Garage.render();
     if (id === 'screen-phone' && typeof Phone !== 'undefined') { Phone.render(); requestAnimationFrame(ajustaCelular); }
     if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
@@ -144,7 +144,7 @@ function bindSettings() {
   const abaSet = (t) => {
     document.querySelectorAll('.set-tabs [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
     document.querySelectorAll('.set-pane').forEach((p) => p.classList.toggle('hidden', p.dataset.pane !== t));
-    if (t !== 'video' && typeof CamPrev !== 'undefined' && CamPrev.hide) CamPrev.hide();
+    if (typeof CamPrev !== 'undefined') { if (t === 'video') CamPrev.show(String(Settings.cam)); else CamPrev.hide(); } // a prévia fica sempre no lugar dela na aba Vídeo (sem pular nada)
   };
   document.querySelectorAll('.set-tabs [data-tab]').forEach((b) => b.addEventListener('click', () => { AudioSys.click(); abaSet(b.dataset.tab); }));
   document.querySelectorAll('.ct-tipos [data-ct]').forEach((b) => b.addEventListener('click', () => {
@@ -184,9 +184,8 @@ const CamPrev = { lvl: null, t: 0, hideT: null };
 CamPrev.show = function (lvl) {
   this.lvl = lvl; this.t = 0;
   const box = $('cam-prev'); box.classList.remove('hidden');
-  box.querySelector('.cp-cap').textContent = 'Nível ' + lvl + ' · ' + CAM_LEVELS[lvl] + '%' + (lvl === '1' ? ' · mais perto (padrão)' : lvl === '3' ? ' · mais alto' : '');
+  box.querySelector('.cp-cap').innerHTML = '<b>Nível ' + lvl + ' · ' + CAM_LEVELS[lvl] + '%</b>' + (lvl === '1' ? 'Mais perto do carro (padrão)' : lvl === '3' ? 'Mais alto, vê mais a cidade' : 'Altura do meio');
   this.snap();
-  clearTimeout(this.hideT); this.hideT = setTimeout(() => this.hide(), 6000);
 };
 CamPrev.hide = function () { this.lvl = null; $('cam-prev').classList.add('hidden'); };
 CamPrev.snap = function () {

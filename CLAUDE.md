@@ -45,7 +45,7 @@ O dono do projeto fala português e não é técnico: responda em português sim
 
 - Sem emojis como visual. Sem imagens externas (tudo desenhado no código). Fontes embutidas (Anton e Barlow, licença OFL).
 - Nomes de zoeira/paródia (cidades e marcas) e humor brasileiro geral (nada de "pocar", "paca", "ah lá", "capixaba"; "bicho", "rapá", "mermão" pode).
-- Câmera: 3 alturas (1 = 140% padrão, 2 = 135%, 3 = 130%); nada passa de 130%, nem correndo. Gráfico padrão: Alto.
+- Câmera: 3 alturas (nov/2026: 1 = 145% padrão, 2 = 130%, 3 = 120%; `CAM_LEVELS`); nada passa de 120%, nem correndo (`CAM_MIN`). Nas Configurações > Vídeo a prévia da câmera fica sempre embaixo da linha (miniatura com o nível ao lado), sem sumir sozinha nem apertar os botões. Gráfico padrão: Alto.
 - Trânsito enxuto: nasce numa faixa pequena (240) fora da borda, sempre vindo pra tela; some ao sair da tela indo embora, após 2,5 s fora dela ou ao sair da faixa. No máximo ~5 carros na tela e 9 no total. GPS sem carros. Praia só do lado da cidade grande (embaixo da Serra é mata).
 - **Mapa montado por sorteio numa sequência só** (`RNG` em `p1_core.js`): mudar quantos sorteios uma parte faz embaralha tudo o que vem depois (lojas, postes, árvores). Ao mexer na montagem, use sorteio próprio na parte nova e repita os sorteios antigos — ver `comunidadeSorteioAntigo` e `orlaSorteioAntigo` (`p2_world.js`).
 - Garagem só com o essencial (sem passo a passo, legenda nem "nível X de 3"); personalização só com texto quando muda algo ("R$ 150 cada pintura", tecla B, +4% aderência).

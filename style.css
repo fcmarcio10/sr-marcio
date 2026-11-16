@@ -1511,3 +1511,13 @@ body.cinema #hud-objective { display: none !important; }
 .ct-breve p { margin: 0; font: 500 14px/1.4 var(--f-body); color: rgba(255, 255, 255, 0.7); }
 @media (max-width: 720px) { .ct-pane { grid-template-columns: 1fr; } .set-tabs button { font-size: 13px; letter-spacing: 0.05em; } }
 .set-pane .set-section { text-transform: uppercase; }
+
+/* prévia da câmera fixa embaixo da linha, sem empurrar nem apertar os botões (nov/2026) */
+#screen-settings .cam-row { flex-wrap: wrap; row-gap: 10px; }
+#screen-settings #cam-prev { flex: 0 0 calc(100% - 184px); max-width: none; width: auto; margin: 0 0 0 auto; display: flex; align-items: center; gap: 14px;
+  padding: 0; background: none; border: 0; box-shadow: none; animation: none; }
+#screen-settings #cam-prev canvas { width: 224px; flex: none; border: 2px solid var(--ouro, #ffcc2e); border-radius: 3px; }
+#screen-settings #cam-prev .cp-cap { margin: 0; font: 600 14px/1.35 var(--f-body); text-transform: none; letter-spacing: 0; color: rgba(255, 255, 255, 0.7); }
+#screen-settings #cam-prev .cp-cap b { display: block; width: auto; text-align: left; font: 700 15px/1.2 var(--f-cond); letter-spacing: 0.06em; text-transform: uppercase; color: #fff; margin-bottom: 2px; }
+#screen-settings #cam-prev.hidden { display: none; }
+@media (max-width: 720px) { #screen-settings #cam-prev { flex-basis: 100%; } #screen-settings #cam-prev canvas { width: 180px; } }

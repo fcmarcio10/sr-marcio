@@ -95,8 +95,8 @@ const HORNS = {
   musical: { f: [523], wave: 'square', band: 1300, len: 0.2, pat: [[0, 0.12, 1], [0.14, 0.12, 1.25], [0.28, 0.12, 1.5], [0.42, 0.28, 2], [0.74, 0.12, 1.5], [0.88, 0.32, 2]] },
   trator: { f: [180], wave: 'square', band: 700, len: 0.5, pat: [[0, 0.5]] },
 };
-// altura da câmera em 3 níveis: 1 = 140% (mais perto, padrão), 2 = 135%, 3 = 130% (o mais alto que dá)
-const CAM_LEVELS = { 1: 140, 2: 135, 3: 130 }, CAM_MIN = 130;
+// altura da câmera em 3 níveis (nov/2026): 1 = 145% (mais perto, padrão), 2 = 130%, 3 = 120% (o mais alto que dá)
+const CAM_LEVELS = { 1: 145, 2: 130, 3: 120 }, CAM_MIN = 120;
 const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', cam: '1', zoom: 140, showFps: false, fpsCap: '60', minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4 }; // rádio começa desligada; depois o jogo lembra como você deixou
 function loadSettings() {
   try {
