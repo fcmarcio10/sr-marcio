@@ -296,7 +296,7 @@ async function boot() {
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
-  alargaRuas(); empurraDaPista(); marcaVagas(); // ruas 10% mais largas (depois de montar tudo: a cidade não muda)
+  alargaRuas(); empurraDaPista(); marcaVagas(); elevaPredios(); // ruas 10% mais largas (depois de montar tudo: a cidade não muda)
   pruneRoadTrees(); thinTrees(); addBuracos(); Colecao.monta();
   buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();

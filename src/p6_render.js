@@ -421,9 +421,10 @@ function wallKey(b, side, len, Lb) {
     const hsh = hash2(b.seed + f * 131 + c * 7, sc);
     let on = hsh < b.lit;
     if (hsh < 0.04) on = hash2(b.seed + tf, c) < 0.7;
+    if (on && Dia.apaga && Dia.desligada(b.seed + f * 131 + c * 7 + sc * 3)) on = false; // apagou com o dia
     bits += on ? '1' : '0';
   }
-  return k + '|' + floors + 'x' + cols + '|' + bits;
+  return k + '|' + floors + 'x' + cols + '|' + bits + (Dia.sol > 0.5 ? 'D' : '');
 }
 function wallFast(ctx, b, ax, ay, bx, by, ox, oy, side) {
   const len = Math.hypot(bx - ax, by - ay), Lb = Math.max(8, Math.round(len / 8) * 8);
@@ -482,6 +483,7 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
   const lit = emissive ? null : new Path2D(), dark = emissive ? null : new Path2D(), em = emissive ? (EM_BATCH.on ? (big ? EM_BATCH.big : EM_BATCH.norm) : new Path2D()) : null;
   const tflick = wallFlickT(b);
   let nLit = 0, nDark = 0;
+  const wins = !emissive && WS_BAKE > 1 ? [] : null; // janelas para o detalhe (só quando a parede é desenhada no adesivo)
   for (let f = 0; f < floors; f++) {
     const f0 = big ? 0.08 : (f + 0.28) / floors, f1 = big ? 0.62 : (f + 0.74) / floors;
     for (let c = 0; c < cols; c++) {
@@ -493,6 +495,7 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
       const P = emissive ? (on ? em : null) : (on ? lit : dark);
       if (!P) continue;
       if (on) nLit++; else nDark++;
+      if (wins) wins.push([s0, s1, f0, f1, on, hsh]);
       P.moveTo(ax + ex * s0 + ox * f0, ay + ey * s0 + oy * f0);
       P.lineTo(ax + ex * s1 + ox * f0, ay + ey * s1 + oy * f0);
       P.lineTo(ax + ex * s1 + ox * f1, ay + ey * s1 + oy * f1);
@@ -503,13 +506,66 @@ function wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, emissive) {
   // só pinta se tiver janela daquele tipo (parede sem janela acesa não gasta nada)
   if (emissive) { if (nLit) { if (EM_BATCH.on) EM_BATCH.n++; else { ctx.fillStyle = big ? 'rgba(255,214,150,0.5)' : 'rgba(255,186,105,0.55)'; ctx.fill(em); } } }
   else {
-    if (nDark) { ctx.fillStyle = '#18202b'; ctx.fill(dark); }
+    if (nDark) { ctx.fillStyle = Dia.sol > 0.5 ? '#4d6680' : '#18202b'; ctx.fill(dark); } // de dia o vidro apagado reflete o céu
     if (nLit) { ctx.fillStyle = big ? '#f3dcb0' : '#f0c47a'; ctx.fill(lit); }
+    if (wins && wins.length) janelasDetalhe(ctx, b, ax, ay, ex, ey, ox, oy, wins, big);
   }
   if (!emissive && ws !== 2 && front && !big) {
     const s0 = 0.45, s1 = 0.55;
     ctx.fillStyle = '#3a2a1e';
     ctx.beginPath(); ctx.moveTo(ax + ex * s0, ay + ey * s0); ctx.lineTo(ax + ex * s1, ay + ey * s1); ctx.lineTo(ax + ex * s1 + ox * 0.75, ay + ey * s1 + oy * 0.75); ctx.lineTo(ax + ex * s0 + ox * 0.75, ay + ey * s0 + oy * 0.75); ctx.closePath(); ctx.fill();
+  }
+}
+// janela "de verdade" (desenhada uma vez no adesivo da parede): cada uma é uma salinha com profundidade —
+// paredes laterais, parede do fundo mais clara, luminária, móvel ou cortina, caixilho em cruz, peitoril e,
+// apagada, o vidro com reflexo. Ar-condicionado em algumas janelas e varanda nos prédios residenciais.
+function janelasDetalhe(ctx, b, ax, ay, ex, ey, ox, oy, wins, big) {
+  const P = (s, f) => [ax + ex * s + ox * f, ay + ey * s + oy * f];
+  const quad = (path, s0, s1, f0, f1) => { const a = P(s0, f0), b2 = P(s1, f0), c = P(s1, f1), d = P(s0, f1); path.moveTo(a[0], a[1]); path.lineTo(b2[0], b2[1]); path.lineTo(c[0], c[1]); path.lineTo(d[0], d[1]); path.closePath(); };
+  const fundoL = new Path2D(), fundoD = new Path2D(), lado = new Path2D(), movel = new Path2D(), luz = new Path2D(), cortA = new Path2D(), cortB = new Path2D(), reflexo = new Path2D(), ar = new Path2D(), caix = new Path2D(), peit = new Path2D();
+  for (const [s0, s1, f0, f1, on, h] of wins) {
+    const ds = (s1 - s0), df = (f1 - f0), is0 = s0 + ds * 0.2, is1 = s1 - ds * 0.2, if0 = f0 + df * 0.22, if1 = f1 - df * 0.12;
+    // paredes laterais da sala (perspectiva: o fundo é menor que a abertura)
+    const a = P(s0, f0), b2 = P(s1, f0), c = P(s1, f1), d = P(s0, f1), ia = P(is0, if0), ib = P(is1, if0), ic = P(is1, if1), id = P(is0, if1);
+    lado.moveTo(a[0], a[1]); lado.lineTo(ia[0], ia[1]); lado.lineTo(id[0], id[1]); lado.lineTo(d[0], d[1]); lado.closePath();
+    lado.moveTo(b2[0], b2[1]); lado.lineTo(ib[0], ib[1]); lado.lineTo(ic[0], ic[1]); lado.lineTo(c[0], c[1]); lado.closePath();
+    quad(on ? fundoL : fundoD, is0, is1, if0, if1);
+    if (on) {
+      const tipo = (h * 97 | 0) % 4;
+      if (tipo === 0) quad(movel, is0 + (is1 - is0) * 0.1, is0 + (is1 - is0) * 0.7, if0, if0 + (if1 - if0) * 0.35); // sofá
+      else if (tipo === 1) quad(movel, is0 + (is1 - is0) * 0.6, is0 + (is1 - is0) * 0.85, if0, if0 + (if1 - if0) * 0.75); // estante
+      else if (tipo === 2) { quad(movel, is0 + (is1 - is0) * 0.42, is0 + (is1 - is0) * 0.58, if0, if0 + (if1 - if0) * 0.55); quad(movel, is0 + (is1 - is0) * 0.38, is0 + (is1 - is0) * 0.62, if0 + (if1 - if0) * 0.55, if0 + (if1 - if0) * 0.75); } // pessoa
+      const l = P((is0 + is1) / 2, if1 - (if1 - if0) * 0.08); luz.moveTo(l[0] + 1.6, l[1]); luz.arc(l[0], l[1], 1.6, 0, TAU);
+      if ((h * 53 | 0) % 3 === 0) { const C = (h * 31 | 0) % 2 ? cortA : cortB; quad(C, s0, s0 + ds * 0.22, f0, f1); quad(C, s1 - ds * 0.22, s1, f0, f1); } // cortina
+    } else quad(reflexo, s0 + ds * 0.15, s0 + ds * 0.35, f0 + df * 0.1, f1 - df * 0.1); // reflexo no vidro
+    // caixilho em cruz e peitoril
+    const m1 = P((s0 + s1) / 2, f0), m2 = P((s0 + s1) / 2, f1), h1 = P(s0, (f0 + f1) / 2 + df * 0.1), h2 = P(s1, (f0 + f1) / 2 + df * 0.1);
+    if (!big) { caix.moveTo(m1[0], m1[1]); caix.lineTo(m2[0], m2[1]); caix.moveTo(h1[0], h1[1]); caix.lineTo(h2[0], h2[1]); }
+    caix.moveTo(a[0], a[1]); caix.lineTo(b2[0], b2[1]); caix.lineTo(c[0], c[1]); caix.lineTo(d[0], d[1]); caix.closePath();
+    const pa = P(s0 - ds * 0.06, f0 - df * 0.04), pb = P(s1 + ds * 0.06, f0 - df * 0.04); peit.moveTo(pa[0], pa[1]); peit.lineTo(pb[0], pb[1]);
+    if (!big && (b.style === 'apart' || b.style === 'office') && (h * 71 | 0) % 5 === 0) quad(ar, s1 + ds * 0.08, s1 + ds * 0.5, f0, f0 + df * 0.35); // ar-condicionado
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.32)'; ctx.fill(lado);
+  ctx.fillStyle = '#ffe3ae'; ctx.fill(fundoL);
+  ctx.fillStyle = Dia.sol > 0.5 ? '#6f8aa6' : '#223040'; ctx.fill(fundoD);
+  ctx.fillStyle = 'rgba(70,45,30,0.75)'; ctx.fill(movel);
+  ctx.fillStyle = '#fff7dc'; ctx.fill(luz);
+  ctx.fillStyle = 'rgba(190,60,50,0.7)'; ctx.fill(cortA); ctx.fillStyle = 'rgba(240,235,220,0.75)'; ctx.fill(cortB);
+  ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.fill(reflexo);
+  ctx.fillStyle = '#d9d9d4'; ctx.fill(ar);
+  ctx.strokeStyle = 'rgba(30,30,32,0.85)'; ctx.lineWidth = WS_BAKE * 0.55; ctx.stroke(caix);
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = WS_BAKE * 0.7; ctx.stroke(peit);
+  // varandas dos prédios residenciais: laje clara e guarda-corpo em cada andar, em uma de cada duas colunas
+  if (b.style === 'apart') {
+    const lajes = new Path2D(), grade = new Path2D(), F = new Set(wins.map((w) => w[2]));
+    for (const [s0, s1, f0, f1] of wins) {
+      if (Math.round(s0 * 100) % 2) continue;
+      const ds = s1 - s0, df = f1 - f0; quad(lajes, s0 - ds * 0.15, s1 + ds * 0.15, f0 - df * 0.18, f0 - df * 0.04);
+      for (let k = 0; k <= 4; k++) { const q1 = P(s0 - ds * 0.15 + (ds * 1.3) * k / 4, f0 - df * 0.04), q2 = P(s0 - ds * 0.15 + (ds * 1.3) * k / 4, f0 + df * 0.3); grade.moveTo(q1[0], q1[1]); grade.lineTo(q2[0], q2[1]); }
+      const t1 = P(s0 - ds * 0.15, f0 + df * 0.3), t2 = P(s1 + ds * 0.15, f0 + df * 0.3); grade.moveTo(t1[0], t1[1]); grade.lineTo(t2[0], t2[1]);
+    }
+    ctx.fillStyle = 'rgba(245,242,232,0.85)'; ctx.fill(lajes);
+    ctx.strokeStyle = 'rgba(40,40,44,0.7)'; ctx.lineWidth = WS_BAKE * 0.45; ctx.stroke(grade);
   }
 }
 const SIDE_SHADE = { N: 0.04, W: -0.08, S: -0.3, E: -0.4 };
@@ -985,6 +1041,7 @@ function drawTallEmissive(ctx, o) {
     case 'bld': drawBuildingEmissive(ctx, o); break;
     case 'lamp': {
       if (o.broken) { if (o.light && o.light.dieAt && Game.time < o.light.dieAt && Math.random() < 0.5) { const [ox, oy] = offAt(o.hx, o.hy, o.h); ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 8, o.hy + oy - 8, 16, 16); } return; }
+      if (Dia.apaga && Dia.posteApagado(o.hx * 7 + o.hy * 13)) break; // de dia o poste fica apagado
       const [ox, oy] = offAt(o.hx, o.hy, o.h);
       ctx.drawImage(lampGlowSprite(lightHex(o.col)), o.hx + ox - 16, o.hy + oy - 16, 32, 32); // luz + núcleo branco juntos
       // mariposas rodando a lâmpada: só em 30% dos postes das favelas
@@ -1287,7 +1344,7 @@ function lightPass(view, cx, cy) {
   for (const L of _lq) {
     let i = L.i;
     if (L.dieAt) { if (T > L.dieAt) continue; i *= Math.random() < 0.5 ? 0.1 : 1; }
-    if (Dia.apaga && Dia.desligada(L.x * 7 + L.y * 13)) continue; // de manhã as luzes apagam uma a uma (e acendem de tardinha)
+    if (Dia.apaga && (L.lamp ? Dia.posteApagado(L.x * 7 + L.y * 13) : Dia.desligada(L.x * 7 + L.y * 13))) continue; // de manhã as luzes apagam uma a uma (e acendem de tardinha)
     if (L.flick) { const f = Math.sin(T * 23 + L.seed * 50) + Math.sin(T * 7.3 + L.seed * 9); i *= f > 1.2 ? 0.25 : 1; }
     lctx.globalAlpha = i;
     lctx.drawImage(LSPR, L.x - L.r, L.y - L.r, L.r * 2, L.r * 2);
@@ -1336,7 +1393,7 @@ function glowPass(view, cx, cy) {
     if (L.x < view.x0 - L.r || L.x > view.x1 + L.r || L.y < view.y0 - L.r || L.y > view.y1 + L.r) continue;
     let i = L.i;
     if (L.dieAt) { if (T > L.dieAt) continue; i *= Math.random() < 0.5 ? 0.1 : 1; }
-    if (Dia.apaga && Dia.desligada(L.x * 7 + L.y * 13)) continue; // de manhã as luzes apagam uma a uma (e acendem de tardinha)
+    if (Dia.apaga && (L.lamp ? Dia.posteApagado(L.x * 7 + L.y * 13) : Dia.desligada(L.x * 7 + L.y * 13))) continue; // de manhã as luzes apagam uma a uma (e acendem de tardinha)
     if (L.flick) { const f = Math.sin(T * 23 + L.seed * 50) + Math.sin(T * 7.3 + L.seed * 9); i *= f > 1.2 ? 0.2 : 1; }
     const a = (L.shop ? 0.36 : L.canopy ? 0.14 : L.flood ? 0.12 : 0.21) * i;
     gctx.globalAlpha = a;

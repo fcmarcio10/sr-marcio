@@ -27,6 +27,8 @@ Dia.update = function () {
 };
 // a luz (janela, poste, casa) já está apagada? cada uma tem o seu momento (escolhido pela posição)
 Dia.desligada = function (seed) { return this.apaga > 0 && hash2(seed | 0, 77) < this.apaga; };
+// poste: no minuto em que acende ou apaga, a lâmpada pisca um pouco (como lâmpada de rua esquentando)
+Dia.posteApagado = function (seed) { const h = hash2(seed | 0, 77), d = h - this.apaga; if (Math.abs(d) < 0.02 && this.apaga < 1) return (Game.time * 9 + h * 50) % 1 < 0.45; return d < 0; };
 // movimento da cidade por hora (carros e passageiros): picos às 7h-9h e 17h-19h30; madrugada vazia; fim de semana mais calmo de manhã
 Dia.movimento = function () {
   const h = Dia.hora(), fds = Dia.fimDeSemana();

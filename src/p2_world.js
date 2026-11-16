@@ -2075,3 +2075,17 @@ function marcaVagas() {
     }
   }
 }
+
+/* ---------- prédios mais altos na cidade grande (nov/2026) ----------
+   Parte dos prédios comerciais e residenciais do Centrão, Camburiso e porto fica 35% a 75% mais alta
+   (escolha pela posição, sem mexer no sorteio do mapa). As sombras são calculadas depois. */
+function elevaPredios() {
+  const REG = { centro: 1, camburi: 1, porto: 1, industrial: 0.5 };
+  for (const b of World.buildings) {
+    if (b.style !== 'office' && b.style !== 'apart') continue;
+    const r = REG[regionKeyAt(b.cx, b.cy)]; if (!r) continue;
+    const h = hash2(b.x0 | 0, (b.y0 | 0) + 911);
+    if (h > 0.42 * r) continue;
+    b.h = Math.min(150, Math.round(b.h * (1.35 + hash2(b.x1 | 0, b.y1 | 0) * 0.4)));
+  }
+}
