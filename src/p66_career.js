@@ -106,6 +106,7 @@ function vozBatida(nome, tipo) {
   const g = genderOf(nome || '') === 'f' ? 'f' : 'm';
   let clip = tipo === 'vip' ? BATIDA_VOZ.vip[g] : tipo === 'quebra' ? BATIDA_VOZ.quebra[g] : pick(BATIDA_VOZ[g].filter((c) => c !== vozBatida.ult));
   vozBatida.ult = clip; const C = VOICE_CLIPS[clip]; if (!C) return;
+  Legenda.fala(nome ? nome.split(' ')[0] : (g === 'f' ? 'Passageira' : 'Passageiro'), tipo === 'quebra' ? '[reclama da mudança balançando]' : '[reclama da batida]', 2.5);
   try { const a = new Audio(C.src); a.volume = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.55; a.play().catch(() => {}); } catch (e) {} // mais baixa (nov/2026: 0,9 → 0,55)
 }
 function rideHit(R) {
@@ -236,6 +237,7 @@ VoicePlayer.play = function (m) {
   this.stop(); // a rádio fica em silêncio enquanto o áudio toca (Radio.update)
   const vol = clamp(((Settings.master !== undefined ? Settings.master : 80) / 100), 0, 1);
   this.msg = m; this.t0 = performance.now(); m.voice.heard = true;
+  if (!m.me) Legenda.fala(nomeCurto(m.from || m.name), m.body, m.voice.dur); // legenda da fala
   const c = VOICE_CLIPS[m.voice.clip];
   if (c) { try { this.a = new Audio(c.src); this.a.volume = vol; this.a.play().catch(() => {}); this.a.onended = () => this.stop(); } catch (e) { this.a = null; } }
   else if (window.speechSynthesis) {
@@ -274,6 +276,7 @@ PedVoz.fala = function (an, tipo) {
   this.ultimo = F[0]; this.t = Game.time + rnd(7, 12); this.falas++;
   this.quem = an; this.vol0 = 1;
   const c = VOICE_CLIPS[F[0]];
+  Legenda.fala('Pedestre', F[1], c ? c.dur : 2.5);
   if (c) {
     const d = player ? Math.hypot(an.x - player.x, an.y - player.y) : 0;
     const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 288, 0.2, 1) * 0.5;

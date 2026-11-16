@@ -97,7 +97,7 @@ const HORNS = {
 };
 // altura da câmera em 3 níveis (nov/2026): 1 = 145% (mais perto, padrão), 2 = 130%, 3 = 120% (o mais alto que dá)
 const CAM_LEVELS = { 1: 145, 2: 130, 3: 120 }, CAM_MIN = 120;
-const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', cam: '1', zoom: 140, showFps: false, fpsCap: '60', minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4 }; // rádio começa desligada; depois o jogo lembra como você deixou
+const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', cam: '1', zoom: 140, showFps: false, fpsCap: '60', minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4, slot: 1, legendas: true, teclas: {} }; // rádio começa desligada; depois o jogo lembra como você deixou
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null');
@@ -132,7 +132,7 @@ let Profile = newProfile();
 let hasSave = false;
 function loadProfileFromStorage() {
   try {
-    const p = JSON.parse(localStorage.getItem('brnd_save') || 'null');
+    const p = JSON.parse(localStorage.getItem(slotChave(Settings.slot)) || 'null'); // espaço de salvamento em uso (1, 2 ou 3)
     if (p && p.v === 1 && p.owned && p.cars) {
       const base = newProfile();
       return Object.assign(base, p);
@@ -141,7 +141,8 @@ function loadProfileFromStorage() {
   return null;
 }
 function writeProfile() {
-  try { localStorage.setItem('brnd_save', JSON.stringify(Profile)); hasSave = true; } catch (e) { /* sem storage */ }
+  Profile.salvoEm = Date.now();
+  try { localStorage.setItem(slotChave(Settings.slot), JSON.stringify(Profile)); hasSave = true; } catch (e) { /* sem storage */ }
 }
 
 /* ============================ ENTRADA ============================ */
@@ -157,13 +158,16 @@ addEventListener('keydown', (e) => {
 });
 addEventListener('keyup', (e) => { Keys[e.code] = false; });
 addEventListener('blur', () => { for (const k in Keys) Keys[k] = false; if (typeof onWindowBlur === 'function') onWindowBlur(); });
+// controle de videogame (lido a cada quadro em p76_opcoes.js)
+const Pad = { ativo: false, thr: 0, brk: 0, steer: 0, hb: false, horn: false, nome: '' };
+// teclas configuráveis (tecla(acao) em p76_opcoes.js); as setas valem sempre
 const key = {
-  up: () => Keys.KeyW || Keys.ArrowUp,
-  down: () => Keys.KeyS || Keys.ArrowDown,
-  left: () => Keys.KeyA || Keys.ArrowLeft,
-  right: () => Keys.KeyD || Keys.ArrowRight,
-  hb: () => Keys.Space,
-  horn: () => Keys.KeyH,
+  up: () => Keys[tecla('acelerar')] || Keys.ArrowUp || Pad.thr > 0.25,
+  down: () => Keys[tecla('frear')] || Keys.ArrowDown || Pad.brk > 0.25,
+  left: () => Keys[tecla('esquerda')] || Keys.ArrowLeft || Pad.steer < -0.5,
+  right: () => Keys[tecla('direita')] || Keys.ArrowRight || Pad.steer > 0.5,
+  hb: () => Keys[tecla('freioMao')] || Pad.hb,
+  horn: () => Keys[tecla('buzina')] || Pad.horn,
 };
 
 /* ============================ ÁUDIO (Web Audio) ============================ */
@@ -9461,7 +9465,7 @@ function emissivePass(view, talls) {
   if (player && Game.state !== 'menu') {
     const nk = carKit(player.car.id).neon;
     if (nk) { const f = 0.8 + 0.12 * Math.sin(T * 9); ctx.globalAlpha = 0.95 * f; const gs = glowSprite(nk), R = player.m.L * 1.55; ctx.save(); ctx.translate(player.x, player.y); ctx.rotate(player.a); ctx.drawImage(gs, -R, -R * 0.62, R * 2, R * 1.24); ctx.restore(); ctx.globalAlpha = 1; }
-    carGlow(player, player.braking || Keys.Space, player.rev, 0, true);
+    carGlow(player, player.braking || key.hb(), player.rev, 0, true);
   }
   for (const u of Police.units) { const ph = Math.floor(T * 7 + u.id * 10) % 2; ctx.globalAlpha = 0.95; ctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 14, u.y - 14, 28, 28); ctx.globalAlpha = 0.3; ctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 70, u.y - 70, 140, 140); ctx.globalAlpha = 1; }
   Events.drawGlow(ctx, view);
@@ -9630,7 +9634,7 @@ function render() {
   if (Socorro.job && inView(view, Socorro.job.x, Socorro.job.y, 120)) { const J = Socorro.job; ctx.globalAlpha = clamp(1 - (J.fade || 0), 0, 1); drawVehicle(ctx, VMODELS.guincho, '#c8302a', J.x, J.y, J.a, { roll: 0, brake: J.state === 'arrived' || (J.v || 0) < 20 }); ctx.globalAlpha = 1; }
   if (Game.state === 'menu') MenuCar.desenha(ctx, view);
   if (player && Game.state !== 'menu') {
-    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, pitch: player.pitch, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery || !!(Act.ride && Act.ride.type === 'mudanca' && Act.ride.stage === 'drive'), zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null, kit: carKit(player.car.id) });
+    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, pitch: player.pitch, brake: player.braking || key.hb(), rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery || !!(Act.ride && Act.ride.type === 'mudanca' && Act.ride.stage === 'drive'), zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null, kit: carKit(player.car.id) });
   }
   if (player && Game.state !== 'menu') {
     const D = Act.delivery;
@@ -9987,8 +9991,8 @@ let SPEEDO_KEY = '';
 function drawSpeedo() {
   if (!player) return;
   // só redesenha quando muda alguma coisa que aparece (parado, não gasta nada)
-  const key = Math.round(player.speed * 0.3) + '|' + Math.round(player.rpm / 60) + '|' + player.gear + '|' + (player.speed < 4 && !Keys.KeyW && !Keys.ArrowUp) + '|' + !!player.highBeam + '|' + spCanvas.width;
-  if (key === SPEEDO_KEY) return; SPEEDO_KEY = key;
+  const chave = Math.round(player.speed * 0.3) + '|' + Math.round(player.rpm / 60) + '|' + player.gear + '|' + (player.speed < 4 && !key.up()) + '|' + !!player.highBeam + '|' + spCanvas.width;
+  if (chave === SPEEDO_KEY) return; SPEEDO_KEY = chave;
   const W = spCanvas.width, H = spCanvas.height, k = W / 220;
   spx.setTransform(1, 0, 0, 1, 0, 0); spx.clearRect(0, 0, W, H);
   spx.scale(k, k);
@@ -10020,7 +10024,7 @@ function drawSpeedo() {
   spx.fillStyle = '#ffffff'; spx.textAlign = 'center'; spx.textBaseline = 'middle';
   spx.font = '48px "BRND Anton", Impact, sans-serif'; spx.fillStyle = '#05070b'; spx.fillText(Math.round(kmh), cx + 2, cy - 3); spx.fillStyle = '#ffffff'; spx.fillText(Math.round(kmh), cx, cy - 5);
   spx.font = '700 12px "BRND Cond", Arial'; spx.fillStyle = 'rgba(255,255,255,0.6)'; spx.fillText('KM/H', cx, cy + 19);
-  const gear = player.gear === -1 ? 'R' : player.speed < 4 && !Keys.KeyW && !Keys.ArrowUp ? 'N' : String(player.gear);
+  const gear = player.gear === -1 ? 'R' : player.speed < 4 && !key.up() ? 'N' : String(player.gear);
   spx.font = '22px "BRND Anton", Impact, sans-serif'; spx.fillStyle = gear === 'R' ? '#ff5f7a' : '#ffcc2e'; spx.fillText(gear, cx, cy + 43);
   spx.font = '700 10px "BRND Cond", Arial'; spx.fillStyle = 'rgba(255,255,255,0.45)'; spx.fillText('MARCHA', cx, cy + 60);
   if (player.highBeam) { spx.fillStyle = '#59e0ff'; spx.font = '800 12px "BRND Cond", Arial'; spx.fillText('FAROL ALTO', cx, 12); }
@@ -10261,6 +10265,7 @@ function vozBatida(nome, tipo) {
   const g = genderOf(nome || '') === 'f' ? 'f' : 'm';
   let clip = tipo === 'vip' ? BATIDA_VOZ.vip[g] : tipo === 'quebra' ? BATIDA_VOZ.quebra[g] : pick(BATIDA_VOZ[g].filter((c) => c !== vozBatida.ult));
   vozBatida.ult = clip; const C = VOICE_CLIPS[clip]; if (!C) return;
+  Legenda.fala(nome ? nome.split(' ')[0] : (g === 'f' ? 'Passageira' : 'Passageiro'), tipo === 'quebra' ? '[reclama da mudança balançando]' : '[reclama da batida]', 2.5);
   try { const a = new Audio(C.src); a.volume = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.55; a.play().catch(() => {}); } catch (e) {} // mais baixa (nov/2026: 0,9 → 0,55)
 }
 function rideHit(R) {
@@ -10391,6 +10396,7 @@ VoicePlayer.play = function (m) {
   this.stop(); // a rádio fica em silêncio enquanto o áudio toca (Radio.update)
   const vol = clamp(((Settings.master !== undefined ? Settings.master : 80) / 100), 0, 1);
   this.msg = m; this.t0 = performance.now(); m.voice.heard = true;
+  if (!m.me) Legenda.fala(nomeCurto(m.from || m.name), m.body, m.voice.dur); // legenda da fala
   const c = VOICE_CLIPS[m.voice.clip];
   if (c) { try { this.a = new Audio(c.src); this.a.volume = vol; this.a.play().catch(() => {}); this.a.onended = () => this.stop(); } catch (e) { this.a = null; } }
   else if (window.speechSynthesis) {
@@ -10429,6 +10435,7 @@ PedVoz.fala = function (an, tipo) {
   this.ultimo = F[0]; this.t = Game.time + rnd(7, 12); this.falas++;
   this.quem = an; this.vol0 = 1;
   const c = VOICE_CLIPS[F[0]];
+  Legenda.fala('Pedestre', F[1], c ? c.dur : 2.5);
   if (c) {
     const d = player ? Math.hypot(an.x - player.x, an.y - player.y) : 0;
     const vol = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * clamp(1 - d / 288, 0.2, 1) * 0.5;
@@ -11298,6 +11305,8 @@ const Screens = {
   onOpen(id) {
     if (id === 'screen-settings') { syncSettingsUI(); const v = document.querySelector('.set-pane[data-pane="video"]'); if (v && !v.classList.contains('hidden')) setTimeout(() => CamPrev.show(String(Settings.cam)), 0); }
     if (id === 'screen-garage') Garage.render();
+    if (id === 'screen-slots') renderSlots();
+    if (id === 'screen-settings') { renderTeclas(); renderControle(); }
     if (id === 'screen-phone' && typeof Phone !== 'undefined') { Phone.render(); requestAnimationFrame(ajustaCelular); }
     if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
     if (id === 'screen-pause') renderPauseStats();
@@ -11345,6 +11354,7 @@ function bindMenus() {
       case 'garage': Garage.sel = Profile.current; Screens.open('screen-garage'); break;
       case 'settings': Screens.open('screen-settings'); break;
       case 'credits': Screens.open('screen-credits'); break;
+      case 'slots': Screens.open('screen-slots'); break;
       case 'back': Screens.back(); break;
       case 'resume': Screens.closeAll(); break;
       case 'abandon': abandonActivity(); Screens.closeAll(); break;
@@ -13280,6 +13290,127 @@ Dia.desenhaNeblina = function (ctx, W, H) {
   }
   ctx.restore();
 };
+/* ============================ SALVAMENTOS, TECLAS, CONTROLE E LEGENDAS ============================
+   - 3 espaços de salvamento (brnd_save, brnd_save_2, brnd_save_3); Settings.slot é o espaço em uso.
+   - Teclas configuráveis (Settings.teclas, aba Controles > Teclado e mouse); as setas continuam valendo.
+   - Controle de videogame (Xbox/PlayStation, padrão do navegador): gatilhos aceleram e freiam, analógico vira.
+   - Legendas de todas as falas (Settings.legendas): zap, passageiros, pedestres e Juninho/Seu Zé. */
+
+// ---------- teclas ----------
+const TECLAS_PADRAO = { acelerar: 'KeyW', frear: 'KeyS', esquerda: 'KeyA', direita: 'KeyD', freioMao: 'Space', buzina: 'KeyH', farol: 'KeyJ', farolAlto: 'KeyL', interagir: 'KeyE', celular: 'KeyQ', radio: 'KeyF', paredao: 'KeyB', camera: 'KeyC', reposicionar: 'KeyR' };
+const TECLAS_NOME = { acelerar: 'Acelerar', frear: 'Frear / ré', esquerda: 'Virar à esquerda', direita: 'Virar à direita', freioMao: 'Freio de mão', buzina: 'Buzina', farol: 'Farol (liga/desliga)', farolAlto: 'Farol alto', interagir: 'Interagir', celular: 'Celular e mapa', radio: 'Rádio', paredao: 'Paredão', camera: 'Altura da câmera', reposicionar: 'Reposicionar o carro' };
+const TECLAS_GRUPOS = [['Dirigir', ['acelerar', 'frear', 'esquerda', 'direita', 'freioMao']], ['Carro', ['buzina', 'farol', 'farolAlto', 'paredao', 'reposicionar', 'camera']], ['Celular e menus', ['interagir', 'celular', 'radio']]];
+const SETA = { acelerar: 'ArrowUp', frear: 'ArrowDown', esquerda: 'ArrowLeft', direita: 'ArrowRight' };
+function tecla(a) { return (Settings.teclas && Settings.teclas[a]) || TECLAS_PADRAO[a]; }
+function acaoDaTecla(code) { for (const a in TECLAS_PADRAO) if (tecla(a) === code) return a; for (const a in SETA) if (SETA[a] === code) return a; return null; }
+function nomeTecla(code) {
+  if (!code) return '—';
+  const esp = { Space: 'Espaço', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', ShiftLeft: 'Shift', ShiftRight: 'Shift dir.', ControlLeft: 'Ctrl', ControlRight: 'Ctrl dir.', AltLeft: 'Alt', Enter: 'Enter', Tab: 'Tab', Backspace: 'Apagar', CapsLock: 'Caps' };
+  if (esp[code]) return esp[code];
+  if (/^Key/.test(code)) return code.slice(3); if (/^Digit/.test(code)) return code.slice(5); if (/^Numpad/.test(code)) return 'Num ' + code.slice(6);
+  return code;
+}
+const Captura = { acao: null };
+// escuta antes do jogo: enquanto espera a tecla nova, nada mais recebe a tecla
+addEventListener('keydown', (e) => {
+  if (!Captura.acao) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  const a = Captura.acao; Captura.acao = null;
+  if (e.code !== 'Escape') {
+    Settings.teclas = Object.assign({}, Settings.teclas || {});
+    const outra = Object.keys(TECLAS_PADRAO).find((x) => x !== a && tecla(x) === e.code);
+    if (outra) Settings.teclas[outra] = tecla(a); // a tecla já era de outra ação: as duas trocam de lugar
+    Settings.teclas[a] = e.code; saveSettings();
+    try { AudioSys.click(); } catch (er) {}
+  }
+  renderTeclas();
+}, true);
+function renderTeclas() {
+  const box = document.querySelector('.ct-pane[data-ctp="teclado"]'); if (!box) return;
+  box.innerHTML = TECLAS_GRUPOS.map(([g, L]) => `<div class="ct-grupo"><div class="set-section">${g}</div>` + L.map((a) =>
+    `<div class="ct-linha"><button class="ct-tecla${Captura.acao === a ? ' esperando' : ''}" data-tecla="${a}">${Captura.acao === a ? 'Aperte…' : escapeHtml(nomeTecla(tecla(a)))}</button>${SETA[a] ? `<kbd>${nomeTecla(SETA[a])}</kbd>` : ''}<span>${TECLAS_NOME[a]}</span></div>`).join('') + '</div>').join('') +
+    '<div class="ct-grupo"><div class="set-section">Fixas</div><div class="ct-linha"><kbd>Esc</kbd><span>Pausar</span></div><div class="ct-linha"><kbd>Clique</kbd><span>Celular e menus</span></div><button class="ct-padrao" data-tecla-padrao="1">Voltar ao padrão</button></div>';
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-tecla]'); if (b) { Captura.acao = b.dataset.tecla; renderTeclas(); return; }
+  if (e.target.closest('[data-tecla-padrao]')) { Settings.teclas = {}; saveSettings(); try { AudioSys.click(); } catch (er) {} renderTeclas(); }
+});
+
+// ---------- controle de videogame ----------
+// A: freio de mão · X: interagir · Y: celular · B: buzina · LB: câmera · RB: farol alto · ↑: paredão · ←: farol · ↓: reposicionar · Back: rádio · Start: pausa
+const PAD_BOTOES = { 2: 'interagir', 3: 'celular', 4: 'camera', 5: 'farolAlto', 8: 'radio', 12: 'paredao', 13: 'reposicionar', 14: 'farol' };
+Pad.poll = function () {
+  const gs = navigator.getGamepads ? navigator.getGamepads() : [];
+  let g = null; for (const x of gs || []) if (x && x.connected) { g = x; break; }
+  this.ativo = !!g; this.nome = g ? g.id : '';
+  if (!g) { this.thr = this.brk = this.steer = 0; this.hb = this.horn = false; return; }
+  const b = (i) => g.buttons[i] ? g.buttons[i].value || (g.buttons[i].pressed ? 1 : 0) : 0;
+  const ax = g.axes[0] || 0;
+  this.steer = Math.abs(ax) > 0.15 ? clamp((ax - Math.sign(ax) * 0.15) / 0.85, -1, 1) : 0;
+  this.thr = b(7); this.brk = b(6); this.hb = b(0) > 0.5; this.horn = b(1) > 0.5;
+  const ant = this.ant || [];
+  for (let i = 0; i < g.buttons.length; i++) {
+    const on = b(i) > 0.5;
+    if (on && !ant[i]) {
+      if (i === 9) KeyPress.push('Escape');
+      else if (PAD_BOTOES[i]) KeyPress.push(tecla(PAD_BOTOES[i]));
+    }
+    ant[i] = on;
+  }
+  this.ant = ant;
+  if (this.avisado !== this.ativo) { this.avisado = this.ativo; if (this.ativo && Game.mode === 'play') toast('Controle conectado', 'Gatilhos aceleram e freiam, analógico vira.', 'info'); renderControle(); }
+};
+function renderControle() {
+  const box = document.querySelector('.ct-pane[data-ctp="controle"]'); if (!box) return;
+  const L = [['Gatilho direito (RT / R2)', 'Acelerar'], ['Gatilho esquerdo (LT / L2)', 'Frear / ré'], ['Analógico esquerdo', 'Virar'], ['A / ✕', 'Freio de mão'], ['B / ○', 'Buzina'], ['X / □', 'Interagir'], ['Y / △', 'Celular e mapa'], ['LB / L1', 'Altura da câmera'], ['RB / R1', 'Farol alto'], ['Direcional ↑', 'Paredão'], ['Direcional ←', 'Farol'], ['Direcional ↓', 'Reposicionar'], ['Back / Share', 'Rádio'], ['Start / Options', 'Pausar']];
+  box.innerHTML = `<div class="ct-estado${Pad.ativo ? ' on' : ''}">${Pad.ativo ? 'Controle conectado: ' + escapeHtml(Pad.nome.replace(/\(.*\)/, '').trim().slice(0, 40)) : 'Conecte um controle (Xbox ou PlayStation) e aperte um botão.'}</div>` +
+    '<div class="ct-grupo ct-pad">' + L.map(([k, t]) => `<div class="ct-linha"><kbd>${k}</kbd><span>${t}</span></div>`).join('') + '</div>';
+}
+
+// ---------- legendas ----------
+const Legenda = { t: null };
+Legenda.fala = function (quem, texto, dur) {
+  if (Settings.legendas === false || !texto || Game.mode !== 'play') return;
+  let el = $('fala-leg'); if (!el) { el = document.createElement('div'); el.id = 'fala-leg'; document.body.appendChild(el); }
+  el.innerHTML = (quem ? '<b>' + escapeHtml(quem) + '</b> ' : '') + escapeHtml(texto);
+  el.classList.add('on');
+  clearTimeout(this.t); this.t = setTimeout(() => el.classList.remove('on'), clamp((dur || texto.length / 14) * 1000 + 600, 2200, 11000));
+};
+const nomeCurto = (s) => String(s || '').replace(/\s*\(.*\)\s*/, '').trim();
+
+// ---------- salvamentos ----------
+const slotChave = (n) => (+n || 1) === 1 ? 'brnd_save' : 'brnd_save_' + n;
+function slotInfo(n) {
+  try { const p = JSON.parse(localStorage.getItem(slotChave(n)) || 'null'); return p && p.v === 1 && p.owned ? p : null; } catch (e) { return null; }
+}
+function usaSlot(n) { Settings.slot = n; saveSettings(); hasSave = !!loadProfileFromStorage(); }
+function renderSlots() {
+  const box = $('slots-lista'); if (!box) return;
+  const cur = +Settings.slot || 1;
+  box.innerHTML = [1, 2, 3].map((n) => {
+    const p = slotInfo(n);
+    if (!p) return `<div class="slot vazio${cur === n ? ' atual' : ''}"><div class="slot-top"><b>Espaço ${n}</b><small>Vazio</small></div><div class="slot-acoes"><button class="mbtn small" data-slot-novo="${n}">Novo jogo</button></div></div>`;
+    const h = p.hist || {}, cap = h.fim ? 'História concluída' : 'Capítulo ' + ((h.cap || 0) + 1) + ' de ' + (typeof CAP_FINAL !== 'undefined' ? CAP_FINAL : 7);
+    const t = Math.floor((p.time || 0) % 1440), hh = String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+    const quando = p.salvoEm ? new Date(p.salvoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    const carro = carById(p.current).name;
+    return `<div class="slot${cur === n ? ' atual' : ''}"><div class="slot-top"><b>Espaço ${n}</b><small>${quando ? 'Salvo em ' + quando : ''}</small></div>` +
+      `<div class="slot-info"><span>${cap}</span><span>R$ ${fmtMoney(Math.floor(p.money || 0))}</span><span>${DIAS_CURTO[((p.dia === undefined ? 5 : p.dia) % 7 + 7) % 7]} ${hh}</span><span>${escapeHtml(carro)}</span></div>` +
+      `<div class="slot-acoes"><button class="mbtn small" data-slot-jogar="${n}">Jogar</button><button class="mbtn small" data-slot-novo="${n}">Novo jogo</button><button class="mbtn small slot-apagar" data-slot-apagar="${n}">Apagar</button></div></div>`;
+  }).join('');
+}
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-slot-jogar],[data-slot-novo],[data-slot-apagar]'); if (!t) return;
+  try { AudioSys.click(); } catch (er) {}
+  if (t.dataset.slotJogar) { usaSlot(+t.dataset.slotJogar); Screens.closeAll(); continueGame(); }
+  else if (t.dataset.slotNovo) {
+    const n = +t.dataset.slotNovo, vai = () => { usaSlot(n); Screens.closeAll(); newGame(); };
+    if (slotInfo(n)) confirmBox('Novo jogo no Espaço ' + n, 'O que está salvo neste espaço será apagado.', vai); else vai();
+  } else if (t.dataset.slotApagar) {
+    const n = +t.dataset.slotApagar;
+    confirmBox('Apagar o Espaço ' + n, 'Isso não pode ser desfeito.', () => { try { localStorage.removeItem(slotChave(n)); } catch (er) {} if ((+Settings.slot || 1) === n) hasSave = false; Screens.open('screen-slots'); });
+  }
+});
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {
   mode: 'menu', time: 0, autosaveT: 30, fpsT: 0, fpsN: 0,
@@ -13407,22 +13538,22 @@ function handleKeys() {
       continue;
     }
     // Q: abre o celular; apertando de novo guarda o celular e fecha o que estiver aberto (inclusive o mapa)
-    if (k === 'KeyQ' && Game.mode === 'play' && (Screens.current === 'screen-phone' || Screens.current === 'screen-map')) { Screens.closeAll(); AudioSys.tone(900, 0.05, 'sine', 0.05, 'ui', 600); continue; }
+    const ac = acaoDaTecla(k); // tecla configurada para qual ação
+    if (ac === 'celular' && Game.mode === 'play' && (Screens.current === 'screen-phone' || Screens.current === 'screen-map')) { Screens.closeAll(); AudioSys.tone(900, 0.05, 'sine', 0.05, 'ui', 600); continue; }
     if (Game.state !== 'playing') continue;
-    switch (k) {
-      case 'KeyE': if (Act.prompt) Act.prompt.act(); break;
-      case 'KeyY': Events.answerOffer(true); break;
-      case 'KeyN': Events.answerOffer(false); break;
-      case 'KeyQ': Phone.open('home'); break;
-      case 'KeyH': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
-      case 'KeyB': Som.toggle(); break;
-      case 'KeyF': Radio.toggle(); break;
-      case 'KeyL': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
-      case 'KeyC': { // troca a altura da câmera: 1 → 2 → 3 → 1
+    if (k === 'KeyY') Events.answerOffer(true); else if (k === 'KeyN') Events.answerOffer(false);
+    switch (ac) {
+      case 'interagir': if (Act.prompt) Act.prompt.act(); break;
+      case 'celular': Phone.open('home'); break;
+      case 'farol': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
+      case 'paredao': Som.toggle(); break;
+      case 'radio': Radio.toggle(); break;
+      case 'farolAlto': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
+      case 'camera': { // troca a altura da câmera: 1 → 2 → 3 → 1
         Settings.cam = String(Settings.cam % 3 + 1); Settings.zoom = CAM_LEVELS[Settings.cam]; saveSettings(); syncSettingsUI();
         AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); toast('Câmera: nível ' + Settings.cam, Settings.cam === '1' ? 'Mais perto do carro.' : Settings.cam === '3' ? 'Mais alto, vê mais a cidade.' : 'Altura do meio.', 'info'); break;
       }
-      case 'KeyR': if (player.speed < 120) resetVehicle(); break;
+      case 'reposicionar': if (player.speed < 120) resetVehicle(); break;
     }
   }
 }
@@ -13436,7 +13567,7 @@ function stepPlay(dt) {
   const locked = Act.race && Act.race.count > 0;
   // começo do jogo e cenas de apresentação: carro desligado e parado (nada de tecla; antes o "freio" virava ré e o carro sumia)
   const trava = jogoTravado();
-  const inp = trava ? { thr: false, brk: false, steer: 0, hb: false } : { thr: !locked && !!key.up(), brk: !!key.down(), steer: (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() };
+  const inp = trava ? { thr: false, brk: false, steer: 0, hb: false } : { thr: !locked && !!key.up(), brk: !!key.down(), steer: Pad.ativo && Pad.steer ? Pad.steer : (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() }; // analógico do controle vira aos poucos
   if (trava) { player.vx = player.vy = 0; if (player.spin) player.spin = 0; }
   player.update(dt, inp);
   if (trava) { player.vx = player.vy = 0; }
@@ -13487,6 +13618,7 @@ function frame(now) {
   if (lastT && Game.state === 'playing') AutoRes.quadro(dt, frame.trab || 0, cap);
   lastT = now;
   dt = clamp(dt, 0, 0.1);
+  Pad.poll(); // controle de videogame
   handleKeys();
   const st = Game.state;
   if (st === 'playing' || st === 'menu') {

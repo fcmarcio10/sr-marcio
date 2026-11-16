@@ -125,22 +125,22 @@ function handleKeys() {
       continue;
     }
     // Q: abre o celular; apertando de novo guarda o celular e fecha o que estiver aberto (inclusive o mapa)
-    if (k === 'KeyQ' && Game.mode === 'play' && (Screens.current === 'screen-phone' || Screens.current === 'screen-map')) { Screens.closeAll(); AudioSys.tone(900, 0.05, 'sine', 0.05, 'ui', 600); continue; }
+    const ac = acaoDaTecla(k); // tecla configurada para qual ação
+    if (ac === 'celular' && Game.mode === 'play' && (Screens.current === 'screen-phone' || Screens.current === 'screen-map')) { Screens.closeAll(); AudioSys.tone(900, 0.05, 'sine', 0.05, 'ui', 600); continue; }
     if (Game.state !== 'playing') continue;
-    switch (k) {
-      case 'KeyE': if (Act.prompt) Act.prompt.act(); break;
-      case 'KeyY': Events.answerOffer(true); break;
-      case 'KeyN': Events.answerOffer(false); break;
-      case 'KeyQ': Phone.open('home'); break;
-      case 'KeyH': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
-      case 'KeyB': Som.toggle(); break;
-      case 'KeyF': Radio.toggle(); break;
-      case 'KeyL': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
-      case 'KeyC': { // troca a altura da câmera: 1 → 2 → 3 → 1
+    if (k === 'KeyY') Events.answerOffer(true); else if (k === 'KeyN') Events.answerOffer(false);
+    switch (ac) {
+      case 'interagir': if (Act.prompt) Act.prompt.act(); break;
+      case 'celular': Phone.open('home'); break;
+      case 'farol': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
+      case 'paredao': Som.toggle(); break;
+      case 'radio': Radio.toggle(); break;
+      case 'farolAlto': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
+      case 'camera': { // troca a altura da câmera: 1 → 2 → 3 → 1
         Settings.cam = String(Settings.cam % 3 + 1); Settings.zoom = CAM_LEVELS[Settings.cam]; saveSettings(); syncSettingsUI();
         AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); toast('Câmera: nível ' + Settings.cam, Settings.cam === '1' ? 'Mais perto do carro.' : Settings.cam === '3' ? 'Mais alto, vê mais a cidade.' : 'Altura do meio.', 'info'); break;
       }
-      case 'KeyR': if (player.speed < 120) resetVehicle(); break;
+      case 'reposicionar': if (player.speed < 120) resetVehicle(); break;
     }
   }
 }
@@ -154,7 +154,7 @@ function stepPlay(dt) {
   const locked = Act.race && Act.race.count > 0;
   // começo do jogo e cenas de apresentação: carro desligado e parado (nada de tecla; antes o "freio" virava ré e o carro sumia)
   const trava = jogoTravado();
-  const inp = trava ? { thr: false, brk: false, steer: 0, hb: false } : { thr: !locked && !!key.up(), brk: !!key.down(), steer: (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() };
+  const inp = trava ? { thr: false, brk: false, steer: 0, hb: false } : { thr: !locked && !!key.up(), brk: !!key.down(), steer: Pad.ativo && Pad.steer ? Pad.steer : (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() }; // analógico do controle vira aos poucos
   if (trava) { player.vx = player.vy = 0; if (player.spin) player.spin = 0; }
   player.update(dt, inp);
   if (trava) { player.vx = player.vy = 0; }
@@ -205,6 +205,7 @@ function frame(now) {
   if (lastT && Game.state === 'playing') AutoRes.quadro(dt, frame.trab || 0, cap);
   lastT = now;
   dt = clamp(dt, 0, 0.1);
+  Pad.poll(); // controle de videogame
   handleKeys();
   const st = Game.state;
   if (st === 'playing' || st === 'menu') {

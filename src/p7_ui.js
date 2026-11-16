@@ -61,6 +61,8 @@ const Screens = {
   onOpen(id) {
     if (id === 'screen-settings') { syncSettingsUI(); const v = document.querySelector('.set-pane[data-pane="video"]'); if (v && !v.classList.contains('hidden')) setTimeout(() => CamPrev.show(String(Settings.cam)), 0); }
     if (id === 'screen-garage') Garage.render();
+    if (id === 'screen-slots') renderSlots();
+    if (id === 'screen-settings') { renderTeclas(); renderControle(); }
     if (id === 'screen-phone' && typeof Phone !== 'undefined') { Phone.render(); requestAnimationFrame(ajustaCelular); }
     if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
     if (id === 'screen-pause') renderPauseStats();
@@ -108,6 +110,7 @@ function bindMenus() {
       case 'garage': Garage.sel = Profile.current; Screens.open('screen-garage'); break;
       case 'settings': Screens.open('screen-settings'); break;
       case 'credits': Screens.open('screen-credits'); break;
+      case 'slots': Screens.open('screen-slots'); break;
       case 'back': Screens.back(); break;
       case 'resume': Screens.closeAll(); break;
       case 'abandon': abandonActivity(); Screens.closeAll(); break;

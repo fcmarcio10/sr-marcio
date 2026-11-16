@@ -97,7 +97,7 @@ const HORNS = {
 };
 // altura da câmera em 3 níveis (nov/2026): 1 = 145% (mais perto, padrão), 2 = 130%, 3 = 120% (o mais alto que dá)
 const CAM_LEVELS = { 1: 145, 2: 130, 3: 120 }, CAM_MIN = 120;
-const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', cam: '1', zoom: 140, showFps: false, fpsCap: '60', minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4 }; // rádio começa desligada; depois o jogo lembra como você deixou
+const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', cam: '1', zoom: 140, showFps: false, fpsCap: '60', minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4, slot: 1, legendas: true, teclas: {} }; // rádio começa desligada; depois o jogo lembra como você deixou
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null');
@@ -132,7 +132,7 @@ let Profile = newProfile();
 let hasSave = false;
 function loadProfileFromStorage() {
   try {
-    const p = JSON.parse(localStorage.getItem('brnd_save') || 'null');
+    const p = JSON.parse(localStorage.getItem(slotChave(Settings.slot)) || 'null'); // espaço de salvamento em uso (1, 2 ou 3)
     if (p && p.v === 1 && p.owned && p.cars) {
       const base = newProfile();
       return Object.assign(base, p);
@@ -141,7 +141,8 @@ function loadProfileFromStorage() {
   return null;
 }
 function writeProfile() {
-  try { localStorage.setItem('brnd_save', JSON.stringify(Profile)); hasSave = true; } catch (e) { /* sem storage */ }
+  Profile.salvoEm = Date.now();
+  try { localStorage.setItem(slotChave(Settings.slot), JSON.stringify(Profile)); hasSave = true; } catch (e) { /* sem storage */ }
 }
 
 /* ============================ ENTRADA ============================ */
@@ -157,13 +158,16 @@ addEventListener('keydown', (e) => {
 });
 addEventListener('keyup', (e) => { Keys[e.code] = false; });
 addEventListener('blur', () => { for (const k in Keys) Keys[k] = false; if (typeof onWindowBlur === 'function') onWindowBlur(); });
+// controle de videogame (lido a cada quadro em p76_opcoes.js)
+const Pad = { ativo: false, thr: 0, brk: 0, steer: 0, hb: false, horn: false, nome: '' };
+// teclas configuráveis (tecla(acao) em p76_opcoes.js); as setas valem sempre
 const key = {
-  up: () => Keys.KeyW || Keys.ArrowUp,
-  down: () => Keys.KeyS || Keys.ArrowDown,
-  left: () => Keys.KeyA || Keys.ArrowLeft,
-  right: () => Keys.KeyD || Keys.ArrowRight,
-  hb: () => Keys.Space,
-  horn: () => Keys.KeyH,
+  up: () => Keys[tecla('acelerar')] || Keys.ArrowUp || Pad.thr > 0.25,
+  down: () => Keys[tecla('frear')] || Keys.ArrowDown || Pad.brk > 0.25,
+  left: () => Keys[tecla('esquerda')] || Keys.ArrowLeft || Pad.steer < -0.5,
+  right: () => Keys[tecla('direita')] || Keys.ArrowRight || Pad.steer > 0.5,
+  hb: () => Keys[tecla('freioMao')] || Pad.hb,
+  horn: () => Keys[tecla('buzina')] || Pad.horn,
 };
 
 /* ============================ ÁUDIO (Web Audio) ============================ */

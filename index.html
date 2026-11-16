@@ -77,6 +77,7 @@
     <nav class="menu-list">
       <button class="mbtn" data-act="play">JOGAR</button>
       <button class="mbtn" data-act="continue" id="btn-continue">CONTINUAR</button>
+      <button class="mbtn" data-act="slots">SALVAMENTOS</button>
       <button class="mbtn" data-act="garage">GARAGEM</button>
       <button class="mbtn" data-act="settings">CONFIGURAÇÕES</button>
       <button class="mbtn" data-act="credits">CRÉDITOS</button>
@@ -160,6 +161,9 @@
         <div class="set-row"><span>Mensagens dos personagens</span>
           <div class="seg" data-seg="msgMode"><button data-v="audio">Áudio (só em português)</button><button data-v="texto">Texto</button></div>
         </div>
+        <div class="set-row"><span>Legendas das falas</span>
+          <div class="seg" data-seg="legendas"><button data-v="true">Sim</button><button data-v="false">Não</button></div>
+        </div>
       </div>
       <div class="set-pane hidden" data-pane="controles">
         <nav class="ct-tipos"><button data-ct="teclado" class="on">Teclado e mouse</button><button data-ct="controle">Controle</button></nav>
@@ -179,6 +183,15 @@
         </div>
       </div>
     </div>
+    <div class="row-btns"><button class="mbtn small" data-act="back">VOLTAR</button></div>
+  </div>
+</div>
+
+<!-- ===================== SALVAMENTOS (3 espaços) ===================== -->
+<div id="screen-slots" class="screen hidden">
+  <div class="panel-card slots-card">
+    <h2>SALVAMENTOS</h2>
+    <div id="slots-lista"></div>
     <div class="row-btns"><button class="mbtn small" data-act="back">VOLTAR</button></div>
   </div>
 </div>

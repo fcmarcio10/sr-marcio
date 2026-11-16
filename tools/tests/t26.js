@@ -12,7 +12,7 @@ const { chromium } = require('playwright');
   await p.click('[data-go="msgs"]'); await p.click('[data-go="home"]');
   // PegaAí
   await p.click('[data-app="pegaai"]'); await p.click('[data-act2="ride-toggle"]'); await p.keyboard.press('KeyQ');
-  await p.waitForTimeout(7000);
+  await p.waitForFunction(() => Act.ride, null, { timeout: 20000 });
   L('ride:', await p.evaluate(() => Act.ride && [Act.ride.name, Act.ride.stage, Act.ride.fare]));
   await p.evaluate(() => { const r = Act.ride; player.place(r.pick.x, r.pick.y, 0); player.vx = player.vy = 0; });
   await p.waitForTimeout(400); L('stage:', await p.evaluate(() => Act.ride && Act.ride.stage));

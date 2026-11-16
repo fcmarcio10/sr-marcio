@@ -1432,7 +1432,7 @@ function emissivePass(view, talls) {
   if (player && Game.state !== 'menu') {
     const nk = carKit(player.car.id).neon;
     if (nk) { const f = 0.8 + 0.12 * Math.sin(T * 9); ctx.globalAlpha = 0.95 * f; const gs = glowSprite(nk), R = player.m.L * 1.55; ctx.save(); ctx.translate(player.x, player.y); ctx.rotate(player.a); ctx.drawImage(gs, -R, -R * 0.62, R * 2, R * 1.24); ctx.restore(); ctx.globalAlpha = 1; }
-    carGlow(player, player.braking || Keys.Space, player.rev, 0, true);
+    carGlow(player, player.braking || key.hb(), player.rev, 0, true);
   }
   for (const u of Police.units) { const ph = Math.floor(T * 7 + u.id * 10) % 2; ctx.globalAlpha = 0.95; ctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 14, u.y - 14, 28, 28); ctx.globalAlpha = 0.3; ctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 70, u.y - 70, 140, 140); ctx.globalAlpha = 1; }
   Events.drawGlow(ctx, view);
@@ -1601,7 +1601,7 @@ function render() {
   if (Socorro.job && inView(view, Socorro.job.x, Socorro.job.y, 120)) { const J = Socorro.job; ctx.globalAlpha = clamp(1 - (J.fade || 0), 0, 1); drawVehicle(ctx, VMODELS.guincho, '#c8302a', J.x, J.y, J.a, { roll: 0, brake: J.state === 'arrived' || (J.v || 0) < 20 }); ctx.globalAlpha = 1; }
   if (Game.state === 'menu') MenuCar.desenha(ctx, view);
   if (player && Game.state !== 'menu') {
-    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, pitch: player.pitch, brake: player.braking || Keys.Space, rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery || !!(Act.ride && Act.ride.type === 'mudanca' && Act.ride.stage === 'drive'), zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null, kit: carKit(player.car.id) });
+    drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, pitch: player.pitch, brake: player.braking || key.hb(), rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery || !!(Act.ride && Act.ride.type === 'mudanca' && Act.ride.stage === 'drive'), zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null, kit: carKit(player.car.id) });
   }
   if (player && Game.state !== 'menu') {
     const D = Act.delivery;
@@ -1958,8 +1958,8 @@ let SPEEDO_KEY = '';
 function drawSpeedo() {
   if (!player) return;
   // só redesenha quando muda alguma coisa que aparece (parado, não gasta nada)
-  const key = Math.round(player.speed * 0.3) + '|' + Math.round(player.rpm / 60) + '|' + player.gear + '|' + (player.speed < 4 && !Keys.KeyW && !Keys.ArrowUp) + '|' + !!player.highBeam + '|' + spCanvas.width;
-  if (key === SPEEDO_KEY) return; SPEEDO_KEY = key;
+  const chave = Math.round(player.speed * 0.3) + '|' + Math.round(player.rpm / 60) + '|' + player.gear + '|' + (player.speed < 4 && !key.up()) + '|' + !!player.highBeam + '|' + spCanvas.width;
+  if (chave === SPEEDO_KEY) return; SPEEDO_KEY = chave;
   const W = spCanvas.width, H = spCanvas.height, k = W / 220;
   spx.setTransform(1, 0, 0, 1, 0, 0); spx.clearRect(0, 0, W, H);
   spx.scale(k, k);
@@ -1991,7 +1991,7 @@ function drawSpeedo() {
   spx.fillStyle = '#ffffff'; spx.textAlign = 'center'; spx.textBaseline = 'middle';
   spx.font = '48px "BRND Anton", Impact, sans-serif'; spx.fillStyle = '#05070b'; spx.fillText(Math.round(kmh), cx + 2, cy - 3); spx.fillStyle = '#ffffff'; spx.fillText(Math.round(kmh), cx, cy - 5);
   spx.font = '700 12px "BRND Cond", Arial'; spx.fillStyle = 'rgba(255,255,255,0.6)'; spx.fillText('KM/H', cx, cy + 19);
-  const gear = player.gear === -1 ? 'R' : player.speed < 4 && !Keys.KeyW && !Keys.ArrowUp ? 'N' : String(player.gear);
+  const gear = player.gear === -1 ? 'R' : player.speed < 4 && !key.up() ? 'N' : String(player.gear);
   spx.font = '22px "BRND Anton", Impact, sans-serif'; spx.fillStyle = gear === 'R' ? '#ff5f7a' : '#ffcc2e'; spx.fillText(gear, cx, cy + 43);
   spx.font = '700 10px "BRND Cond", Arial'; spx.fillStyle = 'rgba(255,255,255,0.45)'; spx.fillText('MARCHA', cx, cy + 60);
   if (player.highBeam) { spx.fillStyle = '#59e0ff'; spx.font = '800 12px "BRND Cond", Arial'; spx.fillText('FAROL ALTO', cx, 12); }
