@@ -406,9 +406,8 @@ function drawEdgeMarkings(g, e) {
 // carga e descarga, bueiros, tampas de bueiro, remendos de asfalto e manchas de óleo nas vagas
 function drawRuaDetalhes(g, e, s0, s1, hw) {
   const H = (k) => hash2(e.id * 31 + k, e.a.x + e.a.y * 7);
-  const outer = e.T.lanes[e.T.lanes.length - 1] + 12; // beira de fora da faixa de rodar
-  const larg = hw - outer; // largura da faixa de estacionamento
-  const a0 = s0 + 34, a1 = s1 - 34;
+  const G = vagaGeo(e), larg = G.larg; // faixa de estacionamento 10% mais larga
+  const a0 = G.a0, a1 = G.a1;
   // remendos de asfalto (mais escuros) e tampas de bueiro no meio da faixa
   for (let i = 0; i < 4; i++) {
     if (H(10 + i) > 0.55) continue;
@@ -429,10 +428,9 @@ function drawRuaDetalhes(g, e, s0, s1, hw) {
       g.fillStyle = '#1b1b1f'; g.fillRect(s - 6, y - 2.6, 12, 5.2);
       g.fillStyle = 'rgba(160,160,165,0.55)'; for (let k = -4; k <= 4; k += 2.6) g.fillRect(s + k, y - 2, 1, 4);
     }
-    if (larg < 12 || a1 - a0 < 120) continue;
+    if (!e.vagas || !e.vagas.includes(sd)) continue; // vaga só onde faz sentido (marcaVagas)
     const quer = H(sd + 60);
-    if (quer < 0.38) continue; // nem toda quadra tem vaga pintada
-    const passo = 46, ys = sd > 0 ? hw - larg : -hw, yi = sd > 0 ? hw : -hw + larg;
+    const passo = VAGA_PASSO, ys = sd > 0 ? hw - larg : -hw, yi = sd > 0 ? hw : -hw + larg;
     // linha que separa a faixa de estacionamento da pista
     g.fillStyle = 'rgba(236,236,230,0.55)';
     g.fillRect(a0, sd > 0 ? hw - larg : -hw + larg - 1.4, a1 - a0, 1.4);

@@ -2021,3 +2021,55 @@ function drawShip(g, x, y, w, h) {
   g.fillStyle = '#f2f2ea'; g.fillRect(x + 12, y + 20, 46, h - 40); g.fillStyle = '#1d4f9c'; g.fillRect(x + 18, y + 26, 34, 10);
   g.fillStyle = 'rgba(255,255,255,0.8)'; g.font = 'bold 14px sans-serif'; g.save(); g.translate(x + w - 70, y + h / 2); g.rotate(Math.PI / 2); g.textAlign = 'center'; g.fillText('VITORINHA STAR', 0, 0); g.restore();
 }
+
+/* ---------- vagas de estacionar na rua (nov/2026) ----------
+   Só nas avenidas da cidade grande e nas ruas curtas que têm loja ou mercado de frente; vaga 10% maior
+   (comprimento e largura) e carros estacionados nelas. Sem sorteio do mapa: tudo escolhido pela posição. */
+const VAGA_PASSO = 51, VAGA_REG = { centro: 1, camburi: 1, porto: 1, orla: 1 }, VAGA_MODELOS = ['quadrado', 'quadrado', 'besouro', 'escada', 'hatch', 'hatch', 'van', 'sport'];
+const vagaH = (e, k) => hash2(e.id * 31 + k, e.a.x + e.a.y * 7);
+function vagaGeo(e) { // mesma conta do desenho da faixa (drawEdgeMarkings)
+  const pad = 26, s0 = e.perpA ? e.perpA + pad : 0, s1 = e.perpB ? e.len - e.perpB - pad : e.len;
+  const outer = e.T.lanes[e.T.lanes.length - 1] + 12;
+  return { a0: s0 + 34, a1: s1 - 34, larg: (e.hw - outer) * 1.1 };
+}
+const vagaMundo = (e, s, y) => e.h ? [e.a.x + s, e.a.y + y] : [e.a.x - y, e.a.y + s];
+// a construção fica de frente para esse lado da rua?
+function vagaLoja(e, b, sd, G) {
+  let sA, sB, yA, yB;
+  if (e.h) { sA = b.x0 - e.a.x; sB = b.x1 - e.a.x; yA = b.y0 - e.a.y; yB = b.y1 - e.a.y; }
+  else { sA = b.y0 - e.a.y; sB = b.y1 - e.a.y; yA = -(b.x1 - e.a.x); yB = -(b.x0 - e.a.x); }
+  if (Math.min(sB, G.a1) - Math.max(sA, G.a0) < 30) return false;
+  const lim = e.hw + (e.T.sw || 22) + 90;
+  return sd > 0 ? yA > e.hw - 4 && yA < lim : yB < -e.hw + 4 && yB > -lim;
+}
+function marcaVagas() {
+  const lojas = World.buildings.filter((b) => b.style === 'shop' && b.sign);
+  World.vagasRua = 0;
+  for (const e of World.edges) {
+    e.vagas = null;
+    if (!e.T.sw || !(e.T.id === 'street' || e.T.id === 'avenue') || edgePave(e) === 'bloquete') continue;
+    const G = vagaGeo(e); if (G.larg < 12 || G.a1 - G.a0 < 120) continue;
+    const rk = regionKeyAt((e.a.x + e.b.x) / 2, (e.a.y + e.b.y) / 2), lados = [];
+    for (const sd of [-1, 1]) {
+      const ok = e.T.id === 'avenue' ? !!VAGA_REG[rk] : e.len <= 800 && lojas.some((b) => vagaLoja(e, b, sd, G));
+      if (ok) lados.push(sd);
+    }
+    if (!lados.length) continue;
+    e.vagas = lados;
+    // carros estacionados (cerca de metade das vagas comuns)
+    for (const sd of lados) {
+      const quer = vagaH(e, sd + 60);
+      let k = 0;
+      for (let s = G.a0; s + VAGA_PASSO <= G.a1; s += VAGA_PASSO, k++) {
+        World.vagasRua++;
+        const r = vagaH(e, 100 + k * 3 + sd);
+        if ((k === 2 && quer > 0.7) || r > 0.86) continue; // carga e descarga e vaga de idoso ficam livres
+        if (vagaH(e, 300 + k * 5 + sd) > 0.5) continue;
+        const [x, y] = vagaMundo(e, s + VAGA_PASSO / 2, sd * (e.hw - 12.5));
+        const frente = sd > 0 ? 0 : Math.PI, ang = e.h ? frente : frente + Math.PI / 2;
+        const mi = Math.floor(vagaH(e, 400 + k) * VAGA_MODELOS.length), ci = Math.floor(vagaH(e, 500 + k + sd) * CAR_COLORS.length);
+        addParkedCar(x, y, ang, VAGA_MODELOS[mi], CAR_COLORS[ci]);
+      }
+    }
+  }
+}

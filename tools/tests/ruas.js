@@ -38,6 +38,7 @@ const fs = require('fs'), path = require('path');
     for (const cell of colGrid.cells) if (cell) for (const c of cell) {
       if (vistos.has(c)) continue; vistos.add(c);
       if (c.tag === 'rail') continue;
+      if (c.tag === 'car' && PARKED.some((p) => Math.abs(p.x - (c.x0 + c.x1) / 2) < 1 && Math.abs(p.y - (c.y0 + c.y1) / 2) < 1) && Math.min(c.x1 - c.x0, c.y1 - c.y0) <= 27) continue; // carro estacionado na vaga da rua (de propósito)
       if (c.t === 0) testa(c, c.x0, c.y0, c.x1, c.y1, 'colisão:' + c.tag + (c.brk ? '/' + c.brk.kind + (c.brk.obj && c.brk.obj.type ? ':' + c.brk.obj.type : '') : ''));
       else testa(c, c.x - c.r, c.y - c.r, c.x + c.r, c.y + c.r, 'colisão:' + c.tag + (c.brk ? '/' + c.brk.kind + (c.brk.obj && c.brk.obj.type ? ':' + c.brk.obj.type : '') : ''));
     }
