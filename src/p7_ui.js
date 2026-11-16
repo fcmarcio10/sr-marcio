@@ -575,7 +575,7 @@ const Tutorial = {
   update(dt) {
     const el = $('tutorial');
     const vis = Game.mode === 'play' && carregou(1.5) && (!Screens.current || Screens.current === 'screen-phone' || Screens.current === 'screen-dialog');
-    if (!el || !vis || Profile.tut === undefined || Profile.tut >= TUT_STEPS.length) { if (el && this.shown !== -2) { el.classList.add('hidden'); this.shown = -2; } return; }
+    if (!el || !vis || Profile.tut === undefined || Profile.tut >= TUT_STEPS.length) { if (el && this.shown !== -2) { el.classList.add('hidden'); if (this.shown >= 0 && Profile.tut >= TUT_STEPS.length) Missao.esconde('ms-ajuda'); this.shown = -2; } return; }
     const st = TUT_STEPS[Profile.tut];
     this.t += dt;
     if (this.shown !== Profile.tut) {
@@ -584,7 +584,7 @@ const Tutorial = {
       if (st.entra) st.entra();
       const dots = TUT_STEPS.map((x, i) => `<i class="${i < Profile.tut ? 'ok' : i === Profile.tut ? 'at' : ''}"></i>`).join('');
       el.innerHTML = `<span class="tut-ava">SZ</span><div class="tut-mid"><div class="tut-who">Seu Zé <span class="tut-dots">${dots}</span></div><div class="tut-text"></div></div><button class="tut-skip" id="tut-skip">Pular</button>`;
-      $('tut-skip').addEventListener('click', () => { Profile.tut = TUT_STEPS.length; AudioSys.back(); this.fala(null); const p = $('tut-pop'); if (p) p.classList.add('sai'); saveGame(); });
+      $('tut-skip').addEventListener('click', () => { Profile.tut = TUT_STEPS.length; AudioSys.back(); this.fala(null); Missao.esconde('ms-ajuda'); saveGame(); });
       el.classList.remove('hidden'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
       this.fala(st.voz);
       this.popup(st);
@@ -602,12 +602,8 @@ const Tutorial = {
   },
   // aviso grande no meio da tela anunciando o passo (some sozinho e deixa a caixa de baixo)
   popup(st) {
-    let p = $('tut-pop');
-    if (!p) { p = document.createElement('div'); p.id = 'tut-pop'; document.body.appendChild(p); }
     const n = TUT_STEPS.indexOf(st) + 1, h = typeof st.html === 'function' ? st.html() : st.html;
-    p.innerHTML = `<div class="tp-n">TUTORIAL · PASSO ${n} DE ${TUT_STEPS.length}</div><div class="tp-t">${escapeHtml(st.titulo || '')}</div><div class="tp-d">${h}</div>`;
-    p.classList.remove('on', 'sai'); void p.offsetWidth; p.classList.add('on');
-    clearTimeout(this.popT); this.popT = setTimeout(() => p.classList.add('sai'), 3200);
+    Missao.ajuda(`<div class="ms-ajuda-tit">Passo ${n} de ${TUT_STEPS.length} · ${escapeHtml(st.titulo || '')}</div>${h}`, 8);
   },
   // seta pulando em cima do lugar certo (no chão do jogo)
   desenha(ctx, view) {

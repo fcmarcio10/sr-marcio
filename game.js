@@ -11413,7 +11413,7 @@ const Tutorial = {
   update(dt) {
     const el = $('tutorial');
     const vis = Game.mode === 'play' && carregou(1.5) && (!Screens.current || Screens.current === 'screen-phone' || Screens.current === 'screen-dialog');
-    if (!el || !vis || Profile.tut === undefined || Profile.tut >= TUT_STEPS.length) { if (el && this.shown !== -2) { el.classList.add('hidden'); this.shown = -2; } return; }
+    if (!el || !vis || Profile.tut === undefined || Profile.tut >= TUT_STEPS.length) { if (el && this.shown !== -2) { el.classList.add('hidden'); if (this.shown >= 0 && Profile.tut >= TUT_STEPS.length) Missao.esconde('ms-ajuda'); this.shown = -2; } return; }
     const st = TUT_STEPS[Profile.tut];
     this.t += dt;
     if (this.shown !== Profile.tut) {
@@ -11422,7 +11422,7 @@ const Tutorial = {
       if (st.entra) st.entra();
       const dots = TUT_STEPS.map((x, i) => `<i class="${i < Profile.tut ? 'ok' : i === Profile.tut ? 'at' : ''}"></i>`).join('');
       el.innerHTML = `<span class="tut-ava">SZ</span><div class="tut-mid"><div class="tut-who">Seu Zé <span class="tut-dots">${dots}</span></div><div class="tut-text"></div></div><button class="tut-skip" id="tut-skip">Pular</button>`;
-      $('tut-skip').addEventListener('click', () => { Profile.tut = TUT_STEPS.length; AudioSys.back(); this.fala(null); const p = $('tut-pop'); if (p) p.classList.add('sai'); saveGame(); });
+      $('tut-skip').addEventListener('click', () => { Profile.tut = TUT_STEPS.length; AudioSys.back(); this.fala(null); Missao.esconde('ms-ajuda'); saveGame(); });
       el.classList.remove('hidden'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
       this.fala(st.voz);
       this.popup(st);
@@ -11440,12 +11440,8 @@ const Tutorial = {
   },
   // aviso grande no meio da tela anunciando o passo (some sozinho e deixa a caixa de baixo)
   popup(st) {
-    let p = $('tut-pop');
-    if (!p) { p = document.createElement('div'); p.id = 'tut-pop'; document.body.appendChild(p); }
     const n = TUT_STEPS.indexOf(st) + 1, h = typeof st.html === 'function' ? st.html() : st.html;
-    p.innerHTML = `<div class="tp-n">TUTORIAL · PASSO ${n} DE ${TUT_STEPS.length}</div><div class="tp-t">${escapeHtml(st.titulo || '')}</div><div class="tp-d">${h}</div>`;
-    p.classList.remove('on', 'sai'); void p.offsetWidth; p.classList.add('on');
-    clearTimeout(this.popT); this.popT = setTimeout(() => p.classList.add('sai'), 3200);
+    Missao.ajuda(`<div class="ms-ajuda-tit">Passo ${n} de ${TUT_STEPS.length} · ${escapeHtml(st.titulo || '')}</div>${h}`, 8);
   },
   // seta pulando em cima do lugar certo (no chão do jogo)
   desenha(ctx, view) {
@@ -11616,6 +11612,45 @@ function confete(n) {
   }
   setTimeout(() => box.remove(), 3400);
 }
+
+/* ---------- avisos de missão em estilo de cinema: título do capítulo, legenda do objetivo,
+   caixa de ajuda no canto e a faixa de "capítulo concluído" ---------- */
+const Missao = { timers: {} };
+Missao.el = function (id) {
+  let e = $(id);
+  if (!e) { e = document.createElement('div'); e.id = id; e.className = 'ms-oculto'; document.body.appendChild(e); }
+  return e;
+};
+Missao.mostra = function (id, html, seg) {
+  const e = this.el(id);
+  e.innerHTML = html; e.classList.remove('ms-sai', 'ms-oculto'); void e.offsetWidth; e.classList.add('ms-on');
+  clearTimeout(this.timers[id]);
+  if (seg) this.timers[id] = setTimeout(() => this.esconde(id), seg * 1000);
+};
+Missao.esconde = function (id) {
+  const e = $(id); if (!e || e.classList.contains('ms-oculto')) return;
+  e.classList.add('ms-sai'); clearTimeout(this.timers[id]);
+  this.timers[id] = setTimeout(() => { e.classList.remove('ms-on', 'ms-sai'); e.classList.add('ms-oculto'); }, 600);
+};
+// nome do capítulo grande no meio da tela
+Missao.titulo = function (rotulo, nome) {
+  this.mostra('ms-titulo', `<div class="ms-rot">${escapeHtml(rotulo)}</div><div class="ms-nome">${escapeHtml(nome)}</div>`, 4.5);
+  try { [196, 294, 392].forEach((f, i) => AudioSys.tone(f, 1.4, 'triangle', 0.05, 'ui', null, i * 0.12)); } catch (e) {}
+};
+// objetivo como legenda embaixo (palavra importante em amarelo)
+Missao.legenda = function (html, seg, quem) {
+  this.mostra('ms-legenda', (quem ? `<span class="ms-quem">${escapeHtml(quem)}:</span> ` : '') + html, seg || 7);
+};
+// caixa de ajuda no canto de cima
+Missao.ajuda = function (html, seg) {
+  this.mostra('ms-ajuda', html, seg || 8);
+  try { AudioSys.tone(880, 0.12, 'sine', 0.05, 'ui'); AudioSys.tone(1320, 0.16, 'sine', 0.04, 'ui', null, 0.08); } catch (e) {}
+};
+// faixa escura atravessando a tela com "CAPÍTULO CONCLUÍDO"
+Missao.passou = function (titulo, sub, valor) {
+  this.mostra('ms-passou', `<div class="ms-faixa"><div class="ms-ok">${escapeHtml(titulo)}</div><div class="ms-sub">${escapeHtml(sub)}</div>${valor ? `<div class="ms-val">+ R$ ${fmtMoney(valor)}</div>` : ''}</div>`, 5.5);
+  try { [[523, 0], [659, 0.1], [784, 0.2], [1047, 0.32], [784, 0.62], [1047, 0.74], [1319, 0.86]].forEach(([f, d]) => AudioSys.tone(f, 0.55, 'triangle', 0.07, 'ui', null, d)); } catch (e) {}
+};
 /* ============================ HISTÓRIA: O CARRO DOS SONHOS ============================
    6 capítulos + o final. No fundo da oficina do Seu Zé tem um Opalha 6C preto à venda (R$ 29.000):
    cada capítulo abre com um áudio do Seu Zé no zap, tem uma meta, paga um prêmio e leva ao próximo.
@@ -11624,16 +11659,16 @@ const SONHO = 'brasa'; // Opalha 6C
 const capNome = (i) => (i >= 6 ? 'Final' : 'Capítulo ' + (i + 1));
 const corridasDe = () => Profile.rides || 0;
 const HIST_CAPS = [
-  { nome: 'Chegada', meta: 'Termine o passo a passo com o Seu Zé.', voz: null, premio: 200,
+  { nome: 'Chegada', leg: 'Siga o <b>Seu Zé</b> no passo a passo.', dica: '', meta: 'Termine o passo a passo com o Seu Zé.', voz: null, premio: 200,
     val: () => (Profile.tut === undefined || Profile.tut >= TUT_STEPS.length ? 1 : 0), alvo: 1, absoluto: true },
-  { nome: 'Ganha-pão', meta: 'Faça corridas no PegaAí.', voz: 'cap_2', premio: 400, val: corridasDe, alvo: 5 },
-  { nome: 'Entregador da madrugada', meta: 'Faça entregas dos comércios ou fretes.', voz: 'cap_3', premio: 500, val: () => Profile.deliveries || 0, alvo: 3 },
-  { nome: 'Socorro na madrugada', meta: 'Ajude gente nos eventos da cidade (fique de olho no celular).', voz: 'cap_4', premio: 700, val: () => Profile.evTotal || 0, alvo: 2 },
-  { nome: 'A estrada da roça', meta: 'Termine o Rali da Vaca Atolada, lá na fazenda.', voz: 'cap_5', premio: 900,
+  { nome: 'Ganha-pão', leg: 'Faça <b>5 corridas</b> no <b>PegaAí</b>.', dica: 'Abra o celular com <kbd>Q</kbd> e fique <b>online</b> no PegaAí.', meta: 'Faça corridas no PegaAí.', voz: 'cap_2', premio: 400, val: corridasDe, alvo: 5 },
+  { nome: 'Entregador da madrugada', leg: 'Faça <b>3 entregas</b> dos comércios ou fretes.', dica: 'Comércios com marcador <b>amarelo</b> têm entrega: pare na frente e aperte <kbd>E</kbd>. Fretes ficam no app <b>Fretes</b>.', meta: 'Faça entregas dos comércios ou fretes.', voz: 'cap_3', premio: 500, val: () => Profile.deliveries || 0, alvo: 3 },
+  { nome: 'Socorro na madrugada', leg: 'Ajude <b>2 pessoas</b> nos eventos da cidade.', dica: 'Quando chegar um pedido de ajuda na tela, aperte <kbd>Y</kbd> para aceitar.', meta: 'Ajude gente nos eventos da cidade (fique de olho no celular).', voz: 'cap_4', premio: 700, val: () => Profile.evTotal || 0, alvo: 2 },
+  { nome: 'A estrada da roça', leg: 'Vá até a <b>fazenda</b> e termine o <b>Rali da Vaca Atolada</b>.', dica: 'O <b>GPS</b> já marca a largada do rali. Pare na bandeira e aperte <kbd>E</kbd>.', meta: 'Termine o Rali da Vaca Atolada, lá na fazenda.', voz: 'cap_5', premio: 900,
     val: () => Profile.histRali || 0, alvo: 1, absoluto: true,
     alvoMapa: () => { const r = World.races.find((q) => q.id === 'fazenda'); return r && { x: r.start[0], y: r.start[1], label: 'Rali da Vaca Atolada' }; } },
-  { nome: 'Tudo ou nada', meta: 'Ganhe um racha de madrugada (das 22h às 4h30).', voz: 'cap_6', premio: 1500, val: () => Profile.rachaWins || 0, alvo: 1 },
-  { nome: 'O carro dos sonhos', meta: 'Junte R$ 29.000 e compre o Opalha 6C na sua garagem.', voz: 'cap_7', premio: 0,
+  { nome: 'Tudo ou nada', leg: 'Ganhe um <b>racha</b> de madrugada.', dica: 'Rachas acontecem das <b>22h às 4h30</b>. Veja no app <b>Racha</b> do celular.', meta: 'Ganhe um racha de madrugada (das 22h às 4h30).', voz: 'cap_6', premio: 1500, val: () => Profile.rachaWins || 0, alvo: 1 },
+  { nome: 'O carro dos sonhos', leg: 'Junte <b>R$ 29.000</b> e compre o <b>Opalha 6C</b> na garagem.', dica: 'Quando tiver o dinheiro, entre na <b>garagem</b> e compre o Opalha.', meta: 'Junte R$ 29.000 e compre o Opalha 6C na sua garagem.', voz: 'cap_7', premio: 0,
     val: () => (Profile.owned && Profile.owned[SONHO] ? 1 : 0), alvo: 1, absoluto: true,
     extra: () => 'R$ ' + fmtMoney(Math.max(0, Math.min(Profile.money, 29000))) + ' de R$ 29.000' },
 ];
@@ -11670,17 +11705,18 @@ const Historia = {
     const h = this.h(), c = HIST_CAPS[h.cap], n = h.cap + 1;
     if (c.premio) pay(c.premio);
     if (h.cap === HIST_CAPS.length - 1) { this.final(); return; }
-    Resultado.mostra({ titulo: 'Capítulo ' + n + ' concluído', sub: c.nome, estrelas: null, linhas: [['Prêmio do capítulo', c.premio]], total: c.premio });
-    confete(60); AudioSys.checkpoint && AudioSys.checkpoint();
+    Missao.passou('Capítulo concluído', c.nome, c.premio); confete(60);
     h.cap++; h.base = this.cru(h.cap);
     if (h.cap === 4) Profile.histRali = 0;
     saveGame();
-    setTimeout(() => this.abre(h.cap), 4200);
+    setTimeout(() => this.abre(h.cap), 6500);
   },
-  // começa um capítulo: cartaz grande no meio e áudio do Seu Zé no zap
+  // começa um capítulo: nome grande no meio, objetivo em legenda, dica no canto e áudio do Seu Zé no zap
   abre(i) {
     const c = HIST_CAPS[i]; if (!c || Game.mode !== 'play') return;
-    this.cartaz(i >= 6 ? 'O FINAL' : 'CAPÍTULO ' + (i + 1) + ' DE 6', c.nome, c.meta);
+    Missao.titulo(i >= 6 ? 'O final' : 'Capítulo ' + (i + 1) + ' de 6', c.nome);
+    setTimeout(() => { if (Game.mode === 'play') Missao.legenda(c.leg, 8); }, 5000);
+    if (c.dica) setTimeout(() => { if (Game.mode === 'play') Missao.ajuda(c.dica, 9); }, 5600);
     if (c.voz && CHAR_VOICES[c.voz]) { const m = charVoice(c.voz); if (m && m.voice) setTimeout(() => VoicePlayer.play(m), 1800); }
     if (c.alvoMapa) { const w = c.alvoMapa(); if (w) { Act.waypoint = w; Act.gpsT = 0; } }
     saveGame();
@@ -11688,17 +11724,9 @@ const Historia = {
   final() {
     const h = this.h(); h.fim = true; saveGame();
     confete(160);
-    this.cartaz('FIM DA HISTÓRIA', 'O carro dos sonhos', 'O Opalha 6C é seu. São Gambiarra inteira sabe o seu nome.', true);
+    Missao.passou('História concluída', 'O Opalha 6C é seu. São Gambiarra inteira sabe o seu nome.', 0);
     const m = charVoice('cap_fim'); if (m && m.voice) setTimeout(() => VoicePlayer.play(m), 2200);
     try { AudioSys.chime(); setTimeout(() => AudioSys.chime(), 350); } catch (e) {}
-  },
-  cartaz(n, titulo, texto, grande) {
-    let p = $('hist-pop');
-    if (!p) { p = document.createElement('div'); p.id = 'hist-pop'; document.body.appendChild(p); }
-    p.innerHTML = `<div class="hp-n">${escapeHtml(n)}</div><div class="hp-t">${escapeHtml(titulo)}</div><div class="hp-d">${escapeHtml(texto)}</div>`;
-    p.classList.toggle('grande', !!grande);
-    p.classList.remove('on', 'sai'); void p.offsetWidth; p.classList.add('on');
-    clearTimeout(this.popT); this.popT = setTimeout(() => p.classList.add('sai'), grande ? 7000 : 5200);
   },
   // tela de pausa: lista dos capítulos
   listaHTML() {
@@ -11733,16 +11761,7 @@ function startPlay() {
   UI.region = null; UI.last = {};
   Game.autosaveT = 30;
   updateHudVisibility();
-  // primeira vez no jogo: o Seu Zé manda um áudio de boas-vindas no zap (toca sozinho uma vez)
-  if (!Profile.welcomed) {
-    Profile.welcomed = true;
-    aposCarregar(() => {
-      if (Game.mode !== 'play') { Profile.welcomed = false; return; }
-      const m = charVoice('boas_vindas');
-      if (m && m.voice) VoicePlayer.play(m);
-      saveGame();
-    }, 2.5);
-  }
+  Profile.welcomed = true; // sem áudio de boas-vindas (o tutorial do Seu Zé já fala)
 }
 // tela de carregamento entre o menu e o jogo, com dica
 function withTransit(fn) {

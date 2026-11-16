@@ -22,16 +22,7 @@ function startPlay() {
   UI.region = null; UI.last = {};
   Game.autosaveT = 30;
   updateHudVisibility();
-  // primeira vez no jogo: o Seu Zé manda um áudio de boas-vindas no zap (toca sozinho uma vez)
-  if (!Profile.welcomed) {
-    Profile.welcomed = true;
-    aposCarregar(() => {
-      if (Game.mode !== 'play') { Profile.welcomed = false; return; }
-      const m = charVoice('boas_vindas');
-      if (m && m.voice) VoicePlayer.play(m);
-      saveGame();
-    }, 2.5);
-  }
+  Profile.welcomed = true; // sem áudio de boas-vindas (o tutorial do Seu Zé já fala)
 }
 // tela de carregamento entre o menu e o jogo, com dica
 function withTransit(fn) {

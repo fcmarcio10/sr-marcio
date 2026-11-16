@@ -55,3 +55,42 @@ function confete(n) {
   }
   setTimeout(() => box.remove(), 3400);
 }
+
+/* ---------- avisos de missão em estilo de cinema: título do capítulo, legenda do objetivo,
+   caixa de ajuda no canto e a faixa de "capítulo concluído" ---------- */
+const Missao = { timers: {} };
+Missao.el = function (id) {
+  let e = $(id);
+  if (!e) { e = document.createElement('div'); e.id = id; e.className = 'ms-oculto'; document.body.appendChild(e); }
+  return e;
+};
+Missao.mostra = function (id, html, seg) {
+  const e = this.el(id);
+  e.innerHTML = html; e.classList.remove('ms-sai', 'ms-oculto'); void e.offsetWidth; e.classList.add('ms-on');
+  clearTimeout(this.timers[id]);
+  if (seg) this.timers[id] = setTimeout(() => this.esconde(id), seg * 1000);
+};
+Missao.esconde = function (id) {
+  const e = $(id); if (!e || e.classList.contains('ms-oculto')) return;
+  e.classList.add('ms-sai'); clearTimeout(this.timers[id]);
+  this.timers[id] = setTimeout(() => { e.classList.remove('ms-on', 'ms-sai'); e.classList.add('ms-oculto'); }, 600);
+};
+// nome do capítulo grande no meio da tela
+Missao.titulo = function (rotulo, nome) {
+  this.mostra('ms-titulo', `<div class="ms-rot">${escapeHtml(rotulo)}</div><div class="ms-nome">${escapeHtml(nome)}</div>`, 4.5);
+  try { [196, 294, 392].forEach((f, i) => AudioSys.tone(f, 1.4, 'triangle', 0.05, 'ui', null, i * 0.12)); } catch (e) {}
+};
+// objetivo como legenda embaixo (palavra importante em amarelo)
+Missao.legenda = function (html, seg, quem) {
+  this.mostra('ms-legenda', (quem ? `<span class="ms-quem">${escapeHtml(quem)}:</span> ` : '') + html, seg || 7);
+};
+// caixa de ajuda no canto de cima
+Missao.ajuda = function (html, seg) {
+  this.mostra('ms-ajuda', html, seg || 8);
+  try { AudioSys.tone(880, 0.12, 'sine', 0.05, 'ui'); AudioSys.tone(1320, 0.16, 'sine', 0.04, 'ui', null, 0.08); } catch (e) {}
+};
+// faixa escura atravessando a tela com "CAPÍTULO CONCLUÍDO"
+Missao.passou = function (titulo, sub, valor) {
+  this.mostra('ms-passou', `<div class="ms-faixa"><div class="ms-ok">${escapeHtml(titulo)}</div><div class="ms-sub">${escapeHtml(sub)}</div>${valor ? `<div class="ms-val">+ R$ ${fmtMoney(valor)}</div>` : ''}</div>`, 5.5);
+  try { [[523, 0], [659, 0.1], [784, 0.2], [1047, 0.32], [784, 0.62], [1047, 0.74], [1319, 0.86]].forEach(([f, d]) => AudioSys.tone(f, 0.55, 'triangle', 0.07, 'ui', null, d)); } catch (e) {}
+};
