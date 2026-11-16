@@ -991,8 +991,9 @@ function addTree(x, y, type, size, opt) {
   const sr = R * 0.9;
   bake(x - sr, y - sr, x + sr * 2, y + sr * 2, 7, (g) => {
     if (t.removed) return;
-    g.fillStyle = 'rgba(0,0,0,0.28)';
-    g.beginPath(); g.ellipse(x + sr * 0.45, y + sr * 0.55, sr, sr * 0.8, 0.5, 0, TAU); g.fill();
+    // sombra com o desenho da própria copa (silhueta da árvore), jogada para baixo e para a direita
+    const S = 64 * t.size * (t.type === 'bush' ? 0.55 : 1), off = S * (t.type === 'bush' ? 0.12 : 0.22);
+    g.globalAlpha = 0.34; g.drawImage(sombraArvore(t.type, t.v), x - S / 2 + off, y - S / 2 + off * 1.2, S, S); g.globalAlpha = 1;
   });
   return t;
 }
@@ -2771,6 +2772,21 @@ function elevaPredios() {
     b.h = Math.min(150, Math.round(b.h * (1.35 + hash2(b.x1 | 0, b.y1 | 0) * 0.4)));
   }
 }
+
+/* ---------- sombra de contato no pé das construções (dá volume, como luz batendo de cima) ---------- */
+function aoPredios() {
+  for (const b of World.buildings) {
+    if (b.h < 14) continue;
+    const m = Math.min(16, 6 + b.h * 0.08);
+    bake(b.x0 - m, b.y0 - m, b.x1 + m, b.y1 + m, 7.2, (g) => {
+      const lado = (x0, y0, x1, y1, gx0, gy0, gx1, gy1) => { const gr = g.createLinearGradient(gx0, gy0, gx1, gy1); gr.addColorStop(0, 'rgba(0,0,0,0.26)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x0, y0, x1 - x0, y1 - y0); };
+      lado(b.x0, b.y0 - m, b.x1, b.y0, 0, b.y0, 0, b.y0 - m);
+      lado(b.x0, b.y1, b.x1, b.y1 + m, 0, b.y1, 0, b.y1 + m);
+      lado(b.x0 - m, b.y0, b.x0, b.y1, b.x0, 0, b.x0 - m, 0);
+      lado(b.x1, b.y0, b.x1 + m, b.y1, b.x1, 0, b.x1 + m, 0);
+    });
+  }
+}
 /* ============================ TEXTURAS ============================ */
 const PSRC = {};
 function tex(size, base, fn) {
@@ -3709,6 +3725,7 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   ctx.save();
   ctx.translate(x + 2.5, y + 3.5 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as);
   if (typeof SHSPR !== 'undefined' && SHSPR && Settings.quality === 'alta') { const ga = ctx.globalAlpha; ctx.translate(-1, -1); ctx.globalAlpha = ga * 0.78; softCarShadow(ctx, m.L + 4, m.W + 3); ctx.globalAlpha = ga; } // sombra de contato macia
+  if (m.kind === 'car' && Settings.quality !== 'baixa') { ctx.save(); ctx.translate(x + 1.6, y + 2.4 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as); ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fill(bodyPath(m)); ctx.restore(); } // contorno fiel da carroceria por cima da sombra macia
   else { ctx.fillStyle = 'rgba(0,0,0,0.42)'; ctx.beginPath(); rrect(ctx, -m.L / 2 - 1, -m.W / 2 - 0.5, m.L + 2, m.W + 1, m.kind === 'moto' ? 4 : 6); ctx.fill(); }
   ctx.restore();
   if (lift && m.kind !== 'moto') {
@@ -4047,6 +4064,13 @@ function drawTractor(ctx, m, color, o) {
 /* ============================ ÁRVORES ============================ */
 const _treeSprites = new Map();
 const TREE_RES = 2;
+// silhueta preta da árvore (para a sombra ficar com o mesmo contorno da copa)
+const _sombraArv = new Map();
+function sombraArvore(type, v) {
+  const k = type + v; let c = _sombraArv.get(k);
+  if (!c) { const spr = treeSprite(type, v); c = makeCanvas(spr.width, spr.height); const g = c.getContext('2d'); g.drawImage(spr, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); _sombraArv.set(k, c); }
+  return c;
+}
 function treeSprite(type, v) {
   const k = type + v;
   let c = _treeSprites.get(k);
@@ -4346,6 +4370,19 @@ class Player {
       if (forte) for (const sd of [1, -1]) Particles.emit('smoke', rx + sd * ox, ry + sd * oy, -this.vx * 0.06 + rnd(-14, 14), -this.vy * 0.06 + rnd(-14, 14), rnd(1.1, 2), rnd(5, 8)); // drift: fumaça das duas rodas de trás
       if (chance(0.35)) Particles.emit(this.surface === SF.ROAD || this.surface === SF.PAVED ? 'smoke' : 'dust', rx + (chance(0.5) ? ox : -ox), ry + (chance(0.5) ? oy : -oy), -this.vx * 0.1 + rnd(-10, 10), -this.vy * 0.1 + rnd(-10, 10), rnd(0.8, 1.4), 6);
     } else this.lastRear = null;
+    // terra, grama e areia: as rodas de trás deixam sulco por onde passam e levantam poeira/areia acelerando
+    {
+      const solo = this.surface === SF.GRASS || this.surface === SF.EARTH || this.surface === SF.DIRT || this.surface === SF.SAND || this.surface === SF.FIELD;
+      const Wr = this.rodas(), tr = this.trilha || (this.trilha = [null, null]);
+      if (solo && sp > 20) for (let k = 0; k < 2; k++) {
+        const wx = Wr[k * 2], wy = Wr[k * 2 + 1], L = tr[k];
+        if (!L) tr[k] = [wx, wy]; else if (Math.hypot(wx - L[0], wy - L[1]) > 7) { Skids.add1(L[0], L[1], wx, wy, 'sulco'); L[0] = wx; L[1] = wy; }
+      } else tr[0] = tr[1] = null;
+      if (solo && this.thr > 0.6 && (sp < 260 || this.slip > 0.4) && chance(0.55 + (this.launchT > 0 ? 0.4 : 0))) {
+        const k = chance(0.5) ? 0 : 1, areia = this.surface === SF.SAND;
+        Particles.emit(areia ? 'areia' : 'dust', Wr[k * 2] + rnd(-3, 3), Wr[k * 2 + 1] + rnd(-3, 3), -c * rnd(40, 90) + rnd(-25, 25), -s * rnd(40, 90) + rnd(-25, 25), rnd(0.5, 1.1), areia ? rnd(2, 3.5) : rnd(3, 5));
+      }
+    }
     // pneu junta barro na estrada de terra (muito mais na chuva) e larga o rastro no começo do asfalto
     // cada roda junta o próprio barro e só ela marca o asfalto depois (a roda que ficou na grama ou no asfalto não marca)
     const muddy = this.surface === SF.DIRT || this.surface === SF.EARTH || this.surface === SF.FIELD;
@@ -5417,8 +5454,8 @@ const Particles = {
       if (p.type === 'hubcap') { ctx.globalAlpha = Math.min(1, t * 3); ctx.fillStyle = '#c9ccd2'; ctx.beginPath(); ctx.arc(p.x, p.y, 3.4, 0, TAU); ctx.fill(); ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.x + Math.cos(p.rot) * 3, p.y + Math.sin(p.rot) * 3); ctx.lineTo(p.x - Math.cos(p.rot) * 3, p.y - Math.sin(p.rot) * 3); ctx.stroke(); continue; }
       if (p.type === 'leaf') { ctx.globalAlpha = t; ctx.fillStyle = '#3f7a2e'; ctx.fillRect(p.x, p.y, 2.4, 1.6); continue; }
       if (p.type === 'steam' || p.type === 'exhaust') { ctx.globalAlpha = t * (p.type === 'steam' ? 0.35 : 0.18); ctx.fillStyle = p.type === 'steam' ? '#f0f4f8' : '#9a9a9a'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); continue; }
-      ctx.globalAlpha = t * (p.type === 'dust' ? 0.35 : p.type === 'mud' ? 0.75 : p.type === 'water' ? 0.45 : 0.28);
-      ctx.fillStyle = p.type === 'dust' ? '#9a7e5a' : p.type === 'mud' ? '#4e3220' : p.type === 'water' ? '#b9d6e6' : '#c8c8c8';
+      ctx.globalAlpha = t * (p.type === 'dust' ? 0.35 : p.type === 'areia' ? 0.6 : p.type === 'mud' ? 0.75 : p.type === 'water' ? 0.45 : 0.28);
+      ctx.fillStyle = p.type === 'dust' ? '#9a7e5a' : p.type === 'areia' ? '#e3cf9a' : p.type === 'mud' ? '#4e3220' : p.type === 'water' ? '#b9d6e6' : '#c8c8c8';
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); // (uma por uma: a fumaça fica mais densa onde se sobrepõe)
     }
     ctx.globalAlpha = 1;
@@ -5436,7 +5473,7 @@ const Particles = {
   },
 };
 const Skids = {
-  N: 900, buf: new Float32Array(900 * 4), t: new Float32Array(900), dirt: new Uint8Array(900), i: 0, count: 0,
+  N: 1600, buf: new Float32Array(1600 * 4), t: new Float32Array(1600), dirt: new Uint8Array(1600), i: 0, count: 0,
   add(ax, ay, bx, by, cx, cy, dx, dy, surf) {
     for (const [x0, y0, x1, y1] of [[ax, ay, bx, by], [cx, cy, dx, dy]]) {
       const j = this.i;
@@ -5449,11 +5486,28 @@ const Skids = {
   add1(x0, y0, x1, y1, surf) {
     const j = this.i;
     this.buf[j * 4] = x0; this.buf[j * 4 + 1] = y0; this.buf[j * 4 + 2] = x1; this.buf[j * 4 + 3] = y1;
-    this.t[j] = Game.time; this.dirt[j] = surf === 'sangue' ? 3 : surf === 'sangue2' ? 4 : surf === 'mud' ? 2 : 1;
+    this.t[j] = Game.time; this.dirt[j] = surf === 'sangue' ? 3 : surf === 'sangue2' ? 4 : surf === 'mud' ? 2 : surf === 'sulco' ? 5 : 1;
     this.i = (j + 1) % this.N; this.count = Math.min(this.N, this.count + 1);
   },
   draw(ctx, view) {
     if (!this.count) return;
+    // sulco do pneu na grama, terra e areia: borda clara levantada e fundo escuro (parece relevo), some em 60 s
+    ctx.lineCap = 'round';
+    for (let bucket = 0; bucket < 3; bucket++) {
+      const lo = bucket * 20, hi = lo + 20, k = 1 - bucket * 0.3;
+      const P = new Path2D(); let any = false;
+      for (let j = 0; j < this.count; j++) {
+        if (this.dirt[j] !== 5) continue;
+        const age = Game.time - this.t[j]; if (age < lo || age >= hi) continue;
+        const x = this.buf[j * 4], y = this.buf[j * 4 + 1];
+        if (x < view.x0 - 20 || x > view.x1 + 20 || y < view.y0 - 20 || y > view.y1 + 20) continue;
+        P.moveTo(x, y); P.lineTo(this.buf[j * 4 + 2], this.buf[j * 4 + 3]); any = true;
+      }
+      if (!any) continue;
+      ctx.save(); ctx.translate(-0.9, -0.9); ctx.strokeStyle = `rgba(255,248,225,${0.13 * k})`; ctx.lineWidth = 5; ctx.stroke(P); ctx.restore();
+      ctx.save(); ctx.translate(0.9, 1.1); ctx.strokeStyle = `rgba(0,0,0,${0.16 * k})`; ctx.lineWidth = 4.4; ctx.stroke(P); ctx.restore();
+      ctx.strokeStyle = `rgba(48,34,18,${0.34 * k})`; ctx.lineWidth = 3.2; ctx.stroke(P);
+    }
     ctx.lineWidth = 3.4; ctx.lineCap = 'round';
     for (let bucket = 0; bucket < 3; bucket++) {
       const lo = bucket * 15, hi = lo + 15;
@@ -9296,16 +9350,18 @@ Weather.drawDrops = function (ctx) {
   if (!this.drops.length) return;
   ctx.setTransform(RS, 0, 0, RS, 0, 0);
   const cx = SCREEN_W / 2, cy = SCREEN_H / 2, wx = (this.wind || 0) * 60;
-  // duas camadas: gotas perto da câmera (grossas e claras) e longe (finas)
-  for (const near of [true, false]) {
-    ctx.strokeStyle = near ? 'rgba(200,215,240,0.34)' : 'rgba(170,190,220,0.22)'; ctx.lineWidth = near ? 1.6 : 0.9;
+  // névoa da chuva (o ar fica cinza-azulado) e três camadas de gotas: longe (finas e apagadas), meio e perto (mais longas e claras)
+  ctx.fillStyle = `rgba(150,165,185,${(0.07 * this.rain).toFixed(3)})`; ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  const CAM = [[0, 0.34, 'rgba(170,188,215,0.16)', 0.7], [0.34, 0.67, 'rgba(190,205,230,0.24)', 1], [0.67, 1.01, 'rgba(215,228,245,0.34)', 1.35]];
+  for (const [z0, z1, cor, lw] of CAM) {
+    ctx.strokeStyle = cor; ctx.lineWidth = lw;
     ctx.beginPath();
     for (const d of this.drops) {
-      if ((d.z > 0.5) !== near) continue;
+      if (d.z < z0 || d.z >= z1) continue;
       const k = 0.55 + 0.45 * d.z; // perto da câmera = mais longe do centro
       const ca = Math.cos(d.a), sa = Math.sin(d.a);
       const x = cx + ca * d.r * k + wx * (1 - d.z), y = cy + sa * d.r * k;
-      const tl = Math.max(4, d.r * d.l) * (0.4 + d.z); // rastro curto apontando para fora (de onde a gota veio)
+      const tl = Math.max(5, d.r * d.l) * (0.5 + d.z * 1.1); // rastro apontando para fora (de onde a gota veio)
       ctx.moveTo(x, y); ctx.lineTo(x + ca * tl - wx * 0.08, y + sa * tl);
     }
     ctx.stroke();
@@ -13774,7 +13830,7 @@ async function boot() {
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
-  alargaRuas(); empurraDaPista(); marcaVagas(); elevaPredios(); // ruas 10% mais largas (depois de montar tudo: a cidade não muda)
+  alargaRuas(); empurraDaPista(); marcaVagas(); elevaPredios(); aoPredios(); // ruas 10% mais largas (depois de montar tudo: a cidade não muda)
   pruneRoadTrees(); thinTrees(); addBuracos(); Colecao.monta();
   buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();

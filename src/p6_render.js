@@ -1253,16 +1253,18 @@ Weather.drawDrops = function (ctx) {
   if (!this.drops.length) return;
   ctx.setTransform(RS, 0, 0, RS, 0, 0);
   const cx = SCREEN_W / 2, cy = SCREEN_H / 2, wx = (this.wind || 0) * 60;
-  // duas camadas: gotas perto da câmera (grossas e claras) e longe (finas)
-  for (const near of [true, false]) {
-    ctx.strokeStyle = near ? 'rgba(200,215,240,0.34)' : 'rgba(170,190,220,0.22)'; ctx.lineWidth = near ? 1.6 : 0.9;
+  // névoa da chuva (o ar fica cinza-azulado) e três camadas de gotas: longe (finas e apagadas), meio e perto (mais longas e claras)
+  ctx.fillStyle = `rgba(150,165,185,${(0.07 * this.rain).toFixed(3)})`; ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  const CAM = [[0, 0.34, 'rgba(170,188,215,0.16)', 0.7], [0.34, 0.67, 'rgba(190,205,230,0.24)', 1], [0.67, 1.01, 'rgba(215,228,245,0.34)', 1.35]];
+  for (const [z0, z1, cor, lw] of CAM) {
+    ctx.strokeStyle = cor; ctx.lineWidth = lw;
     ctx.beginPath();
     for (const d of this.drops) {
-      if ((d.z > 0.5) !== near) continue;
+      if (d.z < z0 || d.z >= z1) continue;
       const k = 0.55 + 0.45 * d.z; // perto da câmera = mais longe do centro
       const ca = Math.cos(d.a), sa = Math.sin(d.a);
       const x = cx + ca * d.r * k + wx * (1 - d.z), y = cy + sa * d.r * k;
-      const tl = Math.max(4, d.r * d.l) * (0.4 + d.z); // rastro curto apontando para fora (de onde a gota veio)
+      const tl = Math.max(5, d.r * d.l) * (0.5 + d.z * 1.1); // rastro apontando para fora (de onde a gota veio)
       ctx.moveTo(x, y); ctx.lineTo(x + ca * tl - wx * 0.08, y + sa * tl);
     }
     ctx.stroke();

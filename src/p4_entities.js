@@ -192,6 +192,19 @@ class Player {
       if (forte) for (const sd of [1, -1]) Particles.emit('smoke', rx + sd * ox, ry + sd * oy, -this.vx * 0.06 + rnd(-14, 14), -this.vy * 0.06 + rnd(-14, 14), rnd(1.1, 2), rnd(5, 8)); // drift: fumaça das duas rodas de trás
       if (chance(0.35)) Particles.emit(this.surface === SF.ROAD || this.surface === SF.PAVED ? 'smoke' : 'dust', rx + (chance(0.5) ? ox : -ox), ry + (chance(0.5) ? oy : -oy), -this.vx * 0.1 + rnd(-10, 10), -this.vy * 0.1 + rnd(-10, 10), rnd(0.8, 1.4), 6);
     } else this.lastRear = null;
+    // terra, grama e areia: as rodas de trás deixam sulco por onde passam e levantam poeira/areia acelerando
+    {
+      const solo = this.surface === SF.GRASS || this.surface === SF.EARTH || this.surface === SF.DIRT || this.surface === SF.SAND || this.surface === SF.FIELD;
+      const Wr = this.rodas(), tr = this.trilha || (this.trilha = [null, null]);
+      if (solo && sp > 20) for (let k = 0; k < 2; k++) {
+        const wx = Wr[k * 2], wy = Wr[k * 2 + 1], L = tr[k];
+        if (!L) tr[k] = [wx, wy]; else if (Math.hypot(wx - L[0], wy - L[1]) > 7) { Skids.add1(L[0], L[1], wx, wy, 'sulco'); L[0] = wx; L[1] = wy; }
+      } else tr[0] = tr[1] = null;
+      if (solo && this.thr > 0.6 && (sp < 260 || this.slip > 0.4) && chance(0.55 + (this.launchT > 0 ? 0.4 : 0))) {
+        const k = chance(0.5) ? 0 : 1, areia = this.surface === SF.SAND;
+        Particles.emit(areia ? 'areia' : 'dust', Wr[k * 2] + rnd(-3, 3), Wr[k * 2 + 1] + rnd(-3, 3), -c * rnd(40, 90) + rnd(-25, 25), -s * rnd(40, 90) + rnd(-25, 25), rnd(0.5, 1.1), areia ? rnd(2, 3.5) : rnd(3, 5));
+      }
+    }
     // pneu junta barro na estrada de terra (muito mais na chuva) e larga o rastro no começo do asfalto
     // cada roda junta o próprio barro e só ela marca o asfalto depois (a roda que ficou na grama ou no asfalto não marca)
     const muddy = this.surface === SF.DIRT || this.surface === SF.EARTH || this.surface === SF.FIELD;
@@ -1263,8 +1276,8 @@ const Particles = {
       if (p.type === 'hubcap') { ctx.globalAlpha = Math.min(1, t * 3); ctx.fillStyle = '#c9ccd2'; ctx.beginPath(); ctx.arc(p.x, p.y, 3.4, 0, TAU); ctx.fill(); ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.x + Math.cos(p.rot) * 3, p.y + Math.sin(p.rot) * 3); ctx.lineTo(p.x - Math.cos(p.rot) * 3, p.y - Math.sin(p.rot) * 3); ctx.stroke(); continue; }
       if (p.type === 'leaf') { ctx.globalAlpha = t; ctx.fillStyle = '#3f7a2e'; ctx.fillRect(p.x, p.y, 2.4, 1.6); continue; }
       if (p.type === 'steam' || p.type === 'exhaust') { ctx.globalAlpha = t * (p.type === 'steam' ? 0.35 : 0.18); ctx.fillStyle = p.type === 'steam' ? '#f0f4f8' : '#9a9a9a'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); continue; }
-      ctx.globalAlpha = t * (p.type === 'dust' ? 0.35 : p.type === 'mud' ? 0.75 : p.type === 'water' ? 0.45 : 0.28);
-      ctx.fillStyle = p.type === 'dust' ? '#9a7e5a' : p.type === 'mud' ? '#4e3220' : p.type === 'water' ? '#b9d6e6' : '#c8c8c8';
+      ctx.globalAlpha = t * (p.type === 'dust' ? 0.35 : p.type === 'areia' ? 0.6 : p.type === 'mud' ? 0.75 : p.type === 'water' ? 0.45 : 0.28);
+      ctx.fillStyle = p.type === 'dust' ? '#9a7e5a' : p.type === 'areia' ? '#e3cf9a' : p.type === 'mud' ? '#4e3220' : p.type === 'water' ? '#b9d6e6' : '#c8c8c8';
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); // (uma por uma: a fumaça fica mais densa onde se sobrepõe)
     }
     ctx.globalAlpha = 1;
@@ -1282,7 +1295,7 @@ const Particles = {
   },
 };
 const Skids = {
-  N: 900, buf: new Float32Array(900 * 4), t: new Float32Array(900), dirt: new Uint8Array(900), i: 0, count: 0,
+  N: 1600, buf: new Float32Array(1600 * 4), t: new Float32Array(1600), dirt: new Uint8Array(1600), i: 0, count: 0,
   add(ax, ay, bx, by, cx, cy, dx, dy, surf) {
     for (const [x0, y0, x1, y1] of [[ax, ay, bx, by], [cx, cy, dx, dy]]) {
       const j = this.i;
@@ -1295,11 +1308,28 @@ const Skids = {
   add1(x0, y0, x1, y1, surf) {
     const j = this.i;
     this.buf[j * 4] = x0; this.buf[j * 4 + 1] = y0; this.buf[j * 4 + 2] = x1; this.buf[j * 4 + 3] = y1;
-    this.t[j] = Game.time; this.dirt[j] = surf === 'sangue' ? 3 : surf === 'sangue2' ? 4 : surf === 'mud' ? 2 : 1;
+    this.t[j] = Game.time; this.dirt[j] = surf === 'sangue' ? 3 : surf === 'sangue2' ? 4 : surf === 'mud' ? 2 : surf === 'sulco' ? 5 : 1;
     this.i = (j + 1) % this.N; this.count = Math.min(this.N, this.count + 1);
   },
   draw(ctx, view) {
     if (!this.count) return;
+    // sulco do pneu na grama, terra e areia: borda clara levantada e fundo escuro (parece relevo), some em 60 s
+    ctx.lineCap = 'round';
+    for (let bucket = 0; bucket < 3; bucket++) {
+      const lo = bucket * 20, hi = lo + 20, k = 1 - bucket * 0.3;
+      const P = new Path2D(); let any = false;
+      for (let j = 0; j < this.count; j++) {
+        if (this.dirt[j] !== 5) continue;
+        const age = Game.time - this.t[j]; if (age < lo || age >= hi) continue;
+        const x = this.buf[j * 4], y = this.buf[j * 4 + 1];
+        if (x < view.x0 - 20 || x > view.x1 + 20 || y < view.y0 - 20 || y > view.y1 + 20) continue;
+        P.moveTo(x, y); P.lineTo(this.buf[j * 4 + 2], this.buf[j * 4 + 3]); any = true;
+      }
+      if (!any) continue;
+      ctx.save(); ctx.translate(-0.9, -0.9); ctx.strokeStyle = `rgba(255,248,225,${0.13 * k})`; ctx.lineWidth = 5; ctx.stroke(P); ctx.restore();
+      ctx.save(); ctx.translate(0.9, 1.1); ctx.strokeStyle = `rgba(0,0,0,${0.16 * k})`; ctx.lineWidth = 4.4; ctx.stroke(P); ctx.restore();
+      ctx.strokeStyle = `rgba(48,34,18,${0.34 * k})`; ctx.lineWidth = 3.2; ctx.stroke(P);
+    }
     ctx.lineWidth = 3.4; ctx.lineCap = 'round';
     for (let bucket = 0; bucket < 3; bucket++) {
       const lo = bucket * 15, hi = lo + 15;

@@ -306,8 +306,9 @@ function addTree(x, y, type, size, opt) {
   const sr = R * 0.9;
   bake(x - sr, y - sr, x + sr * 2, y + sr * 2, 7, (g) => {
     if (t.removed) return;
-    g.fillStyle = 'rgba(0,0,0,0.28)';
-    g.beginPath(); g.ellipse(x + sr * 0.45, y + sr * 0.55, sr, sr * 0.8, 0.5, 0, TAU); g.fill();
+    // sombra com o desenho da própria copa (silhueta da árvore), jogada para baixo e para a direita
+    const S = 64 * t.size * (t.type === 'bush' ? 0.55 : 1), off = S * (t.type === 'bush' ? 0.12 : 0.22);
+    g.globalAlpha = 0.34; g.drawImage(sombraArvore(t.type, t.v), x - S / 2 + off, y - S / 2 + off * 1.2, S, S); g.globalAlpha = 1;
   });
   return t;
 }
@@ -2084,5 +2085,20 @@ function elevaPredios() {
     const h = hash2(b.x0 | 0, (b.y0 | 0) + 911);
     if (h > 0.42 * r) continue;
     b.h = Math.min(150, Math.round(b.h * (1.35 + hash2(b.x1 | 0, b.y1 | 0) * 0.4)));
+  }
+}
+
+/* ---------- sombra de contato no pé das construções (dá volume, como luz batendo de cima) ---------- */
+function aoPredios() {
+  for (const b of World.buildings) {
+    if (b.h < 14) continue;
+    const m = Math.min(16, 6 + b.h * 0.08);
+    bake(b.x0 - m, b.y0 - m, b.x1 + m, b.y1 + m, 7.2, (g) => {
+      const lado = (x0, y0, x1, y1, gx0, gy0, gx1, gy1) => { const gr = g.createLinearGradient(gx0, gy0, gx1, gy1); gr.addColorStop(0, 'rgba(0,0,0,0.26)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x0, y0, x1 - x0, y1 - y0); };
+      lado(b.x0, b.y0 - m, b.x1, b.y0, 0, b.y0, 0, b.y0 - m);
+      lado(b.x0, b.y1, b.x1, b.y1 + m, 0, b.y1, 0, b.y1 + m);
+      lado(b.x0 - m, b.y0, b.x0, b.y1, b.x0, 0, b.x0 - m, 0);
+      lado(b.x1, b.y0, b.x1 + m, b.y1, b.x1, 0, b.x1 + m, 0);
+    });
   }
 }

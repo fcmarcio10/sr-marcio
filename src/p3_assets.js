@@ -936,6 +936,7 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   ctx.save();
   ctx.translate(x + 2.5, y + 3.5 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as);
   if (typeof SHSPR !== 'undefined' && SHSPR && Settings.quality === 'alta') { const ga = ctx.globalAlpha; ctx.translate(-1, -1); ctx.globalAlpha = ga * 0.78; softCarShadow(ctx, m.L + 4, m.W + 3); ctx.globalAlpha = ga; } // sombra de contato macia
+  if (m.kind === 'car' && Settings.quality !== 'baixa') { ctx.save(); ctx.translate(x + 1.6, y + 2.4 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as); ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fill(bodyPath(m)); ctx.restore(); } // contorno fiel da carroceria por cima da sombra macia
   else { ctx.fillStyle = 'rgba(0,0,0,0.42)'; ctx.beginPath(); rrect(ctx, -m.L / 2 - 1, -m.W / 2 - 0.5, m.L + 2, m.W + 1, m.kind === 'moto' ? 4 : 6); ctx.fill(); }
   ctx.restore();
   if (lift && m.kind !== 'moto') {
@@ -1274,6 +1275,13 @@ function drawTractor(ctx, m, color, o) {
 /* ============================ ÁRVORES ============================ */
 const _treeSprites = new Map();
 const TREE_RES = 2;
+// silhueta preta da árvore (para a sombra ficar com o mesmo contorno da copa)
+const _sombraArv = new Map();
+function sombraArvore(type, v) {
+  const k = type + v; let c = _sombraArv.get(k);
+  if (!c) { const spr = treeSprite(type, v); c = makeCanvas(spr.width, spr.height); const g = c.getContext('2d'); g.drawImage(spr, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); _sombraArv.set(k, c); }
+  return c;
+}
 function treeSprite(type, v) {
   const k = type + v;
   let c = _treeSprites.get(k);
