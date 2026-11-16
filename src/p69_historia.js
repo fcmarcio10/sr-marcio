@@ -6,8 +6,8 @@
 const SONHO = 'brasa'; // Opalha 6C
 const CAP_FINAL = 7; // 7 capítulos (0 a 6); a história termina quando ganha o racha (sem missão de juntar dinheiro)
 const capNome = (i) => (i >= CAP_FINAL ? 'Final' : 'Capítulo ' + (i + 1));
-// preço do Opalha: R$ 35.000; quem ajudou o Juninho paga R$ 29.000
-const OPALHA_CHEIO = 35000, OPALHA_AMIGO = 29000;
+// preço do Opalha: R$ 35.000 (em CARS); quem ajudou o Juninho paga R$ 29.000
+const OPALHA_AMIGO = 29000;
 function precoCarro(c) { return c && c.id === SONHO && Profile.hist && Profile.hist.juninho ? OPALHA_AMIGO : c ? c.price : 0; }
 function descontoCarro(c) { return c ? c.price - precoCarro(c) : 0; }
 const corridasDe = () => Profile.rides || 0;

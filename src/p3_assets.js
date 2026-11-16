@@ -1265,11 +1265,6 @@ function drawTractor(ctx, m, color, o) {
   ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8'; ctx.fillRect(hl - 1.5, -5.5, 1.5, 3); ctx.fillRect(hl - 1.5, 2.5, 1.5, 3);
   ctx.fillStyle = o.brake ? '#ff3a30' : '#901818'; ctx.fillRect(-hl + 1.5, -8, 1.6, 3); ctx.fillRect(-hl + 1.5, 5, 1.6, 3);
 }
-// posições locais das luzes [frente esquerda, frente direita, trás esquerda, trás direita]
-function lightPoints(m) {
-  const hl = m.L / 2, hw = m.W / 2 - 4;
-  return { fx: hl, fy: hw, rx: -hl, ry: hw };
-}
 
 /* ============================ ÁRVORES ============================ */
 const _treeSprites = new Map();

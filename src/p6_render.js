@@ -616,31 +616,6 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(bx + ox * 0.08, by + oy * 0.08); ctx.lineTo(ax + ox * 0.08, ay + oy * 0.08); ctx.closePath(); ctx.fill();
 }
-function wallGraffiti(ctx, b, ax, ay, bx, by, ox, oy) {
-  if (Math.hypot(ox, oy) < 4) return;
-  let ex = bx - ax, ey = by - ay;
-  if (ex * oy - ey * ox > 0) { ax = bx; ay = by; ex = -ex; ey = -ey; }
-  const G = b.graf, W = 100, H = 40;
-  ctx.save();
-  ctx.transform(ex / W, ey / W, -ox / H, -oy / H, ax + ox, ay + oy);
-  if (G.kind === 'mural') {
-    const cols = ['#e63946', '#f4c430', '#2a9d8f', '#3a86ff', '#ff7f11'];
-    for (let i = 0; i < 5; i++) { ctx.fillStyle = cols[(i + (G.seed * 10 | 0)) % 5]; ctx.beginPath(); ctx.ellipse(10 + i * 20, 22 + Math.sin(i + G.seed * 9) * 6, 14, 12, 0, 0, TAU); ctx.fill(); }
-  }
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  if (G.kind === 'pixo') {
-    ctx.font = '900 18px "Arial Narrow", Impact, Arial, sans-serif';
-    ctx.fillStyle = G.color; ctx.fillText(G.text, 50, 20, 94);
-    ctx.fillRect(10, 30, 80, 1.2);
-  } else {
-    ctx.font = 'italic 900 15px "Segoe UI", Arial, sans-serif';
-    if (G.kind === 'mural') { ctx.lineWidth = 3; ctx.strokeStyle = '#111'; ctx.strokeText(G.text, 50, 22, 94); ctx.fillStyle = '#ffffff'; }
-    else ctx.fillStyle = G.color;
-    ctx.fillText(G.text, 50, 22, 94);
-  }
-  ctx.fillStyle = G.color; for (let i = 0; i < 4; i++) ctx.fillRect(20 + i * 19 + (G.seed * 7) % 5, 28, 1, 4 + ((i * 7 + G.seed * 13) % 6));
-  ctx.restore();
-}
 function drawBuilding(ctx, b) {
   const [ox, oy] = bldOffset(b);
   const { x0, y0, x1, y1 } = b;

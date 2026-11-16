@@ -80,7 +80,6 @@ function rrect(ctx, x, y, w, h, r) {
   ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
   ctx.closePath();
 }
-function fillRR(ctx, x, y, w, h, r, style) { ctx.beginPath(); rrect(ctx, x, y, w, h, r); if (style) ctx.fillStyle = style; ctx.fill(); }
 
 /* ============================ CONFIGURAÇÕES ============================ */
 // tipos de buzina: frequências, timbre e ritmo (início, duração, multiplicador de nota)

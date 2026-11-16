@@ -80,7 +80,6 @@ function rrect(ctx, x, y, w, h, r) {
   ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
   ctx.closePath();
 }
-function fillRR(ctx, x, y, w, h, r, style) { ctx.beginPath(); rrect(ctx, x, y, w, h, r); if (style) ctx.fillStyle = style; ctx.fill(); }
 
 /* ============================ CONFIGURAÇÕES ============================ */
 // tipos de buzina: frequências, timbre e ritmo (início, duração, multiplicador de nota)
@@ -975,7 +974,6 @@ function addLight(x, y, r, i, col, extra) {
   return L;
 }
 
-const TREE_TYPES = ['round', 'round', 'mango', 'ipeY', 'ipeP', 'palm', 'bush', 'pine'];
 function addTree(x, y, type, size, opt) {
   opt = opt || {};
   if (!opt.force) {
@@ -2529,7 +2527,6 @@ const LIT_X = [4600, 6300, 7500, 8700], LIT_Y = [6200, 7500, 8100, 8700];
 const SEA_Y = 8960, SAND_Y = 8850, CALC_Y = 8816;
 // a praia fica só do lado da cidade grande (Barra, Camburiso e Porto); embaixo da Serra é mata até o mar
 const ORLA_X0 = 4660;
-function litHW(t) { return RT[t].w / 2 + (RT[t].sw || 0); }
 function litRect(c, r) {
   const hv = (x) => (x === 8700 ? RT.road.w / 2 + 14 : RT.street.w / 2 + 22);
   const hh = (y) => (y === 6200 ? RT.highway.w / 2 + 14 + 8 : y === 7500 || y === 8700 ? RT.avenue.w / 2 + 22 : RT.street.w / 2 + 22);
@@ -4041,11 +4038,6 @@ function drawTractor(ctx, m, color, o) {
   ctx.strokeStyle = '#333'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(-hl + 15, 0, 3, 0, TAU); ctx.stroke();
   ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8'; ctx.fillRect(hl - 1.5, -5.5, 1.5, 3); ctx.fillRect(hl - 1.5, 2.5, 1.5, 3);
   ctx.fillStyle = o.brake ? '#ff3a30' : '#901818'; ctx.fillRect(-hl + 1.5, -8, 1.6, 3); ctx.fillRect(-hl + 1.5, 5, 1.6, 3);
-}
-// posições locais das luzes [frente esquerda, frente direita, trás esquerda, trás direita]
-function lightPoints(m) {
-  const hl = m.L / 2, hw = m.W / 2 - 4;
-  return { fx: hl, fy: hw, rx: -hl, ry: hw };
 }
 
 /* ============================ ÁRVORES ============================ */
@@ -8663,31 +8655,6 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(bx + ox * 0.08, by + oy * 0.08); ctx.lineTo(ax + ox * 0.08, ay + oy * 0.08); ctx.closePath(); ctx.fill();
 }
-function wallGraffiti(ctx, b, ax, ay, bx, by, ox, oy) {
-  if (Math.hypot(ox, oy) < 4) return;
-  let ex = bx - ax, ey = by - ay;
-  if (ex * oy - ey * ox > 0) { ax = bx; ay = by; ex = -ex; ey = -ey; }
-  const G = b.graf, W = 100, H = 40;
-  ctx.save();
-  ctx.transform(ex / W, ey / W, -ox / H, -oy / H, ax + ox, ay + oy);
-  if (G.kind === 'mural') {
-    const cols = ['#e63946', '#f4c430', '#2a9d8f', '#3a86ff', '#ff7f11'];
-    for (let i = 0; i < 5; i++) { ctx.fillStyle = cols[(i + (G.seed * 10 | 0)) % 5]; ctx.beginPath(); ctx.ellipse(10 + i * 20, 22 + Math.sin(i + G.seed * 9) * 6, 14, 12, 0, 0, TAU); ctx.fill(); }
-  }
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  if (G.kind === 'pixo') {
-    ctx.font = '900 18px "Arial Narrow", Impact, Arial, sans-serif';
-    ctx.fillStyle = G.color; ctx.fillText(G.text, 50, 20, 94);
-    ctx.fillRect(10, 30, 80, 1.2);
-  } else {
-    ctx.font = 'italic 900 15px "Segoe UI", Arial, sans-serif';
-    if (G.kind === 'mural') { ctx.lineWidth = 3; ctx.strokeStyle = '#111'; ctx.strokeText(G.text, 50, 22, 94); ctx.fillStyle = '#ffffff'; }
-    else ctx.fillStyle = G.color;
-    ctx.fillText(G.text, 50, 22, 94);
-  }
-  ctx.fillStyle = G.color; for (let i = 0; i < 4; i++) ctx.fillRect(20 + i * 19 + (G.seed * 7) % 5, 28, 1, 4 + ((i * 7 + G.seed * 13) % 6));
-  ctx.restore();
-}
 function drawBuilding(ctx, b) {
   const [ox, oy] = bldOffset(b);
   const { x0, y0, x1, y1 } = b;
@@ -11308,11 +11275,6 @@ const PH_DESC = {
   fretes: 'Entregas e cargas. Um frete por vez.', carteira: 'Seu dinheiro, contas e empréstimo.', racha: 'Corridas de madrugada valendo dinheiro.',
   conquistas: 'Desafios cumpridos e os prêmios de cada um.', ajustes: 'Som, mensagens, notificações e papel de parede.',
 };
-function phComDescricao(app, html) {
-  const d = PH_DESC[app]; if (!d || html.indexOf('ph-desc') >= 0) return html;
-  const i = html.indexOf('</div>', html.indexOf('class="ph-head"')); if (html.indexOf('class="ph-head"') < 0 || i < 0) return html;
-  return html.slice(0, i + 6) + `<p class="ph-desc">${d}</p>` + html.slice(i + 6);
-}
 /* ============================ INTERFACE ============================ */
 const $ = (id) => document.getElementById(id);
 const UI = {
@@ -11974,13 +11936,6 @@ function renderPauseStats() {
 
 /* ---------- HUD ---------- */
 function clockStr() { const t = Math.floor(Profile.time) % 1440; const h = Math.floor(t / 60), m = t % 60; return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
-// objetivo em legenda: o nome do lugar ou da pessoa em amarelo
-function objLegenda(title, desc) {
-  const d = String(desc || ''), m = d.match(/^(Buscar em|Levar até|Destino:|Siga|Corre!)\s*(.*)$/);
-  if (m && m[1] !== 'Corre!' && m[1] !== 'Siga') return escapeHtml(m[1]) + ' <b>' + escapeHtml(m[2].replace(/ · .*$/, '')) + '</b>.';
-  const t = String(title || '').split(': ');
-  return (t.length > 1 ? '<b>' + escapeHtml(t.slice(1).join(': ')) + '</b> · ' : '') + escapeHtml(d);
-}
 function updateHUD(dt) {
   if (Game.mode !== 'play' || !player) return;
   const rk = regionKeyAt(player.x, player.y);
@@ -12185,8 +12140,8 @@ Missao.fracassou = function (sub) {
 const SONHO = 'brasa'; // Opalha 6C
 const CAP_FINAL = 7; // 7 capítulos (0 a 6); a história termina quando ganha o racha (sem missão de juntar dinheiro)
 const capNome = (i) => (i >= CAP_FINAL ? 'Final' : 'Capítulo ' + (i + 1));
-// preço do Opalha: R$ 35.000; quem ajudou o Juninho paga R$ 29.000
-const OPALHA_CHEIO = 35000, OPALHA_AMIGO = 29000;
+// preço do Opalha: R$ 35.000 (em CARS); quem ajudou o Juninho paga R$ 29.000
+const OPALHA_AMIGO = 29000;
 function precoCarro(c) { return c && c.id === SONHO && Profile.hist && Profile.hist.juninho ? OPALHA_AMIGO : c ? c.price : 0; }
 function descontoCarro(c) { return c ? c.price - precoCarro(c) : 0; }
 const corridasDe = () => Profile.rides || 0;

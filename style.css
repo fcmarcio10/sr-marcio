@@ -127,11 +127,6 @@ html, body {
   overflow: hidden;
 }
 #minimap { width: 220px; height: 220px; border-radius: 50%; display: block; }
-.minimap-hint {
-  position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
-  font-size: 10px; color: var(--dim); letter-spacing: 0.1em;
-  background: rgba(0, 0, 0, 0.45); padding: 2px 8px; border-radius: 8px;
-}
 
 #hud-dash {
   position: absolute; right: 18px; bottom: 18px;
@@ -292,7 +287,6 @@ html, body {
 .mbtn.small:hover { padding-left: 18px; }
 .mbtn.accent { background: linear-gradient(90deg, rgba(255, 181, 71, 0.85), rgba(255, 120, 90, 0.85)); color: #1a0f05; border-left-color: transparent; }
 .mbtn.accent:hover { background: linear-gradient(90deg, #ffc366, #ff8a6a); color: #1a0f05; }
-.mbtn.danger:hover { border-left-color: var(--red); background: linear-gradient(90deg, rgba(255, 90, 90, 0.2), transparent); }
 
 .main-ver { position: fixed; right: 14px; bottom: 10px; color: var(--dim); font-size: 11px; letter-spacing: 0.1em; opacity: 0.55; }
 
@@ -344,8 +338,6 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 }
 .seg button:hover { color: #fff; }
 .seg button.on { background: var(--accent); color: #1a0f05; }
-.controls-list { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 12px; font-size: 13px; color: #c9cfdd; }
-.controls-list kbd { margin-right: 3px; }
 
 /* Credits */
 .credits p { color: #c9cfdd; line-height: 1.55; margin-bottom: 14px; font-size: 14px; }
@@ -423,14 +415,6 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 .map-head h2 { letter-spacing: 0.3em; font-size: 22px; }
 .map-legend { display: flex; gap: 14px; font-size: 12px; color: #c9cfdd; flex-wrap: wrap; }
 .lg { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
-.lg-you { background: #fff; }
-.lg-job { background: #ffd24a; }
-.lg-shop { background: #ff8a3d; }
-.lg-race { background: #59e0ff; }
-.lg-park { background: #5b8cff; }
-.lg-poi { background: #c56bff; }
-.lg-gps { background: #2f8bff; }
-.lg-dest { background: #ff3b30; }
 .map-stage { position: relative; flex: 1; min-height: 0; }
 #bigmap { width: 100%; height: 100%; display: block; border-radius: 18px; border: 1px solid var(--line); cursor: grab; pointer-events: auto; touch-action: none; }
 #bigmap:active { cursor: grabbing; }
@@ -463,16 +447,10 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 @media (max-width: 900px) {
   .garage-body { grid-template-columns: 1fr; overflow-y: auto; }
   #hud-objective { min-width: 0; max-width: 56vw; top: 92px; }
-  .controls-list { grid-template-columns: 1fr 1fr; }
 }
 @media (max-height: 640px) {
   #hud-minimap { width: 172px; height: 172px; }
   #minimap { width: 160px; height: 160px; }
-}
-
-#vignette {
-  position: fixed; inset: 0; pointer-events: none; z-index: 1;
-  background: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
 }
 
 /* ================= IDENTIDADE "RUA" (v5) =================
@@ -597,7 +575,6 @@ body.tr-bigphone #screen-phone, body.vt-cel #screen-phone { background: rgba(3, 
 .ph-app:hover .ph-ico { transform: scale(1.07); }
 .ph-app:active .ph-ico { transform: scale(0.92); filter: brightness(0.8); }
 .ph-badge { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; border-radius: 10px; background: #ff3b30; font: 600 12px -apple-system, "Segoe UI", sans-serif; font-style: normal; display: grid; place-items: center; padding: 0 5px; box-sizing: border-box; }
-.ph-wname { margin-top: auto; text-align: center; font: 500 10px -apple-system, "Segoe UI", sans-serif; color: rgba(255, 255, 255, 0.75); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); padding: 14px 0 10px; }
 .ph-dock { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 12px 10px; border-radius: 30px; background: rgba(255, 255, 255, 0.22); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); }
 .ph-dock .ph-lbl { text-shadow: none; }
 /* telas dos apps */
@@ -614,8 +591,6 @@ body.tr-bigphone #screen-phone, body.vt-cel #screen-phone { background: rgba(3, 
 .ph-btn { pointer-events: auto; cursor: pointer; width: 100%; border: 0; border-radius: 14px; padding: 13px; font: 600 15px -apple-system, "Segoe UI", sans-serif; background: #30d158; color: #000; margin-bottom: 10px; }
 .ph-btn.off { background: #ff453a; color: #fff; }
 .ph-note, .ph-empty { font-size: 12px; color: #98989f; line-height: 1.5; }
-.ph-chat { display: flex; flex-direction: column; gap: 8px; }
-.ph-bubble { background: #26252a; border-radius: 18px 18px 18px 6px; padding: 10px 13px; font-size: 14px; line-height: 1.45; max-width: 92%; }
 /* Ajustes */
 .aj-group { background: #1c1c1e; border-radius: 12px; overflow: hidden; margin-bottom: 18px; }
 .aj-row { pointer-events: auto; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; border: 0; background: none; color: #fff; padding: 12px 14px; font: 15px -apple-system, "Segoe UI", sans-serif; text-align: left; }
@@ -657,9 +632,7 @@ body.tr-bigphone #screen-phone, body.vt-cel #screen-phone { background: rgba(3, 
 #hud-phone kbd { margin: 0; font-size: 10px; padding: 0 5px; }
 .hp-ico { width: 10px; height: 16px; border: 2px solid #eef1f8; border-radius: 3px; display: inline-block; }
 #hud-phone-badge { position: absolute; top: -6px; right: -6px; width: 14px; height: 14px; border-radius: 50%; background: #ff3b30; }
-.hud-dummy { display: none; }
 @media (max-height: 640px) { #hud-phone { bottom: 200px; } }
-
 
 /* mapa no celular */
 .ph-expand { pointer-events: auto; cursor: pointer; position: absolute; right: -2px; top: 50%; transform: translateY(-50%); border: 0; background: rgba(255, 255, 255, 0.12); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; }
@@ -674,18 +647,6 @@ body.tr-bigphone #screen-phone, body.vt-cel #screen-phone { background: rgba(3, 
 .ph-dests button { pointer-events: auto; cursor: pointer; border: 0; border-radius: 16px; padding: 7px 11px; background: #2c2c2e; color: #fff; font: 600 12px -apple-system, "Segoe UI", sans-serif; }
 .ph-dests button:hover { background: #0a84ff; }
 .ph-dests button.off { background: #3a1a1a; color: #ff8a80; }
-/* widgets da tela inicial */
-.ph-widgets { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
-.ph-wid { pointer-events: auto; cursor: pointer; border: 0; border-radius: 20px; padding: 12px; min-height: 118px; display: flex; flex-direction: column; align-items: flex-start; text-align: left; color: #fff; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); font-family: -apple-system, "Segoe UI", sans-serif; transition: transform 0.12s; }
-button.ph-wid:hover { transform: scale(1.03); }
-div.ph-wid { cursor: default; }
-.ph-wid small { font-size: 11px; font-weight: 600; opacity: 0.9; }
-.ph-wid b { font-size: 34px; font-weight: 300; line-height: 1.1; margin: 2px 0; }
-.ph-wid span { font-size: 11px; font-weight: 600; }
-.ph-wid .wid-sub { margin-top: auto; font-weight: 500; opacity: 0.85; font-size: 10.5px; line-height: 1.25; }
-.wid-sky { background: linear-gradient(170deg, #1a2a6c, #2d4a9a 60%, #4a6fc4); }
-.wid-money { background: rgba(28, 28, 30, 0.82); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
-.wid-money b { font-size: 21px; font-weight: 700; color: #30d158; margin: 6px 0 4px; }
 /* conversas estilo app de mensagens */
 .wa-head { position: relative; display: flex; align-items: center; justify-content: center; min-height: 34px; margin-bottom: 8px; font: 700 17px -apple-system, "Segoe UI", sans-serif; }
 .wa-row { pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: 11px; width: 100%; border: 0; background: none; color: #fff; padding: 9px 2px; text-align: left; font-family: -apple-system, "Segoe UI", sans-serif; }
@@ -717,7 +678,6 @@ div.ph-wid { cursor: default; }
 .wa-quick button { pointer-events: auto; cursor: pointer; border: 0; border-radius: 16px; padding: 7px 12px; background: #1f2c34; color: #e9edef; font: 600 12px -apple-system, "Segoe UI", sans-serif; }
 .wa-quick button:hover { background: #005c4b; }
 .wa-bar { text-align: center; font: 500 11.5px -apple-system, "Segoe UI", sans-serif; color: #8696a0; padding: 10px 0 4px; }
-.brand-badge { display: inline-block; vertical-align: middle; margin-right: 10px; padding: 3px 10px; border-radius: 6px; border: 2px solid var(--bc); color: var(--bc); font: italic 900 13px var(--font); letter-spacing: 0.08em; text-transform: uppercase; transform: skewX(-8deg); }
 .gbrand { display: block; font: italic 800 10px var(--font); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1px; }
 .wa-sos { margin: 6px 0 2px; padding: 7px 9px; border-radius: 12px; background: #1f2c34; font: 11.5px -apple-system, "Segoe UI", sans-serif; color: #e9edef; display: flex; flex-direction: column; gap: 6px; }
 .wa-sos b { font-weight: 600; color: #53bdeb; font-size: 12px; }
@@ -758,13 +718,11 @@ div.ph-wid { cursor: default; }
 #tutorial.pop { animation: tutpop 0.35s ease-out; }
 @keyframes tutpop { from { transform: translate(-50%, 14px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 #tutorial.in-phone { bottom: auto; top: 18px; }
-.tut-step { flex-shrink: 0; font: italic 900 13px var(--font); color: #ffd23f; background: rgba(255, 210, 63, 0.12); border-radius: 8px; padding: 6px 8px; }
 .tut-text { font: 600 14px/1.45 var(--font); color: #eef1f8; }
 .tut-text kbd { margin: 0 1px; }
 .tut-skip { flex-shrink: 0; pointer-events: auto; cursor: pointer; border: 0; background: none; color: #9aa3b5; font: 600 12px var(--font); text-decoration: underline; }
 .tut-skip:hover { color: #fff; }
 .ph-btn.alt { background: #2c2c2e; color: #fff; }
-.wid-sky.rain { background: linear-gradient(170deg, #2a3240, #3e4a5e 60%, #56657d); }
 /* procurado */
 #hud-wanted { position: absolute; top: 74px; right: 18px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; pointer-events: none; }
 .w-stars { display: flex; gap: 4px; }
@@ -785,15 +743,10 @@ div.ph-wid { cursor: default; }
 #phone-body.home .ph-lock { padding: 2px 0 10px; }
 #phone-body.home .ph-time { font-size: 46px; }
 #phone-body.home .ph-date { font-size: 12px; }
-#phone-body.home .ph-widgets { gap: 10px; margin-bottom: 12px; }
-#phone-body.home .ph-wid { min-height: 90px; padding: 10px; border-radius: 18px; }
-#phone-body.home .ph-wid b { font-size: 27px; }
-#phone-body.home .wid-money b { font-size: 18px; margin: 4px 0 2px; }
 #phone-body.home .ph-grid { gap: 12px 4px; }
 #phone-body.home .ph-ico { width: 48px; height: 48px; border-radius: 12px; }
 #phone-body.home .ph-ico svg { width: 26px; height: 26px; }
 #phone-body.home .ph-lbl { font-size: 10px; }
-#phone-body.home .ph-wname { padding: 8px 0 6px; }
 #phone-body.home .ph-dock { padding: 9px 8px; border-radius: 26px; }
 /* carteira: abas, banco e fiado */
 .ph-tabs { display: flex; gap: 4px; background: #1c1c1e; border-radius: 10px; padding: 3px; margin-bottom: 10px; }
@@ -865,7 +818,6 @@ html, body { font-family: var(--f-body); }
 
 /* minimapa: radar com aro grosso */
 #hud-minimap { padding: 5px; border-radius: 50%; background: #070a12; border: 3px solid #1b2130; box-shadow: 0 0 0 2px rgba(255, 204, 46, 0.55), 0 14px 30px rgba(0, 0, 0, 0.55); }
-.minimap-hint { font-family: var(--f-cond); font-weight: 700; font-size: 11px; letter-spacing: 0.14em; color: #e9edf5; background: rgba(5, 7, 11, 0.8); bottom: 10px; }
 
 /* painel do carro */
 #hud-dash { border-radius: 6px; padding: 6px 12px 12px; border-bottom: 3px solid var(--ouro); }
@@ -951,7 +903,6 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 .stats-grid { font-family: var(--f-cond); font-weight: 600; font-size: 14px; letter-spacing: 0.03em; text-transform: uppercase; }
 .stats-grid b { font-weight: 800; }
 .credits .big { font-family: var(--f-display); font-weight: 400; font-size: 44px; letter-spacing: 0.02em; background: linear-gradient(180deg, #fff7d1, #ffd54a 40%, #ff9a1f); -webkit-background-clip: text; background-clip: text; }
-.controls-list { font-family: var(--f-cond); font-weight: 600; font-size: 15px; }
 
 /* ---------- GARAGEM ---------- */
 #garage-car-title { font-family: var(--f-display); font-weight: 400; font-size: 40px; letter-spacing: 0.01em; text-shadow: 3px 3px 0 #05070b; text-transform: uppercase; }
@@ -985,7 +936,6 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 
 /* ---------- TUTORIAL ---------- */
 #tutorial { font-family: var(--f-body); border-radius: 4px; border-top: 3px solid var(--ouro); }
-#tutorial .tut-step { font-family: var(--f-cond); font-weight: 800; letter-spacing: 0.1em; }
 #hud-dash { width: 260px; }
 #speedo { margin: 0 auto; }
 #car-name { font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1036,8 +986,6 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 .garage { width: min(1360px, 97vw); height: min(820px, 95vh); }
 .garage-head { align-items: flex-end; margin-bottom: 12px; }
 .garage-head h2 { margin-bottom: 4px !important; }
-.g-steps { display: flex; gap: 16px; flex-wrap: wrap; font-family: var(--f-cond); font-weight: 700; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; color: #aeb5c6; }
-.g-steps b { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 7px; background: var(--ouro); color: #0b0d12; border-radius: 2px; font-weight: 800; transform: skewX(-10deg); }
 .garage-body { grid-template-columns: 270px 1fr 340px; gap: 18px; }
 .g-sec { font-family: var(--f-cond); font-weight: 800; font-size: 13px; letter-spacing: 0.22em; color: var(--ouro); margin: 8px 0 2px; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 204, 46, 0.25); }
 .g-sec:first-child { margin-top: 0; }
@@ -1055,9 +1003,6 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 #garage-car-title { margin-top: 2px; font-size: 44px; line-height: 1; }
 .g-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
 .g-tags span { font-family: var(--f-cond); font-weight: 800; font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 9px 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); color: #dfe3ec; }
-.g-tags .gt-g { background: rgba(34, 209, 122, 0.16); color: #6ff0ad; }
-.g-tags .gt-y { background: rgba(255, 204, 46, 0.16); color: var(--ouro); }
-.g-tags .gt-r { background: rgba(255, 74, 74, 0.16); color: #ff9a8a; }
 #garage-car-desc { font-family: var(--f-body); font-size: 14px; color: #b9c0cf; margin-top: 8px; max-width: 560px; }
 .garage-actions { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 12px; }
 #garage-main-btn { font-size: 22px !important; min-width: 340px; padding: 11px 24px 9px; }
@@ -1238,9 +1183,7 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 #hud-radio-btn.on .hrb-ico::before, #hud-radio-btn.on .hrb-ico i { background: #ff4d6d; }
 @media (max-height: 640px) { #hud-radio-btn { left: 100px; bottom: 232px; } }
 
-/* celular: grupos de apps, explicação de cada app, Câmera e Coleção */
-.ph-sec { font: 700 11px -apple-system, "Segoe UI", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); margin: 4px 2px 8px; }
-.ph-grid + .ph-sec { margin-top: 14px; }
+/* celular: grupos de apps,explicação de cada app { font: 700 11px -apple-system, "Segoe UI", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); margin: 4px 2px 8px; }
 .ph-desc { margin: -6px 2px 12px; font-size: 12px; line-height: 1.35; color: rgba(255, 255, 255, 0.68); text-align: center; }
 .cam-view { position: relative; height: 150px; border-radius: 16px; background: linear-gradient(160deg, #1d2430, #0c1018); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; padding: 0 16px; transition: background 0.2s; }
 .cam-view b { font-size: 15px; } .cam-view span { font-size: 11.5px; color: rgba(255, 255, 255, 0.65); }
@@ -1289,7 +1232,7 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 #resultado .rs-stars i.off { background: rgba(255, 255, 255, 0.18); }
 @keyframes rsStar { from { transform: scale(0.2) rotate(-40deg); } to { transform: scale(1); } }
 #resultado .rs-medal { margin: 10px 0 4px; font: 800 18px var(--f-cond); letter-spacing: 0.08em; text-transform: uppercase; }
-#resultado .rs-medal.m3 { color: #ffd23f; } #resultado .rs-medal.m2 { color: #d8dde6; } #resultado .rs-medal.m1 { color: #d08a4a; } #resultado .rs-medal.m0 { color: #8a92a2; }
+#resultado .rs-medal.m3 { color: #ffd23f; } #resultado .rs-medal.m2 { color: #d8dde6; } #resultado .rs-medal.m1 { color: #d08a4a; }
 #resultado .rs-lines { margin-top: 6px; }
 #resultado .rs-l, #resultado .rs-total { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; opacity: 0.35; transition: opacity 0.2s; }
 #resultado .rs-l.on, #resultado .rs-total.on { opacity: 1; }
@@ -1303,21 +1246,11 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 .confete { position: fixed; inset: 0; pointer-events: none; z-index: 31; overflow: hidden; }
 .confete i { position: absolute; top: 26%; width: 8px; height: 12px; border-radius: 2px; opacity: 0; animation-name: confete; animation-timing-function: cubic-bezier(.2, .6, .4, 1); animation-fill-mode: forwards; }
 @keyframes confete { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(var(--dx), 70vh) rotate(var(--rz)); } }
-/* aviso grande de cada passo do tutorial */
-#tut-pop { position: fixed; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(0.9); opacity: 0; pointer-events: none; z-index: 45; text-align: center; padding: 18px 30px 20px; min-width: min(420px, calc(100vw - 32px)); max-width: calc(100vw - 32px); background: linear-gradient(180deg, rgba(20, 16, 30, 0.92), rgba(12, 10, 20, 0.92)); border: 1px solid rgba(255, 210, 63, 0.6); border-radius: 16px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55); visibility: hidden; }
-#tut-pop.on { visibility: visible; animation: tpIn 0.45s cubic-bezier(.2, 1.4, .4, 1) forwards; }
-#tut-pop.on.sai { animation: tpOut 0.5s ease-in forwards; }
-#tut-pop .tp-n { font: 600 12px/1 'BRND Sans', sans-serif; letter-spacing: 0.18em; color: #ffd23f; }
-#tut-pop .tp-t { font: 400 34px/1.1 'BRND Anton', sans-serif; color: #fff; margin: 8px 0 6px; text-transform: uppercase; letter-spacing: 0.02em; }
-#tut-pop .tp-d { font: 500 16px/1.35 'BRND Sans', sans-serif; color: rgba(255, 255, 255, 0.85); }
-#tut-pop kbd { display: inline-block; padding: 1px 7px; border-radius: 5px; background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.3); font: 600 14px 'BRND Sans', sans-serif; }
 @keyframes tpIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 @keyframes tpOut { from { opacity: 1; transform: translate(-50%, -50%) scale(1); } to { opacity: 0; transform: translate(-50%, -80%) scale(0.95); visibility: hidden; } }
 /* história: cartaz de capítulo, painel e lista na pausa */
 #hud-objective.historia { border-color: rgba(255, 210, 63, 0.5); }
 #pause-hist { margin: 4px 0 12px; }
-#pause-hist .hist-tit { font: 600 11px/1 'BRND Sans', sans-serif; letter-spacing: 0.18em; color: #ffd23f; margin-bottom: 8px; text-align: center; }
-#pause-hist .hist-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; }
 .hist-cap { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); font: 500 13px 'BRND Sans', sans-serif; color: rgba(255, 255, 255, 0.45); }
 .hist-cap b { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.1); font-size: 11px; }
 .hist-cap.ok { color: #9be88f; } .hist-cap.ok b { background: #3aa655; color: #fff; }

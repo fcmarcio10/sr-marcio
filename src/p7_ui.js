@@ -659,13 +659,6 @@ function renderPauseStats() {
 
 /* ---------- HUD ---------- */
 function clockStr() { const t = Math.floor(Profile.time) % 1440; const h = Math.floor(t / 60), m = t % 60; return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
-// objetivo em legenda: o nome do lugar ou da pessoa em amarelo
-function objLegenda(title, desc) {
-  const d = String(desc || ''), m = d.match(/^(Buscar em|Levar até|Destino:|Siga|Corre!)\s*(.*)$/);
-  if (m && m[1] !== 'Corre!' && m[1] !== 'Siga') return escapeHtml(m[1]) + ' <b>' + escapeHtml(m[2].replace(/ · .*$/, '')) + '</b>.';
-  const t = String(title || '').split(': ');
-  return (t.length > 1 ? '<b>' + escapeHtml(t.slice(1).join(': ')) + '</b> · ' : '') + escapeHtml(d);
-}
 function updateHUD(dt) {
   if (Game.mode !== 'play' || !player) return;
   const rk = regionKeyAt(player.x, player.y);

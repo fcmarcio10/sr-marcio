@@ -289,7 +289,6 @@ function addLight(x, y, r, i, col, extra) {
   return L;
 }
 
-const TREE_TYPES = ['round', 'round', 'mango', 'ipeY', 'ipeP', 'palm', 'bush', 'pine'];
 function addTree(x, y, type, size, opt) {
   opt = opt || {};
   if (!opt.force) {
@@ -1843,7 +1842,6 @@ const LIT_X = [4600, 6300, 7500, 8700], LIT_Y = [6200, 7500, 8100, 8700];
 const SEA_Y = 8960, SAND_Y = 8850, CALC_Y = 8816;
 // a praia fica só do lado da cidade grande (Barra, Camburiso e Porto); embaixo da Serra é mata até o mar
 const ORLA_X0 = 4660;
-function litHW(t) { return RT[t].w / 2 + (RT[t].sw || 0); }
 function litRect(c, r) {
   const hv = (x) => (x === 8700 ? RT.road.w / 2 + 14 : RT.street.w / 2 + 22);
   const hh = (y) => (y === 6200 ? RT.highway.w / 2 + 14 + 8 : y === 7500 || y === 8700 ? RT.avenue.w / 2 + 22 : RT.street.w / 2 + 22);

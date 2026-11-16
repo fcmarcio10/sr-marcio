@@ -154,8 +154,3 @@ const PH_DESC = {
   fretes: 'Entregas e cargas. Um frete por vez.', carteira: 'Seu dinheiro, contas e empréstimo.', racha: 'Corridas de madrugada valendo dinheiro.',
   conquistas: 'Desafios cumpridos e os prêmios de cada um.', ajustes: 'Som, mensagens, notificações e papel de parede.',
 };
-function phComDescricao(app, html) {
-  const d = PH_DESC[app]; if (!d || html.indexOf('ph-desc') >= 0) return html;
-  const i = html.indexOf('</div>', html.indexOf('class="ph-head"')); if (html.indexOf('class="ph-head"') < 0 || i < 0) return html;
-  return html.slice(0, i + 6) + `<p class="ph-desc">${d}</p>` + html.slice(i + 6);
-}
