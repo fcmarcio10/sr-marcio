@@ -3639,7 +3639,8 @@ function drawMoto(ctx, m, color, o) {
   ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8'; ctx.fillRect(9.4, -1, 1, 2);
   ctx.fillStyle = o.brake ? '#ff3a30' : '#a01818'; ctx.fillRect(-10.6, -1, 0.8, 2);
 }
-function vehLift(m) { return 0; }
+// carro com altura: com a câmera um pouco inclinada aparece a lateral de baixo (3 camadas mais escuras)
+function vehLift(m) { const h = m.kind === 'truck' || m.kind === 'bus' ? 26 : m.kind === 'tractor' ? 20 : m.kind === 'moto' ? 0 : m.id === 'van' || m.boxy ? 17 : 14; return h * TILT_H * 1.5; }
 function drawLightsFR(ctx, hl, hw, o, m) {
   if (m && m.boxy) {
     // grade de frisos e faróis retangulares, lanternas em bloco
@@ -7875,9 +7876,9 @@ AutoRes.quadro = function (dtReal, trabalhoMs, cap) {
   if (nk !== this.k && Game.state === 'playing') { this.k = nk; resize(); }
 };
 const Cam = { x: 1000, y: 2700, zoom: 1, shake: 0, quick: 1, view: { x0: 0, y0: 0, x1: 0, y1: 0 }, dark: 0.84, menuTarget: null, menuT: 0 };
-const PAR = 1 / 1700;
+const PAR = 1 / 1150; // mais profundidade (nov/2026): prédios e árvores inclinam mais conforme a distância do centro
 const SQ = 1;      // visão de cima (sem achatamento vertical)
-const TILT_H = 0;  // sem inclinação extra: só a paralaxe 2.5D a partir do centro da tela
+const TILT_H = 0.1; // câmera levemente inclinada (vista 3/4): mostra a fachada de baixo dos prédios e a lateral dos carros
 
 function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
@@ -8232,7 +8233,7 @@ function signGlow(b) {
 /* ---------- prédios em 2.5D ---------- */
 function bldOffset(b) {
   let ox = (b.cx - Cam.x) * b.h * PAR, oy = (b.cy - Cam.y) * b.h * PAR;
-  const m = b.h * 0.85, l = Math.hypot(ox, oy);
+  const m = b.h * 0.95, l = Math.hypot(ox, oy);
   if (l > m) { ox *= m / l; oy *= m / l; }
   return [ox, oy - b.h * TILT_H];
 }
@@ -8303,9 +8304,9 @@ function lampGlowSprite(hex) {
 }
 // o objeto aparece na tela? (com a inclinação 2.5D, que nunca passa de 0,9x a altura) — fora da tela não desenha nada
 function tallVisible(o, v) {
-  if (o.kind === 'bld') { const m = o.h * 0.9 + (o.sign ? 60 : 6); return !(o.x1 + m < v.x0 || o.x0 - m > v.x1 || o.y1 + m < v.y0 || o.y0 - m > v.y1); }
-  if (o.kind === 'tree') { const m = 34 * o.size + o.h * 0.9; return o.x + m > v.x0 && o.x - m < v.x1 && o.y + m > v.y0 && o.y - m < v.y1; }
-  if (o.kind === 'lamp') { const m = o.h * 0.9 + 18; return Math.max(o.x, o.hx) + m > v.x0 && Math.min(o.x, o.hx) - m < v.x1 && Math.max(o.y, o.hy) + m > v.y0 && Math.min(o.y, o.hy) - m < v.y1; }
+  if (o.kind === 'bld') { const m = o.h * 1.1 + (o.sign ? 60 : 6); return !(o.x1 + m < v.x0 || o.x0 - m > v.x1 || o.y1 + m < v.y0 || o.y0 - m > v.y1); }
+  if (o.kind === 'tree') { const m = 34 * o.size + o.h * 1.15; return o.x + m > v.x0 && o.x - m < v.x1 && o.y + m > v.y0 && o.y - m < v.y1; }
+  if (o.kind === 'lamp') { const m = o.h * 1.15 + 18; return Math.max(o.x, o.hx) + m > v.x0 && Math.min(o.x, o.hx) - m < v.x1 && Math.max(o.y, o.hy) + m > v.y0 && Math.min(o.y, o.hy) - m < v.y1; }
   return true;
 }
 const FAVELA_RK = { feurosa: 1, carapina: 1, novarosa: 1, flexal: 1, saopedro: 1, terravermelha: 1 };
@@ -11683,6 +11684,13 @@ function renderPauseStats() {
 
 /* ---------- HUD ---------- */
 function clockStr() { const t = Math.floor(Profile.time) % 1440; const h = Math.floor(t / 60), m = t % 60; return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
+// objetivo em legenda: o nome do lugar ou da pessoa em amarelo
+function objLegenda(title, desc) {
+  const d = String(desc || ''), m = d.match(/^(Buscar em|Levar até|Destino:|Siga|Corre!)\s*(.*)$/);
+  if (m && m[1] !== 'Corre!' && m[1] !== 'Siga') return escapeHtml(m[1]) + ' <b>' + escapeHtml(m[2].replace(/ · .*$/, '')) + '</b>.';
+  const t = String(title || '').split(': ');
+  return (t.length > 1 ? '<b>' + escapeHtml(t.slice(1).join(': ')) + '</b> · ' : '') + escapeHtml(d);
+}
 function updateHUD(dt) {
   if (Game.mode !== 'play' || !player) return;
   const rk = regionKeyAt(player.x, player.y);
@@ -11731,6 +11739,15 @@ function updateHUD(dt) {
   UI.set('obj-tag', cls === 'historia' ? 'HISTÓRIA' : 'OBJETIVO');
   UI.set('obj-title', title); UI.set('obj-desc', desc); UI.set('obj-meta', meta);
   if (UI.last.objcls !== cls) { UI.last.objcls = cls; $('hud-objective').className = 'glass ' + cls; }
+  // tela limpa: o quadro de objetivo não aparece mais; quando o objetivo muda, ele vem como legenda embaixo (uma vez)
+  if (cls && cls !== 'historia') {
+    const key = cls + '|' + title + '|' + (cls === 'race' ? '' : desc);
+    if (key !== UI.last.objKey) { UI.last.objKey = key; if (telaLivre() && !Apresenta.on) Missao.legenda(objLegenda(title, desc), 6); }
+  } else UI.last.objKey = '';
+  // aviso de prazo acabando (entrega e corrida com hora marcada)
+  { const D = Act.delivery, R = Act.ride;
+    if (D && D.stage !== 'pickup' && D.par - D.t < 30 && D.par - D.t > 0 && !D.av30) { D.av30 = true; Missao.legenda('Faltam <b>30 segundos</b> para o prazo da entrega!', 5); }
+    if (R && R.tmax && R.stage === 'drive' && R.tmax - R.t < 30 && R.tmax - R.t > 0 && !R.av30) { R.av30 = true; Missao.legenda('Faltam <b>30 segundos</b>: o passageiro tá com pressa!', 5); } }
   // veículo
   UI.set('car-name', carFullName(player.car));
   { const w = $('hud-wanted'), L = Police.level; w.classList.toggle('hidden', L <= 0);
@@ -11889,9 +11906,11 @@ const Historia = {
     if (!Profile.hist) {
       // quem já jogava antes da história começa no capítulo 2 (o passo a passo não existia)
       const veterano = Profile.tut === undefined && (Profile.rides || Profile.deliveries || Profile.earned);
-      Profile.hist = { cap: veterano ? 1 : 0, base: 0, fim: false };
+      Profile.hist = { cap: veterano ? 1 : 0, base: 0, fim: false, v: 2 };
       if (veterano) { Profile.hist.base = this.cru(1); Profile.hist.anunciar = true; Profile.hist.tudo = true; Profile.hist.apres = true; }
     }
+    // história começada na versão anterior (sem travas): quem já jogava continua com tudo liberado e sem a apresentação inicial
+    if (Profile.hist.v === undefined) { Profile.hist.v = 2; Profile.hist.apres = true; if (Profile.rides || Profile.deliveries || Profile.earned > 0) Profile.hist.tudo = true; }
     return Profile.hist;
   },
   cru(i) { const c = HIST_CAPS[i]; return c ? c.val() : 0; },
@@ -11904,7 +11923,7 @@ const Historia = {
     return [capNome(h.cap) + ' · ' + c.nome, c.meta, c.extra ? c.extra() : (c.alvo > 1 ? f + ' de ' + c.alvo : 'Falta pouco') + (c.premio ? ' · prêmio R$ ' + fmtMoney(c.premio) : '')];
   },
   update(dt) {
-    if (Game.mode !== 'play' || !carregou(3)) return;
+    if (Game.mode !== 'play' || !carregou(1)) return;
     const h = this.h(); if (h.fim) return;
     this.t -= dt; if (this.t > 0) return; this.t = 0.5;
     if (h.anunciar) { if (VoicePlayer.msg || Screens.current === 'screen-dialog' || Apresenta.on) return; h.anunciar = false; this.abre(h.cap); return; }
@@ -11915,8 +11934,11 @@ const Historia = {
     }
     if (Apresenta.on) return;
     if (Profile.tut !== undefined && Profile.tut < TUT_STEPS.length && h.cap === 0) return;
-    const c = HIST_CAPS[h.cap];
-    if (this.feito() >= c.alvo) this.conclui();
+    const c = HIST_CAPS[h.cap], f = this.feito();
+    // avanço do capítulo aparece como legenda (sem quadro fixo na tela)
+    if (h.cap > 0 && c.alvo > 1 && f > (this.ultimo === undefined ? f : this.ultimo) && f < c.alvo && telaLivre() && !Apresenta.on) Missao.legenda(escapeHtml(c.nome) + ': <b>' + f + ' de ' + c.alvo + '</b>', 5);
+    this.ultimo = f;
+    if (f >= c.alvo) { this.ultimo = undefined; this.conclui(); }
   },
   conclui() {
     const h = this.h(), c = HIST_CAPS[h.cap], n = h.cap + 1;

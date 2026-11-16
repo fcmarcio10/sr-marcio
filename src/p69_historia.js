@@ -42,7 +42,7 @@ const Historia = {
     return [capNome(h.cap) + ' · ' + c.nome, c.meta, c.extra ? c.extra() : (c.alvo > 1 ? f + ' de ' + c.alvo : 'Falta pouco') + (c.premio ? ' · prêmio R$ ' + fmtMoney(c.premio) : '')];
   },
   update(dt) {
-    if (Game.mode !== 'play' || !carregou(3)) return;
+    if (Game.mode !== 'play' || !carregou(1)) return;
     const h = this.h(); if (h.fim) return;
     this.t -= dt; if (this.t > 0) return; this.t = 0.5;
     if (h.anunciar) { if (VoicePlayer.msg || Screens.current === 'screen-dialog' || Apresenta.on) return; h.anunciar = false; this.abre(h.cap); return; }
