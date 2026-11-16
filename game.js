@@ -2257,7 +2257,7 @@ function markReflections() {
   }
 }
 function addFlags(x1, y1, x2, y2, bulbs) {
-  if (regionKeyAt((x1 + x2) / 2, (y1 + y2) / 2) === 'fazenda') { rnd(); return; } // na fazenda não tem bandeirinha (o sorteio do mapa avança igual)
+  { const rk = regionKeyAt((x1 + x2) / 2, (y1 + y2) / 2); if (rk === 'fazenda' || rk === 'sitio') { rnd(); return; } } // nas fazendas (de cima e de baixo) não tem bandeirinha (o sorteio do mapa avança igual)
   const f = { kind: 'flags', x1, y1, x2, y2, h: 44, bulbs: !!bulbs, x: (x1 + x2) / 2, y: (y1 + y2) / 2, seed: rnd() };
   addTall(f, Math.min(x1, x2) - 20, Math.min(y1, y2) - 30, Math.max(x1, x2) + 20, Math.max(y1, y2) + 20);
 }
@@ -4267,8 +4267,8 @@ class Player {
     impact = Math.max(impact, this.collideDynamic());
     if (this.inWater()) {
       this.x = this.px; this.y = this.py;
-      impact = Math.max(impact, this.speed * 0.6);
-      this.vx *= -0.25; this.vy *= -0.25;
+      if (this.y > SAND_Y - 40) { this.vx *= 0.2; this.vy *= 0.2; } // beira do mar: o carro só para (sem batida nem dano)
+      else { impact = Math.max(impact, this.speed * 0.6); this.vx *= -0.25; this.vy *= -0.25; }
     }
     this.impactCd -= dt;
     if (impact > 70 && this.impactCd <= 0) onPlayerImpact(impact);
@@ -11288,6 +11288,18 @@ function syncSettingsUI() {
   });
 }
 function bindSettings() {
+  // abas (Áudio, Vídeo, Jogo, Controles) e, dentro de Controles, Teclado e mouse / Controle
+  const abaSet = (t) => {
+    document.querySelectorAll('.set-tabs [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
+    document.querySelectorAll('.set-pane').forEach((p) => p.classList.toggle('hidden', p.dataset.pane !== t));
+    if (t !== 'video' && typeof CamPrev !== 'undefined' && CamPrev.hide) CamPrev.hide();
+  };
+  document.querySelectorAll('.set-tabs [data-tab]').forEach((b) => b.addEventListener('click', () => { AudioSys.click(); abaSet(b.dataset.tab); }));
+  document.querySelectorAll('.ct-tipos [data-ct]').forEach((b) => b.addEventListener('click', () => {
+    AudioSys.click();
+    document.querySelectorAll('.ct-tipos [data-ct]').forEach((x) => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.ct-pane').forEach((p) => p.classList.toggle('hidden', p.dataset.ctp !== b.dataset.ct));
+  }));
   document.querySelectorAll('[data-set]').forEach((inp) => {
     inp.addEventListener('input', () => {
       const k = inp.dataset.set;
@@ -12703,9 +12715,60 @@ Agua.molhado = function (ctx, view) {
   ctx.fill();
   ctx.restore();
 };
-// sem respingos no teto dos carros nem espirro do trânsito (o dono não gostou): ficam vazias
-Agua.atualiza = function () {};
-Agua.respingosCarro = function () {};
+// ---------- a onda chegando no carro parado na areia ----------
+// sem batida: o carro fica por cima da água e a onda bate nele, levantando espuminha em volta
+Agua.espuma = [];
+// y da ponta da água em x (mesma conta de Agua.mar); null onde não é praia
+Agua.pontaY = function (x) {
+  if (!this.trechos || x < ORLA_X0 + 40) return null;
+  let dentro = false; for (const [a0, a1] of this.trechos) if (x >= a0 && x <= a1) { dentro = true; break; }
+  if (!dentro) return null;
+  const T = Game.time, B = this.beira, f = x / 20, i = Math.floor(f), t = f - i;
+  const by = lerp(B[i] || SEA_Y, B[i + 1] || SEA_Y, t);
+  const p = ((T / 8 + Math.sin(x * 0.0021) * 0.35 + Math.sin(x * 0.0007 + 1.3) * 0.2) % 1 + 1) % 1, R = 26 + Math.sin(x * 0.013) * 6;
+  let fr = 0;
+  if (p >= 0.55 && p < 0.72) fr = -R * Math.sin((p - 0.55) / 0.17 * Math.PI / 2);
+  else if (p >= 0.72) { const u = (p - 0.72) / 0.28; fr = -R * (1 - u * u * (3 - 2 * u)); }
+  return { y: by + fr, subindo: p >= 0.55 && p < 0.72 };
+};
+Agua.atualiza = function (dt) {
+  for (const f of this.espuma) { f.t += dt; f.x += f.vx * dt; f.y += f.vy * dt; f.vx *= Math.exp(-3 * dt); f.vy *= Math.exp(-3 * dt); }
+  if (this.espuma.length) this.espuma = this.espuma.filter((f) => f.t < f.vida);
+  if (!player || Game.state !== 'playing' || player.y < SAND_Y - 80 || Settings.quality === 'baixa') return;
+  // o ponto do carro mais perto do mar (embaixo) e a água chegando nele
+  const c = Math.cos(player.a), s = Math.sin(player.a), hl = player.m.L / 2, hw = player.m.W / 2;
+  let fundo = -1e9, fx = player.x;
+  for (const [u, v] of [[hl, hw], [hl, -hw], [-hl, hw], [-hl, -hw]]) { const y = player.y + s * u + c * v; if (y > fundo) { fundo = y; fx = player.x + c * u - s * v; } }
+  const P = this.pontaY(player.x); if (!P) return;
+  const molhado = P.y < fundo - 2;
+  if (molhado && P.subindo && !this.bateu && Game.time - (this.bateuT || -9) > 3) {
+    this.bateu = true; this.bateuT = Game.time;
+    const n = 26;
+    for (let k = 0; k < n; k++) {
+      const u = (k / (n - 1) - 0.5) * 2; // ao longo do lado do carro que olha para o mar
+      const bx = lerp(player.x - Math.abs(c) * hl - Math.abs(s) * hw, player.x + Math.abs(c) * hl + Math.abs(s) * hw, (u + 1) / 2);
+      const by = fundo + rnd(-2, 3);
+      this.espuma.push({ x: bx + rnd(-3, 3), y: by, vx: rnd(-22, 22), vy: rnd(-70, -25), r: rnd(1.2, 2.8), t: 0, vida: rnd(0.7, 1.4) });
+    }
+    for (let k = 0; k < 10; k++) { const a = rnd(0, TAU); this.espuma.push({ x: player.x + Math.cos(a) * hl, y: player.y + Math.sin(a) * hw, vx: Math.cos(a) * rnd(15, 35), vy: Math.sin(a) * rnd(10, 25), r: rnd(1, 2.2), t: 0, vida: rnd(0.9, 1.6) }); }
+    if (AudioSys.ok) AudioSys.noise(0.7, 900, 0.6, 0.06, 'ambient', 'bandpass');
+  }
+  if (!molhado) this.bateu = false;
+  this.molhaCarro = molhado ? Math.min(1, (this.molhaCarro || 0) + dt * 3) : Math.max(0, (this.molhaCarro || 0) - dt * 1.2);
+};
+// espuminha e a água lambendo o pneu (desenhado por cima do carro)
+Agua.respingosCarro = function (ctx) {
+  if (!player || (!this.espuma.length && !(this.molhaCarro > 0.02))) return;
+  ctx.save();
+  if (this.molhaCarro > 0.02) { // anel de espuma em volta do carro enquanto a água está nele
+    const T = Game.time;
+    ctx.globalAlpha = 0.5 * this.molhaCarro; ctx.strokeStyle = '#eef6fa'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.ellipse(player.x, player.y, player.m.L / 2 + 3 + Math.sin(T * 5) * 1.2, player.m.W / 2 + 3 + Math.cos(T * 4) * 1, player.a, 0, TAU); ctx.stroke();
+  }
+  ctx.fillStyle = '#f4fafd';
+  for (const f of this.espuma) { ctx.globalAlpha = 0.85 * (1 - f.t / f.vida); ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 + f.t * 0.8), 0, TAU); ctx.fill(); }
+  ctx.restore();
+};
 
 Agua.desenhaChao = function (ctx, view) {
   if (!this.pontes) this.prepara();
@@ -12717,8 +12780,16 @@ Agua.desenhaChao = function (ctx, view) {
 Agua.luar = function (ctx, view) {
   if (Settings.quality === 'baixa' || !this.pontes) return;
   ctx.save(); ctx.globalAlpha = 0.55 * clamp(Cam.dark || 0.7, 0.3, 1);
-  this.rio(ctx, view); this.mar(ctx, view, true);
+  this.rio(ctx, view);
+  if (player && Game.state !== 'menu' && player.y > SAND_Y - 120) { // o carro fica por cima da onda: recorta o carro da espuma do luar
+    const c = Math.cos(player.a), s = Math.sin(player.a), hl = player.m.L / 2 + 1, hw = player.m.W / 2 + 1, P = [[hl, hw], [-hl, hw], [-hl, -hw], [hl, -hw]];
+    ctx.beginPath(); ctx.rect(view.x0 - 50, view.y0 - 50, view.x1 - view.x0 + 100, view.y1 - view.y0 + 100);
+    P.forEach(([u, v], i) => { const x = player.x + c * u - s * v, y = player.y + s * u + c * v; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.closePath(); ctx.clip('evenodd');
+  }
+  this.mar(ctx, view, true);
   ctx.restore();
+  if (this.espuma.length) { ctx.save(); ctx.globalAlpha = 0.5; ctx.fillStyle = '#eef6fa'; for (const f of this.espuma) { ctx.globalAlpha = 0.45 * (1 - f.t / f.vida); ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 + f.t * 0.8), 0, TAU); ctx.fill(); } ctx.restore(); }
 };
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {

@@ -20,6 +20,7 @@ const { chromium } = require('playwright');
   console.log(JSON.stringify(r));
   await p.keyboard.press('Escape'); await p.waitForTimeout(300);
   await p.evaluate(() => Screens.open('screen-settings')); await p.waitForTimeout(300);
+  await p.click('[data-tab="video"]'); await p.waitForTimeout(150);
   await p.click('[data-seg="cam"] [data-v="2"]'); await p.waitForTimeout(400);
   const cp = await p.evaluate(() => { const c = document.getElementById('cam-prev').getBoundingClientRect(), row = document.querySelector('.cam-row'), nx = row.nextElementSibling.getBoundingClientRect(); return { prevBaixo: Math.round(c.bottom), proximaLinhaTopo: Math.round(nx.top), visivel: c.height > 50 }; });
   await p.screenshot({ path: 'config_cam.png' });

@@ -9,6 +9,7 @@ const { chromium } = require('playwright');
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 40000 });
   console.log('migrado:', await p.evaluate(() => [Settings.quality, Settings.cam, Settings.zoom, Settings.master]));
   await p.click('[data-act="settings"]'); await p.waitForTimeout(400);
+  await p.click('[data-tab="video"]'); await p.waitForTimeout(150);
   await p.click('[data-seg="cam"] [data-v="3"]'); await p.waitForTimeout(700);
   await p.screenshot({ path: 'cam_prev.png' });
   console.log('nível 3:', await p.evaluate(() => [Settings.cam, Settings.zoom, !document.getElementById('cam-prev').classList.contains('hidden'), document.querySelector('#cam-prev .cp-cap').textContent]));

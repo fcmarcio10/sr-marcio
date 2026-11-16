@@ -70,6 +70,7 @@ const OUT = process.argv[2];
   await p.keyboard.press('Escape'); await p.waitForTimeout(300);
   await p.screenshot({ path: OUT + '/a_pause.png' });
   await p.click('#screen-pause [data-act="settings"]'); await p.waitForTimeout(300);
+  await p.click('[data-tab="video"]'); await p.waitForTimeout(150);
   await p.click('[data-seg="quality"] button[data-v="alta"]'); await p.waitForTimeout(300);
   await p.screenshot({ path: OUT + '/a_settings.png' });
   await p.click('#screen-settings [data-act="back"]'); await p.waitForTimeout(200);

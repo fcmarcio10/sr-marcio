@@ -145,8 +145,8 @@ class Player {
     impact = Math.max(impact, this.collideDynamic());
     if (this.inWater()) {
       this.x = this.px; this.y = this.py;
-      impact = Math.max(impact, this.speed * 0.6);
-      this.vx *= -0.25; this.vy *= -0.25;
+      if (this.y > SAND_Y - 40) { this.vx *= 0.2; this.vy *= 0.2; } // beira do mar: o carro só para (sem batida nem dano)
+      else { impact = Math.max(impact, this.speed * 0.6); this.vx *= -0.25; this.vy *= -0.25; }
     }
     this.impactCd -= dt;
     if (impact > 70 && this.impactCd <= 0) onPlayerImpact(impact);

@@ -140,6 +140,18 @@ function syncSettingsUI() {
   });
 }
 function bindSettings() {
+  // abas (Áudio, Vídeo, Jogo, Controles) e, dentro de Controles, Teclado e mouse / Controle
+  const abaSet = (t) => {
+    document.querySelectorAll('.set-tabs [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
+    document.querySelectorAll('.set-pane').forEach((p) => p.classList.toggle('hidden', p.dataset.pane !== t));
+    if (t !== 'video' && typeof CamPrev !== 'undefined' && CamPrev.hide) CamPrev.hide();
+  };
+  document.querySelectorAll('.set-tabs [data-tab]').forEach((b) => b.addEventListener('click', () => { AudioSys.click(); abaSet(b.dataset.tab); }));
+  document.querySelectorAll('.ct-tipos [data-ct]').forEach((b) => b.addEventListener('click', () => {
+    AudioSys.click();
+    document.querySelectorAll('.ct-tipos [data-ct]').forEach((x) => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.ct-pane').forEach((p) => p.classList.toggle('hidden', p.dataset.ctp !== b.dataset.ct));
+  }));
   document.querySelectorAll('[data-set]').forEach((inp) => {
     inp.addEventListener('input', () => {
       const k = inp.dataset.set;

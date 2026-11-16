@@ -115,57 +115,69 @@
 <div id="screen-settings" class="screen hidden">
   <div class="panel-card">
     <h2>CONFIGURAÇÕES</h2>
+    <nav class="set-tabs" role="tablist">
+      <button data-tab="audio" class="on">Áudio</button><button data-tab="video">Vídeo</button><button data-tab="jogo">Jogo</button><button data-tab="controles">Controles</button>
+    </nav>
     <div class="settings-grid">
-      <div class="set-section">ÁUDIO</div>
-      <label class="set-row"><span>Volume geral</span><input type="range" min="0" max="100" data-set="master"><b></b></label>
-      <label class="set-row"><span>Motor e efeitos</span><input type="range" min="0" max="100" data-set="engine"><b></b></label>
-      <label class="set-row"><span>Ambiente noturno</span><input type="range" min="0" max="100" data-set="ambient"><b></b></label>
-      <label class="set-row"><span>Interface</span><input type="range" min="0" max="100" data-set="ui"><b></b></label>
-      <label class="set-row"><span>Volume da rádio</span><input type="range" min="0" max="100" data-set="radio"><b></b></label>
-      <div class="set-section">VÍDEO</div>
-      <div class="set-row"><span>Qualidade gráfica</span>
-        <div class="seg" data-seg="quality">
-          <button data-v="baixa">Baixa</button><button data-v="media">Média</button><button data-v="alta">Alta</button>
+      <div class="set-pane" data-pane="audio">
+        <div class="set-section">Volume</div>
+        <label class="set-row"><span>Volume geral</span><input type="range" min="0" max="100" data-set="master"><b></b></label>
+        <label class="set-row"><span>Motor e efeitos</span><input type="range" min="0" max="100" data-set="engine"><b></b></label>
+        <label class="set-row"><span>Ambiente noturno</span><input type="range" min="0" max="100" data-set="ambient"><b></b></label>
+        <label class="set-row"><span>Interface</span><input type="range" min="0" max="100" data-set="ui"><b></b></label>
+        <label class="set-row"><span>Volume da rádio</span><input type="range" min="0" max="100" data-set="radio"><b></b></label>
+        <div class="set-section">Rádio</div>
+        <div class="set-row"><span>Rádio Gambiarra FM</span>
+          <div class="seg" data-seg="radioOff"><button data-v="false">Ligada</button><button data-v="true">Desligada</button></div>
         </div>
       </div>
-      <div class="set-row cam-row"><span>Altura da câmera</span>
-        <div class="seg" data-seg="cam"><button data-v="1">1 · Perto</button><button data-v="2">2 · Médio</button><button data-v="3">3 · Alto</button></div>
-        <div id="cam-prev" class="hidden"><canvas width="320" height="180"></canvas><div class="cp-cap"></div></div>
+      <div class="set-pane hidden" data-pane="video">
+        <div class="set-section">Imagem</div>
+        <div class="set-row"><span>Qualidade gráfica</span>
+          <div class="seg" data-seg="quality"><button data-v="baixa">Baixa</button><button data-v="media">Média</button><button data-v="alta">Alta</button></div>
+        </div>
+        <div class="set-row cam-row"><span>Altura da câmera</span>
+          <div class="seg" data-seg="cam"><button data-v="1">1 · Perto</button><button data-v="2">2 · Médio</button><button data-v="3">3 · Alto</button></div>
+          <div id="cam-prev" class="hidden"><canvas width="320" height="180"></canvas><div class="cp-cap"></div></div>
+        </div>
+        <div class="set-section">Desempenho</div>
+        <div class="set-row"><span>Limite de FPS</span>
+          <div class="seg" data-seg="fpsCap"><button data-v="30">30</button><button data-v="60">60</button><button data-v="120">120</button></div>
+        </div>
+        <div class="set-row"><span>Mostrar FPS</span>
+          <div class="seg" data-seg="showFps"><button data-v="false">Não</button><button data-v="true">Sim</button></div>
+        </div>
       </div>
-      <div class="set-row"><span>Clima</span>
-        <div class="seg" data-seg="weather"><button data-v="auto">Dinâmico</button><button data-v="limpo">Sempre limpo</button><button data-v="chuva">Sempre chuva</button></div>
+      <div class="set-pane hidden" data-pane="jogo">
+        <div class="set-section">Mundo</div>
+        <div class="set-row"><span>Clima</span>
+          <div class="seg" data-seg="weather"><button data-v="auto">Dinâmico</button><button data-v="limpo">Sempre limpo</button><button data-v="chuva">Sempre chuva</button></div>
+        </div>
+        <div class="set-section">Tela</div>
+        <div class="set-row"><span>Minimapa</span>
+          <div class="seg" data-seg="minimapRotate"><button data-v="false">Norte fixo</button><button data-v="true">Gira com o carro</button></div>
+        </div>
+        <div class="set-section">Personagens</div>
+        <div class="set-row"><span>Mensagens dos personagens</span>
+          <div class="seg" data-seg="msgMode"><button data-v="audio">Áudio (só em português)</button><button data-v="texto">Texto</button></div>
+        </div>
       </div>
-      <div class="set-row"><span>Limite de FPS</span>
-        <div class="seg" data-seg="fpsCap"><button data-v="30">30</button><button data-v="60">60</button><button data-v="120">120</button></div>
-      </div>
-      <div class="set-row"><span>Mostrar FPS</span>
-        <div class="seg" data-seg="showFps"><button data-v="false">Não</button><button data-v="true">Sim</button></div>
-      </div>
-      <div class="set-row"><span>Mensagens dos personagens</span>
-        <div class="seg" data-seg="msgMode"><button data-v="audio">Áudio (só em português)</button><button data-v="texto">Texto</button></div>
-      </div>
-      <div class="set-row"><span>Rádio Gambiarra FM</span>
-        <div class="seg" data-seg="radioOff"><button data-v="false">Ligada</button><button data-v="true">Desligada</button></div>
-      </div>
-      <div class="set-row"><span>Minimapa</span>
-        <div class="seg" data-seg="minimapRotate"><button data-v="false">Norte fixo</button><button data-v="true">Gira com o carro</button></div>
-      </div>
-      <div class="set-section">CONTROLES</div>
-      <div class="controls-list">
-        <div><kbd>W</kbd><kbd>↑</kbd> Acelerar</div>
-        <div><kbd>S</kbd><kbd>↓</kbd> Frear / ré</div>
-        <div><kbd>A</kbd><kbd>←</kbd> Esquerda</div>
-        <div><kbd>D</kbd><kbd>→</kbd> Direita</div>
-        <div><kbd>Espaço</kbd> Freio de mão</div>
-        <div><kbd>E</kbd> Interagir</div>
-        <div><kbd>H</kbd> Buzina</div>
-        <div><kbd>L</kbd> Farol alto</div>
-        <div><kbd>Q</kbd> Celular e mapa</div>
-        <div><kbd>C</kbd> Altura da câmera</div>
-        <div><kbd>B</kbd> Paredão</div>
-        <div><kbd>F</kbd> Rádio</div>
-        <div><kbd>R</kbd> Reposicionar</div>
-        <div><kbd>ESC</kbd> Pausar</div>
+      <div class="set-pane hidden" data-pane="controles">
+        <nav class="ct-tipos"><button data-ct="teclado" class="on">Teclado e mouse</button><button data-ct="controle">Controle</button></nav>
+        <div class="ct-pane" data-ctp="teclado">
+          <div class="ct-grupo"><div class="set-section">Dirigir</div>
+            <div class="ct-linha"><span class="ct-k"><kbd>W</kbd><kbd>↑</kbd></span><span>Acelerar</span></div><div class="ct-linha"><span class="ct-k"><kbd>S</kbd><kbd>↓</kbd></span><span>Frear / ré</span></div><div class="ct-linha"><span class="ct-k"><kbd>A</kbd><kbd>←</kbd></span><span>Virar à esquerda</span></div><div class="ct-linha"><span class="ct-k"><kbd>D</kbd><kbd>→</kbd></span><span>Virar à direita</span></div><div class="ct-linha"><span class="ct-k"><kbd>Espaço</kbd></span><span>Freio de mão</span></div>
+          </div>
+          <div class="ct-grupo"><div class="set-section">Carro</div>
+            <div class="ct-linha"><span class="ct-k"><kbd>H</kbd></span><span>Buzina</span></div><div class="ct-linha"><span class="ct-k"><kbd>L</kbd></span><span>Farol alto</span></div><div class="ct-linha"><span class="ct-k"><kbd>B</kbd></span><span>Paredão</span></div><div class="ct-linha"><span class="ct-k"><kbd>R</kbd></span><span>Reposicionar o carro</span></div><div class="ct-linha"><span class="ct-k"><kbd>C</kbd></span><span>Altura da câmera</span></div>
+          </div>
+          <div class="ct-grupo"><div class="set-section">Celular e menus</div>
+            <div class="ct-linha"><span class="ct-k"><kbd>E</kbd></span><span>Interagir</span></div><div class="ct-linha"><span class="ct-k"><kbd>Q</kbd></span><span>Celular e mapa</span></div><div class="ct-linha"><span class="ct-k"><kbd>F</kbd></span><span>Rádio</span></div><div class="ct-linha"><span class="ct-k"><kbd>Esc</kbd></span><span>Pausar</span></div><div class="ct-linha"><span class="ct-k"><kbd>Clique</kbd></span><span>Tocar no celular e nos menus</span></div>
+          </div>
+        </div>
+        <div class="ct-pane hidden" data-ctp="controle">
+          <div class="ct-breve"><b>Em breve</b><p>O jogo vai funcionar com controle (Xbox e PlayStation). Os botões vão aparecer aqui.</p></div>
+        </div>
       </div>
     </div>
     <div class="row-btns"><button class="mbtn small" data-act="back">VOLTAR</button></div>

@@ -1583,7 +1583,7 @@ function markReflections() {
   }
 }
 function addFlags(x1, y1, x2, y2, bulbs) {
-  if (regionKeyAt((x1 + x2) / 2, (y1 + y2) / 2) === 'fazenda') { rnd(); return; } // na fazenda não tem bandeirinha (o sorteio do mapa avança igual)
+  { const rk = regionKeyAt((x1 + x2) / 2, (y1 + y2) / 2); if (rk === 'fazenda' || rk === 'sitio') { rnd(); return; } } // nas fazendas (de cima e de baixo) não tem bandeirinha (o sorteio do mapa avança igual)
   const f = { kind: 'flags', x1, y1, x2, y2, h: 44, bulbs: !!bulbs, x: (x1 + x2) / 2, y: (y1 + y2) / 2, seed: rnd() };
   addTall(f, Math.min(x1, x2) - 20, Math.min(y1, y2) - 30, Math.max(x1, x2) + 20, Math.max(y1, y2) + 20);
 }

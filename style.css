@@ -1489,3 +1489,25 @@ body.cinema #hud-objective { display: none !important; }
 #screen-pause .stats-grid { margin-top: 0; gap: 7px 22px; }
 @media (max-width: 720px) { .pausa-cols { grid-template-columns: 1fr; gap: 18px; } }
 #screen-pause, #screen-settings, #screen-confirm { z-index: 60; } /* pausa por cima dos avisos de missão */
+
+/* ---------- configurações em abas ---------- */
+#screen-settings .panel-card { width: min(760px, 94vw); }
+.set-tabs { display: flex; gap: 4px; margin: -4px 0 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+.set-tabs button { flex: 1; background: none; border: 0; border-bottom: 3px solid transparent; color: rgba(255, 255, 255, 0.55); font: 800 15px/1 var(--f-cond); letter-spacing: 0.12em; text-transform: uppercase; padding: 10px 6px 11px; cursor: pointer; margin-bottom: -1px; }
+.set-tabs button:hover { color: #fff; }
+.set-tabs button.on { color: var(--ouro, #ffcc2e); border-bottom-color: var(--ouro, #ffcc2e); }
+.set-pane { display: flex; flex-direction: column; gap: 10px; min-height: 330px; }
+.set-pane.hidden, .ct-pane.hidden { display: none; }
+.set-pane .set-section:first-child { margin-top: 0; }
+.ct-tipos { display: flex; gap: 6px; margin-bottom: 6px; }
+.ct-tipos button { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.65); font: 700 13px/1 var(--f-cond); letter-spacing: 0.08em; text-transform: uppercase; padding: 9px 14px; border-radius: 3px; cursor: pointer; }
+.ct-tipos button.on { background: var(--ouro, #ffcc2e); color: #16130a; border-color: transparent; }
+.ct-pane { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 22px; }
+.ct-grupo { display: flex; flex-direction: column; gap: 7px; }
+.ct-linha { display: flex; align-items: center; gap: 10px; font: 600 15px/1.2 var(--f-cond); color: #d5dae4; }
+.ct-k { display: flex; gap: 3px; min-width: 62px; }
+.ct-breve { grid-column: 1 / -1; padding: 26px 20px; text-align: center; background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 4px; }
+.ct-breve b { display: block; font: 400 26px/1 var(--f-display); color: var(--ouro, #ffcc2e); margin-bottom: 8px; letter-spacing: 0.04em; }
+.ct-breve p { margin: 0; font: 500 14px/1.4 var(--f-body); color: rgba(255, 255, 255, 0.7); }
+@media (max-width: 720px) { .ct-pane { grid-template-columns: 1fr; } .set-tabs button { font-size: 13px; letter-spacing: 0.05em; } }
+.set-pane .set-section { text-transform: uppercase; }
