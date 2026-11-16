@@ -1898,6 +1898,7 @@ class MapView {
 }
 function mapSetWaypoint(x, y, label) {
   if (Game.mode !== 'play') return;
+  if (!label && !Nevoa.aberto(x, y)) { AudioSys.error(); toast('Área não explorada', 'Ainda não dá pra marcar destino aí. Explore a cidade (ou siga as missões) para abrir o mapa.', 'info'); return; }
   x = clamp(x, 0, WORLD_W); y = clamp(y, 0, WORLD_H);
   const ne = nearestEdge(x, y);
   const px = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x, py = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s;

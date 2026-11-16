@@ -6,12 +6,13 @@
 
 /* ---------- funções liberadas pela história ---------- */
 // capítulo (índice de HIST_CAPS) em que cada coisa fica liberada
-const LIBERA = { entregas: 2, fretes: 2, eventos: 3, percursos: 4, racha: 6 };
-const LIBERA_NOME = { entregas: 'Entregas nos comércios', fretes: 'App Fretes', eventos: 'Pedidos de ajuda pela cidade', percursos: 'Percursos cronometrados', racha: 'Racha da madrugada' };
+const LIBERA = { camera: 1, colecao: 1, entregas: 2, fretes: 2, eventos: 3, percursos: 4, racha: 6 };
+const LIBERA_NOME = { camera: 'App Câmera', colecao: 'App Coleção', entregas: 'Entregas nos comércios', fretes: 'App Fretes', eventos: 'Pedidos de ajuda pela cidade', percursos: 'Percursos cronometrados', racha: 'Racha da madrugada' };
 function liberado(f) {
   if (navigator.webdriver && !window.__travas) return true; // testes e gravadores de vídeo antigos: tudo liberado
   const h = Profile.hist;
   if (!h || h.fim || h.tudo) return true;
+  if (f === 'pegaai') return h.cap > 0 || Profile.tut === undefined || Profile.tut >= 3; // o tutorial libera o PegaAí no passo do celular
   return h.cap >= (LIBERA[f] || 0);
 }
 function travaTexto(f) { return 'Libera no Capítulo ' + ((LIBERA[f] || 0) + 1) + ' da história'; }
@@ -59,7 +60,7 @@ Nevoa.img = function () {
     const g = this.cv.getContext('2d'), im = g.createImageData(NEV_W + 2, NEV_H + 2), d = im.data;
     for (let y = 0; y < NEV_H + 2; y++) for (let x = 0; x < NEV_W + 2; x++) {
       const gx = clamp(x - 1, 0, NEV_W - 1), gy = clamp(y - 1, 0, NEV_H - 1), o = (y * (NEV_W + 2) + x) * 4;
-      d[o] = 34; d[o + 1] = 38; d[o + 2] = 44; d[o + 3] = this.a[gy * NEV_W + gx] ? 0 : 236;
+      d[o] = 10; d[o + 1] = 12; d[o + 2] = 16; d[o + 3] = this.a[gy * NEV_W + gx] ? 0 : 252; // área não explorada: quase preta, bloqueada
     }
     g.putImageData(im, 0, 0); this.sujo = false;
   }

@@ -580,6 +580,7 @@ Radio.toggle = function () {
 };
 document.addEventListener('click', (e) => {
   const t = e.target && e.target.closest ? e.target.closest('#hud-radio, #hud-radio-btn') : null;
+  if (t && typeof jogoTravado === 'function' && jogoTravado()) return;
   if (t) Radio.toggle();
 });
 Radio.update = function (dt) {

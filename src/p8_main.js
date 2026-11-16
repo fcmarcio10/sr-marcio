@@ -50,6 +50,12 @@ function withTransit(fn) {
   requestAnimationFrame(step);
 }
 function newGame() { withTransit(newGameNow); }
+// carro e teclas travados: carregando, câmera apresentando lugares, ou primeira noite antes da apresentação começar
+function jogoTravado() {
+  if (Game.carregando || Apresenta.on) return true;
+  if (navigator.webdriver && !window.__intro) return false; // testes antigos: sem apresentação, sem espera
+  const h = Profile.hist; return !!(h && h.cap === 0 && !h.apres && !h.tudo);
+}
 // coisas que só acontecem depois que a tela de carregamento some (falas, avisos, tutorial)
 const AposCarga = { fila: [] };
 function aposCarregar(fn, s) { AposCarga.fila.push({ fn, s: s || 0 }); }
@@ -108,7 +114,7 @@ function handleKeys() {
   while (KeyPress.length) {
     const k = KeyPress.shift();
     if (Apresenta.on && (k === 'Escape' || k === 'Enter' || k === 'Space' || k === 'NumpadEnter')) { Apresenta.pula(); continue; }
-    if (Apresenta.on && (k === 'KeyQ' || k === 'KeyE' || k === 'KeyR')) continue;
+    if (jogoTravado() && k !== 'Escape') continue; // nada funciona durante a apresentação
     if (k === 'Escape') {
       if (Game.mode === 'play' && !Screens.current) { Screens.open('screen-pause'); AudioSys.click(); }
       else if (Screens.current && Screens.current !== 'screen-main') Screens.back();
@@ -139,9 +145,12 @@ function stepPlay(dt) {
   Profile.time += dt;
   if (Profile.time >= NIGHT_END) { Profile.nights = (Profile.nights || 0) + 1; Profile.time = NIGHT_START; toast('Uma nova noite começa', 'O relógio volta para as 19:30. A cidade nunca dorme.', 'info'); Finance.newDay(); }
   const locked = Act.race && Act.race.count > 0;
-  const cine = Apresenta.on; // câmera apresentando um lugar: o carro fica freado
-  const inp = cine ? { thr: false, brk: true, steer: 0, hb: false } : { thr: !locked && !!key.up(), brk: !!key.down(), steer: (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() };
+  // começo do jogo e cenas de apresentação: carro desligado e parado (nada de tecla; antes o "freio" virava ré e o carro sumia)
+  const trava = jogoTravado();
+  const inp = trava ? { thr: false, brk: false, steer: 0, hb: false } : { thr: !locked && !!key.up(), brk: !!key.down(), steer: (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() };
+  if (trava) { player.vx = player.vy = 0; if (player.spin) player.spin = 0; }
   player.update(dt, inp);
+  if (trava) { player.vx = player.vy = 0; }
   Traffic.update(dt, Game.time, player.x, player.y, Cam.view);
   Animals.update(dt, Cam.x, Cam.y);
   if (Settings.quality !== 'baixa') Peladas.update(dt, Cam.x, Cam.y);
@@ -214,7 +223,7 @@ function frame(now) {
     const river = Math.max(clamp(1 - (Math.abs(Cam.x - riverCX(Cam.y)) - 160) / 650, 0, 1), clamp(1 - (SEA_Y - Cam.y) / 700, 0, 1) * 1.3); // rio e mar
     const p = player;
     AudioSys.update({
-      active: Game.state === 'playing' && !Game.carregando && !!p, rpm: p ? p.rpm : 900, thr: p ? p.thr : 0, speed: p ? p.speed : 0, slip: p ? p.slip : 0,
+      active: Game.state === 'playing' && !jogoTravado() && !!p, rpm: p ? p.rpm : 900, thr: p ? p.thr : 0, speed: p ? p.speed : 0, slip: p ? p.slip : 0,
       surfaceRough: p ? SURF[p.surface].rough : 0, paved: p ? (p.surface === SF.ROAD || p.surface === SF.PAVED || p.surface === SF.BRIDGE || p.surface === SF.SIDEWALK) : true, rural: R.rural, city: R.city, river, pitch: p ? p.car.pitch : 1, cyl: p ? (p.car.cyl || 4) : 4,
     });
     let md = Infinity;
@@ -259,7 +268,7 @@ async function boot() {
   });
   // tocar nos botões do celular não rouba o teclado do carro (dá para dirigir com ele aberto)
   document.querySelector('#screen-phone .phone').addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
-  $('hud-phone').addEventListener('click', () => { if (Game.state === 'playing') Phone.open('home'); });
+  $('hud-phone').addEventListener('click', () => { if (Game.state === 'playing' && !jogoTravado()) Phone.open('home'); });
   $('fps').classList.toggle('hidden', !Settings.showFps);
   prog(0.04, 'Preparando texturas…'); await tick();
   buildPatterns(); buildLightSprites();

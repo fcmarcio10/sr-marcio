@@ -399,7 +399,7 @@ const PH_ICONS = {
 const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
-  const tr = (id === 'fretes' || id === 'racha') && !liberado(id); // ainda não liberado pela história: cadeado
+  const tr = ['pegaai', 'fretes', 'racha', 'camera', 'colecao'].includes(id) && !liberado(id); // ainda não liberado pela história: cadeado
   return `<button class="ph-app${tr ? ' ph-trancado' : ''}" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge && !tr ? `<i class="ph-badge">${badge}</i>` : ''}${tr ? '<i class="ph-cadeado"><svg viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3h1v11H6V10h1zm2 0h6V7a3 3 0 0 0-6 0v3z"/></svg></i>' : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
 }
 // papéis de parede: paisagens de São Gambiarra e arredores (e a bandeira), desenhadas em SVG
@@ -636,7 +636,7 @@ const Phone = {
   },
   click(e) {
     const t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.app) { const ap = t.dataset.app; if ((ap === 'fretes' || ap === 'racha') && !liberado(ap)) { AudioSys.error(); toast(PH_APPS[ap], travaTexto(ap) + '.', 'info'); return; } this.go(ap); return; }
+    if (t.dataset.app) { const ap = t.dataset.app; if (['pegaai', 'fretes', 'racha', 'camera', 'colecao'].includes(ap) && !liberado(ap)) { AudioSys.error(); toast(PH_APPS[ap], ap === 'pegaai' ? 'O Seu Zé libera no passo a passo.' : travaTexto(ap) + '.', 'info'); return; } this.go(ap); return; }
     if (t.dataset.foto) { Colecao.fotografa(); return; }
     if (t.dataset.mz) { if (phoneMap) mapCtrl(phoneMap, t.dataset.mz); return; }
     if (t.dataset.sos) { if (t.dataset.sos === 'cancel') socorroCancel(); else socorroCall(t.dataset.sos); phoneTone(1760, 0.05, 0.04); this.render(); return; }

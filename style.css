@@ -1405,3 +1405,15 @@ body.cel-aberto #tutorial .tut-skip { position: static; margin-left: 10px; }
 /* avisos e cartões entram deslizando e somem suave */
 .toast { animation: toastEntra 0.35s cubic-bezier(.2, .9, .3, 1) backwards; }
 @keyframes toastEntra { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+/* tela inicial simples: hora grande em cima, apps maiores, barra de baixo encostada no pé da tela */
+#phone-body.home .ph-lock.simples { padding: 34px 0 26px; }
+#phone-body.home .ph-lock.simples .ph-time { font-size: 64px; font-weight: 300; letter-spacing: -0.03em; }
+#phone-body.home .ph-lock.simples .ph-date { font-size: 13px; margin-top: 6px; opacity: 0.85; }
+#phone-body.home .ph-grid.simples { gap: 22px 6px; padding: 0 4px; }
+#phone-body.home .ph-grid.simples .ph-ico { width: 54px; height: 54px; border-radius: 14px; }
+#phone-body.home .ph-grid.simples .ph-ico svg { width: 28px; height: 28px; }
+#phone-body.home .ph-grid.simples .ph-lbl { font-size: 11px; margin-top: 5px; }
+#phone-body.home .ph-dock { margin-top: auto; grid-template-columns: repeat(3, 1fr); padding: 10px 14px; }
+/* celular aberto: a legenda do tutorial vai para o alto, no meio (não tapa o GPS nem o celular) */
+body.cel-aberto #tutorial { top: 112px; bottom: auto; left: 50%; transform: translateX(-50%); max-width: min(620px, calc(100vw - 32px)); }
+body.cel-aberto #tutorial .tut-skip { position: static; margin-left: 10px; }

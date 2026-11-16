@@ -6458,7 +6458,7 @@ const PH_ICONS = {
 const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
-  const tr = (id === 'fretes' || id === 'racha') && !liberado(id); // ainda não liberado pela história: cadeado
+  const tr = ['pegaai', 'fretes', 'racha', 'camera', 'colecao'].includes(id) && !liberado(id); // ainda não liberado pela história: cadeado
   return `<button class="ph-app${tr ? ' ph-trancado' : ''}" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge && !tr ? `<i class="ph-badge">${badge}</i>` : ''}${tr ? '<i class="ph-cadeado"><svg viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3h1v11H6V10h1zm2 0h6V7a3 3 0 0 0-6 0v3z"/></svg></i>' : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
 }
 // papéis de parede: paisagens de São Gambiarra e arredores (e a bandeira), desenhadas em SVG
@@ -6695,7 +6695,7 @@ const Phone = {
   },
   click(e) {
     const t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.app) { const ap = t.dataset.app; if ((ap === 'fretes' || ap === 'racha') && !liberado(ap)) { AudioSys.error(); toast(PH_APPS[ap], travaTexto(ap) + '.', 'info'); return; } this.go(ap); return; }
+    if (t.dataset.app) { const ap = t.dataset.app; if (['pegaai', 'fretes', 'racha', 'camera', 'colecao'].includes(ap) && !liberado(ap)) { AudioSys.error(); toast(PH_APPS[ap], ap === 'pegaai' ? 'O Seu Zé libera no passo a passo.' : travaTexto(ap) + '.', 'info'); return; } this.go(ap); return; }
     if (t.dataset.foto) { Colecao.fotografa(); return; }
     if (t.dataset.mz) { if (phoneMap) mapCtrl(phoneMap, t.dataset.mz); return; }
     if (t.dataset.sos) { if (t.dataset.sos === 'cancel') socorroCancel(); else socorroCall(t.dataset.sos); phoneTone(1760, 0.05, 0.04); this.render(); return; }
@@ -9800,6 +9800,7 @@ class MapView {
 }
 function mapSetWaypoint(x, y, label) {
   if (Game.mode !== 'play') return;
+  if (!label && !Nevoa.aberto(x, y)) { AudioSys.error(); toast('Área não explorada', 'Ainda não dá pra marcar destino aí. Explore a cidade (ou siga as missões) para abrir o mapa.', 'info'); return; }
   x = clamp(x, 0, WORLD_W); y = clamp(y, 0, WORLD_H);
   const ne = nearestEdge(x, y);
   const px = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x, py = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s;
@@ -10587,6 +10588,7 @@ Radio.toggle = function () {
 };
 document.addEventListener('click', (e) => {
   const t = e.target && e.target.closest ? e.target.closest('#hud-radio, #hud-radio-btn') : null;
+  if (t && typeof jogoTravado === 'function' && jogoTravado()) return;
   if (t) Radio.toggle();
 });
 Radio.update = function (dt) {
@@ -12038,12 +12040,13 @@ const Historia = {
 
 /* ---------- funções liberadas pela história ---------- */
 // capítulo (índice de HIST_CAPS) em que cada coisa fica liberada
-const LIBERA = { entregas: 2, fretes: 2, eventos: 3, percursos: 4, racha: 6 };
-const LIBERA_NOME = { entregas: 'Entregas nos comércios', fretes: 'App Fretes', eventos: 'Pedidos de ajuda pela cidade', percursos: 'Percursos cronometrados', racha: 'Racha da madrugada' };
+const LIBERA = { camera: 1, colecao: 1, entregas: 2, fretes: 2, eventos: 3, percursos: 4, racha: 6 };
+const LIBERA_NOME = { camera: 'App Câmera', colecao: 'App Coleção', entregas: 'Entregas nos comércios', fretes: 'App Fretes', eventos: 'Pedidos de ajuda pela cidade', percursos: 'Percursos cronometrados', racha: 'Racha da madrugada' };
 function liberado(f) {
   if (navigator.webdriver && !window.__travas) return true; // testes e gravadores de vídeo antigos: tudo liberado
   const h = Profile.hist;
   if (!h || h.fim || h.tudo) return true;
+  if (f === 'pegaai') return h.cap > 0 || Profile.tut === undefined || Profile.tut >= 3; // o tutorial libera o PegaAí no passo do celular
   return h.cap >= (LIBERA[f] || 0);
 }
 function travaTexto(f) { return 'Libera no Capítulo ' + ((LIBERA[f] || 0) + 1) + ' da história'; }
@@ -12091,7 +12094,7 @@ Nevoa.img = function () {
     const g = this.cv.getContext('2d'), im = g.createImageData(NEV_W + 2, NEV_H + 2), d = im.data;
     for (let y = 0; y < NEV_H + 2; y++) for (let x = 0; x < NEV_W + 2; x++) {
       const gx = clamp(x - 1, 0, NEV_W - 1), gy = clamp(y - 1, 0, NEV_H - 1), o = (y * (NEV_W + 2) + x) * 4;
-      d[o] = 34; d[o + 1] = 38; d[o + 2] = 44; d[o + 3] = this.a[gy * NEV_W + gx] ? 0 : 236;
+      d[o] = 10; d[o + 1] = 12; d[o + 2] = 16; d[o + 3] = this.a[gy * NEV_W + gx] ? 0 : 252; // área não explorada: quase preta, bloqueada
     }
     g.putImageData(im, 0, 0); this.sujo = false;
   }
@@ -12594,6 +12597,12 @@ function withTransit(fn) {
   requestAnimationFrame(step);
 }
 function newGame() { withTransit(newGameNow); }
+// carro e teclas travados: carregando, câmera apresentando lugares, ou primeira noite antes da apresentação começar
+function jogoTravado() {
+  if (Game.carregando || Apresenta.on) return true;
+  if (navigator.webdriver && !window.__intro) return false; // testes antigos: sem apresentação, sem espera
+  const h = Profile.hist; return !!(h && h.cap === 0 && !h.apres && !h.tudo);
+}
 // coisas que só acontecem depois que a tela de carregamento some (falas, avisos, tutorial)
 const AposCarga = { fila: [] };
 function aposCarregar(fn, s) { AposCarga.fila.push({ fn, s: s || 0 }); }
@@ -12652,7 +12661,7 @@ function handleKeys() {
   while (KeyPress.length) {
     const k = KeyPress.shift();
     if (Apresenta.on && (k === 'Escape' || k === 'Enter' || k === 'Space' || k === 'NumpadEnter')) { Apresenta.pula(); continue; }
-    if (Apresenta.on && (k === 'KeyQ' || k === 'KeyE' || k === 'KeyR')) continue;
+    if (jogoTravado() && k !== 'Escape') continue; // nada funciona durante a apresentação
     if (k === 'Escape') {
       if (Game.mode === 'play' && !Screens.current) { Screens.open('screen-pause'); AudioSys.click(); }
       else if (Screens.current && Screens.current !== 'screen-main') Screens.back();
@@ -12683,9 +12692,12 @@ function stepPlay(dt) {
   Profile.time += dt;
   if (Profile.time >= NIGHT_END) { Profile.nights = (Profile.nights || 0) + 1; Profile.time = NIGHT_START; toast('Uma nova noite começa', 'O relógio volta para as 19:30. A cidade nunca dorme.', 'info'); Finance.newDay(); }
   const locked = Act.race && Act.race.count > 0;
-  const cine = Apresenta.on; // câmera apresentando um lugar: o carro fica freado
-  const inp = cine ? { thr: false, brk: true, steer: 0, hb: false } : { thr: !locked && !!key.up(), brk: !!key.down(), steer: (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() };
+  // começo do jogo e cenas de apresentação: carro desligado e parado (nada de tecla; antes o "freio" virava ré e o carro sumia)
+  const trava = jogoTravado();
+  const inp = trava ? { thr: false, brk: false, steer: 0, hb: false } : { thr: !locked && !!key.up(), brk: !!key.down(), steer: (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() };
+  if (trava) { player.vx = player.vy = 0; if (player.spin) player.spin = 0; }
   player.update(dt, inp);
+  if (trava) { player.vx = player.vy = 0; }
   Traffic.update(dt, Game.time, player.x, player.y, Cam.view);
   Animals.update(dt, Cam.x, Cam.y);
   if (Settings.quality !== 'baixa') Peladas.update(dt, Cam.x, Cam.y);
@@ -12758,7 +12770,7 @@ function frame(now) {
     const river = Math.max(clamp(1 - (Math.abs(Cam.x - riverCX(Cam.y)) - 160) / 650, 0, 1), clamp(1 - (SEA_Y - Cam.y) / 700, 0, 1) * 1.3); // rio e mar
     const p = player;
     AudioSys.update({
-      active: Game.state === 'playing' && !Game.carregando && !!p, rpm: p ? p.rpm : 900, thr: p ? p.thr : 0, speed: p ? p.speed : 0, slip: p ? p.slip : 0,
+      active: Game.state === 'playing' && !jogoTravado() && !!p, rpm: p ? p.rpm : 900, thr: p ? p.thr : 0, speed: p ? p.speed : 0, slip: p ? p.slip : 0,
       surfaceRough: p ? SURF[p.surface].rough : 0, paved: p ? (p.surface === SF.ROAD || p.surface === SF.PAVED || p.surface === SF.BRIDGE || p.surface === SF.SIDEWALK) : true, rural: R.rural, city: R.city, river, pitch: p ? p.car.pitch : 1, cyl: p ? (p.car.cyl || 4) : 4,
     });
     let md = Infinity;
@@ -12803,7 +12815,7 @@ async function boot() {
   });
   // tocar nos botões do celular não rouba o teclado do carro (dá para dirigir com ele aberto)
   document.querySelector('#screen-phone .phone').addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
-  $('hud-phone').addEventListener('click', () => { if (Game.state === 'playing') Phone.open('home'); });
+  $('hud-phone').addEventListener('click', () => { if (Game.state === 'playing' && !jogoTravado()) Phone.open('home'); });
   $('fps').classList.toggle('hidden', !Settings.showFps);
   prog(0.04, 'Preparando texturas…'); await tick();
   buildPatterns(); buildLightSprites();
