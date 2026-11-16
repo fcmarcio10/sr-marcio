@@ -350,7 +350,19 @@ Praia.comeca = function () {
   if (AudioSys.ok) { AudioSys.noise(0.9, 700, 0.5, 0.12, 'ambient', 'bandpass'); AudioSys.noise(0.4, 2400, 0.8, 0.05, 'ambient', 'highpass', 0.1); }
 };
 Praia.update = function (dt) {
-  if (!this.t || !player) return;
+  if (!player) return;
+  // contagem antes de voltar: "Voltando em 3, 2, 1, 0"; se o carro sair da água, cancela
+  if (!this.t) {
+    const fora = !player.inWater() || player.y < SAND_Y - 40;
+    if (this.naAgua && !fora) {
+      if (this.conta === undefined) this.conta = 3.99;
+      const ant = Math.floor(this.conta); this.conta -= dt; const n = Math.floor(Math.max(0, this.conta));
+      if (n !== ant || !this.el) this.mostraConta(n);
+      if (this.conta <= 0) { this.conta = undefined; this.escondeConta(); this.comeca(); }
+    } else if (this.conta !== undefined && fora) { this.conta = undefined; this.escondeConta(); }
+    this.naAgua = false;
+    return;
+  }
   this.t = Math.max(0, this.t - dt);
   if (!this.feito && this.t < this.D / 2) { // meio da animação (tela escura): põe o carro na areia, de frente para a cidade
     this.feito = true;
@@ -365,3 +377,10 @@ Praia.desenha = function (ctx, W, H) {
   const p = 1 - this.t / this.D, a = Math.sin(p * Math.PI);
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = `rgba(4,10,20,${(a * 0.92).toFixed(3)})`; ctx.fillRect(0, 0, W, H); ctx.restore();
 };
+
+Praia.mostraConta = function (n) {
+  if (!this.el) { this.el = document.createElement('div'); this.el.id = 'praia-conta'; document.body.appendChild(this.el); }
+  this.el.innerHTML = '<span>Voltando em</span><b>' + n + '</b>'; this.el.classList.add('on');
+  try { AudioSys.tone(n ? 660 : 990, 0.12, 'sine', 0.06, 'ui'); } catch (e) {}
+};
+Praia.escondeConta = function () { if (this.el) this.el.classList.remove('on'); };

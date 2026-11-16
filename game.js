@@ -935,7 +935,6 @@ function decal(x0, y0, x1, y1, type, opt) {
   const d = { x0, y0, x1, y1, type, seed: (hash2(x0 | 0, y0 | 0) * 1e6) | 0, opt: opt || {} };
   bake(x0, y0, x1, y1, d.opt.z !== undefined ? d.opt.z : 1, (g) => drawDecal(g, d));
   if (DECAL_SURF[type] !== undefined && !d.opt.noSurf) gFill(x0, y0, x1, y1, DECAL_SURF[type]);
-  if (type === 'corn' || type === 'cane' || type === 'soy' || type === 'coffee' || type === 'garden') Mata.plantas.push(d); // plantação balançando (p74_mata.js)
   return d;
 }
 function decalR(r, type, opt) { return decal(r[0], r[1], r[2], r[3], type, opt); }
@@ -4294,10 +4293,10 @@ class Player {
     let impact = this.collide();
     impact = Math.max(impact, this.collideDynamic());
     if (this.inWater()) {
-      if (this.y > SAND_Y - 40) { // mar: o carro entra devagar (a água segura); entrou inteiro, volta para a areia (Praia.volta)
+      if (this.y > SAND_Y - 40 && Agua.pontaY(this.x)) { // praia: o carro entra devagar (no porto e no píer bate, para não cair na água) (a água segura); entrou inteiro, volta para a areia (Praia.volta)
         const k = Math.exp(-1.6 * dt); this.vx *= k; this.vy *= k;
         this.marT = groundAt(this.x, this.y) === SF.WATER ? (this.marT || 0) + dt : 0; // o meio do carro já está na água
-        if (!Praia.t && (this.todoNaAgua() || this.marT > 0.7)) { this.marT = 0; Praia.comeca(); }
+        Praia.naAgua = this.todoNaAgua() || this.marT > 0.7; // conta 3, 2, 1 e volta para a areia (Praia.update)
       } else { this.x = this.px; this.y = this.py; impact = Math.max(impact, this.speed * 0.6); this.vx *= -0.25; this.vy *= -0.25; } // rio: bate
     }
     this.impactCd -= dt;
@@ -9198,6 +9197,7 @@ Weather.buildPuddles = function () {
       const x = e.h ? e.a.x + s : e.a.x - lat, y = e.h ? e.a.y + lat : e.a.y + s;
       const along = (dirt ? 14 : 16) + R() * 18, across = 6 + R() * 6;
       if (hash2(x | 0, y | 0) < 0.1) continue; // 10% menos poças
+      if (PARKED.some((c) => Math.abs(c.x - x) < 36 && Math.abs(c.y - y) < 36)) continue; // nunca embaixo (ou em cima) de carro estacionado
       put({ x, y, rx: e.h ? along : across, ry: e.h ? across : along, mud: dirt, cool: 0, ph: R() * 10 });
     }
   }
@@ -10301,7 +10301,10 @@ const BATIDA_VOZ = { f: ['bt_f1', 'bt_f2', 'bt_f3', 'bt_f4', 'bt_f5'], m: ['bt_m
 function vozBatida(nome, tipo) {
   if (Game.time < (vozBatida.t || 0)) return; vozBatida.t = Game.time + 3.2;
   const g = genderOf(nome || '') === 'f' ? 'f' : 'm';
-  let clip = tipo === 'vip' ? BATIDA_VOZ.vip[g] : tipo === 'quebra' ? BATIDA_VOZ.quebra[g] : pick(BATIDA_VOZ[g].filter((c) => c !== vozBatida.ult));
+  // uma voz só por passageiro (escolhida pelo nome) e no máximo 2 reações por corrida, com 8 s de intervalo
+  if (vozBatida.quem !== nome) { vozBatida.quem = nome; vozBatida.n = 0; }
+  if (vozBatida.n >= 2) return; vozBatida.n++; vozBatida.t = Game.time + 8;
+  const L = BATIDA_VOZ[g]; let clip = tipo === 'vip' ? BATIDA_VOZ.vip[g] : tipo === 'quebra' ? BATIDA_VOZ.quebra[g] : L[Math.floor(hash2((nome || '').length * 13 + (nome || ' ').charCodeAt(0), 5) * L.length)];
   vozBatida.ult = clip; const C = VOICE_CLIPS[clip]; if (!C) return;
   Legenda.fala(nome ? nome.split(' ')[0] : (g === 'f' ? 'Passageira' : 'Passageiro'), tipo === 'quebra' ? '[reclama da mudança balançando]' : '[reclama da batida]', 2.5);
   try { const a = new Audio(C.src); a.volume = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.55; a.play().catch(() => {}); } catch (e) {} // mais baixa (nov/2026: 0,9 → 0,55)
@@ -12953,7 +12956,19 @@ Praia.comeca = function () {
   if (AudioSys.ok) { AudioSys.noise(0.9, 700, 0.5, 0.12, 'ambient', 'bandpass'); AudioSys.noise(0.4, 2400, 0.8, 0.05, 'ambient', 'highpass', 0.1); }
 };
 Praia.update = function (dt) {
-  if (!this.t || !player) return;
+  if (!player) return;
+  // contagem antes de voltar: "Voltando em 3, 2, 1, 0"; se o carro sair da água, cancela
+  if (!this.t) {
+    const fora = !player.inWater() || player.y < SAND_Y - 40;
+    if (this.naAgua && !fora) {
+      if (this.conta === undefined) this.conta = 3.99;
+      const ant = Math.floor(this.conta); this.conta -= dt; const n = Math.floor(Math.max(0, this.conta));
+      if (n !== ant || !this.el) this.mostraConta(n);
+      if (this.conta <= 0) { this.conta = undefined; this.escondeConta(); this.comeca(); }
+    } else if (this.conta !== undefined && fora) { this.conta = undefined; this.escondeConta(); }
+    this.naAgua = false;
+    return;
+  }
   this.t = Math.max(0, this.t - dt);
   if (!this.feito && this.t < this.D / 2) { // meio da animação (tela escura): põe o carro na areia, de frente para a cidade
     this.feito = true;
@@ -12968,6 +12983,13 @@ Praia.desenha = function (ctx, W, H) {
   const p = 1 - this.t / this.D, a = Math.sin(p * Math.PI);
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = `rgba(4,10,20,${(a * 0.92).toFixed(3)})`; ctx.fillRect(0, 0, W, H); ctx.restore();
 };
+
+Praia.mostraConta = function (n) {
+  if (!this.el) { this.el = document.createElement('div'); this.el.id = 'praia-conta'; document.body.appendChild(this.el); }
+  this.el.innerHTML = '<span>Voltando em</span><b>' + n + '</b>'; this.el.classList.add('on');
+  try { AudioSys.tone(n ? 660 : 990, 0.12, 'sine', 0.06, 'ui'); } catch (e) {}
+};
+Praia.escondeConta = function () { if (this.el) this.el.classList.remove('on'); };
 /* ============================ DESAFIOS DIÁRIOS ============================
    Três desafios por dia, sorteados pela data de hoje (todo mundo que joga no mesmo dia recebe os mesmos).
    Cada um paga um prêmio; fazer os três dá um bônus. Viram no dia seguinte (meia-noite do relógio do computador).
@@ -13143,7 +13165,7 @@ MenuCar.desenha = function (ctx, view) {
    - Mata das beiradas: além da textura do chão, copas de árvore de verdade na borda (com sombra, luz e balanço),
      e rajadas de vento clareando as copas por dentro. Bater nela faz barulho de folha e galho (sem faísca).
    - Mato: tufos de capim nos campos livres (grama), escolhidos pela posição (sem mexer no sorteio do mapa).
-   - Plantação: ondas de vento passando por cima e pontas das plantas balançando. */
+   - Plantação: parada (a animação mexia junto com a câmera e dava tontura; saiu em nov/2026). */
 const Vento = {
   // força do vento num ponto (0 a 1): duas ondas lentas atravessando o mapa
   f(x, y) { const T = Game.time; return 0.5 + 0.3 * Math.sin(T * 0.3 - x * 0.0026 - y * 0.0009) + 0.2 * Math.sin(T * 0.13 + y * 0.0018); },
@@ -13151,7 +13173,7 @@ const Vento = {
   // balanço lento e macio: uma onda principal e uma menor por cima (folhagem não balança como pêndulo)
   bal(x, y, fase, amp) { const g = this.f(x, y), T = Game.time, w = 0.75 + g * 0.3; return (Math.sin(T * w + fase) * 0.75 + Math.sin(T * w * 2.3 + fase * 1.7) * 0.25) * amp * (0.3 + g * 0.85); },
 };
-const Mata = { rects: [], plantas: [] };
+const Mata = { rects: [] };
 const MATA_CORES = ['#1d3c1c', '#244621', '#2a5226', '#1a361a', '#30592a'];
 // copas na borda da mata: só nas bordas que estão na tela
 Mata.copa = function (ctx, view) {
@@ -13194,7 +13216,7 @@ Mata.copa = function (ctx, view) {
   ctx.fillStyle = 'rgba(160,200,110,0.35)'; ctx.fill(folha);
   ctx.restore();
 };
-// rajada de vento clareando as copas por dentro da mata (faixa de luz andando) e mato e plantação no chão
+// rajada de vento clareando as copas por dentro da mata (faixa de luz andando) e tufos de mato no chão
 Mata.chao = function (ctx, view) {
   if (Settings.quality === 'baixa') return;
   const T = Game.time;
@@ -13208,25 +13230,6 @@ Mata.chao = function (ctx, view) {
     gr.addColorStop(0, 'rgba(150,200,120,0)'); gr.addColorStop(0.5, 'rgba(150,200,120,0.07)'); gr.addColorStop(1, 'rgba(150,200,120,0)');
     ctx.fillStyle = gr; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
   }
-  // plantações: onda de vento passando (faixa clara) e pontas das plantas balançando
-  const pontas = new Path2D();
-  for (const P of this.plantas) {
-    const x0 = Math.max(P.x0 + 4, view.x0), x1 = Math.min(P.x1 - 4, view.x1), y0 = Math.max(P.y0 + 4, view.y0), y1 = Math.min(P.y1 - 4, view.y1);
-    if (x1 <= x0 || y1 <= y0) continue;
-    const pos = ((T * 24 + P.x0) % 700) - 350, gx = P.x0 + pos;
-    const gr = ctx.createLinearGradient(gx, P.y0, gx + 260, P.y0 + 160);
-    gr.addColorStop(0, 'rgba(200,220,150,0)'); gr.addColorStop(0.5, 'rgba(200,220,150,0.1)'); gr.addColorStop(1, 'rgba(200,220,150,0)');
-    ctx.fillStyle = gr; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-    if (P.type === 'garden' || P.type === 'coffee') continue;
-    const sp = P.type === 'corn' ? 12 : P.type === 'cane' ? 9 : 10, dx = P.type === 'soy' ? 12 : 10;
-    for (let y = P.y0 + 6 + Math.max(0, Math.ceil((y0 - P.y0 - 6) / sp)) * sp; y < y1; y += sp) {
-      for (let x = x0 + ((y * 7) % dx); x < x1; x += dx) {
-        const b = Vento.bal(x, y, (x * 0.13 + y * 0.07), 1.8);
-        pontas.moveTo(x, y + 1); pontas.lineTo(x + b + 1.5, y - 4 - (hash2(x | 0, y | 0) * 2));
-      }
-    }
-  }
-  ctx.strokeStyle = 'rgba(120,160,70,0.75)'; ctx.lineWidth = 1.3; ctx.lineCap = 'round'; ctx.stroke(pontas);
   // tufos de mato nos campos livres (grama), presos ao mapa, balançando com o vento
   const G = 34, tufos = new Path2D(), claros = new Path2D();
   for (let gy = Math.floor(view.y0 / G); gy * G < view.y1; gy++) for (let gx = Math.floor(view.x0 / G); gx * G < view.x1; gx++) {
@@ -13267,6 +13270,13 @@ Dia.update = function () {
   this.aurora = Math.max(Math.sin(Math.PI * clamp((h - 5) / 1.9, 0, 1)), Math.sin(Math.PI * clamp((h - 17.2) / 2, 0, 1)));
   // neblina na roça de madrugada (4h às 7h30), mais forte por volta das 5h30
   this.neblina = h >= 3.8 && h < 7.6 ? Math.sin(Math.PI * (h - 3.8) / 3.8) : 0;
+  // na roça com neblina, o céu não fica alaranjado (a neblina é branca) e aparece o aviso, como o de pista molhada
+  if (Game.mode === 'play') {
+    const R = REGIONS[regionKeyAt(Cam.x, Cam.y)], nk = this.neblina * clamp((R.rural - 0.2) / 0.6, 0, 1);
+    this.aurora *= 1 - clamp(nk * 1.5, 0, 1);
+    if (nk > 0.25 && !this.avisoNeblina) { this.avisoNeblina = true; toast('Neblina na estrada', 'Visibilidade diminui: vá devagar e use o farol.', 'info'); }
+    if (nk < 0.05) this.avisoNeblina = false;
+  }
 };
 // a luz (janela, poste, casa) já está apagada? cada uma tem o seu momento (escolhido pela posição)
 Dia.desligada = function (seed) { return this.apaga > 0 && hash2(seed | 0, 77) < this.apaga; };
@@ -13309,11 +13319,11 @@ Dia.desenhaNeblina = function (ctx, W, H) {
   if (k < 0.02) return;
   const T = Game.time;
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = `rgba(190,200,210,${(0.16 * k).toFixed(3)})`; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = `rgba(222,226,230,${(0.38 * k).toFixed(3)})`; ctx.fillRect(0, 0, W, H); // neblina branca e densa: a visibilidade cai
   for (let i = 0; i < 7; i++) {
     const x = ((hash2(i, 3) * W + T * (8 + i * 2) - Cam.x * 0.4) % (W * 1.4) + W * 1.4) % (W * 1.4) - W * 0.2, y = ((hash2(i, 9) * H - Cam.y * 0.4) % (H * 1.3) + H * 1.3) % (H * 1.3) - H * 0.15, r = (0.25 + hash2(i, 5) * 0.25) * W;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, `rgba(205,214,222,${(0.22 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(205,214,222,0)');
+    g.addColorStop(0, `rgba(235,238,240,${(0.42 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(235,238,240,0)');
     ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
   ctx.restore();

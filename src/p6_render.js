@@ -1159,6 +1159,7 @@ Weather.buildPuddles = function () {
       const x = e.h ? e.a.x + s : e.a.x - lat, y = e.h ? e.a.y + lat : e.a.y + s;
       const along = (dirt ? 14 : 16) + R() * 18, across = 6 + R() * 6;
       if (hash2(x | 0, y | 0) < 0.1) continue; // 10% menos poças
+      if (PARKED.some((c) => Math.abs(c.x - x) < 36 && Math.abs(c.y - y) < 36)) continue; // nunca embaixo (ou em cima) de carro estacionado
       put({ x, y, rx: e.h ? along : across, ry: e.h ? across : along, mud: dirt, cool: 0, ph: R() * 10 });
     }
   }

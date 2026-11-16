@@ -144,10 +144,10 @@ class Player {
     let impact = this.collide();
     impact = Math.max(impact, this.collideDynamic());
     if (this.inWater()) {
-      if (this.y > SAND_Y - 40) { // mar: o carro entra devagar (a água segura); entrou inteiro, volta para a areia (Praia.volta)
+      if (this.y > SAND_Y - 40 && Agua.pontaY(this.x)) { // praia: o carro entra devagar (no porto e no píer bate, para não cair na água) (a água segura); entrou inteiro, volta para a areia (Praia.volta)
         const k = Math.exp(-1.6 * dt); this.vx *= k; this.vy *= k;
         this.marT = groundAt(this.x, this.y) === SF.WATER ? (this.marT || 0) + dt : 0; // o meio do carro já está na água
-        if (!Praia.t && (this.todoNaAgua() || this.marT > 0.7)) { this.marT = 0; Praia.comeca(); }
+        Praia.naAgua = this.todoNaAgua() || this.marT > 0.7; // conta 3, 2, 1 e volta para a areia (Praia.update)
       } else { this.x = this.px; this.y = this.py; impact = Math.max(impact, this.speed * 0.6); this.vx *= -0.25; this.vy *= -0.25; } // rio: bate
     }
     this.impactCd -= dt;

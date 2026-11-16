@@ -24,6 +24,13 @@ Dia.update = function () {
   this.aurora = Math.max(Math.sin(Math.PI * clamp((h - 5) / 1.9, 0, 1)), Math.sin(Math.PI * clamp((h - 17.2) / 2, 0, 1)));
   // neblina na roça de madrugada (4h às 7h30), mais forte por volta das 5h30
   this.neblina = h >= 3.8 && h < 7.6 ? Math.sin(Math.PI * (h - 3.8) / 3.8) : 0;
+  // na roça com neblina, o céu não fica alaranjado (a neblina é branca) e aparece o aviso, como o de pista molhada
+  if (Game.mode === 'play') {
+    const R = REGIONS[regionKeyAt(Cam.x, Cam.y)], nk = this.neblina * clamp((R.rural - 0.2) / 0.6, 0, 1);
+    this.aurora *= 1 - clamp(nk * 1.5, 0, 1);
+    if (nk > 0.25 && !this.avisoNeblina) { this.avisoNeblina = true; toast('Neblina na estrada', 'Visibilidade diminui: vá devagar e use o farol.', 'info'); }
+    if (nk < 0.05) this.avisoNeblina = false;
+  }
 };
 // a luz (janela, poste, casa) já está apagada? cada uma tem o seu momento (escolhido pela posição)
 Dia.desligada = function (seed) { return this.apaga > 0 && hash2(seed | 0, 77) < this.apaga; };
@@ -66,11 +73,11 @@ Dia.desenhaNeblina = function (ctx, W, H) {
   if (k < 0.02) return;
   const T = Game.time;
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = `rgba(190,200,210,${(0.16 * k).toFixed(3)})`; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = `rgba(222,226,230,${(0.38 * k).toFixed(3)})`; ctx.fillRect(0, 0, W, H); // neblina branca e densa: a visibilidade cai
   for (let i = 0; i < 7; i++) {
     const x = ((hash2(i, 3) * W + T * (8 + i * 2) - Cam.x * 0.4) % (W * 1.4) + W * 1.4) % (W * 1.4) - W * 0.2, y = ((hash2(i, 9) * H - Cam.y * 0.4) % (H * 1.3) + H * 1.3) % (H * 1.3) - H * 0.15, r = (0.25 + hash2(i, 5) * 0.25) * W;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, `rgba(205,214,222,${(0.22 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(205,214,222,0)');
+    g.addColorStop(0, `rgba(235,238,240,${(0.42 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(235,238,240,0)');
     ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
   ctx.restore();

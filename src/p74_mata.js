@@ -3,7 +3,7 @@
    - Mata das beiradas: além da textura do chão, copas de árvore de verdade na borda (com sombra, luz e balanço),
      e rajadas de vento clareando as copas por dentro. Bater nela faz barulho de folha e galho (sem faísca).
    - Mato: tufos de capim nos campos livres (grama), escolhidos pela posição (sem mexer no sorteio do mapa).
-   - Plantação: ondas de vento passando por cima e pontas das plantas balançando. */
+   - Plantação: parada (a animação mexia junto com a câmera e dava tontura; saiu em nov/2026). */
 const Vento = {
   // força do vento num ponto (0 a 1): duas ondas lentas atravessando o mapa
   f(x, y) { const T = Game.time; return 0.5 + 0.3 * Math.sin(T * 0.3 - x * 0.0026 - y * 0.0009) + 0.2 * Math.sin(T * 0.13 + y * 0.0018); },
@@ -11,7 +11,7 @@ const Vento = {
   // balanço lento e macio: uma onda principal e uma menor por cima (folhagem não balança como pêndulo)
   bal(x, y, fase, amp) { const g = this.f(x, y), T = Game.time, w = 0.75 + g * 0.3; return (Math.sin(T * w + fase) * 0.75 + Math.sin(T * w * 2.3 + fase * 1.7) * 0.25) * amp * (0.3 + g * 0.85); },
 };
-const Mata = { rects: [], plantas: [] };
+const Mata = { rects: [] };
 const MATA_CORES = ['#1d3c1c', '#244621', '#2a5226', '#1a361a', '#30592a'];
 // copas na borda da mata: só nas bordas que estão na tela
 Mata.copa = function (ctx, view) {
@@ -54,7 +54,7 @@ Mata.copa = function (ctx, view) {
   ctx.fillStyle = 'rgba(160,200,110,0.35)'; ctx.fill(folha);
   ctx.restore();
 };
-// rajada de vento clareando as copas por dentro da mata (faixa de luz andando) e mato e plantação no chão
+// rajada de vento clareando as copas por dentro da mata (faixa de luz andando) e tufos de mato no chão
 Mata.chao = function (ctx, view) {
   if (Settings.quality === 'baixa') return;
   const T = Game.time;
@@ -68,25 +68,6 @@ Mata.chao = function (ctx, view) {
     gr.addColorStop(0, 'rgba(150,200,120,0)'); gr.addColorStop(0.5, 'rgba(150,200,120,0.07)'); gr.addColorStop(1, 'rgba(150,200,120,0)');
     ctx.fillStyle = gr; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
   }
-  // plantações: onda de vento passando (faixa clara) e pontas das plantas balançando
-  const pontas = new Path2D();
-  for (const P of this.plantas) {
-    const x0 = Math.max(P.x0 + 4, view.x0), x1 = Math.min(P.x1 - 4, view.x1), y0 = Math.max(P.y0 + 4, view.y0), y1 = Math.min(P.y1 - 4, view.y1);
-    if (x1 <= x0 || y1 <= y0) continue;
-    const pos = ((T * 24 + P.x0) % 700) - 350, gx = P.x0 + pos;
-    const gr = ctx.createLinearGradient(gx, P.y0, gx + 260, P.y0 + 160);
-    gr.addColorStop(0, 'rgba(200,220,150,0)'); gr.addColorStop(0.5, 'rgba(200,220,150,0.1)'); gr.addColorStop(1, 'rgba(200,220,150,0)');
-    ctx.fillStyle = gr; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-    if (P.type === 'garden' || P.type === 'coffee') continue;
-    const sp = P.type === 'corn' ? 12 : P.type === 'cane' ? 9 : 10, dx = P.type === 'soy' ? 12 : 10;
-    for (let y = P.y0 + 6 + Math.max(0, Math.ceil((y0 - P.y0 - 6) / sp)) * sp; y < y1; y += sp) {
-      for (let x = x0 + ((y * 7) % dx); x < x1; x += dx) {
-        const b = Vento.bal(x, y, (x * 0.13 + y * 0.07), 1.8);
-        pontas.moveTo(x, y + 1); pontas.lineTo(x + b + 1.5, y - 4 - (hash2(x | 0, y | 0) * 2));
-      }
-    }
-  }
-  ctx.strokeStyle = 'rgba(120,160,70,0.75)'; ctx.lineWidth = 1.3; ctx.lineCap = 'round'; ctx.stroke(pontas);
   // tufos de mato nos campos livres (grama), presos ao mapa, balançando com o vento
   const G = 34, tufos = new Path2D(), claros = new Path2D();
   for (let gy = Math.floor(view.y0 / G); gy * G < view.y1; gy++) for (let gx = Math.floor(view.x0 / G); gx * G < view.x1; gx++) {

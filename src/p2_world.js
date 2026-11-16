@@ -250,7 +250,6 @@ function decal(x0, y0, x1, y1, type, opt) {
   const d = { x0, y0, x1, y1, type, seed: (hash2(x0 | 0, y0 | 0) * 1e6) | 0, opt: opt || {} };
   bake(x0, y0, x1, y1, d.opt.z !== undefined ? d.opt.z : 1, (g) => drawDecal(g, d));
   if (DECAL_SURF[type] !== undefined && !d.opt.noSurf) gFill(x0, y0, x1, y1, DECAL_SURF[type]);
-  if (type === 'corn' || type === 'cane' || type === 'soy' || type === 'coffee' || type === 'garden') Mata.plantas.push(d); // plantação balançando (p74_mata.js)
   return d;
 }
 function decalR(r, type, opt) { return decal(r[0], r[1], r[2], r[3], type, opt); }

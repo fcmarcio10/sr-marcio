@@ -1515,3 +1515,9 @@ body.cinema #hud-objective { display: none !important; }
 #fala-leg.on { opacity: 1; transform: translate(-50%, 0); }
 #fala-leg b { color: #ffd23f; margin-right: 4px; }
 body.cinema #fala-leg { opacity: 0 !important; }
+
+/* contagem para voltar do mar */
+#praia-conta { position: fixed; left: 50%; top: 34%; transform: translate(-50%, -50%) scale(0.9); z-index: 48; pointer-events: none; text-align: center; opacity: 0; transition: opacity 0.2s, transform 0.2s; }
+#praia-conta.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+#praia-conta span { display: block; font: 700 16px/1 var(--f-cond); letter-spacing: 0.2em; text-transform: uppercase; color: #fff; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); }
+#praia-conta b { display: block; font: 400 84px/1 var(--f-display); color: #8fd3ff; text-shadow: 0 4px 16px rgba(0, 0, 0, 0.8); }

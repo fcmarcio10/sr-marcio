@@ -104,7 +104,10 @@ const BATIDA_VOZ = { f: ['bt_f1', 'bt_f2', 'bt_f3', 'bt_f4', 'bt_f5'], m: ['bt_m
 function vozBatida(nome, tipo) {
   if (Game.time < (vozBatida.t || 0)) return; vozBatida.t = Game.time + 3.2;
   const g = genderOf(nome || '') === 'f' ? 'f' : 'm';
-  let clip = tipo === 'vip' ? BATIDA_VOZ.vip[g] : tipo === 'quebra' ? BATIDA_VOZ.quebra[g] : pick(BATIDA_VOZ[g].filter((c) => c !== vozBatida.ult));
+  // uma voz só por passageiro (escolhida pelo nome) e no máximo 2 reações por corrida, com 8 s de intervalo
+  if (vozBatida.quem !== nome) { vozBatida.quem = nome; vozBatida.n = 0; }
+  if (vozBatida.n >= 2) return; vozBatida.n++; vozBatida.t = Game.time + 8;
+  const L = BATIDA_VOZ[g]; let clip = tipo === 'vip' ? BATIDA_VOZ.vip[g] : tipo === 'quebra' ? BATIDA_VOZ.quebra[g] : L[Math.floor(hash2((nome || '').length * 13 + (nome || ' ').charCodeAt(0), 5) * L.length)];
   vozBatida.ult = clip; const C = VOICE_CLIPS[clip]; if (!C) return;
   Legenda.fala(nome ? nome.split(' ')[0] : (g === 'f' ? 'Passageira' : 'Passageiro'), tipo === 'quebra' ? '[reclama da mudança balançando]' : '[reclama da batida]', 2.5);
   try { const a = new Audio(C.src); a.volume = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.55; a.play().catch(() => {}); } catch (e) {} // mais baixa (nov/2026: 0,9 → 0,55)
