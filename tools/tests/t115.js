@@ -44,7 +44,7 @@ const { chromium } = require('playwright');
   await p.evaluate(() => { Events.cur.endT = 20; }); await p.waitForTimeout(5500);
   const ev2 = await p.evaluate(() => ({ cur: !!Events.cur, tipo: Events.cur && Events.cur.type, over: Events.cur && Events.cur.over }));
   console.log(JSON.stringify({ ruas, cine, lugar, d0, depois, tut, travas, cad, naoAbriu, nev, ev1, conta1, ev2 }));
-  const ok = Math.abs(ruas.rua - 104.5) < 0.1 && Math.abs(ruas.av - 198) < 0.1 && ruas.chao && cine.on && cine.barras && !cine.tut && lugar.length > 3 && d0 > 300
+  const ok = ruas.rua === 120 && ruas.av === 220 && ruas.chao && cine.on && cine.barras && !cine.tut && lugar.length > 3 && d0 > 300
     && !depois.on && depois.cam < 60 && !depois.barras && /Chegada/.test(depois.titulo) && tut && !travas.fretes && !travas.entregas && !travas.eventos && !travas.racha && cad === 2 && naoAbriu
     && nev.aqui && !nev.longe && nev.oficina && nev.pct < 40 && ev1.cur && ev1.missao && ev1.eventos && ev1.fretes && conta1 === 1 && ev2.cur && !ev2.over;
   console.log(ok ? 'OK: ruas largas, apresentação, mapa explorado, travas e capítulo 4' : 'FALHOU');

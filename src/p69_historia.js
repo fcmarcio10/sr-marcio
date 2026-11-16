@@ -58,7 +58,7 @@ const Historia = {
     if (h.anunciar) { if (VoicePlayer.msg || Screens.current === 'screen-dialog' || Apresenta.on) return; h.anunciar = false; this.abre(h.cap); return; }
     if (h.cap === 0 && !h.apres) { // primeira noite: a câmera apresenta a cidade, a oficina e a garagem; depois começa o passo a passo
       h.apres = true; saveGame();
-      Apresenta.comeca(lugaresDoCapitulo(0), () => { Missao.titulo('Capítulo 1 de 6', 'Chegada'); });
+      Apresenta.comeca(lugaresDoCapitulo(0), () => { Missao.titulo('Capítulo 1 de ' + CAP_FINAL, 'Chegada'); });
       return;
     }
     if (Apresenta.on) return;

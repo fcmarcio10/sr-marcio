@@ -762,8 +762,8 @@ const World = {
 /* -------- tipos de via -------- */
 const RT = {
   // ruas da cidade largas (nov/2026): faixa de rodar + faixa de estacionamento do tamanho de um carro junto da calçada
-  street: { id: 'street', w: 124, sw: 22, lanes: [24], speed: 150, asphalt: true, center: 'dash', larga: true },
-  avenue: { id: 'avenue', w: 222, sw: 22, lanes: [27, 71], speed: 190, asphalt: true, center: 'double', laneDiv: 49, larga: true },
+  street: { id: 'street', w: 120, sw: 22, lanes: [24], speed: 150, asphalt: true, center: 'dash', larga: true },
+  avenue: { id: 'avenue', w: 220, sw: 22, lanes: [27, 71], speed: 190, asphalt: true, center: 'double', laneDiv: 49, larga: true },
   highway: { id: 'highway', w: 180, sw: 0, lanes: [24, 66], speed: 280, asphalt: true, center: 'double', laneDiv: 45, edgeLine: true, shoulder: 16 },
   road: { id: 'road', w: 90, sw: 0, lanes: [23], speed: 200, asphalt: true, center: 'dash', edgeLine: true, shoulder: 12 },
   dirt: { id: 'dirt', w: 76, sw: 0, lanes: [18], speed: 115, asphalt: false },
@@ -2171,6 +2171,19 @@ function empurraDaPista() {
     moveCol(c, d);
     const o = c.brk && c.brk.obj; if (o && o.x !== undefined && o.x0 === undefined) { o.x += d[0]; o.y += d[1]; o._mov = 1; }
     n++;
+  }
+  // áreas onde pedestres e bichos andam: recorta o pedaço que virou pista (alargamento depois de montar)
+  for (const D of World.animalsDef || []) {
+    const R = D.rect; if (!R) continue;
+    for (const e of World.edges) {
+      if (!(e.hw0 && e.hw > e.hw0)) continue;
+      const al0 = e.h ? Math.min(e.a.x, e.b.x) : Math.min(e.a.y, e.b.y), al1 = e.h ? Math.max(e.a.x, e.b.x) : Math.max(e.a.y, e.b.y);
+      if ((e.h ? R[2] : R[3]) < al0 || (e.h ? R[0] : R[1]) > al1) continue;
+      const c = e.h ? e.a.y : e.a.x, lo = c - e.hw - 4, hi = c + e.hw + 4, i0 = e.h ? 1 : 0, i1 = e.h ? 3 : 2;
+      if (R[i1] <= lo || R[i0] >= hi) continue;
+      if (R[i0] < lo && R[i1] > lo && R[i1] < hi) R[i1] = lo; // a área encosta por cima/esquerda
+      else if (R[i1] > hi && R[i0] < hi && R[i0] > lo) R[i0] = hi; // por baixo/direita
+    }
   }
   // objetos baixos sem colisão própria (ou cuja colisão não aponta para eles)
   for (const p of World.props || []) {
@@ -11964,7 +11977,7 @@ const Historia = {
     if (h.anunciar) { if (VoicePlayer.msg || Screens.current === 'screen-dialog' || Apresenta.on) return; h.anunciar = false; this.abre(h.cap); return; }
     if (h.cap === 0 && !h.apres) { // primeira noite: a câmera apresenta a cidade, a oficina e a garagem; depois começa o passo a passo
       h.apres = true; saveGame();
-      Apresenta.comeca(lugaresDoCapitulo(0), () => { Missao.titulo('Capítulo 1 de 6', 'Chegada'); });
+      Apresenta.comeca(lugaresDoCapitulo(0), () => { Missao.titulo('Capítulo 1 de ' + CAP_FINAL, 'Chegada'); });
       return;
     }
     if (Apresenta.on) return;
