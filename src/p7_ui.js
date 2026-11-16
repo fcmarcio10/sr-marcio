@@ -630,9 +630,9 @@ const Tutorial = {
   // seta pulando em cima do lugar certo (no chão do jogo)
   desenha(ctx, view) {
     const q = this.alvo(); if (!q || !inView(view, q.x, q.y, 60)) return;
-    const k = (Game.time * 1.6) % 1, pulo = Math.abs(Math.sin(Game.time * 4)) * 8;
-    ctx.save(); ctx.globalAlpha = 0.9 * (1 - k); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(q.x, q.y, 14 + k * 26, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+    const k = (Game.time * 0.9) % 1, pulo = (0.5 + 0.5 * Math.sin(Game.time * 2.2)) * 4; // seta subindo e descendo de leve
+    ctx.save(); ctx.globalAlpha = 0.6 * (1 - k); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(q.x, q.y, 14 + k * 16, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
     ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 2;
     ctx.beginPath(); const y = q.y - 30 - pulo; ctx.moveTo(q.x, y + 16); ctx.lineTo(q.x - 11, y); ctx.lineTo(q.x - 4, y); ctx.lineTo(q.x - 4, y - 12); ctx.lineTo(q.x + 4, y - 12); ctx.lineTo(q.x + 4, y); ctx.lineTo(q.x + 11, y); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.restore();

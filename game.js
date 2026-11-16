@@ -9782,7 +9782,7 @@ function render() {
   const z = Cam.zoom * RS;
   // tremida + tranco da batida + vibração leve que cresce com a velocidade (acima de ~110 km/h; macia, sem sorteio)
   const vib = Game.mode === 'play' && player && !Apresenta.on ? clamp((player.speed * 0.3 - 110) / 110, 0, 1) * 0.9 : 0, T9 = Game.time;
-  const sx = (Math.random() - 0.5) * Cam.shake + (Cam.kx || 0) + vib * (Math.sin(T9 * 31) * 0.6 + Math.sin(T9 * 53 + 1) * 0.4), sy = (Math.random() - 0.5) * Cam.shake + (Cam.ky || 0) + vib * (Math.sin(T9 * 37 + 2) * 0.6 + Math.sin(T9 * 47) * 0.4);
+  const sx = (Math.random() - 0.5) * Cam.shake * 0.6 + (Cam.kx || 0) + vib * (Math.sin(T9 * 31) * 0.6 + Math.sin(T9 * 53 + 1) * 0.4), sy = (Math.random() - 0.5) * Cam.shake * 0.6 + (Cam.ky || 0) + vib * (Math.sin(T9 * 37 + 2) * 0.6 + Math.sin(T9 * 47) * 0.4);
   const cx = Cam.x + sx, cy = Cam.y + sy;
   const vw = W / z, vh = Hh / (z * SQ);
   const view = Cam.view; view.x0 = cx - vw / 2; view.y0 = cy - vh / 2; view.x1 = cx + vw / 2; view.y1 = cy + vh / 2;
@@ -12057,9 +12057,9 @@ const Tutorial = {
   // seta pulando em cima do lugar certo (no chão do jogo)
   desenha(ctx, view) {
     const q = this.alvo(); if (!q || !inView(view, q.x, q.y, 60)) return;
-    const k = (Game.time * 1.6) % 1, pulo = Math.abs(Math.sin(Game.time * 4)) * 8;
-    ctx.save(); ctx.globalAlpha = 0.9 * (1 - k); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(q.x, q.y, 14 + k * 26, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+    const k = (Game.time * 0.9) % 1, pulo = (0.5 + 0.5 * Math.sin(Game.time * 2.2)) * 4; // seta subindo e descendo de leve
+    ctx.save(); ctx.globalAlpha = 0.6 * (1 - k); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(q.x, q.y, 14 + k * 16, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
     ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 2;
     ctx.beginPath(); const y = q.y - 30 - pulo; ctx.moveTo(q.x, y + 16); ctx.lineTo(q.x - 11, y); ctx.lineTo(q.x - 4, y); ctx.lineTo(q.x - 4, y - 12); ctx.lineTo(q.x + 4, y - 12); ctx.lineTo(q.x + 4, y); ctx.lineTo(q.x + 11, y); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.restore();
@@ -12225,14 +12225,14 @@ Resultado.mostra = function (o) {
 function confete(n) {
   const box = document.createElement('div'); box.className = 'confete'; document.body.appendChild(box);
   const cores = ['#ffd23f', '#3ad07a', '#3a9be0', '#ff5a5a', '#ff8ad8', '#ffffff'];
-  for (let i = 0; i < (n || 70); i++) {
+  for (let i = 0, tot = Math.round((n || 70) * 0.4); i < tot; i++) { // discreto: menos pedacinhos, caindo devagar e girando pouco
     const p = document.createElement('i');
     p.style.left = (50 + (Math.random() - 0.5) * 70) + '%'; p.style.background = cores[i % cores.length];
-    p.style.animationDelay = (Math.random() * 0.35).toFixed(2) + 's'; p.style.animationDuration = (1.6 + Math.random() * 1.2).toFixed(2) + 's';
-    p.style.setProperty('--dx', ((Math.random() - 0.5) * 340).toFixed(0) + 'px'); p.style.setProperty('--rz', ((Math.random() - 0.5) * 900).toFixed(0) + 'deg');
+    p.style.animationDelay = (Math.random() * 0.35).toFixed(2) + 's'; p.style.animationDuration = (2.2 + Math.random() * 1).toFixed(2) + 's';
+    p.style.setProperty('--dx', ((Math.random() - 0.5) * 160).toFixed(0) + 'px'); p.style.setProperty('--rz', ((Math.random() - 0.5) * 240).toFixed(0) + 'deg');
     box.appendChild(p);
   }
-  setTimeout(() => box.remove(), 3400);
+  setTimeout(() => box.remove(), 3900);
 }
 
 /* ---------- avisos de missão em estilo de cinema: título do capítulo, legenda do objetivo,

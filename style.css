@@ -1550,3 +1550,40 @@ body.cinema #fala-leg { opacity: 0 !important; }
 /* aviso de jogo em desenvolvimento no menu */
 .logo-dev { margin-top: 8px; font: 700 12px/1 var(--f-cond); letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); }
 .logo-dev .game-ver { color: #ffd23f; }
+
+/* ===== Animações suaves e discretas (nov/2026): só um pouquinho de deslize e esmaecer, sem pulo nem exagero ===== */
+@keyframes pop { 0% { opacity: 0.35; transform: translate(-50%, -50%) scale(1.06); } 35% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0.9; transform: translate(-50%, -50%) scale(1); } }
+@keyframes neon { 0%, 100% { filter: drop-shadow(0 0 22px rgba(255, 120, 90, 0.38)); } 50% { filter: drop-shadow(0 0 26px rgba(255, 140, 90, 0.46)); } }
+@keyframes toastIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+@keyframes toastEntra { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+@keyframes tutpop { from { transform: translate(-50%, 6px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes luIn { 0% { opacity: 0; transform: translateX(-50%) translateY(6px); } 10% { opacity: 1; transform: translateX(-50%); } 82% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%) translateY(-6px); } }
+@keyframes evoIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+@keyframes hr-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+@keyframes hr-eq { 0%, 100% { transform: scaleY(0.45); } 50% { transform: scaleY(0.85); } }
+#hud-radio .hr-eq i { animation-duration: 1.2s; }
+#resultado.entra { animation: rsIn 0.4s ease-out; }
+@keyframes rsIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+@keyframes rsOut { to { opacity: 0; transform: translateX(-8px); } }
+#resultado .rs-stars i.on, #resultado .rs-total.pop em { animation: rsStar 0.3s ease-out; }
+@keyframes rsStar { from { opacity: 0.2; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+@keyframes tpIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.97); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes tpOut { from { opacity: 1; transform: translate(-50%, -50%); } to { opacity: 0; transform: translate(-50%, -54%); visibility: hidden; } }
+#ms-titulo.ms-on .ms-nome { animation: msNome 3s ease-out both; }
+@keyframes msNome { from { letter-spacing: 0.05em; } to { letter-spacing: 0.02em; } }
+#ms-passou.ms-on .ms-ok { animation: msOk 0.5s ease-out both; }
+@keyframes msOk { from { transform: scale(1.05); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+#ms-lugar.ms-on .ml-nome { animation: mlIn 0.6s ease-out both; }
+@keyframes mlIn { from { transform: translateX(-10px); opacity: 0; } to { transform: none; opacity: 1; } }
+#screen-phone:not(.hidden) .phone { animation: celSobe 0.28s ease-out backwards; }
+@keyframes celSobe { from { transform: translateY(14px) scale(var(--ph-s, 0.78)); opacity: 0; } to { transform: scale(var(--ph-s, 0.78)); opacity: 1; } }
+@keyframes appEntra { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+@keyframes objEntra { from { opacity: 0; transform: translate(-50%, -5px); } to { opacity: 1; } }
+@keyframes menuLogoIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@keyframes menuBtnIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+#screen-main:not(.hidden) .logo { animation: menuLogoIn 0.7s ease-out both; }
+#screen-main:not(.hidden) .menu-list .mbtn { animation: menuBtnIn 0.45s ease-out both; }
+@keyframes fadeUp { from { opacity: 0; transform: translate(-50%, 4px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.ct-tecla.esperando { animation: piscaTecla 1.4s ease-in-out infinite; }
+@keyframes piscaTecla { 50% { opacity: 0.7; } }
+.confete i { animation-timing-function: ease-out; }

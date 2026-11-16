@@ -1663,7 +1663,7 @@ function render() {
   const z = Cam.zoom * RS;
   // tremida + tranco da batida + vibração leve que cresce com a velocidade (acima de ~110 km/h; macia, sem sorteio)
   const vib = Game.mode === 'play' && player && !Apresenta.on ? clamp((player.speed * 0.3 - 110) / 110, 0, 1) * 0.9 : 0, T9 = Game.time;
-  const sx = (Math.random() - 0.5) * Cam.shake + (Cam.kx || 0) + vib * (Math.sin(T9 * 31) * 0.6 + Math.sin(T9 * 53 + 1) * 0.4), sy = (Math.random() - 0.5) * Cam.shake + (Cam.ky || 0) + vib * (Math.sin(T9 * 37 + 2) * 0.6 + Math.sin(T9 * 47) * 0.4);
+  const sx = (Math.random() - 0.5) * Cam.shake * 0.6 + (Cam.kx || 0) + vib * (Math.sin(T9 * 31) * 0.6 + Math.sin(T9 * 53 + 1) * 0.4), sy = (Math.random() - 0.5) * Cam.shake * 0.6 + (Cam.ky || 0) + vib * (Math.sin(T9 * 37 + 2) * 0.6 + Math.sin(T9 * 47) * 0.4);
   const cx = Cam.x + sx, cy = Cam.y + sy;
   const vw = W / z, vh = Hh / (z * SQ);
   const view = Cam.view; view.x0 = cx - vw / 2; view.y0 = cy - vh / 2; view.x1 = cx + vw / 2; view.y1 = cy + vh / 2;

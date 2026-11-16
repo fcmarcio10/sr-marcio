@@ -46,14 +46,14 @@ Resultado.mostra = function (o) {
 function confete(n) {
   const box = document.createElement('div'); box.className = 'confete'; document.body.appendChild(box);
   const cores = ['#ffd23f', '#3ad07a', '#3a9be0', '#ff5a5a', '#ff8ad8', '#ffffff'];
-  for (let i = 0; i < (n || 70); i++) {
+  for (let i = 0, tot = Math.round((n || 70) * 0.4); i < tot; i++) { // discreto: menos pedacinhos, caindo devagar e girando pouco
     const p = document.createElement('i');
     p.style.left = (50 + (Math.random() - 0.5) * 70) + '%'; p.style.background = cores[i % cores.length];
-    p.style.animationDelay = (Math.random() * 0.35).toFixed(2) + 's'; p.style.animationDuration = (1.6 + Math.random() * 1.2).toFixed(2) + 's';
-    p.style.setProperty('--dx', ((Math.random() - 0.5) * 340).toFixed(0) + 'px'); p.style.setProperty('--rz', ((Math.random() - 0.5) * 900).toFixed(0) + 'deg');
+    p.style.animationDelay = (Math.random() * 0.35).toFixed(2) + 's'; p.style.animationDuration = (2.2 + Math.random() * 1).toFixed(2) + 's';
+    p.style.setProperty('--dx', ((Math.random() - 0.5) * 160).toFixed(0) + 'px'); p.style.setProperty('--rz', ((Math.random() - 0.5) * 240).toFixed(0) + 'deg');
     box.appendChild(p);
   }
-  setTimeout(() => box.remove(), 3400);
+  setTimeout(() => box.remove(), 3900);
 }
 
 /* ---------- avisos de missão em estilo de cinema: título do capítulo, legenda do objetivo,
