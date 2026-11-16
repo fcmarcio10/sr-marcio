@@ -344,7 +344,8 @@ Events.update = function (dt) {
   // sorteio de um evento novo
   if (!this.cur) {
     const tutOn = Profile.tut !== undefined && Profile.tut < TUT_STEPS.length;
-    if (!Act.race && !Socorro.job && !tutOn) this.spawnT -= dt;
+    const histOk = liberado('eventos') && !(Profile.hist && !Profile.hist.fim && Profile.hist.cap === 3); // no capítulo 4 quem chama é a missão
+    if (!Act.race && !Socorro.job && !tutOn && histOk) this.spawnT -= dt;
     if (this.spawnT <= 0) {
       // só 40% das vezes rola um evento (60% menos que antes)
       if (!chance(0.4)) { this.spawnT = rnd(90, 160); return; }
@@ -373,7 +374,7 @@ Events.update = function (dt) {
   // ignorou: expira
   // convite na tela: corre só com o jogo na tela; se ignorar, conta como recusado
   if (E.stage === 'offer') {
-    if (telaLivre()) E.offerT -= dt;
+    if (telaLivre() && !Apresenta.on) E.offerT -= dt;
     Offer.tick(E);
     if (E.offerT <= 0) { this.answerOffer(false); return; }
   }

@@ -1004,6 +1004,7 @@ function addLamp(bx, by, hx, hy, col, opt) {
 function addProp(type, x, y, opt) {
   opt = opt || {};
   const p = { type, x, y, a: opt.a || 0, c: opt.c || null, w: opt.w || 0, h: opt.h || 0, seed: rnd() };
+  (World.props || (World.props = [])).push(p);
   const R = opt.R || 30;
   bake(x - R, y - R, x + R, y + R, opt.z || 8, (g) => drawProp(g, p));
   let col = null;
@@ -2055,6 +2056,128 @@ function buildHighwayStrip() {
 
 /* ---------- pontos de interesse e percursos ---------- */
 // tira árvores que acabaram em cima do asfalto (ruas alargadas depois do plantio)
+/* RUAS 10% MAIS LARGAS (nov/2026): a cidade inteira é montada com as medidas antigas (os sorteios, lotes, lojas e postes
+   não mudam) e só depois o asfalto cresce 10% para dentro da calçada ou do acostamento: a beira de fora fica no mesmo lugar.
+   O desenho das ruas é feito na hora de mostrar (bake guarda a função), então já sai com a largura nova. */
+const RUA_LARG = 1.1;
+function alargaRuas() {
+  const old = {};
+  for (const k in RT) {
+    const T = RT[k], dw = T.w * (RUA_LARG - 1) / 2; old[k] = T.w / 2;
+    T.w = +(T.w * RUA_LARG).toFixed(2);
+    if (T.sw) T.sw = +(T.sw - dw).toFixed(2); else if (T.shoulder) T.shoulder = +Math.max(5, T.shoulder - dw).toFixed(2);
+    T.lanes = T.lanes.map((l) => +(l * RUA_LARG).toFixed(2));
+    if (T.laneDiv) T.laneDiv = +(T.laneDiv * RUA_LARG).toFixed(2);
+  }
+  const marca = (x, y, tipo, ponte) => {
+    const gx = Math.floor(x / GC), gy = Math.floor(y / GC);
+    if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) return;
+    const i = gy * GW + gx, g = ground[i];
+    if (g === SF.WATER) { if (ponte) ground[i] = SF.BRIDGE; return; }
+    if (g === SF.BRIDGE || g === SF.ROAD) return;
+    ground[i] = tipo;
+  };
+  for (const e of World.edges) {
+    const h0 = e.hw0 = e.hw, h1 = e.hw = e.T.w / 2, tipo = e.T.asphalt ? SF.ROAD : SF.DIRT;
+    // a faixa nova entre a beira antiga e a nova vira pista (só as casinhas da grade cujo centro cai dentro do asfalto novo)
+    const x0 = Math.min(e.a.x, e.b.x) - h1, x1 = Math.max(e.a.x, e.b.x) + h1, y0 = Math.min(e.a.y, e.b.y) - h1, y1 = Math.max(e.a.y, e.b.y) + h1;
+    for (let gy = Math.floor(y0 / GC); gy <= Math.floor(y1 / GC); gy++) for (let gx = Math.floor(x0 / GC); gx <= Math.floor(x1 / GC); gx++) {
+      const cx = gx * GC + 5, cy = gy * GC + 5;
+      const d = e.h ? Math.abs(cy - e.a.y) : Math.abs(cx - e.a.x), along = e.h ? cx : cy, a0 = e.h ? Math.min(e.a.x, e.b.x) : Math.min(e.a.y, e.b.y), a1 = e.h ? Math.max(e.a.x, e.b.x) : Math.max(e.a.y, e.b.y);
+      if (d >= h0 - 3 && d < h1 && along >= a0 && along <= a1) marca(cx, cy, tipo, e.bridge && cx > e.bridge.x0 && cx < e.bridge.x1);
+    }
+    if (e.bridge && e.bridge.rails) {
+      const d = h1 - h0, [r1, r2] = e.bridge.rails;
+      r1.y0 -= d; r1.y1 -= d; r2.y0 += d; r2.y1 += d;
+      colGrid.insert(r1, r1.x0, r1.y0, r1.x1, r1.y1); colGrid.insert(r2, r2.x0, r2.y0, r2.x1, r2.y1);
+    }
+  }
+  // faixa de pedestre e linha de parada começam na beira nova do cruzamento
+  const perpN = (e, n) => { let m = 0; for (const o of n.edges) if (o.h !== e.h) m = Math.max(m, o.hw); return m; };
+  for (const e of World.edges) { e.perpA = perpN(e, e.a); e.perpB = perpN(e, e.b); }
+  for (const n of World.nodes) {
+    let hv = 0, hh = 0, asph = false;
+    for (const e of n.edges) { if (e.h) hh = Math.max(hh, e.hw); else hv = Math.max(hv, e.hw); if (e.T.asphalt) asph = true; }
+    if (!hv) hv = hh; if (!hh) hh = hv;
+    n.hx0 = n.hx; n.hy0 = n.hy; n.hx = hv; n.hy = hh;
+    for (let gy = Math.floor((n.y - hh) / GC); gy <= Math.floor((n.y + hh) / GC); gy++) for (let gx = Math.floor((n.x - hv) / GC); gx <= Math.floor((n.x + hv) / GC); gx++) {
+      const cx = gx * GC + 5, cy = gy * GC + 5;
+      if (Math.abs(cx - n.x) < hv && Math.abs(cy - n.y) < hh) marca(cx, cy, asph ? SF.ROAD : SF.DIRT, false);
+    }
+  }
+}
+// depois de alargar: semáforo, poste, radar ou objeto de calçada que ficou com o pé no asfalto novo vai para a beira
+function empurraDaPista() {
+  const faixas = World.edges.filter((e) => e.hw > (e.hw0 || e.hw));
+  const desloca = (x, y, r) => {
+    for (const e of faixas) {
+      const al = e.h ? x : y, a0 = e.h ? Math.min(e.a.x, e.b.x) : Math.min(e.a.y, e.b.y), a1 = e.h ? Math.max(e.a.x, e.b.x) : Math.max(e.a.y, e.b.y);
+      if (al < a0 - r || al > a1 + r) continue;
+      const d = (e.h ? y - e.a.y : x - e.a.x);
+      if (Math.abs(d) >= e.hw + r || Math.abs(d) < e.hw0 - r - 1) continue; // fora da faixa nova, ou já estava na pista de propósito
+      const v = (d < 0 ? -1 : 1) * (e.hw + r + 1) - d;
+      return e.h ? [0, v] : [v, 0];
+    }
+    for (const n of World.nodes) {
+      const dx = x - n.x, dy = y - n.y, ox = n.hx0 || n.hx, oy = n.hy0 || n.hy;
+      if (Math.abs(dx) >= n.hx + r || Math.abs(dy) >= n.hy + r) continue;
+      if (Math.abs(dx) < ox - r - 1 && Math.abs(dy) < oy - r - 1) continue;
+      const vx = (dx < 0 ? -1 : 1) * (n.hx + r + 1) - dx, vy = (dy < 0 ? -1 : 1) * (n.hy + r + 1) - dy;
+      return Math.abs(vx) < Math.abs(vy) ? [vx, 0] : [0, vy];
+    }
+    return null;
+  };
+  // repete até sair de todas as pistas (no canto, sai da rua e do cruzamento)
+  const deslocaTudo = (x, y, r) => {
+    let tx = 0, ty = 0;
+    for (let i = 0; i < 4; i++) { const d = desloca(x + tx, y + ty, r); if (!d) break; tx += d[0]; ty += d[1]; }
+    return tx || ty ? [tx, ty] : null;
+  };
+  const q = [], movidos = new Set();
+  const moveCol = (c, d) => {
+    if (c.t === 0) { c.x0 += d[0]; c.x1 += d[0]; c.y0 += d[1]; c.y1 += d[1]; colGrid.insert(c, c.x0, c.y0, c.x1, c.y1); }
+    else { c.x += d[0]; c.y += d[1]; colGrid.insert(c, c.x - c.r, c.y - c.r, c.x + c.r, c.y + c.r); }
+    movidos.add(c);
+  };
+  let n = 0;
+  for (const t of World.tall) {
+    if (t.x === undefined || t.x0 !== undefined || t.removed) continue;
+    const r = t.kind === 'tree' ? 6 : t.kind === 'lamp' ? 4 : 5, d = deslocaTudo(t.x, t.y, r);
+    if (!d) continue;
+    const ox = t.x, oy = t.y, hx = t.hx, hy = t.hy;
+    colGrid.query(ox - 6, oy - 6, ox + 6, oy + 6, q);
+    for (const c of q.slice()) if (!movidos.has(c) && c.tag !== 'rail' && (c.t === 1 ? Math.hypot(c.x - ox, c.y - oy) < 3 : Math.abs((c.x0 + c.x1) / 2 - ox) < 3 && Math.abs((c.y0 + c.y1) / 2 - oy) < 3)) moveCol(c, d);
+    lightGrid.query(ox - 80, oy - 80, ox + 80, oy + 80, q);
+    for (const L of q.slice()) if (Math.hypot(L.x - ox, L.y - oy) < 3 || (hx !== undefined && Math.hypot(L.x - hx, L.y - hy) < 3)) { L.x += d[0]; L.y += d[1]; lightGrid.insert(L, L.x - L.r, L.y - L.r, L.x + L.r, L.y + L.r); }
+    t.x += d[0]; t.y += d[1]; if (hx !== undefined) { t.hx += d[0]; t.hy += d[1]; }
+    if (t.col && !movidos.has(t.col) && t.col.t === 1) moveCol(t.col, d);
+    rendGrid.insert(t, t.x - 90, t.y - 90, t.x + 90, t.y + 90);
+    n++;
+  }
+  // objetos baixos com colisão (mesinha, banco, ponto de ônibus…): move a colisão e o desenho juntos
+  const vistos = new Set();
+  for (const cell of colGrid.cells) if (cell) for (const c of cell) {
+    if (vistos.has(c) || movidos.has(c)) continue; vistos.add(c);
+    if (c.tag === 'rail' || c.tag === 'none' || c.tag === 'event') continue;
+    const w = c.t === 0 ? c.x1 - c.x0 : c.r * 2, h = c.t === 0 ? c.y1 - c.y0 : c.r * 2;
+    if (w > 40 || h > 40) continue;
+    const cx = c.t === 0 ? (c.x0 + c.x1) / 2 : c.x, cy = c.t === 0 ? (c.y0 + c.y1) / 2 : c.y;
+    const d = deslocaTudo(cx, cy, Math.max(w, h) / 2); if (!d) continue;
+    moveCol(c, d);
+    const o = c.brk && c.brk.obj; if (o && o.x !== undefined && o.x0 === undefined) { o.x += d[0]; o.y += d[1]; o._mov = 1; }
+    n++;
+  }
+  // objetos baixos sem colisão própria (ou cuja colisão não aponta para eles)
+  for (const p of World.props || []) {
+    if (p._mov) continue;
+    const ox = p.x, oy = p.y, d = deslocaTudo(ox, oy, Math.max(p.w || 0, p.h || 0, 10) / 2); if (!d) continue;
+    p.x += d[0]; p.y += d[1]; p._mov = 1;
+    colGrid.query(ox - 6, oy - 6, ox + 6, oy + 6, q);
+    for (const c of q.slice()) if (!movidos.has(c) && (c.t === 1 ? Math.hypot(c.x - ox, c.y - oy) < 3 : Math.abs((c.x0 + c.x1) / 2 - ox) < 3 && Math.abs((c.y0 + c.y1) / 2 - oy) < 3)) moveCol(c, d);
+    n++;
+  }
+  return n;
+}
 function pruneRoadTrees() {
   let n = 0;
   for (const t of World.tall) {
@@ -2354,8 +2477,7 @@ function buildRoadSurface() {
           ground[gy * GW + gx] = Math.abs(yy - e.a.y) < e.hw ? SF.BRIDGE : SF.WATER;
         }
       }
-      addRectCol(b.x0, e.a.y - e.hw - 7, b.x1, e.a.y - e.hw - 1, 'rail');
-      addRectCol(b.x0, e.a.y + e.hw + 1, b.x1, e.a.y + e.hw + 7, 'rail');
+      b.rails = [addRectCol(b.x0, e.a.y - e.hw - 7, b.x1, e.a.y - e.hw - 1, 'rail'), addRectCol(b.x0, e.a.y + e.hw + 1, b.x1, e.a.y + e.hw + 7, 'rail')];
     }
     bake(box[0] - 8, box[1] - 8, box[2] + 8, box[3] + 8, 3, (g) => drawEdgeBase(g, e));
     bake(box[0], box[1], box[2], box[3], 5, (g) => drawEdgeMarkings(g, e));
@@ -2947,6 +3069,7 @@ function drawEdgeMarkings(g, e) {
     for (let s = s0; s < s1; s += 42) { const l = Math.min(20, s1 - s); g.fillRect(s, -T.laneDiv - 1, l, 2.4); g.fillRect(s, T.laneDiv - 1.4, l, 2.4); }
   }
   if (T.edgeLine) { g.fillStyle = wht; g.fillRect(0, -hw + 3, L, 2.4); g.fillRect(0, hw - 5.4, L, 2.4); }
+  if (T.sw && !blq && (T.id === 'street' || T.id === 'avenue')) drawRuaDetalhes(g, e, s0, s1, hw);
   if (T.sw) {
     for (const [atA, perp] of [[true, e.perpA], [false, e.perpB]]) {
       if (!perp) continue;
@@ -2958,6 +3081,59 @@ function drawEdgeMarkings(g, e) {
     }
   }
   g.restore();
+}
+// detalhes de rua da cidade (sem sorteio do mapa: tudo escolhido pela posição): vagas pintadas na beira da calçada,
+// carga e descarga, bueiros, tampas de bueiro, remendos de asfalto e manchas de óleo nas vagas
+function drawRuaDetalhes(g, e, s0, s1, hw) {
+  const H = (k) => hash2(e.id * 31 + k, e.a.x + e.a.y * 7);
+  const outer = e.T.lanes[e.T.lanes.length - 1] + 12; // beira de fora da faixa de rodar
+  const larg = hw - outer; // largura da faixa de estacionamento
+  const a0 = s0 + 34, a1 = s1 - 34;
+  // remendos de asfalto (mais escuros) e tampas de bueiro no meio da faixa
+  for (let i = 0; i < 4; i++) {
+    if (H(10 + i) > 0.55) continue;
+    const s = s0 + H(20 + i) * (s1 - s0), y = (H(30 + i) - 0.5) * hw * 1.4, w = 14 + H(40 + i) * 26, h = 8 + H(50 + i) * 12;
+    g.fillStyle = 'rgba(14,14,18,0.32)'; g.fillRect(s, y - h / 2, w, h);
+    g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 0.8; g.strokeRect(s, y - h / 2, w, h);
+  }
+  for (let s = s0 + 70 + H(3) * 60; s < s1 - 30; s += 230 + H(s) * 80) {
+    const y = e.T.lanes[0] * (H(s + 1) > 0.5 ? 1 : -1);
+    g.fillStyle = '#2a2a2e'; g.beginPath(); g.arc(s, y, 4.2, 0, TAU); g.fill();
+    g.strokeStyle = 'rgba(150,150,150,0.35)'; g.lineWidth = 0.8; g.stroke();
+    g.beginPath(); g.moveTo(s - 3, y); g.lineTo(s + 3, y); g.moveTo(s, y - 3); g.lineTo(s, y + 3); g.stroke();
+  }
+  for (const sd of [-1, 1]) {
+    // bueiros (grade na sarjeta) — a água da chuva escorre para eles
+    for (let s = s0 + 40 + H(sd + 5) * 50; s < s1 - 20; s += 170) {
+      const y = sd * (hw - 3.2);
+      g.fillStyle = '#1b1b1f'; g.fillRect(s - 6, y - 2.6, 12, 5.2);
+      g.fillStyle = 'rgba(160,160,165,0.55)'; for (let k = -4; k <= 4; k += 2.6) g.fillRect(s + k, y - 2, 1, 4);
+    }
+    if (larg < 12 || a1 - a0 < 120) continue;
+    const quer = H(sd + 60);
+    if (quer < 0.38) continue; // nem toda quadra tem vaga pintada
+    const passo = 46, ys = sd > 0 ? hw - larg : -hw, yi = sd > 0 ? hw : -hw + larg;
+    // linha que separa a faixa de estacionamento da pista
+    g.fillStyle = 'rgba(236,236,230,0.55)';
+    g.fillRect(a0, sd > 0 ? hw - larg : -hw + larg - 1.4, a1 - a0, 1.4);
+    let k = 0;
+    for (let s = a0; s <= a1; s += passo, k++) {
+      g.fillStyle = 'rgba(236,236,230,0.7)'; g.fillRect(s - 0.7, Math.min(ys, yi), 1.4, larg);
+      if (s + passo > a1) break;
+      const r = H(100 + k * 3 + sd);
+      if (k === 2 && quer > 0.7) { // carga e descarga
+        g.fillStyle = 'rgba(227,191,63,0.75)';
+        for (let x = s + 4; x < s + passo - 6; x += 7) { g.save(); g.translate(x, (ys + yi) / 2); g.rotate(-0.7); g.fillRect(-0.8, -larg * 0.45, 1.6, larg * 0.9); g.restore(); }
+        g.save(); g.translate(s + passo / 2, (ys + yi) / 2); g.fillStyle = 'rgba(30,26,10,0.85)'; g.fillRect(-15, -3.6, 30, 7.2);
+        g.fillStyle = '#e3bf3f'; g.font = 'bold 6px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('CARGA', 0, 0.3); g.restore();
+      } else if (r < 0.3) { // mancha de óleo onde o carro fica parado
+        g.fillStyle = 'rgba(8,8,10,0.28)'; g.beginPath(); g.ellipse(s + passo * (0.35 + r), (ys + yi) / 2, 7 + r * 10, 3.5 + r * 4, 0, 0, TAU); g.fill();
+      } else if (r > 0.86) { // vaga de idoso / deficiente
+        g.fillStyle = 'rgba(70,130,210,0.55)'; g.fillRect(s + 3, Math.min(ys, yi) + 2, passo - 6, larg - 4);
+        g.fillStyle = 'rgba(236,236,230,0.8)'; g.font = 'bold 6px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(r > 0.93 ? 'IDOSO' : 'VAGA', s + passo / 2, (ys + yi) / 2 + 0.3);
+      }
+    }
+  }
 }
 function drawNode(g, n, asph) {
   const hv = n.hx, hh = n.hy;
@@ -5562,10 +5738,11 @@ function updateActivities(dt) {
       const verb = { garagem: 'Entrar na garagem', posto: 'Abastecer / lavar — ' + best.name, oficina: 'Oficina — consertar e melhorar' }[best.kind];
       Act.prompt = { text: verb || (best.pickup && !Act.delivery ? 'Pegar entrega — ' + best.name : 'Entrar — ' + best.name), act: () => openShopDialog(best) };
     } else if (!Act.race) {
-      if (rachaOpen()) for (const r of World.rachas) {
+      if (rachaOpen() && liberado('racha')) for (const r of World.rachas) {
         if (Math.hypot(r.start[0] - p.x, r.start[1] - p.y) < 85) { Act.prompt = { text: 'Racha (ilegal): ' + r.name + ' — aposta R$ ' + fmtMoney(r.bet) + ' contra ' + r.rival, act: () => startRacha(r) }; break; }
       }
       if (!Act.prompt) for (const r of World.races) {
+        if (!liberado('percursos') && r.id !== 'fazenda') continue; // percursos abrem no capítulo 5 (o Rali da Vaca Atolada sempre pode)
         if (Math.hypot(r.start[0] - p.x, r.start[1] - p.y) < 85) {
           const rec = Profile.races[r.id];
           Act.prompt = { text: 'Iniciar percurso: ' + r.name + (rec ? ' (recorde ' + fmtTime(rec.best) + ')' : ''), act: () => startRace(r) };
@@ -5611,7 +5788,9 @@ function freeRoamHint() {
     ['Farol (H)', 'Parado por muito tempo com o farol aceso, a bateria arria. Aperte H para desligar.'],
   ];
   if (cheapest && Profile.money >= cheapest.price) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
-  return list[Act.hintI % list.length];
+  // sem dica de coisa que a história ainda não liberou
+  const L2 = list.filter((h) => (liberado('entregas') || !/entrega/i.test(h[1])) && (liberado('percursos') || !/Percursos/.test(h[1])));
+  return L2[Act.hintI % L2.length];
 }
 
 /* ============================ POLÍCIA: CRIMES, PERSEGUIÇÃO, PRISÃO E FUGA ============================ */
@@ -5980,7 +6159,7 @@ function updateJobs(dt) {
     }
   }
   // convite do racha quando chega a madrugada
-  if (rachaOpen() && !Profile.rachaMsg) { Profile.rachaMsg = true; addMsg('Zé do Canecão', 'Racha hoje?', 'E aí, parceiro. Hoje tem racha: arrancada na BR-101, pega na Avenida Cara-Pintada e o racha do Centrão. Aposta na hora, quem ganhar leva o dobro. Abre o app Racha que eu te passo o ponto. Só fica esperto com a viatura, que se ela vir, é multa na certa.', false,
+  if (rachaOpen() && !Profile.rachaMsg && liberado('racha')) { Profile.rachaMsg = true; addMsg('Zé do Canecão', 'Racha hoje?', 'E aí, parceiro. Hoje tem racha: arrancada na BR-101, pega na Avenida Cara-Pintada e o racha do Centrão. Aposta na hora, quem ganhar leva o dobro. Abre o app Racha que eu te passo o ponto. Só fica esperto com a viatura, que se ela vir, é multa na certa.', false,
     [['Tô dentro!', 'Fechou! Abre o app Racha que o ponto tá lá. Chega quieto e sem farol alto.'], ['Hoje não, valeu', 'Tranquilo, parceiro. Até a madrugada acaba, se mudar de ideia é só chegar.']]); }
   if (!rachaOpen()) Profile.rachaMsg = false;
 }
@@ -6226,7 +6405,8 @@ const PH_ICONS = {
 const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
-  return `<button class="ph-app" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge ? `<i class="ph-badge">${badge}</i>` : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
+  const tr = (id === 'fretes' || id === 'racha') && !liberado(id); // ainda não liberado pela história: cadeado
+  return `<button class="ph-app${tr ? ' ph-trancado' : ''}" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge && !tr ? `<i class="ph-badge">${badge}</i>` : ''}${tr ? '<i class="ph-cadeado"><svg viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3h1v11H6V10h1zm2 0h6V7a3 3 0 0 0-6 0v3z"/></svg></i>' : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
 }
 // papéis de parede: paisagens de São Gambiarra e arredores (e a bandeira), desenhadas em SVG
 const WALLS = [
@@ -6465,7 +6645,7 @@ const Phone = {
   },
   click(e) {
     const t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.app) { this.go(t.dataset.app); return; }
+    if (t.dataset.app) { const ap = t.dataset.app; if ((ap === 'fretes' || ap === 'racha') && !liberado(ap)) { AudioSys.error(); toast(PH_APPS[ap], travaTexto(ap) + '.', 'info'); return; } this.go(ap); return; }
     if (t.dataset.foto) { Colecao.fotografa(); return; }
     if (t.dataset.mz) { if (phoneMap) mapCtrl(phoneMap, t.dataset.mz); return; }
     if (t.dataset.sos) { if (t.dataset.sos === 'cancel') socorroCancel(); else socorroCall(t.dataset.sos); phoneTone(1760, 0.05, 0.04); this.render(); return; }
@@ -6864,7 +7044,8 @@ Events.update = function (dt) {
   // sorteio de um evento novo
   if (!this.cur) {
     const tutOn = Profile.tut !== undefined && Profile.tut < TUT_STEPS.length;
-    if (!Act.race && !Socorro.job && !tutOn) this.spawnT -= dt;
+    const histOk = liberado('eventos') && !(Profile.hist && !Profile.hist.fim && Profile.hist.cap === 3); // no capítulo 4 quem chama é a missão
+    if (!Act.race && !Socorro.job && !tutOn && histOk) this.spawnT -= dt;
     if (this.spawnT <= 0) {
       // só 40% das vezes rola um evento (60% menos que antes)
       if (!chance(0.4)) { this.spawnT = rnd(90, 160); return; }
@@ -6893,7 +7074,7 @@ Events.update = function (dt) {
   // ignorou: expira
   // convite na tela: corre só com o jogo na tela; se ignorar, conta como recusado
   if (E.stage === 'offer') {
-    if (telaLivre()) E.offerT -= dt;
+    if (telaLivre() && !Apresenta.on) E.offerT -= dt;
     Offer.tick(E);
     if (E.offerT <= 0) { this.answerOffer(false); return; }
   }
@@ -8766,10 +8947,11 @@ Weather.update = function (dt) {
   for (const d of this.drops) { d.z -= dt / d.life; if (d.z <= 0) newDrop(d, 1); }
   // respingos no chão (espaço do mundo)
   if (Settings.quality !== 'baixa' && this.rain > 0.05) {
-    const v = Cam.view, n = this.rain * 54 * dt;
+    const v = Cam.view, n = this.rain * (Settings.quality === 'alta' ? 95 : 60) * dt;
     for (let i = 0; i < n || (Math.random() < n - Math.floor(n) && i < n + 1); i++) {
       const x = rnd(v.x0, v.x1), y = rnd(v.y0, v.y1), g = groundAt(x, y);
-      if (g === SF.ROAD || g === SF.PAVED || g === SF.SIDEWALK || g === SF.BRIDGE || g === SF.WATER) this.ripples.push({ x, y, t: 0 });
+      if (g === SF.ROAD || g === SF.PAVED || g === SF.SIDEWALK || g === SF.BRIDGE || g === SF.WATER) this.ripples.push({ x, y, t: 0, a: Math.random() * TAU });
+      else if (g === SF.DIRT || g === SF.EARTH) this.ripples.push({ x, y, t: 0, a: Math.random() * TAU, barro: true });
     }
   }
   for (const r of this.ripples) r.t += dt;
@@ -8813,7 +8995,7 @@ Weather.drawPuddles = function (ctx, view) {
     ctx.fillStyle = p.mud ? 'rgba(52,34,20,0.75)' : 'rgba(16,22,32,0.7)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, TAU); ctx.fill();
     ctx.strokeStyle = p.mud ? 'rgba(120,90,60,0.5)' : 'rgba(150,170,200,0.35)'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.fillStyle = 'rgba(210,225,245,0.18)'; ctx.beginPath(); ctx.ellipse(p.x - p.rx * 0.2, p.y - p.ry * 0.25, p.rx * 0.45, p.ry * 0.25, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(210,225,245,0.18)'; ctx.beginPath(); ctx.ellipse(p.x - p.rx * 0.2 + Math.sin(T * 0.7 + p.ph) * p.rx * 0.18, p.y - p.ry * 0.25, p.rx * 0.45, p.ry * 0.25, 0, 0, TAU); ctx.fill();
     // gotas caindo na poça: anéis
     if (this.rain > 0.1) { const t = ((T * (0.8 + this.rain) + p.ph) % 1); ctx.strokeStyle = `rgba(200,215,235,${(0.5 * (1 - t) * this.rain).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(p.x + Math.sin(p.ph * 7) * p.rx * 0.4, p.y + Math.cos(p.ph * 5) * p.ry * 0.3, 1 + t * 5, (1 + t * 5) * 0.7, 0, 0, TAU); ctx.stroke(); }
     // ondas depois de você passar
@@ -8851,12 +9033,29 @@ Weather.updatePlayer = function (dt, pl) {
 };
 Weather.drawRipples = function (ctx, view) {
   if (!this.ripples.length) return;
+  // anel que abre na água parada / no asfalto molhado
   ctx.strokeStyle = 'rgba(200,215,235,0.5)'; ctx.lineWidth = 0.8;
   ctx.beginPath();
-  for (const r of this.ripples) { if (!inView(view, r.x, r.y, 10)) continue; const k = r.t / 0.45, rr = 1 + k * 6; ctx.moveTo(r.x + rr, r.y); ctx.ellipse(r.x, r.y, rr, rr * 0.6, 0, 0, TAU); }
+  for (const r of this.ripples) { if (r.barro || !inView(view, r.x, r.y, 10)) continue; const k = r.t / 0.45, rr = 1 + k * 6; ctx.moveTo(r.x + rr, r.y); ctx.ellipse(r.x, r.y, rr, rr * 0.6, 0, 0, TAU); }
   ctx.globalAlpha = 0.6; ctx.stroke();
-  ctx.fillStyle = 'rgba(225,235,250,0.7)';
-  for (const r of this.ripples) if (r.t < 0.12 && inView(view, r.x, r.y, 4)) ctx.fillRect(r.x - 0.8, r.y - 0.8, 1.6, 1.6);
+  // coroinha: a gota bate e solta gotinhas para os lados
+  ctx.fillStyle = 'rgba(225,235,250,0.75)'; ctx.globalAlpha = 1;
+  ctx.beginPath();
+  for (const r of this.ripples) {
+    if (r.barro || r.t > 0.2 || !inView(view, r.x, r.y, 8)) continue;
+    const k = r.t / 0.2, d = 1.5 + k * 5, up = Math.sin(k * Math.PI) * 2.5;
+    for (let j = 0; j < 4; j++) { const a = r.a + j * 1.57; ctx.rect(r.x + Math.cos(a) * d - 0.6, r.y + Math.sin(a) * d * 0.6 - up - 0.6, 1.2, 1.2); }
+  }
+  ctx.fill();
+  // na terra a gota levanta um pinguinho de barro
+  ctx.fillStyle = 'rgba(70,46,24,0.7)';
+  ctx.beginPath();
+  for (const r of this.ripples) {
+    if (!r.barro || r.t > 0.25 || !inView(view, r.x, r.y, 6)) continue;
+    const k = r.t / 0.25, d = 1 + k * 3;
+    for (let j = 0; j < 3; j++) { const a = r.a + j * 2.1; ctx.rect(r.x + Math.cos(a) * d - 0.6, r.y + Math.sin(a) * d * 0.6 - Math.sin(k * Math.PI) * 1.6 - 0.6, 1.2, 1.2); }
+  }
+  ctx.fill();
   ctx.globalAlpha = 1;
 };
 Weather.drawDrops = function (ctx) {
@@ -9231,6 +9430,7 @@ function render() {
   ctx.imageSmoothingEnabled = true;
   drawGround(view, forceGround); forceGround = false;
   pm('ground');
+  Agua.desenhaChao(ctx, view); // rio correndo, ondas do mar e chão molhado
   Weather.drawPuddles(ctx, view);
   Skids.draw(ctx, view);
   Weather.drawRipples(ctx, view);
@@ -9267,6 +9467,7 @@ function render() {
     }
   }
   Particles.draw(ctx);
+  Agua.respingosCarro(ctx, view);
   pm('vehicles');
   // objetos altos ordenados por distância à câmera (longe primeiro)
   rendGrid.query(view.x0 - 170, view.y0 - 170, view.x1 + 170, view.y1 + 170, _rq);
@@ -9309,6 +9510,7 @@ function render() {
   }
   ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
   emissivePass(view, _talls);
+  Agua.luar(ctx, view); // espuma do mar e brilho do rio por cima da escuridão (luar)
   pm('emissive');
   Weather.drawDrops(ctx);
   pm('drops');
@@ -9500,6 +9702,8 @@ class MapView {
         g.restore();
       }
     }
+    // parte da cidade ainda não explorada fica escura (abre por onde o carro passa)
+    Nevoa.desenha(g);
     // bairros
     g.textAlign = 'center'; g.textBaseline = 'middle';
     const ls = clamp(19 * k, 62, 300);
@@ -9522,7 +9726,7 @@ class MapView {
       g.beginPath(); Act.gps.pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
       g.strokeStyle = 'rgba(5,7,11,0.9)'; g.lineWidth = 9 * k; g.stroke(); g.strokeStyle = '#ffcc2e'; g.lineWidth = 5.5 * k; g.stroke();
     }
-    const ic = (x, y, kind) => { if (x < x0 || x > x1 || y < y0 || y > y1) return; const sp = mapIconSprite(kind, 1.2, k * 1.35); g.drawImage(sp, x - sp.width / 2, y - sp.height / 2); };
+    const ic = (x, y, kind) => { if (x < x0 || x > x1 || y < y0 || y > y1 || !Nevoa.aberto(x, y)) return; const sp = mapIconSprite(kind, 1.2, k * 1.35); g.drawImage(sp, x - sp.width / 2, y - sp.height / 2); };
     for (const p of World.pois) ic(p.x, p.y, Profile.discovered.includes(p.id) ? 'poi' : 'unknown');
     for (const sp of World.parkSpots) if (!Profile.parks[sp.id]) ic(sp.x, sp.y, 'park');
     for (const r2 of World.races) ic(r2.start[0], r2.start[1], 'race');
@@ -9530,7 +9734,7 @@ class MapView {
     { const ep = Events.mapPoint(); if (ep) ic(ep[0], ep[1], 'event'); }
     if (z > 0.09) {
       g.font = `700 ${11 * k}px "BRND Cond", Arial`; g.textBaseline = 'alphabetic';
-      for (const s2 of World.shops) if (s2.x > x0 && s2.x < x1 && s2.y > y0 && s2.y < y1) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(s2.name, s2.x, s2.y - 12 * k); g.fillStyle = '#ffe2c4'; g.fillText(s2.name, s2.x, s2.y - 12 * k); }
+      for (const s2 of World.shops) if (s2.x > x0 && s2.x < x1 && s2.y > y0 && s2.y < y1 && Nevoa.aberto(s2.x, s2.y)) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(s2.name, s2.x, s2.y - 12 * k); g.fillStyle = '#ffe2c4'; g.fillText(s2.name, s2.x, s2.y - 12 * k); }
       for (const p of World.pois) if (Profile.discovered.includes(p.id)) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(p.name, p.x, p.y - 12 * k); g.fillStyle = '#ecd6ff'; g.fillText(p.name, p.x, p.y - 12 * k); }
     }
     // destino: alfinete vermelho
@@ -11323,6 +11527,7 @@ function openShopDialog(s) {
   if (s.pickup) {
     if (Act.race) B('Termine o percurso antes de pegar entregas', null, true);
     else if (Act.delivery) B('Você já está com uma entrega em andamento', null, true);
+    else if (!liberado('entregas')) B('Entregas: ' + travaTexto('entregas'), null, true);
     else {
       const off = deliveryOffer(s);
       const tags = (off.fragile ? ' · frágil' : '') + (off.hot ? ' · urgente' : '');
@@ -11412,7 +11617,7 @@ const Tutorial = {
   },
   update(dt) {
     const el = $('tutorial');
-    const vis = Game.mode === 'play' && carregou(1.5) && (!Screens.current || Screens.current === 'screen-phone' || Screens.current === 'screen-dialog');
+    const vis = Game.mode === 'play' && carregou(1.5) && !Apresenta.on && !!Profile.hist && (Profile.hist.apres || Profile.hist.cap > 0) && (!Screens.current || Screens.current === 'screen-phone' || Screens.current === 'screen-dialog');
     if (!el || !vis || Profile.tut === undefined || Profile.tut >= TUT_STEPS.length) { if (el && this.shown !== -2) { el.classList.add('hidden'); if (this.shown >= 0 && Profile.tut >= TUT_STEPS.length) Missao.esconde('ms-ajuda'); this.shown = -2; } return; }
     const st = TUT_STEPS[Profile.tut];
     this.t += dt;
@@ -11651,6 +11856,12 @@ Missao.passou = function (titulo, sub, valor) {
   this.mostra('ms-passou', `<div class="ms-faixa"><div class="ms-ok">${escapeHtml(titulo)}</div><div class="ms-sub">${escapeHtml(sub)}</div>${valor ? `<div class="ms-val">+ R$ ${fmtMoney(valor)}</div>` : ''}</div>`, 5.5);
   try { [[523, 0], [659, 0.1], [784, 0.2], [1047, 0.32], [784, 0.62], [1047, 0.74], [1319, 0.86]].forEach(([f, d]) => AudioSys.tone(f, 0.55, 'triangle', 0.07, 'ui', null, d)); } catch (e) {}
 };
+
+// nome do lugar no canto de baixo (apresentação da missão)
+Missao.lugar = function (nome, sub, tag) {
+  this.mostra('ms-lugar', (tag ? `<div class="ml-tag">${escapeHtml(tag)}</div>` : '') + `<div class="ml-nome">${escapeHtml(nome)}</div>` + (sub ? `<div class="ml-sub">${escapeHtml(sub)}</div>` : ''), 0);
+  try { AudioSys.tone(523, 0.25, 'sine', 0.04, 'ui'); AudioSys.tone(784, 0.35, 'sine', 0.035, 'ui', null, 0.1); } catch (e) {}
+};
 /* ============================ HISTÓRIA: O CARRO DOS SONHOS ============================
    6 capítulos + o final. No fundo da oficina do Seu Zé tem um Opalha 6C preto à venda (R$ 29.000):
    cada capítulo abre com um áudio do Seu Zé no zap, tem uma meta, paga um prêmio e leva ao próximo.
@@ -11679,7 +11890,7 @@ const Historia = {
       // quem já jogava antes da história começa no capítulo 2 (o passo a passo não existia)
       const veterano = Profile.tut === undefined && (Profile.rides || Profile.deliveries || Profile.earned);
       Profile.hist = { cap: veterano ? 1 : 0, base: 0, fim: false };
-      if (veterano) { Profile.hist.base = this.cru(1); Profile.hist.anunciar = true; }
+      if (veterano) { Profile.hist.base = this.cru(1); Profile.hist.anunciar = true; Profile.hist.tudo = true; Profile.hist.apres = true; }
     }
     return Profile.hist;
   },
@@ -11696,7 +11907,13 @@ const Historia = {
     if (Game.mode !== 'play' || !carregou(3)) return;
     const h = this.h(); if (h.fim) return;
     this.t -= dt; if (this.t > 0) return; this.t = 0.5;
-    if (h.anunciar) { if (VoicePlayer.msg || Screens.current === 'screen-dialog') return; h.anunciar = false; this.abre(h.cap); return; }
+    if (h.anunciar) { if (VoicePlayer.msg || Screens.current === 'screen-dialog' || Apresenta.on) return; h.anunciar = false; this.abre(h.cap); return; }
+    if (h.cap === 0 && !h.apres) { // primeira noite: a câmera apresenta a cidade, a oficina e a garagem; depois começa o passo a passo
+      h.apres = true; saveGame();
+      Apresenta.comeca(lugaresDoCapitulo(0), () => { Missao.titulo('Capítulo 1 de 6', 'Chegada'); });
+      return;
+    }
+    if (Apresenta.on) return;
     if (Profile.tut !== undefined && Profile.tut < TUT_STEPS.length && h.cap === 0) return;
     const c = HIST_CAPS[h.cap];
     if (this.feito() >= c.alvo) this.conclui();
@@ -11714,12 +11931,19 @@ const Historia = {
   // começa um capítulo: nome grande no meio, objetivo em legenda, dica no canto e áudio do Seu Zé no zap
   abre(i) {
     const c = HIST_CAPS[i]; if (!c || Game.mode !== 'play') return;
-    Missao.titulo(i >= 6 ? 'O final' : 'Capítulo ' + (i + 1) + ' de 6', c.nome);
-    setTimeout(() => { if (Game.mode === 'play') Missao.legenda(c.leg, 8); }, 5000);
-    if (c.dica) setTimeout(() => { if (Game.mode === 'play') Missao.ajuda(c.dica, 9); }, 5600);
-    if (c.voz && CHAR_VOICES[c.voz]) { const m = charVoice(c.voz); if (m && m.voice) setTimeout(() => VoicePlayer.play(m), 1800); }
+    if (c.voz && CHAR_VOICES[c.voz]) { const m = charVoice(c.voz); if (m && m.voice) setTimeout(() => VoicePlayer.play(m), 900); }
     if (c.alvoMapa) { const w = c.alvoMapa(); if (w) { Act.waypoint = w; Act.gpsT = 0; } }
+    if (i === 3) MissaoAjuda.t = 14; // o pedido de ajuda começa logo depois do título
     saveGame();
+    Apresenta.comeca(lugaresDoCapitulo(i), () => {
+      if (Game.mode !== 'play') return;
+      Missao.titulo(i >= 6 ? 'O final' : 'Capítulo ' + (i + 1) + ' de 6', c.nome);
+      setTimeout(() => { if (Game.mode === 'play') Missao.legenda(c.leg, 8); }, 5000);
+      const lib = Object.keys(LIBERA).filter((k) => LIBERA[k] === i).map((k) => LIBERA_NOME[k]);
+      const dica = (lib.length ? '<div class="ms-ajuda-tit">Liberado</div><b>' + lib.join('</b> · <b>') + '</b><br>' : '') + (c.dica || '');
+      if (dica) setTimeout(() => { if (Game.mode === 'play') Missao.ajuda(dica, 10); }, 5600);
+      if (i === 3) MissaoAjuda.t = 6;
+    });
   },
   final() {
     const h = this.h(); h.fim = true; saveGame();
@@ -11736,6 +11960,429 @@ const Historia = {
       return `<div class="hist-cap ${st}"><b>${i >= 6 ? 'F' : i + 1}</b><span>${escapeHtml(c.nome)}</span></div>`;
     }).join('');
   },
+};
+/* ============================ MISSÕES: APRESENTAÇÃO DOS LUGARES, MAPA EXPLORADO E FUNÇÕES LIBERADAS ============================
+   - Apresenta: no começo de cada capítulo a câmera viaja (com faixas de cinema) até os lugares importantes, mostra o nome
+     de cada um e volta para o carro. O jogo fica parado no lugar (carro freado). Enter, Espaço, Esc ou "Pular" encerra.
+   - Nevoa: o mapa do celular começa escuro e vai abrindo por onde o jogador passa (e pelos lugares que a missão mostra).
+   - liberado(): Fretes, entregas, eventos, percursos e racha vão sendo liberados pelos capítulos da história. */
+
+/* ---------- funções liberadas pela história ---------- */
+// capítulo (índice de HIST_CAPS) em que cada coisa fica liberada
+const LIBERA = { entregas: 2, fretes: 2, eventos: 3, percursos: 4, racha: 5 };
+const LIBERA_NOME = { entregas: 'Entregas nos comércios', fretes: 'App Fretes', eventos: 'Pedidos de ajuda pela cidade', percursos: 'Percursos cronometrados', racha: 'Racha da madrugada' };
+function liberado(f) {
+  if (navigator.webdriver && !window.__travas) return true; // testes e gravadores de vídeo antigos: tudo liberado
+  const h = Profile.hist;
+  if (!h || h.fim || h.tudo) return true;
+  return h.cap >= (LIBERA[f] || 0);
+}
+function travaTexto(f) { return 'Libera no Capítulo ' + ((LIBERA[f] || 0) + 1) + ' da história'; }
+
+/* ---------- mapa explorado (névoa) ---------- */
+const NEV_C = 250, NEV_W = Math.ceil(WORLD_W / NEV_C), NEV_H = Math.ceil(WORLD_H / NEV_C);
+const Nevoa = { a: null, cv: null, sujo: true, t: 0 };
+Nevoa.carrega = function () {
+  const N = NEV_W * NEV_H;
+  if (typeof Profile.nevoa !== 'string' || Profile.nevoa.length !== N) {
+    // quem já jogava antes do mapa explorado fica com o mapa inteiro aberto
+    const veterano = !!(Profile.rides || Profile.deliveries || Profile.earned || (Profile.hist && Profile.hist.tudo));
+    Profile.nevoa = (veterano ? '1' : '0').repeat(N);
+  }
+  this.a = new Uint8Array(N);
+  for (let i = 0; i < N; i++) this.a[i] = Profile.nevoa.charCodeAt(i) === 49 ? 1 : 0;
+  this.sujo = true;
+};
+Nevoa.revela = function (x, y, r) {
+  if (!this.a) return 0;
+  let n = 0;
+  const g0 = Math.max(0, Math.floor((x - r) / NEV_C)), g1 = Math.min(NEV_W - 1, Math.floor((x + r) / NEV_C));
+  const h0 = Math.max(0, Math.floor((y - r) / NEV_C)), h1 = Math.min(NEV_H - 1, Math.floor((y + r) / NEV_C));
+  for (let gy = h0; gy <= h1; gy++) for (let gx = g0; gx <= g1; gx++) {
+    const i = gy * NEV_W + gx;
+    if (this.a[i]) continue;
+    if (Math.hypot(gx * NEV_C + NEV_C / 2 - x, gy * NEV_C + NEV_C / 2 - y) > r) continue;
+    this.a[i] = 1; n++;
+  }
+  if (n) { this.sujo = true; let s = ''; for (let i = 0; i < this.a.length; i++) s += this.a[i] ? '1' : '0'; Profile.nevoa = s; }
+  return n;
+};
+Nevoa.aberto = function (x, y) {
+  if (!this.a) return true;
+  const gx = Math.floor(x / NEV_C), gy = Math.floor(y / NEV_C);
+  if (gx < 0 || gy < 0 || gx >= NEV_W || gy >= NEV_H) return true;
+  return !!this.a[gy * NEV_W + gx];
+};
+Nevoa.pct = function () { if (!this.a) return 100; let n = 0; for (const v of this.a) n += v; return Math.round(n / this.a.length * 100); };
+// imagem pequena (uma casinha por pixel) esticada sobre o mapa com suavização: a borda da névoa fica macia
+Nevoa.img = function () {
+  if (!this.a) return null;
+  if (!this.cv) { this.cv = document.createElement('canvas'); this.cv.width = NEV_W + 2; this.cv.height = NEV_H + 2; }
+  if (this.sujo) {
+    const g = this.cv.getContext('2d'), im = g.createImageData(NEV_W + 2, NEV_H + 2), d = im.data;
+    for (let y = 0; y < NEV_H + 2; y++) for (let x = 0; x < NEV_W + 2; x++) {
+      const gx = clamp(x - 1, 0, NEV_W - 1), gy = clamp(y - 1, 0, NEV_H - 1), o = (y * (NEV_W + 2) + x) * 4;
+      d[o] = 9; d[o + 1] = 16; d[o + 2] = 28; d[o + 3] = this.a[gy * NEV_W + gx] ? 0 : 238;
+    }
+    g.putImageData(im, 0, 0); this.sujo = false;
+  }
+  return this.cv;
+};
+Nevoa.desenha = function (g) {
+  const im = this.img(); if (!im) return;
+  g.save(); g.imageSmoothingEnabled = true;
+  g.drawImage(im, -NEV_C, -NEV_C, (NEV_W + 2) * NEV_C, (NEV_H + 2) * NEV_C);
+  g.restore();
+};
+Nevoa.update = function (dt) {
+  if (!player || Game.mode !== 'play') return;
+  this.t -= dt; if (this.t > 0) return; this.t = 0.5;
+  this.revela(player.x, player.y, 650);
+};
+
+/* ---------- apresentação dos lugares (câmera de cinema) ---------- */
+const Apresenta = { on: false, fila: [], i: 0, t: 0, fase: 'ida', ox: 0, oy: 0, z0: 1, fim: null, dur: 2 };
+Apresenta.comeca = function (lugares, fim) {
+  lugares = (lugares || []).filter((q) => q && isFinite(q.x) && isFinite(q.y));
+  if (navigator.webdriver && !window.__intro) lugares = []; // testes e gravadores antigos: sem viagem de câmera
+  if (!lugares.length || !player || Game.mode !== 'play') { if (fim) fim(); return; }
+  this.on = true; this.fila = lugares; this.i = 0; this.fim = fim || null;
+  this.z0 = Cam.zoom; this.prox(Cam.x, Cam.y);
+  document.body.classList.add('cinema');
+  let el = $('cine');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'cine';
+    el.innerHTML = '<i class="cn-top"></i><i class="cn-bot"></i><button id="cine-pular" type="button">Pular <kbd>Enter</kbd></button>';
+    document.body.appendChild(el);
+    el.querySelector('#cine-pular').addEventListener('click', () => this.pula());
+  }
+  el.classList.remove('sai'); el.classList.add('on');
+  try { AudioSys.tone(220, 1.2, 'triangle', 0.035, 'ui'); AudioSys.tone(330, 1.2, 'triangle', 0.03, 'ui', null, 0.15); } catch (e) {}
+};
+Apresenta.prox = function (fx, fy) {
+  const q = this.fila[this.i];
+  this.ox = fx; this.oy = fy; this.t = 0; this.fase = 'ida';
+  const tx = q ? q.x : player.x, ty = q ? q.y : player.y;
+  this.dur = clamp(Math.hypot(tx - fx, ty - fy) / 2600, 1.1, 2.6);
+};
+Apresenta.update = function (dt) {
+  if (!this.on) return false;
+  if (!player || Game.mode !== 'play') { this.encerra(); return false; }
+  this.t += dt;
+  const q = this.fila[this.i], volta = !q;
+  const tx = volta ? player.x : q.x, ty = volta ? player.y : q.y;
+  if (this.fase === 'ida') {
+    const u = clamp(this.t / this.dur, 0, 1), e = u * u * (3 - 2 * u);
+    Cam.x = lerp(this.ox, tx, e); Cam.y = lerp(this.oy, ty, e);
+    Cam.zoom = this.z0 * (1 - 0.32 * Math.sin(Math.PI * u) * clamp(this.dur / 1.6, 0.4, 1));
+    if (u >= 1) {
+      if (volta) { this.encerra(); return false; }
+      this.fase = 'olha'; this.t = 0;
+      Nevoa.revela(q.x, q.y, q.r || 700);
+      Missao.lugar(q.nome, q.sub || '', q.tag || '');
+    }
+  } else {
+    Cam.x = tx + Math.sin(this.t * 0.35) * 18; Cam.y = ty - this.t * 6; Cam.zoom = this.z0 * 1.04;
+    if (this.t > (q.seg || 3.4)) { Missao.esconde('ms-lugar'); this.i++; this.prox(Cam.x, Cam.y); }
+  }
+  return true;
+};
+Apresenta.pula = function () {
+  if (!this.on) return;
+  for (let k = this.i; k < this.fila.length; k++) { const q = this.fila[k]; Nevoa.revela(q.x, q.y, q.r || 700); }
+  this.encerra();
+};
+Apresenta.encerra = function () {
+  if (!this.on) return;
+  this.on = false; Missao.esconde('ms-lugar');
+  if (player) { Cam.x = player.x; Cam.y = player.y; Cam.zoom = this.z0; }
+  document.body.classList.remove('cinema');
+  const el = $('cine'); if (el) { el.classList.add('sai'); setTimeout(() => { if (!this.on) el.classList.remove('on', 'sai'); }, 500); }
+  const f = this.fim; this.fim = null; this.fila = [];
+  if (f) setTimeout(f, 250);
+};
+
+/* ---------- lugares de cada capítulo ---------- */
+function lugarShop(kind, nome, sub, extra) {
+  const ss = World.shops.filter((s) => s.kind === kind && (!extra || extra(s)));
+  if (!ss.length) return null;
+  const s = ss.sort((a, b) => Math.hypot(a.x - player.x, a.y - player.y) - Math.hypot(b.x - player.x, b.y - player.y))[0];
+  return { x: s.x, y: s.y, nome: nome || s.name, sub };
+}
+function lugaresDoCapitulo(i) {
+  const poi = (id) => World.pois.find((p) => p.id === id);
+  const P = (p, nome, sub, tag) => p && { x: p.x, y: p.y, nome: nome || p.name, sub, tag };
+  const of = oficinaZe(), home = World.home;
+  switch (i) {
+    case 0: return [
+      P(poi('praca'), 'São Gambiarra', 'A cidade que nunca dorme. E nunca paga em dia.', 'Bem-vindo'),
+      of && { x: of.x, y: of.y, nome: 'Oficina do Seu Zé', sub: 'Conserto, socorro de madrugada e fiado (com juros de carinho).', tag: 'Oficina' },
+      home && { x: home.x, y: home.y, nome: 'Sua garagem', sub: 'Troque de carro, pinte e personalize.', tag: 'Garagem' },
+    ];
+    case 1: return [P(poi('praca'), 'Centrão', 'Onde mais aparece passageiro do PegaAí.', 'Corridas')];
+    case 2: return [
+      lugarShop('padaria', null, 'Comércio com marcador amarelo tem entrega: pare na frente e aperte E.', 'Entregas'),
+      (() => { const d = World.depots && Object.values(World.depots)[0]; return d && { x: d.x, y: d.y, nome: d.name, sub: 'Fretes de caminhão: gás, baú, caçamba e reboque.', tag: 'Fretes' }; })(),
+    ];
+    case 4: {
+      const r = World.races.find((q) => q.id === 'fazenda');
+      return [P(poi('fazenda'), 'Fazenda Muuuito Longe', 'Leite, queijo, vaca e lama até o joelho.', 'A roça'),
+        r && { x: r.start[0], y: r.start[1], nome: 'Rali da Vaca Atolada', sub: 'A largada é aqui. Pare na bandeira e aperte E.', tag: 'Percurso' }];
+    }
+    case 5: {
+      const r = World.rachas && World.rachas[0];
+      return [r && { x: r.start[0], y: r.start[1], nome: r.name, sub: 'Das 22h às 4h30. Aposta contra ' + r.rival + '.', tag: 'Racha' }];
+    }
+    case 6: return [of && { x: of.x, y: of.y, nome: 'O Opalha 6C', sub: 'Encerado, de tanque cheio, esperando no fundo da oficina.', tag: 'O sonho' }];
+  }
+  return [];
+}
+
+/* ---------- capítulo 4: o pedido de ajuda começa na hora, e o segundo logo depois do primeiro ---------- */
+const AJUDA_TIPOS = ['quebrado', 'noivo', 'carona', 'festa'];
+const MissaoAjuda = { t: 0 };
+MissaoAjuda.update = function (dt) {
+  const h = Profile.hist;
+  if (!h || h.fim || h.cap !== 3 || Apresenta.on || !player || Game.mode !== 'play') return;
+  const E = Events.cur;
+  if (E) {
+    // terminou: limpa logo para o próximo pedido começar (sem esperar o sorteio da cidade)
+    if (E.over && E.endT > 8) {
+      const ex = E.carX !== undefined ? E.carX : E.x, ey = E.carY !== undefined ? E.carY : E.y, v = Cam.view;
+      const vis = v && ex > v.x0 - 120 && ex < v.x1 + 120 && ey > v.y0 - 120 && ey < v.y1 + 120;
+      if (!vis || E.endT > 16) { Events.clear(); this.t = 3; }
+    }
+    return;
+  }
+  if (Events.busy() || Socorro.job) { this.t = Math.max(this.t, 2); return; }
+  this.t -= dt; if (this.t > 0) return;
+  const tipos = AJUDA_TIPOS.filter((t) => t !== Events.lastType).sort(() => Math.random() - 0.5);
+  for (const t of tipos) if (Events.spawn(t)) { Events.lastType = t; Events.cur.missao = true; break; }
+  this.t = Events.cur ? 0 : 5;
+  if (Events.cur) {
+    const C = Events.cur, x = C.pick ? C.pick.x : C.x, y = C.pick ? C.pick.y : C.y;
+    Nevoa.revela(x, y, 500);
+    Missao.legenda('<b>' + escapeHtml(EV_NAMES[C.type]) + '</b>: aperte <b>Y</b> para ajudar.', 6);
+  }
+};
+/* ============================ ÁGUA VIVA E CHÃO MOLHADO ============================
+   Tudo desenhado por cima do chão pré-renderizado, só no que está na tela (poucas pinceladas por quadro):
+   - rio correndo (riscos de correnteza descendo para o mar, brilho e marolinha nas margens);
+   - mar com ondas: cristas que chegam, espuma que sobe na areia e volta, areia molhada por onde a onda passou;
+   - chuva: asfalto mais escuro e brilhante (marcas de pneu lustrosas), terra escura de barro,
+     água escorrendo na sarjeta até o bueiro e respingos no teto dos carros. */
+const Agua = { pontes: null, respC: [] };
+Agua.prepara = function () {
+  this.pontes = World.edges.filter((e) => e.bridge).map((e) => ({ y0: e.a.y - e.hw - 16, y1: e.a.y + e.hw + 16, x0: e.bridge.x0, x1: e.bridge.x1 }));
+  // trechos da beira do mar que são água de verdade (o píer e o porto ficam de fora) e onde a água começa em cada ponto
+  this.trechos = []; this.beira = new Float32Array(Math.ceil(WORLD_W / 20) + 2);
+  let ini = null;
+  for (let x = 0, i = 0; x <= WORLD_W; x += 20, i++) {
+    let y = SEA_Y - 10; while (y < SEA_Y + 60 && groundAt(x, y) !== SF.WATER) y += 4;
+    this.beira[i] = y;
+    const ok = y < SEA_Y + 60 && groundAt(x, y + 50) === SF.WATER;
+    if (ok && ini === null) ini = x;
+    if ((!ok || x >= WORLD_W) && ini !== null) { if (x - ini > 40) this.trechos.push([ini, x - 20]); ini = null; }
+  }
+};
+const _sob = (P, x, y) => { for (const p of P) if (y > p.y0 && y < p.y1 && x > p.x0 - 20 && x < p.x1 + 20) return true; return false; };
+
+// ---------- rio ----------
+Agua.rio = function (ctx, view) {
+  const ya = Math.max(view.y0 - 20, 0), yb = Math.min(view.y1 + 20, SEA_Y);
+  if (yb <= ya) return;
+  const cxm = riverCX((ya + yb) / 2);
+  if (cxm + 200 < view.x0 || cxm - 200 > view.x1) return;
+  const T = Game.time, P = this.pontes || [];
+  const flui = 26 + Weather.rain * 18; // a chuva engrossa a correnteza
+  ctx.save();
+  // riscos de correnteza: faixas que descem devagar (mais rápidas no meio)
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(205,228,240,0.16)'; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  for (let k = -5; k <= 5; k++) {
+    const vel = flui * (1.25 - Math.abs(k) / 7), passo = 70 + (k & 1) * 23;
+    const off = ((T * vel + hash2(k + 9, 3) * passo) % passo);
+    for (let y = Math.floor(ya / passo) * passo + off - passo; y < yb; y += passo) {
+      if (y < ya - 30 || _sob(P, cxm, y)) continue;
+      const hw = riverHW(y), x = riverCX(y) + k / 5.6 * hw * 0.92 + Math.sin(y * 0.03 + k) * 3;
+      const L = 12 + hash2(Math.round(y), k) * 16;
+      ctx.moveTo(x, y); ctx.lineTo(x + Math.sin(y * 0.02 + T * 0.6) * 1.5, y + L);
+    }
+  }
+  ctx.stroke();
+  // marolinha batendo nas margens
+  ctx.strokeStyle = 'rgba(225,240,248,0.28)'; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  for (const sd of [-1, 1]) {
+    let first = true;
+    for (let y = ya; y <= yb; y += 10) {
+      if (_sob(P, cxm, y)) { first = true; continue; }
+      const x = riverCX(y) + sd * (riverHW(y) - 4 - (1 + Math.sin(y * 0.09 - T * 2.2 + sd)) * 2.2);
+      if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+    }
+  }
+  ctx.stroke();
+  // brilho da lua piscando na água
+  ctx.fillStyle = 'rgba(235,245,255,0.55)';
+  for (let i = 0; i < 26; i++) {
+    const y = ya + hash2(i, 77) * (yb - ya), ph = (T * 0.9 + hash2(i, 5) * 10) % 3;
+    if (ph > 0.6 || _sob(P, cxm, y)) continue;
+    const x = riverCX(y) + (hash2(i, 13) - 0.5) * riverHW(y) * 1.6, a = Math.sin(ph / 0.6 * Math.PI);
+    ctx.globalAlpha = a * 0.8; ctx.fillRect(x - 2.5, y - 0.6, 5, 1.2);
+  }
+  ctx.restore();
+};
+
+// ---------- mar ----------
+Agua.mar = function (ctx, view, topo) {
+  if (view.y1 < SAND_Y - 20 || !this.trechos) return;
+  const T = Game.time;
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const [a0, a1] of this.trechos) {
+    const x0 = Math.max(a0, view.x0 - 20), x1 = Math.min(a1, view.x1 + 20);
+    if (x1 <= x0) continue;
+    const praia = (x) => x >= ORLA_X0 + 40; // na Serra o mar bate na mata/pedra: espuma sem subir na areia
+    const B = this.beira, by = (x) => { const f = x / 20, i = Math.floor(f), t = f - i; return lerp(B[i] || SEA_Y, B[i + 1] || SEA_Y, t); };
+    // cristas chegando (de longe para a beira, ficando mais fortes perto da praia)
+    ctx.lineWidth = 1.6;
+    for (let w = 0; w < 4; w++) {
+      const k = ((T / 7 + w / 4) % 1), y = SEA_Y + 170 - k * 140, alpha = Math.sin(k * Math.PI) * 0.4;
+      if (y > view.y1 + 20 || y < view.y0 - 20) continue;
+      ctx.strokeStyle = `rgba(230,242,250,${alpha.toFixed(3)})`;
+      ctx.beginPath();
+      for (let x = x0; x <= x1; x += 14) { const yy = y + Math.sin(x * 0.012 + w * 2) * 6 + Math.sin(x * 0.041 + T) * 2; if (x === x0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy); }
+      ctx.stroke();
+    }
+    // espuma subindo na areia e voltando (o mar "respira"), com a areia molhada atrás
+    const fase = (x) => Math.sin(T * 0.9 + x * 0.004) * 0.5 + Math.sin(T * 0.37 + x * 0.0013) * 0.5;
+    const sobe = (x) => (praia(x) ? 10 + 12 * fase(x) : 2 + 3 * fase(x));
+    if (!topo) { ctx.fillStyle = 'rgba(40,52,58,0.22)'; // areia molhada
+    ctx.beginPath(); ctx.moveTo(x0, by(x0) + 2);
+    for (let x = x0; x <= x1; x += 14) ctx.lineTo(x, by(x) - (praia(x) ? 24 + Math.sin(x * 0.02) * 3 : 3));
+    ctx.lineTo(x1, by(x1) + 2); ctx.closePath(); ctx.fill(); }
+    ctx.fillStyle = 'rgba(244,250,252,0.62)';
+    ctx.beginPath(); ctx.moveTo(x0, by(x0) + 8);
+    for (let x = x0; x <= x1; x += 12) ctx.lineTo(x, by(x) - sobe(x) + Math.sin(x * 0.07 + T * 1.3) * 1.6);
+    for (let x = x1; x >= x0; x -= 12) ctx.lineTo(x, by(x) - sobe(x) + 5 + Math.sin(x * 0.05 - T) * 2);
+    ctx.closePath(); ctx.fill();
+    // bolhinhas da espuma
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    for (let x = Math.ceil(x0 / 9) * 9; x <= x1; x += 9) {
+      const h = hash2(x, 41); if (h > 0.45) continue;
+      ctx.fillRect(x, by(x) - sobe(x) + 6 + h * 10 + Math.sin(T * 2 + x) * 1.2, 1.4, 1.4);
+    }
+  }
+  ctx.restore();
+};
+
+// ---------- chão molhado ----------
+Agua.molhado = function (ctx, view) {
+  const w = Weather.wet; if (w < 0.04) return;
+  const T = Game.time;
+  ctx.save();
+  // asfalto mais escuro (encharcado) e terra virando barro
+  ctx.fillStyle = `rgba(4,10,22,${(0.2 * w).toFixed(3)})`;
+  ctx.beginPath();
+  const vis = [];
+  for (const e of World.edges) {
+    const r = e.h ? [Math.min(e.a.x, e.b.x), e.a.y - e.hw, Math.max(e.a.x, e.b.x), e.a.y + e.hw] : [e.a.x - e.hw, Math.min(e.a.y, e.b.y), e.a.x + e.hw, Math.max(e.a.y, e.b.y)];
+    if (r[2] < view.x0 || r[0] > view.x1 || r[3] < view.y0 || r[1] > view.y1) continue;
+    vis.push([e, r]);
+    if (e.T.asphalt && !e.bridge) ctx.rect(r[0], r[1], r[2] - r[0], r[3] - r[1]);
+  }
+  const nos = [];
+  for (const n of World.nodes) {
+    if (n.x + n.hx < view.x0 || n.x - n.hx > view.x1 || n.y + n.hy < view.y0 || n.y - n.hy > view.y1 || !n.hx) continue;
+    const asf = n.edges.some((e) => e.T.asphalt); nos.push([n, asf]);
+    if (asf) ctx.rect(n.x - n.hx, n.y - n.hy, n.hx * 2, n.hy * 2);
+  }
+  ctx.fill();
+  ctx.fillStyle = `rgba(34,18,6,${(0.32 * w).toFixed(3)})`;
+  ctx.beginPath();
+  for (const [e, r] of vis) if (!e.T.asphalt) ctx.rect(r[0], r[1], r[2] - r[0], r[3] - r[1]);
+  for (const [n, asf] of nos) if (!asf) ctx.rect(n.x - n.hx, n.y - n.hy, n.hx * 2, n.hy * 2);
+  ctx.fill();
+  // brilho molhado nas trilhas dos pneus (onde a água fica lisa e reflete o céu)
+  ctx.fillStyle = `rgba(150,175,215,${(0.07 * w).toFixed(3)})`;
+  ctx.beginPath();
+  for (const [e, r] of vis) {
+    if (!e.T.asphalt) continue;
+    for (const l of e.T.lanes) for (const sd of [-1, 1]) for (const t of [-6, 6]) {
+      const o = sd * l + t;
+      if (e.h) ctx.rect(r[0], e.a.y + o - 1.6, r[2] - r[0], 3.2); else ctx.rect(e.a.x + o - 1.6, r[1], 3.2, r[3] - r[1]);
+    }
+  }
+  ctx.fill();
+  // água escorrendo na sarjeta (rua com calçada) na direção dos bueiros
+  if (Weather.rain > 0.08 && Settings.quality !== 'baixa') {
+    ctx.strokeStyle = `rgba(185,210,240,${(0.32 * Math.min(1, Weather.rain * 1.4)).toFixed(3)})`; ctx.lineWidth = 1.4;
+    ctx.setLineDash([7, 11]); ctx.lineDashOffset = -T * 34;
+    ctx.beginPath();
+    for (const [e, r] of vis) {
+      if (!e.T.sw || e.bridge) continue;
+      const o = e.hw - 2.2;
+      if (e.h) { ctx.moveTo(r[0], e.a.y - o); ctx.lineTo(r[2], e.a.y - o); ctx.moveTo(r[0], e.a.y + o); ctx.lineTo(r[2], e.a.y + o); }
+      else { ctx.moveTo(e.a.x - o, r[1]); ctx.lineTo(e.a.x - o, r[3]); ctx.moveTo(e.a.x + o, r[1]); ctx.lineTo(e.a.x + o, r[3]); }
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.restore();
+};
+
+// ---------- respingos no teto dos carros (por cima dos carros) ----------
+Agua.atualiza = function (dt) {
+  const L = this.respC;
+  for (const r of L) r.t += dt;
+  if (L.length && L[0].t > 0.3) this.respC = L.filter((r) => r.t < 0.3);
+  // carro do trânsito rápido no asfalto molhado levanta água atrás
+  if (Weather.wet > 0.25 && Settings.quality !== 'baixa' && Game.mode === 'play') {
+    const v = Cam.view;
+    for (const c of Traffic.cars) {
+      if (c.v < 140 || !c.m || !inView(v, c.x, c.y, 30) || Math.random() > 0.3 * Weather.wet * dt * 60) continue;
+      const g = groundAt(c.x, c.y); if (g !== SF.ROAD && g !== SF.BRIDGE && g !== SF.PAVED) continue;
+      const ca = Math.cos(c.a), sa = Math.sin(c.a), L = c.m.L * 0.45;
+      Particles.emit('water', c.x - ca * L + (Math.random() - 0.5) * 10, c.y - sa * L + (Math.random() - 0.5) * 10, -ca * c.v * 0.12 + (Math.random() - 0.5) * 40, -sa * c.v * 0.12 + (Math.random() - 0.5) * 40, 0.3 + Math.random() * 0.25, 3);
+    }
+  }
+  if (Weather.rain < 0.15 || Settings.quality === 'baixa' || !player || Game.mode !== 'play') return;
+  const v = Cam.view, n = Weather.rain * (Settings.quality === 'alta' ? 26 : 14) * dt;
+  const carros = [player];
+  for (const c of Traffic.cars) if (inView(v, c.x, c.y, 10)) carros.push(c);
+  for (let i = 0; i < n || (Math.random() < n - Math.floor(n) && i < n + 1); i++) {
+    const c = carros[(Math.random() * carros.length) | 0], m = c.m; if (!m) continue;
+    const u = (Math.random() - 0.5) * m.L * 0.8, s = (Math.random() - 0.5) * m.W * 0.8;
+    this.respC.push({ c, u, s, t: 0 });
+  }
+  if (this.respC.length > 80) this.respC.splice(0, this.respC.length - 80);
+};
+Agua.respingosCarro = function (ctx, view) {
+  if (!this.respC.length) return;
+  ctx.save(); ctx.fillStyle = 'rgba(230,240,255,0.75)'; ctx.strokeStyle = 'rgba(220,235,255,0.45)'; ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  for (const r of this.respC) {
+    const c = r.c, ca = Math.cos(c.a), sa = Math.sin(c.a);
+    const x = c.x + ca * r.u - sa * r.s, y = c.y + sa * r.u + ca * r.s;
+    if (!inView(view, x, y, 6)) continue;
+    const k = r.t / 0.3, rr = 0.8 + k * 3.2;
+    ctx.moveTo(x + rr, y); ctx.ellipse(x, y, rr, rr * 0.6, 0, 0, TAU);
+  }
+  ctx.globalAlpha = 0.7; ctx.stroke();
+  ctx.restore();
+};
+
+Agua.desenhaChao = function (ctx, view) {
+  if (!this.pontes) this.prepara();
+  if (Settings.quality !== 'baixa') { this.rio(ctx, view); this.mar(ctx, view); }
+  this.molhado(ctx, view);
+};
+
+// por cima da escuridão: a espuma e o brilho da água aparecem de noite como se a lua batesse
+Agua.luar = function (ctx, view) {
+  if (Settings.quality === 'baixa' || !this.pontes) return;
+  ctx.save(); ctx.globalAlpha = 0.55 * clamp(Cam.dark || 0.7, 0.3, 1);
+  this.rio(ctx, view); this.mar(ctx, view, true);
+  ctx.restore();
 };
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {
@@ -11761,6 +12408,7 @@ function startPlay() {
   UI.region = null; UI.last = {};
   Game.autosaveT = 30;
   updateHudVisibility();
+  Nevoa.carrega(); Historia.h(); if (Apresenta.on) Apresenta.encerra();
   Profile.welcomed = true; // sem áudio de boas-vindas (o tutorial do Seu Zé já fala)
 }
 // tela de carregamento entre o menu e o jogo, com dica
@@ -11802,7 +12450,7 @@ function newGameNow() {
   Profile = newProfile();
   startPlay();
   saveGame();
-  aposCarregar(() => toast('Bem-vindo a São Gambiarra', 'A noite é sua. Explore à vontade — pare nos comércios e aperte E para pegar entregas.', 'info'), 0.6);
+  // as boas-vindas agora são a apresentação da cidade (câmera de cinema) no começo da história
   Profile.tut = 0; Tutorial.t = 0; Tutorial.d0 = Profile.distance || 0; Tutorial.shown = -1; Tutorial.rapido = false;
 }
 function continueGame() {
@@ -11845,6 +12493,8 @@ window.addEventListener('beforeunload', () => { if (Game.mode === 'play') saveGa
 function handleKeys() {
   while (KeyPress.length) {
     const k = KeyPress.shift();
+    if (Apresenta.on && (k === 'Escape' || k === 'Enter' || k === 'Space' || k === 'NumpadEnter')) { Apresenta.pula(); continue; }
+    if (Apresenta.on && (k === 'KeyQ' || k === 'KeyE' || k === 'KeyR')) continue;
     if (k === 'Escape') {
       if (Game.mode === 'play' && !Screens.current) { Screens.open('screen-pause'); AudioSys.click(); }
       else if (Screens.current && Screens.current !== 'screen-main') Screens.back();
@@ -11875,7 +12525,8 @@ function stepPlay(dt) {
   Profile.time += dt;
   if (Profile.time >= NIGHT_END) { Profile.nights = (Profile.nights || 0) + 1; Profile.time = NIGHT_START; toast('Uma nova noite começa', 'O relógio volta para as 19:30. A cidade nunca dorme.', 'info'); Finance.newDay(); }
   const locked = Act.race && Act.race.count > 0;
-  const inp = { thr: !locked && !!key.up(), brk: !!key.down(), steer: (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() };
+  const cine = Apresenta.on; // câmera apresentando um lugar: o carro fica freado
+  const inp = cine ? { thr: false, brk: true, steer: 0, hb: false } : { thr: !locked && !!key.up(), brk: !!key.down(), steer: (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() };
   player.update(dt, inp);
   Traffic.update(dt, Game.time, player.x, player.y, Cam.view);
   Animals.update(dt, Cam.x, Cam.y);
@@ -11883,6 +12534,7 @@ function stepPlay(dt) {
   Particles.update(dt);
   updateActivities(dt);
   Events.update(dt);
+  MissaoAjuda.update(dt); Nevoa.update(dt);
   CarLife.update(dt);
   Finance.update(dt);
   Som.update(dt);
@@ -11927,8 +12579,9 @@ function frame(now) {
     while (accT >= STEP && n < 12) { if (st === 'playing') { if (!Game.carregando) stepPlay(STEP); } else stepMenu(STEP); accT -= STEP; n++; }
     if (n >= 12) accT = 0;
     updateCamera(dt);
+    Apresenta.update(dt); // viagem da câmera até os lugares da missão
     updateFireflies(dt);
-    Weather.update(dt);
+    Weather.update(dt); Agua.atualiza(dt);
   } else accT = 0;
   AposCarga.update(dt);
   Radio.update(dt);
@@ -12003,6 +12656,7 @@ async function boot() {
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
+  alargaRuas(); empurraDaPista(); // ruas 10% mais largas (depois de montar tudo: a cidade não muda)
   pruneRoadTrees(); thinTrees(); addBuracos(); Colecao.monta();
   buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();

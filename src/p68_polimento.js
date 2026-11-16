@@ -94,3 +94,9 @@ Missao.passou = function (titulo, sub, valor) {
   this.mostra('ms-passou', `<div class="ms-faixa"><div class="ms-ok">${escapeHtml(titulo)}</div><div class="ms-sub">${escapeHtml(sub)}</div>${valor ? `<div class="ms-val">+ R$ ${fmtMoney(valor)}</div>` : ''}</div>`, 5.5);
   try { [[523, 0], [659, 0.1], [784, 0.2], [1047, 0.32], [784, 0.62], [1047, 0.74], [1319, 0.86]].forEach(([f, d]) => AudioSys.tone(f, 0.55, 'triangle', 0.07, 'ui', null, d)); } catch (e) {}
 };
+
+// nome do lugar no canto de baixo (apresentação da missão)
+Missao.lugar = function (nome, sub, tag) {
+  this.mostra('ms-lugar', (tag ? `<div class="ml-tag">${escapeHtml(tag)}</div>` : '') + `<div class="ml-nome">${escapeHtml(nome)}</div>` + (sub ? `<div class="ml-sub">${escapeHtml(sub)}</div>` : ''), 0);
+  try { AudioSys.tone(523, 0.25, 'sine', 0.04, 'ui'); AudioSys.tone(784, 0.35, 'sine', 0.035, 'ui', null, 0.1); } catch (e) {}
+};

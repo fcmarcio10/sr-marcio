@@ -50,7 +50,7 @@ const fs = require('fs'), path = require('path');
       else if (t.x !== undefined) testa(t, t.x - 5, t.y - 5, t.x + 5, t.y + 5, 'alto:' + t.kind);
     }
     // 3) objetos baixos (lixeira, banco, cone, pneu, caixote...)
-    for (const q of window.__P || []) {
+    for (const q of (window.World && World.props) || window.__P || []) {
       const hw = q.w ? q.w / 2 : q.cr || 5, hh = q.h ? q.h / 2 : q.cr || 5;
       testa(q, q.x - hw, q.y - hh, q.x + hw, q.y + hh, 'objeto:' + q.type);
     }

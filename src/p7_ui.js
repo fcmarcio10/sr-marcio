@@ -485,6 +485,7 @@ function openShopDialog(s) {
   if (s.pickup) {
     if (Act.race) B('Termine o percurso antes de pegar entregas', null, true);
     else if (Act.delivery) B('Você já está com uma entrega em andamento', null, true);
+    else if (!liberado('entregas')) B('Entregas: ' + travaTexto('entregas'), null, true);
     else {
       const off = deliveryOffer(s);
       const tags = (off.fragile ? ' · frágil' : '') + (off.hot ? ' · urgente' : '');
@@ -574,7 +575,7 @@ const Tutorial = {
   },
   update(dt) {
     const el = $('tutorial');
-    const vis = Game.mode === 'play' && carregou(1.5) && (!Screens.current || Screens.current === 'screen-phone' || Screens.current === 'screen-dialog');
+    const vis = Game.mode === 'play' && carregou(1.5) && !Apresenta.on && !!Profile.hist && (Profile.hist.apres || Profile.hist.cap > 0) && (!Screens.current || Screens.current === 'screen-phone' || Screens.current === 'screen-dialog');
     if (!el || !vis || Profile.tut === undefined || Profile.tut >= TUT_STEPS.length) { if (el && this.shown !== -2) { el.classList.add('hidden'); if (this.shown >= 0 && Profile.tut >= TUT_STEPS.length) Missao.esconde('ms-ajuda'); this.shown = -2; } return; }
     const st = TUT_STEPS[Profile.tut];
     this.t += dt;

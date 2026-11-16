@@ -331,6 +331,7 @@ function addLamp(bx, by, hx, hy, col, opt) {
 function addProp(type, x, y, opt) {
   opt = opt || {};
   const p = { type, x, y, a: opt.a || 0, c: opt.c || null, w: opt.w || 0, h: opt.h || 0, seed: rnd() };
+  (World.props || (World.props = [])).push(p);
   const R = opt.R || 30;
   bake(x - R, y - R, x + R, y + R, opt.z || 8, (g) => drawProp(g, p));
   let col = null;
@@ -1382,6 +1383,128 @@ function buildHighwayStrip() {
 
 /* ---------- pontos de interesse e percursos ---------- */
 // tira árvores que acabaram em cima do asfalto (ruas alargadas depois do plantio)
+/* RUAS 10% MAIS LARGAS (nov/2026): a cidade inteira é montada com as medidas antigas (os sorteios, lotes, lojas e postes
+   não mudam) e só depois o asfalto cresce 10% para dentro da calçada ou do acostamento: a beira de fora fica no mesmo lugar.
+   O desenho das ruas é feito na hora de mostrar (bake guarda a função), então já sai com a largura nova. */
+const RUA_LARG = 1.1;
+function alargaRuas() {
+  const old = {};
+  for (const k in RT) {
+    const T = RT[k], dw = T.w * (RUA_LARG - 1) / 2; old[k] = T.w / 2;
+    T.w = +(T.w * RUA_LARG).toFixed(2);
+    if (T.sw) T.sw = +(T.sw - dw).toFixed(2); else if (T.shoulder) T.shoulder = +Math.max(5, T.shoulder - dw).toFixed(2);
+    T.lanes = T.lanes.map((l) => +(l * RUA_LARG).toFixed(2));
+    if (T.laneDiv) T.laneDiv = +(T.laneDiv * RUA_LARG).toFixed(2);
+  }
+  const marca = (x, y, tipo, ponte) => {
+    const gx = Math.floor(x / GC), gy = Math.floor(y / GC);
+    if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) return;
+    const i = gy * GW + gx, g = ground[i];
+    if (g === SF.WATER) { if (ponte) ground[i] = SF.BRIDGE; return; }
+    if (g === SF.BRIDGE || g === SF.ROAD) return;
+    ground[i] = tipo;
+  };
+  for (const e of World.edges) {
+    const h0 = e.hw0 = e.hw, h1 = e.hw = e.T.w / 2, tipo = e.T.asphalt ? SF.ROAD : SF.DIRT;
+    // a faixa nova entre a beira antiga e a nova vira pista (só as casinhas da grade cujo centro cai dentro do asfalto novo)
+    const x0 = Math.min(e.a.x, e.b.x) - h1, x1 = Math.max(e.a.x, e.b.x) + h1, y0 = Math.min(e.a.y, e.b.y) - h1, y1 = Math.max(e.a.y, e.b.y) + h1;
+    for (let gy = Math.floor(y0 / GC); gy <= Math.floor(y1 / GC); gy++) for (let gx = Math.floor(x0 / GC); gx <= Math.floor(x1 / GC); gx++) {
+      const cx = gx * GC + 5, cy = gy * GC + 5;
+      const d = e.h ? Math.abs(cy - e.a.y) : Math.abs(cx - e.a.x), along = e.h ? cx : cy, a0 = e.h ? Math.min(e.a.x, e.b.x) : Math.min(e.a.y, e.b.y), a1 = e.h ? Math.max(e.a.x, e.b.x) : Math.max(e.a.y, e.b.y);
+      if (d >= h0 - 3 && d < h1 && along >= a0 && along <= a1) marca(cx, cy, tipo, e.bridge && cx > e.bridge.x0 && cx < e.bridge.x1);
+    }
+    if (e.bridge && e.bridge.rails) {
+      const d = h1 - h0, [r1, r2] = e.bridge.rails;
+      r1.y0 -= d; r1.y1 -= d; r2.y0 += d; r2.y1 += d;
+      colGrid.insert(r1, r1.x0, r1.y0, r1.x1, r1.y1); colGrid.insert(r2, r2.x0, r2.y0, r2.x1, r2.y1);
+    }
+  }
+  // faixa de pedestre e linha de parada começam na beira nova do cruzamento
+  const perpN = (e, n) => { let m = 0; for (const o of n.edges) if (o.h !== e.h) m = Math.max(m, o.hw); return m; };
+  for (const e of World.edges) { e.perpA = perpN(e, e.a); e.perpB = perpN(e, e.b); }
+  for (const n of World.nodes) {
+    let hv = 0, hh = 0, asph = false;
+    for (const e of n.edges) { if (e.h) hh = Math.max(hh, e.hw); else hv = Math.max(hv, e.hw); if (e.T.asphalt) asph = true; }
+    if (!hv) hv = hh; if (!hh) hh = hv;
+    n.hx0 = n.hx; n.hy0 = n.hy; n.hx = hv; n.hy = hh;
+    for (let gy = Math.floor((n.y - hh) / GC); gy <= Math.floor((n.y + hh) / GC); gy++) for (let gx = Math.floor((n.x - hv) / GC); gx <= Math.floor((n.x + hv) / GC); gx++) {
+      const cx = gx * GC + 5, cy = gy * GC + 5;
+      if (Math.abs(cx - n.x) < hv && Math.abs(cy - n.y) < hh) marca(cx, cy, asph ? SF.ROAD : SF.DIRT, false);
+    }
+  }
+}
+// depois de alargar: semáforo, poste, radar ou objeto de calçada que ficou com o pé no asfalto novo vai para a beira
+function empurraDaPista() {
+  const faixas = World.edges.filter((e) => e.hw > (e.hw0 || e.hw));
+  const desloca = (x, y, r) => {
+    for (const e of faixas) {
+      const al = e.h ? x : y, a0 = e.h ? Math.min(e.a.x, e.b.x) : Math.min(e.a.y, e.b.y), a1 = e.h ? Math.max(e.a.x, e.b.x) : Math.max(e.a.y, e.b.y);
+      if (al < a0 - r || al > a1 + r) continue;
+      const d = (e.h ? y - e.a.y : x - e.a.x);
+      if (Math.abs(d) >= e.hw + r || Math.abs(d) < e.hw0 - r - 1) continue; // fora da faixa nova, ou já estava na pista de propósito
+      const v = (d < 0 ? -1 : 1) * (e.hw + r + 1) - d;
+      return e.h ? [0, v] : [v, 0];
+    }
+    for (const n of World.nodes) {
+      const dx = x - n.x, dy = y - n.y, ox = n.hx0 || n.hx, oy = n.hy0 || n.hy;
+      if (Math.abs(dx) >= n.hx + r || Math.abs(dy) >= n.hy + r) continue;
+      if (Math.abs(dx) < ox - r - 1 && Math.abs(dy) < oy - r - 1) continue;
+      const vx = (dx < 0 ? -1 : 1) * (n.hx + r + 1) - dx, vy = (dy < 0 ? -1 : 1) * (n.hy + r + 1) - dy;
+      return Math.abs(vx) < Math.abs(vy) ? [vx, 0] : [0, vy];
+    }
+    return null;
+  };
+  // repete até sair de todas as pistas (no canto, sai da rua e do cruzamento)
+  const deslocaTudo = (x, y, r) => {
+    let tx = 0, ty = 0;
+    for (let i = 0; i < 4; i++) { const d = desloca(x + tx, y + ty, r); if (!d) break; tx += d[0]; ty += d[1]; }
+    return tx || ty ? [tx, ty] : null;
+  };
+  const q = [], movidos = new Set();
+  const moveCol = (c, d) => {
+    if (c.t === 0) { c.x0 += d[0]; c.x1 += d[0]; c.y0 += d[1]; c.y1 += d[1]; colGrid.insert(c, c.x0, c.y0, c.x1, c.y1); }
+    else { c.x += d[0]; c.y += d[1]; colGrid.insert(c, c.x - c.r, c.y - c.r, c.x + c.r, c.y + c.r); }
+    movidos.add(c);
+  };
+  let n = 0;
+  for (const t of World.tall) {
+    if (t.x === undefined || t.x0 !== undefined || t.removed) continue;
+    const r = t.kind === 'tree' ? 6 : t.kind === 'lamp' ? 4 : 5, d = deslocaTudo(t.x, t.y, r);
+    if (!d) continue;
+    const ox = t.x, oy = t.y, hx = t.hx, hy = t.hy;
+    colGrid.query(ox - 6, oy - 6, ox + 6, oy + 6, q);
+    for (const c of q.slice()) if (!movidos.has(c) && c.tag !== 'rail' && (c.t === 1 ? Math.hypot(c.x - ox, c.y - oy) < 3 : Math.abs((c.x0 + c.x1) / 2 - ox) < 3 && Math.abs((c.y0 + c.y1) / 2 - oy) < 3)) moveCol(c, d);
+    lightGrid.query(ox - 80, oy - 80, ox + 80, oy + 80, q);
+    for (const L of q.slice()) if (Math.hypot(L.x - ox, L.y - oy) < 3 || (hx !== undefined && Math.hypot(L.x - hx, L.y - hy) < 3)) { L.x += d[0]; L.y += d[1]; lightGrid.insert(L, L.x - L.r, L.y - L.r, L.x + L.r, L.y + L.r); }
+    t.x += d[0]; t.y += d[1]; if (hx !== undefined) { t.hx += d[0]; t.hy += d[1]; }
+    if (t.col && !movidos.has(t.col) && t.col.t === 1) moveCol(t.col, d);
+    rendGrid.insert(t, t.x - 90, t.y - 90, t.x + 90, t.y + 90);
+    n++;
+  }
+  // objetos baixos com colisão (mesinha, banco, ponto de ônibus…): move a colisão e o desenho juntos
+  const vistos = new Set();
+  for (const cell of colGrid.cells) if (cell) for (const c of cell) {
+    if (vistos.has(c) || movidos.has(c)) continue; vistos.add(c);
+    if (c.tag === 'rail' || c.tag === 'none' || c.tag === 'event') continue;
+    const w = c.t === 0 ? c.x1 - c.x0 : c.r * 2, h = c.t === 0 ? c.y1 - c.y0 : c.r * 2;
+    if (w > 40 || h > 40) continue;
+    const cx = c.t === 0 ? (c.x0 + c.x1) / 2 : c.x, cy = c.t === 0 ? (c.y0 + c.y1) / 2 : c.y;
+    const d = deslocaTudo(cx, cy, Math.max(w, h) / 2); if (!d) continue;
+    moveCol(c, d);
+    const o = c.brk && c.brk.obj; if (o && o.x !== undefined && o.x0 === undefined) { o.x += d[0]; o.y += d[1]; o._mov = 1; }
+    n++;
+  }
+  // objetos baixos sem colisão própria (ou cuja colisão não aponta para eles)
+  for (const p of World.props || []) {
+    if (p._mov) continue;
+    const ox = p.x, oy = p.y, d = deslocaTudo(ox, oy, Math.max(p.w || 0, p.h || 0, 10) / 2); if (!d) continue;
+    p.x += d[0]; p.y += d[1]; p._mov = 1;
+    colGrid.query(ox - 6, oy - 6, ox + 6, oy + 6, q);
+    for (const c of q.slice()) if (!movidos.has(c) && (c.t === 1 ? Math.hypot(c.x - ox, c.y - oy) < 3 : Math.abs((c.x0 + c.x1) / 2 - ox) < 3 && Math.abs((c.y0 + c.y1) / 2 - oy) < 3)) moveCol(c, d);
+    n++;
+  }
+  return n;
+}
 function pruneRoadTrees() {
   let n = 0;
   for (const t of World.tall) {
@@ -1681,8 +1804,7 @@ function buildRoadSurface() {
           ground[gy * GW + gx] = Math.abs(yy - e.a.y) < e.hw ? SF.BRIDGE : SF.WATER;
         }
       }
-      addRectCol(b.x0, e.a.y - e.hw - 7, b.x1, e.a.y - e.hw - 1, 'rail');
-      addRectCol(b.x0, e.a.y + e.hw + 1, b.x1, e.a.y + e.hw + 7, 'rail');
+      b.rails = [addRectCol(b.x0, e.a.y - e.hw - 7, b.x1, e.a.y - e.hw - 1, 'rail'), addRectCol(b.x0, e.a.y + e.hw + 1, b.x1, e.a.y + e.hw + 7, 'rail')];
     }
     bake(box[0] - 8, box[1] - 8, box[2] + 8, box[3] + 8, 3, (g) => drawEdgeBase(g, e));
     bake(box[0], box[1], box[2], box[3], 5, (g) => drawEdgeMarkings(g, e));

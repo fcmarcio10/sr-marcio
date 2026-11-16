@@ -1356,3 +1356,32 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 @media (max-width: 900px) { #tutorial .tut-skip { position: static; } #ms-titulo .ms-nome { font-size: 42px; } #ms-passou .ms-ok { font-size: 38px; } }
 #ms-ajuda .ms-ajuda-tit { font: 700 12px/1 var(--f-cond); letter-spacing: 0.14em; text-transform: uppercase; color: #f0c850; margin-bottom: 6px; }
 #tutorial { pointer-events: none !important; } #tutorial .tut-skip { pointer-events: auto; }
+/* ===== apresentação dos lugares: faixas de cinema, nome do lugar e HUD escondido ===== */
+#cine { position: fixed; inset: 0; pointer-events: none; z-index: 46; display: none; }
+#cine.on { display: block; }
+#cine i { position: absolute; left: 0; right: 0; height: 11vh; background: #000; transition: transform 0.6s ease; }
+#cine .cn-top { top: 0; transform: translateY(-100%); } #cine .cn-bot { bottom: 0; transform: translateY(100%); }
+#cine.on .cn-top, #cine.on .cn-bot { transform: none; animation: cnIn 0.6s ease both; }
+#cine.on.sai .cn-top { transform: translateY(-100%); } #cine.on.sai .cn-bot { transform: translateY(100%); }
+@keyframes cnIn { from { transform: translateY(var(--cn, 0)); } }
+#cine .cn-top { --cn: -100%; } #cine .cn-bot { --cn: 100%; }
+#cine-pular { position: absolute; right: 22px; bottom: calc(11vh + 14px); pointer-events: auto; background: rgba(0, 0, 0, 0.55); color: #ddd; border: 0; padding: 6px 12px; font: 700 13px var(--f-cond); letter-spacing: 0.08em; cursor: pointer; text-transform: uppercase; }
+#cine-pular kbd { background: #fff; color: #111; border-radius: 3px; padding: 0 5px; margin-left: 6px; font: 800 11px/18px var(--f-cond); }
+body.cinema #hud-money, body.cinema #hud-level, body.cinema #hud-objective, body.cinema #hud-minimap, body.cinema #hud-radio, body.cinema #hud-phone,
+body.cinema #hud-dash, body.cinema #prompt, body.cinema #region-banner, body.cinema #tutorial, body.cinema #fps, body.cinema #ms-ajuda, body.cinema #ev-offer { opacity: 0 !important; pointer-events: none !important; transition: opacity 0.4s; }
+#ms-lugar { position: fixed; left: 48px; bottom: calc(11vh + 34px); pointer-events: none; z-index: 47; max-width: min(620px, calc(100vw - 64px)); }
+#ms-lugar .ml-tag { display: inline-block; font: 700 13px/1 var(--f-cond); letter-spacing: 0.22em; text-transform: uppercase; color: #111; background: #f0c850; padding: 4px 8px; margin-bottom: 8px; }
+#ms-lugar .ml-nome { font: 400 54px/1 var(--f-display); color: #fff; text-transform: uppercase; letter-spacing: 0.02em; text-shadow: 0 3px 0 #000, 0 0 22px rgba(0, 0, 0, 0.9); }
+#ms-lugar.ms-on .ml-nome { animation: mlIn 0.7s cubic-bezier(.2, 1, .3, 1) both; }
+@keyframes mlIn { from { transform: translateX(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
+#ms-lugar .ml-sub { font: 600 18px/1.35 var(--f-body); color: rgba(255, 255, 255, 0.9); margin-top: 8px; text-shadow: 0 2px 3px #000; border-left: 3px solid #f0c850; padding-left: 10px; }
+@media (max-width: 900px) { #ms-lugar .ml-nome { font-size: 34px; } #ms-lugar { left: 18px; } }
+/* app travado pela história */
+.ph-app.ph-trancado .ph-ico { filter: grayscale(1) brightness(0.6); }
+.ph-app.ph-trancado .ph-lbl { opacity: 0.55; }
+.ph-cadeado { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%; background: #111; border: 2px solid #f0c850; display: grid; place-items: center; }
+.ph-cadeado svg { width: 12px; height: 12px; fill: #f0c850; }
+body.cinema #hud-region, body.cinema #hud-radio-btn, body.cinema #toasts, body.cinema #hud-wanted, body.cinema #ms-legenda { opacity: 0 !important; pointer-events: none !important; }
+/* celular aberto: a legenda do tutorial fica embaixo, à esquerda do celular; os avisos descem para não tapar o objetivo */
+#tutorial.in-phone { top: auto; bottom: 92px; left: calc((100vw - var(--dash-w, 240px) - 306px * var(--ph-s, 0.78) - 46px) / 2); max-width: calc(100vw - var(--dash-w, 240px) - 306px * var(--ph-s, 0.78) - 90px); }
+body.cel-aberto #toasts { top: 150px; }

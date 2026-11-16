@@ -22,6 +22,7 @@ function startPlay() {
   UI.region = null; UI.last = {};
   Game.autosaveT = 30;
   updateHudVisibility();
+  Nevoa.carrega(); Historia.h(); if (Apresenta.on) Apresenta.encerra();
   Profile.welcomed = true; // sem áudio de boas-vindas (o tutorial do Seu Zé já fala)
 }
 // tela de carregamento entre o menu e o jogo, com dica
@@ -63,7 +64,7 @@ function newGameNow() {
   Profile = newProfile();
   startPlay();
   saveGame();
-  aposCarregar(() => toast('Bem-vindo a São Gambiarra', 'A noite é sua. Explore à vontade — pare nos comércios e aperte E para pegar entregas.', 'info'), 0.6);
+  // as boas-vindas agora são a apresentação da cidade (câmera de cinema) no começo da história
   Profile.tut = 0; Tutorial.t = 0; Tutorial.d0 = Profile.distance || 0; Tutorial.shown = -1; Tutorial.rapido = false;
 }
 function continueGame() {
@@ -106,6 +107,8 @@ window.addEventListener('beforeunload', () => { if (Game.mode === 'play') saveGa
 function handleKeys() {
   while (KeyPress.length) {
     const k = KeyPress.shift();
+    if (Apresenta.on && (k === 'Escape' || k === 'Enter' || k === 'Space' || k === 'NumpadEnter')) { Apresenta.pula(); continue; }
+    if (Apresenta.on && (k === 'KeyQ' || k === 'KeyE' || k === 'KeyR')) continue;
     if (k === 'Escape') {
       if (Game.mode === 'play' && !Screens.current) { Screens.open('screen-pause'); AudioSys.click(); }
       else if (Screens.current && Screens.current !== 'screen-main') Screens.back();
@@ -136,7 +139,8 @@ function stepPlay(dt) {
   Profile.time += dt;
   if (Profile.time >= NIGHT_END) { Profile.nights = (Profile.nights || 0) + 1; Profile.time = NIGHT_START; toast('Uma nova noite começa', 'O relógio volta para as 19:30. A cidade nunca dorme.', 'info'); Finance.newDay(); }
   const locked = Act.race && Act.race.count > 0;
-  const inp = { thr: !locked && !!key.up(), brk: !!key.down(), steer: (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() };
+  const cine = Apresenta.on; // câmera apresentando um lugar: o carro fica freado
+  const inp = cine ? { thr: false, brk: true, steer: 0, hb: false } : { thr: !locked && !!key.up(), brk: !!key.down(), steer: (key.right() ? 1 : 0) - (key.left() ? 1 : 0), hb: !!key.hb() };
   player.update(dt, inp);
   Traffic.update(dt, Game.time, player.x, player.y, Cam.view);
   Animals.update(dt, Cam.x, Cam.y);
@@ -144,6 +148,7 @@ function stepPlay(dt) {
   Particles.update(dt);
   updateActivities(dt);
   Events.update(dt);
+  MissaoAjuda.update(dt); Nevoa.update(dt);
   CarLife.update(dt);
   Finance.update(dt);
   Som.update(dt);
@@ -188,8 +193,9 @@ function frame(now) {
     while (accT >= STEP && n < 12) { if (st === 'playing') { if (!Game.carregando) stepPlay(STEP); } else stepMenu(STEP); accT -= STEP; n++; }
     if (n >= 12) accT = 0;
     updateCamera(dt);
+    Apresenta.update(dt); // viagem da câmera até os lugares da missão
     updateFireflies(dt);
-    Weather.update(dt);
+    Weather.update(dt); Agua.atualiza(dt);
   } else accT = 0;
   AposCarga.update(dt);
   Radio.update(dt);
@@ -264,6 +270,7 @@ async function boot() {
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
+  alargaRuas(); empurraDaPista(); // ruas 10% mais largas (depois de montar tudo: a cidade não muda)
   pruneRoadTrees(); thinTrees(); addBuracos(); Colecao.monta();
   buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();

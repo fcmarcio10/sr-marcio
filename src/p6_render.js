@@ -1096,10 +1096,11 @@ Weather.update = function (dt) {
   for (const d of this.drops) { d.z -= dt / d.life; if (d.z <= 0) newDrop(d, 1); }
   // respingos no chão (espaço do mundo)
   if (Settings.quality !== 'baixa' && this.rain > 0.05) {
-    const v = Cam.view, n = this.rain * 54 * dt;
+    const v = Cam.view, n = this.rain * (Settings.quality === 'alta' ? 95 : 60) * dt;
     for (let i = 0; i < n || (Math.random() < n - Math.floor(n) && i < n + 1); i++) {
       const x = rnd(v.x0, v.x1), y = rnd(v.y0, v.y1), g = groundAt(x, y);
-      if (g === SF.ROAD || g === SF.PAVED || g === SF.SIDEWALK || g === SF.BRIDGE || g === SF.WATER) this.ripples.push({ x, y, t: 0 });
+      if (g === SF.ROAD || g === SF.PAVED || g === SF.SIDEWALK || g === SF.BRIDGE || g === SF.WATER) this.ripples.push({ x, y, t: 0, a: Math.random() * TAU });
+      else if (g === SF.DIRT || g === SF.EARTH) this.ripples.push({ x, y, t: 0, a: Math.random() * TAU, barro: true });
     }
   }
   for (const r of this.ripples) r.t += dt;
@@ -1143,7 +1144,7 @@ Weather.drawPuddles = function (ctx, view) {
     ctx.fillStyle = p.mud ? 'rgba(52,34,20,0.75)' : 'rgba(16,22,32,0.7)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, TAU); ctx.fill();
     ctx.strokeStyle = p.mud ? 'rgba(120,90,60,0.5)' : 'rgba(150,170,200,0.35)'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.fillStyle = 'rgba(210,225,245,0.18)'; ctx.beginPath(); ctx.ellipse(p.x - p.rx * 0.2, p.y - p.ry * 0.25, p.rx * 0.45, p.ry * 0.25, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(210,225,245,0.18)'; ctx.beginPath(); ctx.ellipse(p.x - p.rx * 0.2 + Math.sin(T * 0.7 + p.ph) * p.rx * 0.18, p.y - p.ry * 0.25, p.rx * 0.45, p.ry * 0.25, 0, 0, TAU); ctx.fill();
     // gotas caindo na poça: anéis
     if (this.rain > 0.1) { const t = ((T * (0.8 + this.rain) + p.ph) % 1); ctx.strokeStyle = `rgba(200,215,235,${(0.5 * (1 - t) * this.rain).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(p.x + Math.sin(p.ph * 7) * p.rx * 0.4, p.y + Math.cos(p.ph * 5) * p.ry * 0.3, 1 + t * 5, (1 + t * 5) * 0.7, 0, 0, TAU); ctx.stroke(); }
     // ondas depois de você passar
@@ -1181,12 +1182,29 @@ Weather.updatePlayer = function (dt, pl) {
 };
 Weather.drawRipples = function (ctx, view) {
   if (!this.ripples.length) return;
+  // anel que abre na água parada / no asfalto molhado
   ctx.strokeStyle = 'rgba(200,215,235,0.5)'; ctx.lineWidth = 0.8;
   ctx.beginPath();
-  for (const r of this.ripples) { if (!inView(view, r.x, r.y, 10)) continue; const k = r.t / 0.45, rr = 1 + k * 6; ctx.moveTo(r.x + rr, r.y); ctx.ellipse(r.x, r.y, rr, rr * 0.6, 0, 0, TAU); }
+  for (const r of this.ripples) { if (r.barro || !inView(view, r.x, r.y, 10)) continue; const k = r.t / 0.45, rr = 1 + k * 6; ctx.moveTo(r.x + rr, r.y); ctx.ellipse(r.x, r.y, rr, rr * 0.6, 0, 0, TAU); }
   ctx.globalAlpha = 0.6; ctx.stroke();
-  ctx.fillStyle = 'rgba(225,235,250,0.7)';
-  for (const r of this.ripples) if (r.t < 0.12 && inView(view, r.x, r.y, 4)) ctx.fillRect(r.x - 0.8, r.y - 0.8, 1.6, 1.6);
+  // coroinha: a gota bate e solta gotinhas para os lados
+  ctx.fillStyle = 'rgba(225,235,250,0.75)'; ctx.globalAlpha = 1;
+  ctx.beginPath();
+  for (const r of this.ripples) {
+    if (r.barro || r.t > 0.2 || !inView(view, r.x, r.y, 8)) continue;
+    const k = r.t / 0.2, d = 1.5 + k * 5, up = Math.sin(k * Math.PI) * 2.5;
+    for (let j = 0; j < 4; j++) { const a = r.a + j * 1.57; ctx.rect(r.x + Math.cos(a) * d - 0.6, r.y + Math.sin(a) * d * 0.6 - up - 0.6, 1.2, 1.2); }
+  }
+  ctx.fill();
+  // na terra a gota levanta um pinguinho de barro
+  ctx.fillStyle = 'rgba(70,46,24,0.7)';
+  ctx.beginPath();
+  for (const r of this.ripples) {
+    if (!r.barro || r.t > 0.25 || !inView(view, r.x, r.y, 6)) continue;
+    const k = r.t / 0.25, d = 1 + k * 3;
+    for (let j = 0; j < 3; j++) { const a = r.a + j * 2.1; ctx.rect(r.x + Math.cos(a) * d - 0.6, r.y + Math.sin(a) * d * 0.6 - Math.sin(k * Math.PI) * 1.6 - 0.6, 1.2, 1.2); }
+  }
+  ctx.fill();
   ctx.globalAlpha = 1;
 };
 Weather.drawDrops = function (ctx) {
@@ -1561,6 +1579,7 @@ function render() {
   ctx.imageSmoothingEnabled = true;
   drawGround(view, forceGround); forceGround = false;
   pm('ground');
+  Agua.desenhaChao(ctx, view); // rio correndo, ondas do mar e chão molhado
   Weather.drawPuddles(ctx, view);
   Skids.draw(ctx, view);
   Weather.drawRipples(ctx, view);
@@ -1597,6 +1616,7 @@ function render() {
     }
   }
   Particles.draw(ctx);
+  Agua.respingosCarro(ctx, view);
   pm('vehicles');
   // objetos altos ordenados por distância à câmera (longe primeiro)
   rendGrid.query(view.x0 - 170, view.y0 - 170, view.x1 + 170, view.y1 + 170, _rq);
@@ -1639,6 +1659,7 @@ function render() {
   }
   ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
   emissivePass(view, _talls);
+  Agua.luar(ctx, view); // espuma do mar e brilho do rio por cima da escuridão (luar)
   pm('emissive');
   Weather.drawDrops(ctx);
   pm('drops');
@@ -1830,6 +1851,8 @@ class MapView {
         g.restore();
       }
     }
+    // parte da cidade ainda não explorada fica escura (abre por onde o carro passa)
+    Nevoa.desenha(g);
     // bairros
     g.textAlign = 'center'; g.textBaseline = 'middle';
     const ls = clamp(19 * k, 62, 300);
@@ -1852,7 +1875,7 @@ class MapView {
       g.beginPath(); Act.gps.pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
       g.strokeStyle = 'rgba(5,7,11,0.9)'; g.lineWidth = 9 * k; g.stroke(); g.strokeStyle = '#ffcc2e'; g.lineWidth = 5.5 * k; g.stroke();
     }
-    const ic = (x, y, kind) => { if (x < x0 || x > x1 || y < y0 || y > y1) return; const sp = mapIconSprite(kind, 1.2, k * 1.35); g.drawImage(sp, x - sp.width / 2, y - sp.height / 2); };
+    const ic = (x, y, kind) => { if (x < x0 || x > x1 || y < y0 || y > y1 || !Nevoa.aberto(x, y)) return; const sp = mapIconSprite(kind, 1.2, k * 1.35); g.drawImage(sp, x - sp.width / 2, y - sp.height / 2); };
     for (const p of World.pois) ic(p.x, p.y, Profile.discovered.includes(p.id) ? 'poi' : 'unknown');
     for (const sp of World.parkSpots) if (!Profile.parks[sp.id]) ic(sp.x, sp.y, 'park');
     for (const r2 of World.races) ic(r2.start[0], r2.start[1], 'race');
@@ -1860,7 +1883,7 @@ class MapView {
     { const ep = Events.mapPoint(); if (ep) ic(ep[0], ep[1], 'event'); }
     if (z > 0.09) {
       g.font = `700 ${11 * k}px "BRND Cond", Arial`; g.textBaseline = 'alphabetic';
-      for (const s2 of World.shops) if (s2.x > x0 && s2.x < x1 && s2.y > y0 && s2.y < y1) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(s2.name, s2.x, s2.y - 12 * k); g.fillStyle = '#ffe2c4'; g.fillText(s2.name, s2.x, s2.y - 12 * k); }
+      for (const s2 of World.shops) if (s2.x > x0 && s2.x < x1 && s2.y > y0 && s2.y < y1 && Nevoa.aberto(s2.x, s2.y)) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(s2.name, s2.x, s2.y - 12 * k); g.fillStyle = '#ffe2c4'; g.fillText(s2.name, s2.x, s2.y - 12 * k); }
       for (const p of World.pois) if (Profile.discovered.includes(p.id)) { g.lineWidth = 3 * k; g.strokeStyle = 'rgba(8,12,18,0.85)'; g.strokeText(p.name, p.x, p.y - 12 * k); g.fillStyle = '#ecd6ff'; g.fillText(p.name, p.x, p.y - 12 * k); }
     }
     // destino: alfinete vermelho

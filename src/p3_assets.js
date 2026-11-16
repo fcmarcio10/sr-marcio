@@ -389,6 +389,7 @@ function drawEdgeMarkings(g, e) {
     for (let s = s0; s < s1; s += 42) { const l = Math.min(20, s1 - s); g.fillRect(s, -T.laneDiv - 1, l, 2.4); g.fillRect(s, T.laneDiv - 1.4, l, 2.4); }
   }
   if (T.edgeLine) { g.fillStyle = wht; g.fillRect(0, -hw + 3, L, 2.4); g.fillRect(0, hw - 5.4, L, 2.4); }
+  if (T.sw && !blq && (T.id === 'street' || T.id === 'avenue')) drawRuaDetalhes(g, e, s0, s1, hw);
   if (T.sw) {
     for (const [atA, perp] of [[true, e.perpA], [false, e.perpB]]) {
       if (!perp) continue;
@@ -400,6 +401,59 @@ function drawEdgeMarkings(g, e) {
     }
   }
   g.restore();
+}
+// detalhes de rua da cidade (sem sorteio do mapa: tudo escolhido pela posição): vagas pintadas na beira da calçada,
+// carga e descarga, bueiros, tampas de bueiro, remendos de asfalto e manchas de óleo nas vagas
+function drawRuaDetalhes(g, e, s0, s1, hw) {
+  const H = (k) => hash2(e.id * 31 + k, e.a.x + e.a.y * 7);
+  const outer = e.T.lanes[e.T.lanes.length - 1] + 12; // beira de fora da faixa de rodar
+  const larg = hw - outer; // largura da faixa de estacionamento
+  const a0 = s0 + 34, a1 = s1 - 34;
+  // remendos de asfalto (mais escuros) e tampas de bueiro no meio da faixa
+  for (let i = 0; i < 4; i++) {
+    if (H(10 + i) > 0.55) continue;
+    const s = s0 + H(20 + i) * (s1 - s0), y = (H(30 + i) - 0.5) * hw * 1.4, w = 14 + H(40 + i) * 26, h = 8 + H(50 + i) * 12;
+    g.fillStyle = 'rgba(14,14,18,0.32)'; g.fillRect(s, y - h / 2, w, h);
+    g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 0.8; g.strokeRect(s, y - h / 2, w, h);
+  }
+  for (let s = s0 + 70 + H(3) * 60; s < s1 - 30; s += 230 + H(s) * 80) {
+    const y = e.T.lanes[0] * (H(s + 1) > 0.5 ? 1 : -1);
+    g.fillStyle = '#2a2a2e'; g.beginPath(); g.arc(s, y, 4.2, 0, TAU); g.fill();
+    g.strokeStyle = 'rgba(150,150,150,0.35)'; g.lineWidth = 0.8; g.stroke();
+    g.beginPath(); g.moveTo(s - 3, y); g.lineTo(s + 3, y); g.moveTo(s, y - 3); g.lineTo(s, y + 3); g.stroke();
+  }
+  for (const sd of [-1, 1]) {
+    // bueiros (grade na sarjeta) — a água da chuva escorre para eles
+    for (let s = s0 + 40 + H(sd + 5) * 50; s < s1 - 20; s += 170) {
+      const y = sd * (hw - 3.2);
+      g.fillStyle = '#1b1b1f'; g.fillRect(s - 6, y - 2.6, 12, 5.2);
+      g.fillStyle = 'rgba(160,160,165,0.55)'; for (let k = -4; k <= 4; k += 2.6) g.fillRect(s + k, y - 2, 1, 4);
+    }
+    if (larg < 12 || a1 - a0 < 120) continue;
+    const quer = H(sd + 60);
+    if (quer < 0.38) continue; // nem toda quadra tem vaga pintada
+    const passo = 46, ys = sd > 0 ? hw - larg : -hw, yi = sd > 0 ? hw : -hw + larg;
+    // linha que separa a faixa de estacionamento da pista
+    g.fillStyle = 'rgba(236,236,230,0.55)';
+    g.fillRect(a0, sd > 0 ? hw - larg : -hw + larg - 1.4, a1 - a0, 1.4);
+    let k = 0;
+    for (let s = a0; s <= a1; s += passo, k++) {
+      g.fillStyle = 'rgba(236,236,230,0.7)'; g.fillRect(s - 0.7, Math.min(ys, yi), 1.4, larg);
+      if (s + passo > a1) break;
+      const r = H(100 + k * 3 + sd);
+      if (k === 2 && quer > 0.7) { // carga e descarga
+        g.fillStyle = 'rgba(227,191,63,0.75)';
+        for (let x = s + 4; x < s + passo - 6; x += 7) { g.save(); g.translate(x, (ys + yi) / 2); g.rotate(-0.7); g.fillRect(-0.8, -larg * 0.45, 1.6, larg * 0.9); g.restore(); }
+        g.save(); g.translate(s + passo / 2, (ys + yi) / 2); g.fillStyle = 'rgba(30,26,10,0.85)'; g.fillRect(-15, -3.6, 30, 7.2);
+        g.fillStyle = '#e3bf3f'; g.font = 'bold 6px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('CARGA', 0, 0.3); g.restore();
+      } else if (r < 0.3) { // mancha de óleo onde o carro fica parado
+        g.fillStyle = 'rgba(8,8,10,0.28)'; g.beginPath(); g.ellipse(s + passo * (0.35 + r), (ys + yi) / 2, 7 + r * 10, 3.5 + r * 4, 0, 0, TAU); g.fill();
+      } else if (r > 0.86) { // vaga de idoso / deficiente
+        g.fillStyle = 'rgba(70,130,210,0.55)'; g.fillRect(s + 3, Math.min(ys, yi) + 2, passo - 6, larg - 4);
+        g.fillStyle = 'rgba(236,236,230,0.8)'; g.font = 'bold 6px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(r > 0.93 ? 'IDOSO' : 'VAGA', s + passo / 2, (ys + yi) / 2 + 0.3);
+      }
+    }
+  }
 }
 function drawNode(g, n, asph) {
   const hv = n.hx, hh = n.hy;

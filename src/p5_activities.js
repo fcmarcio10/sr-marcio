@@ -394,10 +394,11 @@ function updateActivities(dt) {
       const verb = { garagem: 'Entrar na garagem', posto: 'Abastecer / lavar — ' + best.name, oficina: 'Oficina — consertar e melhorar' }[best.kind];
       Act.prompt = { text: verb || (best.pickup && !Act.delivery ? 'Pegar entrega — ' + best.name : 'Entrar — ' + best.name), act: () => openShopDialog(best) };
     } else if (!Act.race) {
-      if (rachaOpen()) for (const r of World.rachas) {
+      if (rachaOpen() && liberado('racha')) for (const r of World.rachas) {
         if (Math.hypot(r.start[0] - p.x, r.start[1] - p.y) < 85) { Act.prompt = { text: 'Racha (ilegal): ' + r.name + ' — aposta R$ ' + fmtMoney(r.bet) + ' contra ' + r.rival, act: () => startRacha(r) }; break; }
       }
       if (!Act.prompt) for (const r of World.races) {
+        if (!liberado('percursos') && r.id !== 'fazenda') continue; // percursos abrem no capítulo 5 (o Rali da Vaca Atolada sempre pode)
         if (Math.hypot(r.start[0] - p.x, r.start[1] - p.y) < 85) {
           const rec = Profile.races[r.id];
           Act.prompt = { text: 'Iniciar percurso: ' + r.name + (rec ? ' (recorde ' + fmtTime(rec.best) + ')' : ''), act: () => startRace(r) };
@@ -443,7 +444,9 @@ function freeRoamHint() {
     ['Farol (H)', 'Parado por muito tempo com o farol aceso, a bateria arria. Aperte H para desligar.'],
   ];
   if (cheapest && Profile.money >= cheapest.price) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
-  return list[Act.hintI % list.length];
+  // sem dica de coisa que a história ainda não liberou
+  const L2 = list.filter((h) => (liberado('entregas') || !/entrega/i.test(h[1])) && (liberado('percursos') || !/Percursos/.test(h[1])));
+  return L2[Act.hintI % L2.length];
 }
 
 /* ============================ POLÍCIA: CRIMES, PERSEGUIÇÃO, PRISÃO E FUGA ============================ */

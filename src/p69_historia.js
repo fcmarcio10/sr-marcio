@@ -25,9 +25,11 @@ const Historia = {
     if (!Profile.hist) {
       // quem já jogava antes da história começa no capítulo 2 (o passo a passo não existia)
       const veterano = Profile.tut === undefined && (Profile.rides || Profile.deliveries || Profile.earned);
-      Profile.hist = { cap: veterano ? 1 : 0, base: 0, fim: false };
-      if (veterano) { Profile.hist.base = this.cru(1); Profile.hist.anunciar = true; }
+      Profile.hist = { cap: veterano ? 1 : 0, base: 0, fim: false, v: 2 };
+      if (veterano) { Profile.hist.base = this.cru(1); Profile.hist.anunciar = true; Profile.hist.tudo = true; Profile.hist.apres = true; }
     }
+    // história começada na versão anterior (sem travas): quem já jogava continua com tudo liberado e sem a apresentação inicial
+    if (Profile.hist.v === undefined) { Profile.hist.v = 2; Profile.hist.apres = true; if (Profile.rides || Profile.deliveries || Profile.earned > 0) Profile.hist.tudo = true; }
     return Profile.hist;
   },
   cru(i) { const c = HIST_CAPS[i]; return c ? c.val() : 0; },
@@ -43,7 +45,13 @@ const Historia = {
     if (Game.mode !== 'play' || !carregou(3)) return;
     const h = this.h(); if (h.fim) return;
     this.t -= dt; if (this.t > 0) return; this.t = 0.5;
-    if (h.anunciar) { if (VoicePlayer.msg || Screens.current === 'screen-dialog') return; h.anunciar = false; this.abre(h.cap); return; }
+    if (h.anunciar) { if (VoicePlayer.msg || Screens.current === 'screen-dialog' || Apresenta.on) return; h.anunciar = false; this.abre(h.cap); return; }
+    if (h.cap === 0 && !h.apres) { // primeira noite: a câmera apresenta a cidade, a oficina e a garagem; depois começa o passo a passo
+      h.apres = true; saveGame();
+      Apresenta.comeca(lugaresDoCapitulo(0), () => { Missao.titulo('Capítulo 1 de 6', 'Chegada'); });
+      return;
+    }
+    if (Apresenta.on) return;
     if (Profile.tut !== undefined && Profile.tut < TUT_STEPS.length && h.cap === 0) return;
     const c = HIST_CAPS[h.cap];
     if (this.feito() >= c.alvo) this.conclui();
@@ -61,12 +69,19 @@ const Historia = {
   // começa um capítulo: nome grande no meio, objetivo em legenda, dica no canto e áudio do Seu Zé no zap
   abre(i) {
     const c = HIST_CAPS[i]; if (!c || Game.mode !== 'play') return;
-    Missao.titulo(i >= 6 ? 'O final' : 'Capítulo ' + (i + 1) + ' de 6', c.nome);
-    setTimeout(() => { if (Game.mode === 'play') Missao.legenda(c.leg, 8); }, 5000);
-    if (c.dica) setTimeout(() => { if (Game.mode === 'play') Missao.ajuda(c.dica, 9); }, 5600);
-    if (c.voz && CHAR_VOICES[c.voz]) { const m = charVoice(c.voz); if (m && m.voice) setTimeout(() => VoicePlayer.play(m), 1800); }
+    if (c.voz && CHAR_VOICES[c.voz]) { const m = charVoice(c.voz); if (m && m.voice) setTimeout(() => VoicePlayer.play(m), 900); }
     if (c.alvoMapa) { const w = c.alvoMapa(); if (w) { Act.waypoint = w; Act.gpsT = 0; } }
+    if (i === 3) MissaoAjuda.t = 14; // o pedido de ajuda começa logo depois do título
     saveGame();
+    Apresenta.comeca(lugaresDoCapitulo(i), () => {
+      if (Game.mode !== 'play') return;
+      Missao.titulo(i >= 6 ? 'O final' : 'Capítulo ' + (i + 1) + ' de 6', c.nome);
+      setTimeout(() => { if (Game.mode === 'play') Missao.legenda(c.leg, 8); }, 5000);
+      const lib = Object.keys(LIBERA).filter((k) => LIBERA[k] === i).map((k) => LIBERA_NOME[k]);
+      const dica = (lib.length ? '<div class="ms-ajuda-tit">Liberado</div><b>' + lib.join('</b> · <b>') + '</b><br>' : '') + (c.dica || '');
+      if (dica) setTimeout(() => { if (Game.mode === 'play') Missao.ajuda(dica, 10); }, 5600);
+      if (i === 3) MissaoAjuda.t = 6;
+    });
   },
   final() {
     const h = this.h(); h.fim = true; saveGame();
