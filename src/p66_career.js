@@ -44,8 +44,8 @@ const RIDE_TYPES = {
 };
 const VIPS = ['Doutor Valdemar', 'Influencer Kamylla', 'Deputada Rosimeire', 'Empresário Juvenal', 'Jogador do Gambiarra FC', 'Cantor de Pagode Thiaguinho do Morro', 'Desembargador Otacílio', 'Fazendeiro do Agro de Goiás', 'Influencer de Floripa', 'Cantor de Sertanejo Universitário Repetente'];
 const MUDANCA_ITENS = ['a geladeira', 'a TV de 50 polegadas', 'o espelho da vó', 'a cristaleira', 'o aquário', 'a máquina de lavar', 'o vaso de planta da sogra'];
-const AERO_FALAS = ['"Meu voo sai daqui a pouco, pelo amor de Deus, corre!"', '"Esqueci o passaporte... não, achei! Bora, bora!"', '"Se eu perder esse voo, a lua de mel acaba antes de começar."'];
-const VIP_FALAS = ['"Ar no 21, por favor. Nem 20, nem 22."', '"Evite buracos. Meu terno custou mais que esse carro."', '"Você tem água com gás? Não? Hum."'];
+const AERO_FALAS = ['"Meu voo sai daqui a pouco, pelo amor de Deus, corre!"', '"Esqueci o passaporte... não, achei! Bora, bora!"', '"Se eu perder esse voo, a lua de mel acaba antes de começar."', '"Terminal 1, rapidinho, por favor!"', '"Minha mala tá pesada, cuidado no buraco."', '"Nunca andei de avião. Tô nervoso!"', '"Embarque fecha em 40 minutos. Dá?"', '"Se der tempo, passa no posto pra eu comprar pão de queijo."'];
+const VIP_FALAS = ['"Ar no 21, por favor. Nem 20, nem 22."', '"Evite buracos. Meu terno custou mais que esse carro."', '"Você tem água com gás? Não? Hum."', '"Sem conversa, por favor. Estou numa call."', '"Pode ir pela orla. Gosto da vista."', '"Meu motorista de sempre está de férias. Não me decepcione."', '"Desligue o rádio, obrigado."', '"Mantenha os 40 por hora. Tenho enjoo."'];
 function rideTypeCheck(id) {
   const T = RIDE_TYPES[id], C = career();
   if (C.lvl < T.lvl) return 'Libera no nível ' + T.lvl;
@@ -266,10 +266,10 @@ VoicePlayer.tick = function () {
 /* ---------- pedestres que falam: susto, carro na calçada, buzina e paredão ----------
    Um de cada vez, com intervalo; a voz vai abaixando conforme o carro se afasta (PedVoz.update). */
 const PED_FALAS = {
-  susto: [['ped_1', 'Ô, maluco! Olha por onde anda!'], ['ped_2', 'Ai, meu Deus! Quase me atropela!'], ['ped_3', 'Devagar, motorista!'], ['ped_4', 'Ê, rapá! Quer me levar junto, é?'], ['ped_11', 'Tá doido, é?!'], ['ped_12', 'Eita! Por pouco, hein!'], ['ped_13', 'Olha a pressa, rapaz!'], ['ped_14', 'Calma, piloto!']],
-  calcada: [['ped_5', 'Sai da calçada, doido!'], ['ped_6', 'Moço! A rua é ali, ó!'], ['ped_15', 'Desce da calçada, motorista!'], ['ped_16', 'Ô! Aqui é calçada, viu?']],
-  buzina: [['ped_7', 'Buzina pra tua avó, rapá!'], ['ped_8', 'Bah, que susto, tchê!'], ['ped_17', 'Tô surdo não, moço!'], ['ped_18', 'Pra que essa buzina toda?']],
-  paredao: [['ped_9', 'Aumenta o som, motorista!'], ['ped_10', 'Esse paredão é bom demais!'], ['ped_19', 'Aí sim, hein!'], ['ped_20', 'Que som é esse, meu Deus!']],
+  susto: [['ped_1', 'Ô, maluco! Olha por onde anda!'], ['ped_2', 'Ai, meu Deus! Quase me atropela!'], ['ped_3', 'Devagar, motorista!'], ['ped_4', 'Ê, rapá! Quer me levar junto, é?'], ['ped_11', 'Tá doido, é?!'], ['ped_12', 'Eita! Por pouco, hein!'], ['ped_13', 'Olha a pressa, rapaz!'], ['ped_14', 'Calma, piloto!'], ['ped_21', 'Eita! Quase me pega, maluco!'], ['ped_22', 'Ai! Meu coração, moço!']],
+  calcada: [['ped_5', 'Sai da calçada, doido!'], ['ped_6', 'Moço! A rua é ali, ó!'], ['ped_15', 'Desce da calçada, motorista!'], ['ped_16', 'Ô! Aqui é calçada, viu?'], ['ped_23', 'Ô, aqui é calçada, não é pista não!'], ['ped_24', 'Vai subir na minha casa também?']],
+  buzina: [['ped_7', 'Buzina pra tua avó, rapá!'], ['ped_8', 'Bah, que susto, tchê!'], ['ped_17', 'Tô surdo não, moço!'], ['ped_18', 'Pra que essa buzina toda?'], ['ped_25', 'Calma, já tô saindo, credo!'], ['ped_26', 'Buzina mais alto, que eu não ouvi não!']],
+  paredao: [['ped_9', 'Aumenta o som, motorista!'], ['ped_10', 'Esse paredão é bom demais!'], ['ped_19', 'Aí sim, hein!'], ['ped_20', 'Que som é esse, meu Deus!'], ['ped_27', 'Abaixa esse som, que tem criança dormindo!'], ['ped_28', 'Eita, que som é esse? Toca um forró aí!']],
 };
 const PedVoz = { t: 0, a: null, ultimo: null, quem: null, falas: 0 };
 PedVoz.fala = function (an, tipo) {
@@ -278,6 +278,8 @@ PedVoz.fala = function (an, tipo) {
   let F = pick(L); if (F[0] === this.ultimo && L.length > 1) F = L.find((x) => x[0] !== this.ultimo);
   this.ultimo = F[0]; this.t = Game.time + rnd(7, 12); this.falas++;
   this.quem = an; this.vol0 = 1;
+  an.reacao = { tipo, t: Game.time }; // anima o pedestre conforme o que aconteceu (drawAnimal)
+  if (player) an.a = Math.atan2(player.y - an.y, player.x - an.x); // vira para o carro
   const c = VOICE_CLIPS[F[0]];
   Legenda.fala('Pedestre', F[1], c ? c.dur : 2.5);
   if (c) {
@@ -658,9 +660,9 @@ const PG_PICKUP = {
 const PG_QUICK = ['Já estou chegando!', 'Cheguei!', 'Tô no trânsito, 2 minutinhos.'];
 const PG_ANS = ['Beleza!', 'Ok, tô te esperando.', 'Valeu!', 'Tá bom, sem pressa (mas com um pouco de pressa).', 'Tô vendo o carrinho no mapa, vem!', 'Ufa! Achei que tinha me esquecido.', 'Combinado, tô na porta.', 'Só não buzina que o neném dormiu.'];
 // avaliação 5 estrelas por texto (quando não manda áudio)
-const PG_TOP = ['Valeu pela corrida, motorista! Nota 5!', 'Corrida top, chegou rapidinho!', 'Melhor motorista de São Gambiarra, bicho!', 'Bah, que corrida tri! Valeu, tchê!', 'Oxe, chegou foi ligeiro! Nota 5, visse?', 'Uai, nem senti os buracos, sô!', 'Égua, que motorista pai d\'égua!'].concat(['Chegou antes do previsto! Nem deu tempo de passar o batom.', 'Motorista educado e carro limpinho. Cinco estrelas!', 'Gostei da rádio que tava tocando. Nota 5!', 'Nunca vi alguém desviar de buraco assim. Artista!', 'Valeu, campeão! Até o cachorro gostou da corrida.', 'Corrida tranquila, música boa e ar fresquinho. Nota mil!']);
+const PG_TOP = ['Valeu pela corrida, motorista! Nota 5!', 'Corrida top, chegou rapidinho!', 'Melhor motorista de São Gambiarra, bicho!', 'Bah, que corrida tri! Valeu, tchê!', 'Oxe, chegou foi ligeiro! Nota 5, visse?', 'Uai, nem senti os buracos, sô!', 'Égua, que motorista pai d\'égua!', 'Nota 5 e ainda dei gorjeta. Mereceu!', 'Dirigiu igual chofer de novela. Obrigada!', 'Cheguei antes do previsto. Milagre!', 'Motorista educado e carro cheiroso. Raridade!', 'Corrida tranquila, até cochilei. Valeu!', 'Pode me buscar amanhã também?', 'Show! Já salvei seu nome aqui.', 'Nem derramou meu açaí. Profissional!', 'Música boa e caminho certo. Top!', 'Rápido e sem tranco. Cinco estrelas!'].concat(['Chegou antes do previsto! Nem deu tempo de passar o batom.', 'Motorista educado e carro limpinho. Cinco estrelas!', 'Gostei da rádio que tava tocando. Nota 5!', 'Nunca vi alguém desviar de buraco assim. Artista!', 'Valeu, campeão! Até o cachorro gostou da corrida.', 'Corrida tranquila, música boa e ar fresquinho. Nota mil!']);
 // corrida de 3 ou 4 estrelas: comentário curto
-const PG_MEIO = ['Corrida ok. Só o banco que tava meio grudento, hein.', 'Chegou, mas pegou todo buraco da avenida.', 'Foi bem, mas da próxima abaixa esse som, por favor.', 'Deu tudo certo. O carro tem cheiro de pastel, é normal?', 'Corrida boa! Só a freada na lombada que me assustou.', 'Tudo certo. Mas o GPS te mandou pelo caminho mais longo, viu?'];
+const PG_MEIO = ['Corrida ok. Só o banco que tava meio grudento, hein.', 'Chegou, mas pegou todo buraco da avenida.', 'Foi bem, mas da próxima abaixa esse som, por favor.', 'Deu tudo certo. O carro tem cheiro de pastel, é normal?', 'Corrida boa! Só a freada na lombada que me assustou.', 'Tudo certo. Mas o GPS te mandou pelo caminho mais longo, viu?', 'Chegou, mas errou a entrada duas vezes.', 'Tudo certo, só o ar que não gelava.', 'Foi bem, mas que freada foi aquela?', 'Ok. Só não precisava contar a vida toda.', 'Deu certo. O GPS que deu volta, né?', 'Chegou. A suspensão já viu dias melhores.'];
 function pgChats() { if (!Profile.pg) Profile.pg = { chats: [] }; return Profile.pg.chats; }
 function pgUnread() { return pgChats().filter((c) => !c.read).length; }
 function pgChat(R) {
@@ -719,10 +721,10 @@ const FR_PEDIDO = {
   pickup: ['Oi! Já separei as coisas na garagem. Cuidado com a geladeira!', 'Tem escada aqui, mas eu ajudo a carregar.', 'Cabe tudo na caçamba da picape?'],
   loja: ['Oi! Pedi pelo aplicativo e tô morrendo de fome. Vem rápido!', 'Boa noite! Pode tocar a campainha do 2.', 'É a minha encomenda? Tô de olho no mapa!'],
 };
-const FR_OK = ['Chegou certinho! Muito obrigado, motorista!', 'Valeu demais! Entrega rápida e tudo inteiro.', 'Obrigada! Da próxima vez peço com você de novo.', 'Show de bola! Cinco estrelas pro frete.', 'Chegou! Nem acreditei que foi tão rápido.', 'Deus te abençoe, meu filho. Chegou tudo bem!'];
+const FR_OK = ['Chegou certinho! Muito obrigado, motorista!', 'Valeu demais! Entrega rápida e tudo inteiro.', 'Obrigada! Da próxima vez peço com você de novo.', 'Show de bola! Cinco estrelas pro frete.', 'Chegou! Nem acreditei que foi tão rápido.', 'Deus te abençoe, meu filho. Chegou tudo bem!', 'Perfeito! Embalagem intacta.', 'Recebi aqui. Valeu, parceiro!', 'Chegou no capricho. Vou indicar!', 'Tudo certo, até antes do horário.', 'Obrigado! Já pode pegar o próximo.', 'Show, o pessoal aqui agradece!'];
 const FR_OK_TIPO = { gas: ['Gás chegou! Agora o feijão sai. Muito obrigado!', 'Salvou a janta! Valeu pelo gás, parceiro!'], tanker: ['Tanque cheio! A fila de carro já tá andando. Valeu!'], guincho: ['Carro entregue na oficina! O Seu Zé disse que é só a bateria. Ufa, valeu!'], cacamba: ['Calçada limpinha! A vizinha até sorriu. Obrigado!'] };
-const FR_ATRASO = ['Chegou, né... Demorou, mas chegou. Obrigado mesmo assim.', 'Achei que o frete vinha de jegue! Mas valeu.', 'Já tinha até desistido. Obrigado, mas da próxima vez, mais cedo!'];
-const FR_AVARIA = ['Chegou, mas metade das caixas tá amassada. Vou relevar dessa vez...', 'Moço, o que você fez com a minha carga? Tá tudo sacudido!', 'Chegou tudo chacoalhado. Parece que veio pela estrada de terra!'];
+const FR_ATRASO = ['Chegou, né... Demorou, mas chegou. Obrigado mesmo assim.', 'Achei que o frete vinha de jegue! Mas valeu.', 'Já tinha até desistido. Obrigado, mas da próxima vez, mais cedo!', 'O cliente já tava ligando. Mas chegou.', 'Demorou, hein? Mas tá entregue.', 'Quase fechei a loja esperando.', 'Atrasou, mas pelo menos tá inteiro.'];
+const FR_AVARIA = ['Chegou, mas metade das caixas tá amassada. Vou relevar dessa vez...', 'Moço, o que você fez com a minha carga? Tá tudo sacudido!', 'Chegou tudo chacoalhado. Parece que veio pela estrada de terra!', 'Uma caixa veio rasgada. Que isso?', 'Tá tudo de cabeça pra baixo aqui!', 'Veio sacudindo igual liquidificador.', 'Vou ter que conferir peça por peça...'];
 const FR_QUICK = ['Já tô a caminho!', 'Carga a bordo, chegando!', 'Pode deixar, chega inteirinho!'];
 const FR_ANS = ['Beleza, obrigado!', 'Valeu! Tô esperando.', 'Combinado!', 'Vem com Deus!'];
 // agradecimento por áudio (às vezes)

@@ -1,6 +1,6 @@
 /* ============================ CELULAR, PROFISSÕES, APP DE MOTORISTA E RACHA ============================ */
 const PASSAGEIROS = ['Dona Cida', 'Seu Jorge', 'Thaís', 'Juninho', 'Pastor Elias', 'Dona Penha', 'Marcão', 'Bia da Farmácia', 'Tio Zezinho', 'Kelly', 'Rafa do Bloco', 'Vó Lurdes', 'Diego Entregador', 'Professora Solange', 'Painho Raimundo', 'Guri Matheus', 'Tonho Mineiro', 'Chicó do Sertão', 'Dona Socorro', 'Mano Wellington'];
-const FALAS_EMBARQUE = ['"Boa noite, moço! Pode ir pela avenida que é mais rápido."', '"Liga o ar aí, por favor?"', '"Tô atrasada pro plantão, vai com fé!"', '"Nossa, esse carro é raiz, hein?"', '"Me deixa na porta, que tá escuro."', '"Pode botar um pagodinho no rádio?"', '"Uai, sô, esse trem é rebaixado demais da conta!"', '"Bah, tchê, que frio! Liga o ar quente aí, guri."', '"Oxente, motorista! Tu é ligeiro, hein? Gostei, visse?"', '"Égua, mano, que carro massa!"', '"Ô, meu, vai pela avenida que é mais rápido. Confia."', '"Caraca, mermão, esse som é sinistro!"'];
+const FALAS_EMBARQUE = ['"Boa noite, moço! Pode ir pela avenida que é mais rápido."', '"Liga o ar aí, por favor?"', '"Tô atrasada pro plantão, vai com fé!"', '"Nossa, esse carro é raiz, hein?"', '"Me deixa na porta, que tá escuro."', '"Pode botar um pagodinho no rádio?"', '"Uai, sô, esse trem é rebaixado demais da conta!"', '"Bah, tchê, que frio! Liga o ar quente aí, guri."', '"Oxente, motorista! Tu é ligeiro, hein? Gostei, visse?"', '"Égua, mano, que carro massa!"', '"Ô, meu, vai pela avenida que é mais rápido. Confia."', '"Caraca, mermão, esse som é sinistro!"', '"Pode ir pelo caminho que você achar melhor."', '"Cuidado que eu tô com bolo no colo!"', '"Moço, liga o pisca, pelo amor de Deus."', '"Tô com fome, passa no drive-thru? Brincadeira."', '"Esse carro é seu ou é alugado?"', '"Corre não, que eu enjoo fácil."', '"Boa! Achei que ia demorar mais."', '"Me conta: muito passageiro doido hoje?"'];
 const FALAS_BATIDA = ['"Ô motorista, devagar!"', '"Jesus amado, quase morri!"', '"Vou dar uma estrela pra você, viu?"', '"Eita! Cuidado aí!"', '"Oxe! Tá querendo me matar, é?"', '"Bah, que barbaridade, tchê!"', '"Uai! Cê tá doido, sô?"', '"Égua, quase que eu vou pro céu antes da hora!"', '"Caraca, mermão, pegou de jeito!"', '"Meu, que rolê tenso!"'];
 const JOB_TYPES = {
   pickup: { name: 'Frete de picape', items: ['Sacos de cimento', 'Mudança pequena', 'Tijolos baianos', 'Geladeira usada', 'Móveis da vó'], mult: 1.35 },
@@ -27,13 +27,10 @@ const WA_LOC_SVG = '<svg viewBox="0 0 240 110" preserveAspectRatio="xMidYMid sli
 function ensurePhoneData() {
   if (!Profile.msgs) {
     Profile.msgs = [];
-    addMsg('Seu Zé (Oficina)', 'Bem-vindo a São Gambiarra!',
-      'Aqui é o Seu Zé, da oficina. Você chegou em São Gambiarra, uma cidade que nunca dorme. Seu Gou Quadrado tá na garagem da Vila Sem Pressa.\n\n' +
-      'Pra ganhar a vida por aqui:\n• Entregas: pare em frente aos comércios com marcador amarelo e aperte E.\n• App PegaAí: fique online e leve passageiros pela cidade.\n• App Fretes: com uma picape ou caminhão de trabalho (a picape é a mais barata), faça fretes de carga, gás, combustível, entulho e reboque.\n• Percursos: bandeiras azuis no mapa, com medalhas.\n• Racha: depois das 22h, os rachas da madrugada pagam a aposta em dobro. Só cuidado: se a viatura vir, é multa.\n\n' +
-      'Abasteça no posto, conserte aqui comigo quando bater e cuidado com o pardal nas avenidas. Q abre o celular, e o mapa fica no app Mapa.\n\nBoa noite e vai com Deus!', true);
+    addMsg('Seu Zé (Oficina)', 'Bem-vindo a São Gambiarra!', 'Aqui é o Seu Zé, da oficina. Seu carro tá na garagem.\nTrabalho tem: PegaAí, Fretes e entregas no amarelo.\nBateu? Passa aqui. Boa noite!', true);
   }
   if (Profile.rides === undefined) { Profile.rides = 0; Profile.ratingSum = 0; Profile.jobs = 0; }
-  if (!Profile.sosMsg) { Profile.sosMsg = true; addMsg(ZE, 'Socorro 24h', 'Ficou sem gasolina ou bateu feio no meio do caminho? Me chama aqui no zap que eu vou até você com o guincho. Levo gasolina e ferramenta. Cobro 15% a mais que na oficina, por causa do deslocamento.', true); }
+  if (!Profile.sosMsg) { Profile.sosMsg = true; addMsg(ZE, 'Socorro 24h', 'Ficou sem gasolina ou quebrou? Me chama aqui que eu vou com o guincho. Custa 15% a mais.', true); }
 }
 function randomHome(nx, ny, dmin, dmax) {
   const pool = World.homes.filter((h) => { const d = Math.hypot(h.x - nx, h.y - ny); return d > dmin && d < dmax; });

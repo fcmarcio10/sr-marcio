@@ -80,9 +80,18 @@ const Legenda = { t: null };
 Legenda.fala = function (quem, texto, dur) {
   if (Settings.legendas === false || !texto || Game.mode !== 'play') return;
   let el = $('fala-leg'); if (!el) { el = document.createElement('div'); el.id = 'fala-leg'; document.body.appendChild(el); }
-  el.innerHTML = (quem ? '<b>' + escapeHtml(quem) + '</b> ' : '') + escapeHtml(texto);
-  el.classList.add('on');
-  clearTimeout(this.t); this.t = setTimeout(() => el.classList.remove('on'), clamp((dur || texto.length / 14) * 1000 + 600, 2200, 11000));
+  // frases curtas, uma de cada vez, no tempo da fala (texto longo não vira um bloco na tela)
+  const partes = []; let cur = '';
+  for (const f of String(texto).split(/(?<=[.!?…])\s+/)) { if (cur && (cur + ' ' + f).length > 70) { partes.push(cur); cur = f; } else cur = cur ? cur + ' ' + f : f; }
+  if (cur) partes.push(cur);
+  const total = clamp((dur || texto.length / 14) * 1000, 1800, 14000), cada = total / partes.length;
+  clearTimeout(this.t); let i = 0;
+  const mostra = () => {
+    if (i >= partes.length) { el.classList.remove('on'); return; }
+    el.innerHTML = (quem ? '<b>' + escapeHtml(quem) + '</b> ' : '') + escapeHtml(partes[i]); el.classList.add('on');
+    i++; this.t = setTimeout(mostra, i >= partes.length ? cada + 500 : cada);
+  };
+  mostra();
 };
 const nomeCurto = (s) => String(s || '').replace(/\s*\(.*\)\s*/, '').trim();
 

@@ -30,7 +30,7 @@ function toast(title, text, kind) {
   const d = document.createElement('div'); d.dataset.k = chave;
   d.className = 'toast ' + (kind || '');
   const b = document.createElement('b'); b.textContent = title; d.appendChild(b);
-  if (text) d.appendChild(document.createTextNode(text));
+  if (text) { const sp = document.createElement('span'); sp.className = 't-text'; sp.textContent = text; d.appendChild(sp); }
   box.appendChild(d);
   while (box.children.length > 3) box.removeChild(box.firstChild);
   setTimeout(() => { d.classList.add('out'); setTimeout(() => d.remove(), 600); }, 4600);

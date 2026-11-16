@@ -1162,6 +1162,9 @@ function drawAnimal(ctx, an) {
       const dancing = (an.dance && an.v === 0) || an.danceUntil > Game.time;
       const sw = an.v > 0 ? Math.sin(an.phase) * 2.4 : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
       if (dancing) ctx.rotate(Math.sin(Game.time * 4.5 + an.seed * 9) * 0.35);
+      // reação quando fala (PedVoz): susto dá um pulinho; calçada, sacode o braço; buzina e paredão, mão no ouvido
+      const re = an.reacao && Game.time - an.reacao.t < 1.8 ? an.reacao : null, rk2 = re ? Game.time - re.t : 0;
+      if (re && re.tipo === 'susto') { const pulo = 1 + 0.25 * Math.max(0, Math.sin(rk2 * 11)) * (1 - rk2 / 1.8); ctx.scale(pulo, pulo); }
       ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(1.5, 2, 4, 5, 0, 0, TAU); ctx.fill();
       ctx.fillStyle = an.pants; ctx.beginPath(); ctx.rect(-1 + sw * 0.5, -2.6, 2.6, 1.8); ctx.rect(-1 - sw * 0.5, 0.8, 2.6, 1.8); ctx.fill();
       ctx.fillStyle = an.skin; ctx.beginPath(); ctx.arc(sw, -4.6, 1.2, 0, TAU); ctx.arc(-sw, 4.6, 1.2, 0, TAU); ctx.fill();
@@ -1174,6 +1177,13 @@ function drawAnimal(ctx, an) {
       ctx.fillStyle = an.skin; ctx.beginPath(); ctx.arc(0.5, 0, 2.2, 0, TAU); ctx.fill();
       if (coat) { ctx.fillStyle = shade(coatCol, -0.12); ctx.beginPath(); ctx.arc(-0.3, 0, 2.6, Math.PI * 0.35, Math.PI * 1.65); ctx.fill(); }
       else { ctx.fillStyle = an.hair; ctx.beginPath(); ctx.arc(0, 0, 2.3, Math.PI * 0.5, Math.PI * 1.5); ctx.fill(); }
+      if (re) {
+        ctx.fillStyle = an.skin; ctx.beginPath();
+        if (re.tipo === 'susto') { ctx.arc(3.6, -4, 1.2, 0, TAU); ctx.arc(3.6, 4, 1.2, 0, TAU); } // mãos para frente
+        else if (re.tipo === 'calcada') { ctx.arc(4.2 + Math.sin(rk2 * 20) * 1.4, -3.6, 1.3, 0, TAU); } // punho sacudindo
+        else { ctx.arc(0.6, -2.7, 1.1, 0, TAU); ctx.arc(0.6, 2.7, 1.1, 0, TAU); } // mãos no ouvido
+        ctx.fill();
+      }
       if (umb) {
         const uc = ['#1a1a1e', '#c0392b', '#2e86de', '#f1c40f', '#8e44ad', '#16a085', '#ff6fa5', '#e67e22'][Math.floor(rk * 131) % 8];
         ctx.save(); ctx.translate(1.2, 0.4); ctx.rotate(Game.time * 0.3 * (an.v > 0 ? 1 : 0.2) + rk * 6);
