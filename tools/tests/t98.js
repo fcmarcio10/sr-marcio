@@ -17,7 +17,7 @@ const { chromium } = require('playwright');
   // deixou ligada e saiu: na próxima vez espera a tela de carregamento acabar e só então entra no ar
   await p.evaluate(() => { Settings.radioOff = false; saveSettings(); Radio.stop(); });
   await p.reload(); await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 40000 });
-  await p.click('[data-act="continue"]'); await p.waitForTimeout(2500);
+  await p.evaluate(() => continueGame()); await p.waitForTimeout(2500);
   const rc = await st(); console.log('carregando (deixou ligada):', JSON.stringify(rc));
   await p.waitForTimeout(5500);
   r = await st(); console.log('depois de carregar:', JSON.stringify(r));
