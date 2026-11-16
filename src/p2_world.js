@@ -288,6 +288,8 @@ function addLight(x, y, r, i, col, extra) {
   return L;
 }
 
+// luz sem gastar sorteio do mapa (para coisas novas não embaralharem o resto)
+function addLightFixa(x, y, r, i, col) { const L = { x, y, r, i, col, flick: 0, broken: false, seed: hash2(x | 0, y | 0) }; World.lights.push(L); lightGrid.insert(L, x - r, y - r, x + r, y + r); return L; }
 function addTree(x, y, type, size, opt) {
   opt = opt || {};
   if (!opt.force) {
@@ -1368,10 +1370,10 @@ function buildHighwayStrip() {
   for (const x of [900, 3400, 5000, 6900, 8200]) {
     const bx = x, by = x > 4700 ? 6320 : 6080;
     if (areaBlocked(bx - 40, by - 10, bx + 40, by + 10)) continue;
-    const bd = { kind: 'billboard', x: bx, y: by, h: 58, text: ads[ai % ads.length], col: pick(['#ffb547', '#59e0ff', '#ff5f7a', '#5be38f']), panel: null };
+    const bd = { kind: 'billboard', x: bx, y: by, h: 62, text: ads[ai % ads.length], col: pick(['#ffb547', '#59e0ff', '#ff5f7a', '#5be38f']), ad: ai, panel: null };
     ai++;
-    addTall(bd, bx - 60, by - 60, bx + 60, by + 60);
-    addCircCol(bx - 24, by, 4, 'pole'); addCircCol(bx + 24, by, 4, 'pole');
+    addTall(bd, bx - 90, by - 90, bx + 90, by + 90);
+    addCircCol(bx - 34, by, 4, 'pole'); addCircCol(bx + 34, by, 4, 'pole');
     addLight(bx, by - 20, 110, 0.6, 'white');
   }
   // cachorros pelas ruas residenciais
@@ -1638,16 +1640,21 @@ function buildMarcosDaCidade() {
   addLight(4760, 3275, 110, 0.9, 'warm', { shop: true });
   for (let i = 0; i < 5; i++) addProp('pot', 4745, 3250 + i * 14, { col: 'circ', cr: 5, R: 10 });
   addShop({ kind: 'paneleiras', name: 'Galpão das Paneleiras', x: 4600 + RT.street.lanes[0], y: 3275, bld: pb, color: '#ff9a4a', region: 'rio', pickup: true, items: ['Panela de barro grande', 'Jogo de panelas de barro', 'Moquequeira de barro'] });
-  // placas verdes de rodovia com as cidades vizinhas
-  const signs = [[1180, 'VITORINHA 25', 'VILA VÉIA 31'], [3300, 'GUARAPARIU 58', 'ANCHIETA DE PERTO 80'], [6900, 'PEDRA AZULEJO 92', 'DOMINGOS MARTELO 70'], [8200, 'CACHOEIRO DE ITAPEMIRIM-MIRIM 136', 'LINHA RES 135']];
-  for (const [x, a, b] of signs) {
+  // outdoors na rodovia (antes eram placas verdes com as cidades vizinhas)
+  let bbExtra = 0;
+  // entre os outdoors que já existiam (900, 3400, 5000, 6900, 8200), para não ficarem um em cima do outro
+  for (const x0 of [2150, 4200, 5950, 7550]) {
     const y = HWY_Y - RT.highway.w / 2 - 14;
-    if (areaBlocked(x - 30, y - 8, x + 30, y + 8)) continue;
-    const g = { kind: 'gsign', x, y, h: 54, lines: [a, b], panel: null };
-    addTall(g, x - 60, y - 60, x + 60, y + 60);
-    addCircCol(x - 26, y, 3, 'pole'); addCircCol(x + 26, y, 3, 'pole');
+    const livre = (xx) => !areaBlocked(xx - 40, y - 8, xx + 40, y + 8) && [-40, 0, 40].every((d) => { const g = groundAt(xx + d, y - 6); return g !== SF.ROAD && g !== SF.BRIDGE; }) && [-80, 80].every((d) => groundAt(xx + d, y - 30) !== SF.ROAD);
+    const x = [0, 250, -250, 500, -500, 750].map((d) => x0 + d).find(livre); // anda um pouco se o lugar estiver ocupado
+    if (x === undefined) continue;
+    // no lugar das placas verdes de rodovia: outdoors de verdade (desenho com humor)
+    const g = { kind: 'billboard', x, y: y - 6, h: 62, ad: 5 + (bbExtra++), panel: null };
+    addTall(g, x - 90, y - 96, x + 90, y + 84);
+    addCircCol(x - 34, y - 6, 4, 'pole'); addCircCol(x + 34, y - 6, 4, 'pole');
+    addLightFixa(x, y - 26, 110, 0.6, 'white');
   }
-  { const x = 5000, y = 1500 - RT.road.w / 2 - 14; const g = { kind: 'gsign', x, y, h: 50, lines: ['TERCEIRA PONTE E MEIA', 'SERRA ELÉTRICA 40 · ARACRUZ CREDO 70'], panel: null }; addTall(g, x - 60, y - 60, x + 60, y + 60); addCircCol(x - 26, y, 3, 'pole'); addCircCol(x + 26, y, 3, 'pole'); }
+  { const x = 5000, y = 1500 - RT.road.w / 2 - 20; const g = { kind: 'billboard', x, y, h: 62, ad: 5 + (bbExtra++), panel: null }; addTall(g, x - 90, y - 90, x + 90, y + 90); addCircCol(x - 34, y, 4, 'pole'); addCircCol(x + 34, y, 4, 'pole'); addLightFixa(x, y - 20, 110, 0.6, 'white'); }
   // feira livre perto das chácaras
   const cols = ['#e63946', '#2a9d8f', '#f4c430', '#3a86ff', '#ff7f11'];
   let n = 0;

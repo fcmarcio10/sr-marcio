@@ -286,6 +286,10 @@ function drawEdgeBase(g, e) {
     g.fillStyle = CURB_Y; for (const [a, b] of [[s0, s0 + 36], [s1 - 36, s1]]) if (b > a) { g.fillRect(a, -hw - 2.5, b - a, 2.5); g.fillRect(a, hw, b - a, 2.5); }
     g.fillStyle = 'rgba(0,0,0,0.18)'; for (let s = s0 + 8; s < s1; s += 9) { g.fillRect(s, -hw - 2.5, 0.8, 2.5); g.fillRect(s, hw, 0.8, 2.5); }
     g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(s0, -hw - T.sw, s1 - s0, 1.5); g.fillRect(s0, hw + T.sw - 1.5, s1 - s0, 1.5);
+    // relevo do meio-fio: quina de cima clara e sombra do degrau caindo no asfalto (luz de cima)
+    g.fillStyle = 'rgba(255,255,255,0.32)'; g.fillRect(s0, -hw - 2.5, s1 - s0, 0.8); g.fillRect(s0, hw, s1 - s0, 0.8);
+    g.fillStyle = 'rgba(0,0,0,0.30)'; g.fillRect(s0, -hw, s1 - s0, 1.6);
+    g.fillStyle = 'rgba(0,0,0,0.14)'; g.fillRect(s0, -hw + 1.6, s1 - s0, 1.4); g.fillRect(s0, hw - 1.2, s1 - s0, 1.2);
   }
   if (T.shoulder) {
     g.fillStyle = pat(g, 'gravel');
@@ -725,7 +729,9 @@ function drawProp(g, p) {
     case 'flagES':
       g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); g.arc(1, 2, 3, 0, TAU); g.fill();
       g.fillStyle = '#ccc'; g.beginPath(); g.arc(0, 0, 2, 0, TAU); g.fill();
-      for (let i = 0; i < 3; i++) { g.fillStyle = ['#1d4f9c', '#f4f4f0', '#e98bb0'][i]; g.fillRect(2, -8 + i * 4, 18, 4); }
+      // bandeira do Brasil
+      g.fillStyle = '#1f9a4a'; g.fillRect(2, -8, 18, 12); g.fillStyle = '#ffd23f'; g.beginPath(); g.moveTo(11, -7); g.lineTo(19, -2); g.lineTo(11, 3); g.lineTo(3, -2); g.closePath(); g.fill();
+      g.fillStyle = '#1d3f8c'; g.beginPath(); g.arc(11, -2, 2.6, 0, TAU); g.fill();
       break;
     case 'pot': {
       g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.arc(1.5, 2, 6, 0, TAU); g.fill();
@@ -1295,50 +1301,79 @@ function treeSprite(type, v) {
     gr.addColorStop(0, hi); gr.addColorStop(0.7, base); gr.addColorStop(1, shade(base, -0.35));
     g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
   };
+  // luz vem de cima à esquerda: o lado de cima/esquerda da copa é mais claro, o de baixo/direita mais escuro
+  const hx = (hex, f) => { const [r, gg, b] = hexToRgb(hex), t = (c) => Math.round(f >= 0 ? c + (255 - c) * f : c * (1 + f)).toString(16).padStart(2, '0'); return '#' + t(r) + t(gg) + t(b); };
+  const tufo = (x, y, r, base, hi, k) => { // um tufo de folhas: 4 bolinhas juntas com degradê próprio
+    for (let j = 0; j < 4; j++) {
+      const a = j * 1.7 + R() * 0.8, d = r * 0.45, cx = x + Math.cos(a) * d, cy = y + Math.sin(a) * d, rr = r * (0.55 + R() * 0.2);
+      const gr = g.createRadialGradient(cx - rr * 0.4, cy - rr * 0.45, rr * 0.05, cx, cy, rr); // borda macia (sem contorno escuro de bolinha)
+      gr.addColorStop(0, hx(hi, k)); gr.addColorStop(0.65, hx(base, k)); gr.addColorStop(1, hx(base, k - 0.12));
+      g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, rr, 0, TAU); g.fill();
+    }
+    // folhinhas soltas na borda do tufo (contorno recortado)
+    g.fillStyle = hx(base, k - 0.05); for (let j = 0; j < 5; j++) { const a = R() * TAU; g.beginPath(); g.ellipse(x + Math.cos(a) * r * 0.95, y + Math.sin(a) * r * 0.95, 1.6, 1, a, 0, TAU); g.fill(); }
+  };
   if (type === 'palm') {
-    const n = 9 + (v % 3);
+    const n = 10 + (v % 3);
+    g.fillStyle = 'rgba(0,0,0,0.22)'; g.beginPath(); g.arc(2, 3, 24, 0, TAU); g.fill();
     for (let i = 0; i < n; i++) {
-      const a = i / n * TAU + R() * 0.3, len = 22 + R() * 6;
+      const a = i / n * TAU + R() * 0.3, len = 24 + R() * 6, curva = (R() - 0.5) * 0.5, luz = Math.cos(a + 2.4) * 0.12;
       g.save(); g.rotate(a);
-      g.fillStyle = i % 2 ? '#4a7a33' : '#3d6a2b';
-      g.beginPath(); g.moveTo(2, 0); g.quadraticCurveTo(len * 0.5, -6, len, 1.5); g.quadraticCurveTo(len * 0.5, 5, 2, 0); g.fill();
-      g.strokeStyle = 'rgba(20,40,15,0.7)'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(2, 0); g.quadraticCurveTo(len * 0.5, -0.5, len, 1.5); g.stroke();
+      // folíolos dos dois lados do talo, afinando na ponta
+      for (let t = 0.18; t < 1; t += 0.07) {
+        const x = len * t, y = Math.sin(t * Math.PI) * curva * len * 0.3, l = (1 - t) * 9 + 2.5;
+        g.strokeStyle = shade(i % 2 ? '#4f8a36' : '#3f742c', luz + (t - 0.5) * 0.15); g.lineWidth = 1.5;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + l * 0.5, y - l); g.moveTo(x, y); g.lineTo(x + l * 0.5, y + l); g.stroke();
+      }
+      g.strokeStyle = '#6a7a3a'; g.lineWidth = 1.1; g.beginPath(); g.moveTo(2, 0); g.quadraticCurveTo(len * 0.5, curva * len * 0.3, len, 0); g.stroke();
       g.restore();
     }
-    g.fillStyle = '#6a4a2a'; g.beginPath(); g.arc(0, 0, 3.4, 0, TAU); g.fill();
-    g.fillStyle = '#8a6a3a'; g.beginPath(); g.arc(-0.8, -0.8, 1.6, 0, TAU); g.fill();
+    // cocos e o miolo
+    for (let i = 0; i < 4; i++) { const a = i * 1.6 + v; blob(Math.cos(a) * 4, Math.sin(a) * 4, 2.6, '#5a3a1a', '#9a6a2a'); }
+    blob(0, 0, 3, '#6a5a2a', '#9a8a4a');
   } else if (type === 'pine') {
-    const n = 7;
-    g.strokeStyle = '#3a2a1a'; g.lineWidth = 2;
-    for (let i = 0; i < n; i++) {
-      const a = i / n * TAU + v * 0.4, len = 18 + R() * 5;
-      g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * len, Math.sin(a) * len); g.stroke();
+    const n = 8;
+    g.fillStyle = 'rgba(0,0,0,0.22)'; g.beginPath(); g.arc(2, 3, 24, 0, TAU); g.fill();
+    g.strokeStyle = '#3a2a1a'; g.lineWidth = 1.6;
+    for (let i = 0; i < n; i++) { const a = i / n * TAU + v * 0.4, len = 19 + R() * 5; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * len, Math.sin(a) * len); g.stroke(); }
+    for (let camada = 0; camada < 3; camada++) for (let i = 0; i < n; i++) {
+      const a = i / n * TAU + v * 0.4 + camada * 0.3, len = (19 + R() * 5) * (1 - camada * 0.28), luz = Math.cos(a + 2.4) * 0.14 + camada * 0.06;
+      tufo(Math.cos(a) * len, Math.sin(a) * len, 6.5 - camada, '#1f4426', '#3a6a3a', luz);
     }
-    for (let i = 0; i < n; i++) {
-      const a = i / n * TAU + v * 0.4, len = 18 + R() * 5;
-      blob(Math.cos(a) * len, Math.sin(a) * len, 7 + R() * 2, '#244a2a', '#3f6e3e');
-      blob(Math.cos(a) * len * 0.55, Math.sin(a) * len * 0.55, 5, '#20422a', '#376338');
-    }
-    blob(0, 0, 6, '#22462a', '#3d6a3d');
+    blob(0, 0, 5, '#22462a', '#4a7a46');
+    g.fillStyle = 'rgba(200,230,180,0.25)'; for (let i = 0; i < 30; i++) { const a = R() * TAU, d = R() * 22; g.fillRect(Math.cos(a) * d, Math.sin(a) * d, 1, 1); }
   } else if (type === 'bush') {
-    for (let i = 0; i < 5; i++) blob((R() - 0.5) * 9, (R() - 0.5) * 9, 6 + R() * 3, '#3a6a2c', '#5f9446');
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.arc(1.5, 2, 12, 0, TAU); g.fill();
+    for (let i = 0; i < 9; i++) { const x = (R() - 0.5) * 12, y = (R() - 0.5) * 12; tufo(x, y, 4 + R() * 2.5, '#355f28', '#66a04a', -(x + y) * 0.012); }
+    g.fillStyle = 'rgba(0,0,0,0.18)'; for (let i = 0; i < 6; i++) { g.beginPath(); g.arc((R() - 0.5) * 14, (R() - 0.5) * 14, 1.2, 0, TAU); g.fill(); }
+    if (v % 3 === 0) { g.fillStyle = v % 2 ? '#ff9fd6' : '#fff3a0'; for (let i = 0; i < 9; i++) { g.beginPath(); g.arc((R() - 0.5) * 16, (R() - 0.5) * 16, 1.1, 0, TAU); g.fill(); } }
   } else {
-    let base = '#2c5524', hi = '#4f8a3a', n = 8, rad = 20;
-    if (type === 'mango') { base = '#1f4320'; hi = '#3a6e34'; n = 11; rad = 23; }
-    if (type === 'ipeY') { base = '#c9a024'; hi = '#ffe066'; n = 9; }
-    if (type === 'ipeP') { base = '#b8508f'; hi = '#ff9fd6'; n = 9; }
-    g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.arc(1.5, 2, rad, 0, TAU); g.fill();
-    for (let i = 0; i < n; i++) {
-      const a = R() * TAU, d = R() * rad * 0.55;
-      blob(Math.cos(a) * d, Math.sin(a) * d, rad * (0.42 + R() * 0.2), base, hi);
-    }
-    blob(-rad * 0.15, -rad * 0.15, rad * 0.45, base, hi);
+    let base = '#2c5524', hi = '#5a9a40', n = 40, rad = 21;
+    if (type === 'mango') { base = '#1d4220'; hi = '#3f7a38'; n = 52; rad = 24; }
+    if (type === 'ipeY') { base = '#c09018'; hi = '#ffe066'; n = 40; }
+    if (type === 'ipeP') { base = '#b04888'; hi = '#ff9fd6'; n = 40; }
+    // sombra macia no chão com o contorno da copa
+    g.fillStyle = 'rgba(0,0,0,0.16)'; for (let i = 0; i < 7; i++) { const a = i / 7 * TAU; g.beginPath(); g.arc(3 + Math.cos(a) * rad * 0.45, 4 + Math.sin(a) * rad * 0.45, rad * 0.6, 0, TAU); g.fill(); }
+    // galhos que aparecem nos buracos da copa
+    g.strokeStyle = '#4a3420'; g.lineCap = 'round';
+    for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + v, L = rad * (0.6 + R() * 0.3); g.lineWidth = 2.2; g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(Math.cos(a + 0.3) * L * 0.5, Math.sin(a + 0.3) * L * 0.5, Math.cos(a) * L, Math.sin(a) * L); g.stroke(); }
+    // tufos de folha: os de baixo/direita primeiro (mais escuros), os de cima/esquerda por último (mais claros)
+    const T = [];
+    for (let i = 0; i < n; i++) { const a = R() * TAU, d = Math.sqrt(R()) * rad * 0.78; T.push([Math.cos(a) * d, Math.sin(a) * d, rad * (0.2 + R() * 0.1)]); }
+    T.sort((p, q) => (q[0] + q[1]) - (p[0] + p[1]));
+    for (const [x, y, r] of T) tufo(x, y, r, base, hi, -(x + y) / rad * 0.16 + (R() - 0.5) * 0.08);
+    // buraquinhos escuros entre os tufos e brilho de folha
+    g.fillStyle = 'rgba(10,25,10,0.28)'; for (let i = 0; i < 8; i++) { const a = R() * TAU, d = R() * rad * 0.6; g.beginPath(); g.arc(Math.cos(a) * d, Math.sin(a) * d, 1.6 + R(), 0, TAU); g.fill(); }
+    g.fillStyle = 'rgba(230,255,200,0.22)'; for (let i = 0; i < 46; i++) { const a = R() * TAU, d = R() * rad * 0.85; const x = Math.cos(a) * d, y = Math.sin(a) * d; if (x + y < 6) g.fillRect(x, y, 1.1, 1.1); }
+    // borda iluminada do sol (cima/esquerda)
+    g.strokeStyle = 'rgba(255,250,200,0.18)'; g.lineWidth = 1.6; g.beginPath(); g.arc(0, 0, rad * 0.86, Math.PI * 0.95, Math.PI * 1.55); g.stroke();
     if (type === 'ipeY' || type === 'ipeP') {
-      g.fillStyle = 'rgba(60,100,40,0.55)';
-      for (let i = 0; i < 6; i++) { g.beginPath(); g.arc((R() - 0.5) * rad * 1.4, (R() - 0.5) * rad * 1.4, 3, 0, TAU); g.fill(); }
+      g.fillStyle = 'rgba(60,100,40,0.5)';
+      for (let i = 0; i < 6; i++) { g.beginPath(); g.arc((R() - 0.5) * rad * 1.4, (R() - 0.5) * rad * 1.4, 2.6, 0, TAU); g.fill(); }
       g.fillStyle = type === 'ipeY' ? '#fff3a0' : '#ffd0ec';
-      for (let i = 0; i < 40; i++) { g.fillRect((R() - 0.5) * rad * 1.6, (R() - 0.5) * rad * 1.6, 1.4, 1.4); }
+      for (let i = 0; i < 50; i++) { g.fillRect((R() - 0.5) * rad * 1.6, (R() - 0.5) * rad * 1.6, 1.4, 1.4); }
     }
+    if (type === 'mango' && v % 2 === 0) { for (let i = 0; i < 5; i++) { const a = R() * TAU, d = rad * (0.4 + R() * 0.4); blob(Math.cos(a) * d, Math.sin(a) * d, 1.8, '#e0a020', '#ffd060'); } } // mangas
   }
   _treeSprites.set(k, c);
   return c;

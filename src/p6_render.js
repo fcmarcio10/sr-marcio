@@ -762,6 +762,8 @@ function drawTall(ctx, o) {
       ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + bx2, o.y + by2);
       if (o.style === 'arm') ctx.lineTo(o.hx + ox, o.hy + oy);
       ctx.stroke();
+      // brilho no lado iluminado do poste (parece um tubo redondo)
+      ctx.strokeStyle = 'rgba(190,198,210,0.55)'; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(o.x - 0.8, o.y - 0.4); ctx.lineTo(o.x + bx2 - 0.8, o.y + by2 - 0.4); ctx.stroke();
       if (o.style === 'globe') { ctx.fillStyle = o.broken ? '#555' : '#eef3ff'; ctx.beginPath(); ctx.arc(o.hx + ox, o.hy + oy, 4.5, 0, TAU); ctx.fill(); }
       else { ctx.fillStyle = '#5c6066'; ctx.beginPath(); ctx.ellipse(o.hx + ox, o.hy + oy, 6, 3.5, Math.atan2(o.hy - o.y, o.hx - o.x), 0, TAU); ctx.fill(); if (o.broken) { ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(o.hx + ox, o.hy + oy, 2.2, 0, TAU); ctx.fill(); } } // lâmpada acesa: o brilho por cima já mostra
       break;
@@ -887,20 +889,6 @@ function drawTall(ctx, o) {
         }
         if (any) { ctx.fillStyle = cols[k]; ctx.fill(); }
       }
-      break;
-    }
-    case 'gsign': {
-      const [ox, oy] = offAt(o.x, o.y, o.h);
-      ctx.strokeStyle = '#8a8d92'; ctx.lineWidth = 3; ctx.beginPath();
-      ctx.moveTo(o.x - 26, o.y); ctx.lineTo(o.x - 26 + ox, o.y + oy); ctx.moveTo(o.x + 26, o.y); ctx.lineTo(o.x + 26 + ox, o.y + oy); ctx.stroke();
-      if (!o.panel) {
-        const c = makeCanvas(240, 96), g = c.getContext('2d');
-        g.fillStyle = '#0f6b3a'; g.fillRect(0, 0, 240, 96); g.strokeStyle = '#f2f2ea'; g.lineWidth = 4; g.strokeRect(5, 5, 230, 86);
-        g.fillStyle = '#f2f2ea'; g.font = '800 22px "Segoe UI", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.fillText(o.lines[0], 120, 32, 220); g.fillText(o.lines[1], 120, 66, 220);
-        o.panel = c;
-      }
-      ctx.drawImage(o.panel, o.x + ox - 55, o.y + oy - 22, 110, 44);
       break;
     }
     case 'stall': {
@@ -1048,13 +1036,7 @@ function drawTall(ctx, o) {
       ctx.restore();
       break;
     }
-    case 'billboard': {
-      const [ox, oy] = offAt(o.x, o.y, o.h);
-      ctx.strokeStyle = '#4a4d52'; ctx.lineWidth = 3; ctx.beginPath();
-      ctx.moveTo(o.x - 24, o.y); ctx.lineTo(o.x - 24 + ox, o.y + oy); ctx.moveTo(o.x + 24, o.y); ctx.lineTo(o.x + 24 + ox, o.y + oy); ctx.stroke();
-      ctx.drawImage(billboardPanel(o), o.x + ox - 50, o.y + oy - 20, 100, 40);
-      break;
-    }
+    case 'billboard': desenhaOutdoor(ctx, o); break;
   }
 }
 function drawFallen(ctx, o, poleCol, head) {
@@ -1062,19 +1044,6 @@ function drawFallen(ctx, o, poleCol, head) {
   ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.moveTo(bx + 2, by + 3); ctx.lineTo(ex + 2, ey + 3); ctx.stroke();
   ctx.strokeStyle = poleCol; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex, ey); ctx.stroke();
   head(ex, ey);
-}
-function billboardPanel(o) {
-  if (o.panel) return o.panel;
-  const c = makeCanvas(200, 80), g = c.getContext('2d');
-  const gr = g.createLinearGradient(0, 0, 200, 80); gr.addColorStop(0, '#1b1e2a'); gr.addColorStop(1, '#2c2f40');
-  g.fillStyle = gr; g.fillRect(0, 0, 200, 80);
-  g.fillStyle = o.col; g.fillRect(0, 0, 200, 6); g.fillRect(0, 74, 200, 6);
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = '900 21px "Segoe UI", Arial, sans-serif'; g.fillStyle = '#ffffff'; g.fillText(o.text[0], 100, 32, 186);
-  g.font = '700 15px "Segoe UI", Arial, sans-serif'; g.fillStyle = o.col; g.fillText(o.text[1], 100, 56, 186);
-  g.strokeStyle = '#0a0a0a'; g.lineWidth = 4; g.strokeRect(2, 2, 196, 76);
-  o.panel = c;
-  return c;
 }
 function drawTallEmissive(ctx, o) {
   if (o.kind === 'crane' && o.lightAt && (Game.time + o.seed * 3) % 1.4 < 0.5) { const g = glowSprite('#ff3b3b'); ctx.drawImage(g, o.lightAt[0] - 10, o.lightAt[1] - 10, 20, 20); return; }
@@ -1123,11 +1092,7 @@ function drawTallEmissive(ctx, o) {
       ctx.drawImage(glowSprite('#e8f0ff'), o.x + ox - 22, o.y + oy - 22, 44, 44);
       break;
     }
-    case 'billboard': {
-      const [ox, oy] = offAt(o.x, o.y, o.h);
-      ctx.globalAlpha = 0.35; ctx.drawImage(billboardPanel(o), o.x + ox - 50, o.y + oy - 20, 100, 40); ctx.globalAlpha = 1;
-      break;
-    }
+    case 'billboard': outdoorLuz(ctx, o); break;
     case 'grill': {
       if (o.down !== undefined) break;
       ctx.globalAlpha = 0.5 + 0.2 * Math.sin(Game.time * 9 + o.x); ctx.drawImage(glowSprite('#ff7a2a'), o.x - 18, o.y - 18, 36, 36); ctx.globalAlpha = 1;

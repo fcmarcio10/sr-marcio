@@ -196,9 +196,12 @@ class Player {
     {
       const solo = this.surface === SF.GRASS || this.surface === SF.EARTH || this.surface === SF.DIRT || this.surface === SF.SAND || this.surface === SF.FIELD;
       const Wr = this.rodas(), tr = this.trilha || (this.trilha = [null, null]);
-      if (solo && sp > 20) for (let k = 0; k < 2; k++) {
+      // cada roda só marca quando ELA está no chão de terra/areia/grama (na calçada, no cimento e no asfalto não marca nada)
+      const soloEm = (x, y) => { const g = groundAt(x, y); return g === SF.GRASS || g === SF.EARTH || g === SF.DIRT || g === SF.SAND || g === SF.FIELD; };
+      if (sp > 20) for (let k = 0; k < 2; k++) {
         const wx = Wr[k * 2], wy = Wr[k * 2 + 1], L = tr[k];
-        if (!L) tr[k] = [wx, wy]; else if (Math.hypot(wx - L[0], wy - L[1]) > 7) { Skids.add1(L[0], L[1], wx, wy, 'sulco'); L[0] = wx; L[1] = wy; }
+        if (!soloEm(wx, wy)) { tr[k] = null; continue; }
+        if (!L) tr[k] = [wx, wy]; else if (Math.hypot(wx - L[0], wy - L[1]) > 7) { if (soloEm((wx + L[0]) / 2, (wy + L[1]) / 2)) Skids.add1(L[0], L[1], wx, wy, 'sulco'); L[0] = wx; L[1] = wy; }
       } else tr[0] = tr[1] = null;
       if (solo && this.thr > 0.6 && (sp < 260 || this.slip > 0.4) && chance(0.55 + (this.launchT > 0 ? 0.4 : 0))) {
         const k = chance(0.5) ? 0 : 1, areia = this.surface === SF.SAND;
