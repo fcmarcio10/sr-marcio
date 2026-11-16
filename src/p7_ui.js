@@ -222,7 +222,7 @@ const Garage = {
       for (const c of arr) {
         const b = brandOf(c.model), d = document.createElement('div');
         d.className = 'gcard' + (c.id === this.sel ? ' sel' : '');
-        const st = Profile.current === c.id ? '<span class="cur">EM USO</span>' : Profile.owned[c.id] ? '<span class="own">NA GARAGEM</span>' : '<span class="price' + (Profile.money >= c.price ? ' ok' : '') + '">R$ ' + fmtMoney(c.price) + '</span>';
+        const st = Profile.current === c.id ? '<span class="cur">EM USO</span>' : Profile.owned[c.id] ? '<span class="own">NA GARAGEM</span>' : '<span class="price' + (Profile.money >= precoCarro(c) ? ' ok' : '') + '">' + (descontoCarro(c) ? '<s>R$ ' + fmtMoney(c.price) + '</s> ' : '') + 'R$ ' + fmtMoney(precoCarro(c)) + '</span>';
         d.innerHTML = `<div class="gbrand" style="color:${b.color}">${escapeHtml(b.name)}</div><div class="gname">${escapeHtml(c.name)}</div><div class="gsub"><span>${CAR_KIND_TXT[c.model] || ''}</span>${st}</div>`;
         d.addEventListener('click', () => this.select(c.id));
         d.addEventListener('mouseenter', () => AudioSys.hover());
@@ -235,7 +235,7 @@ const Garage = {
     $('garage-tags').innerHTML = carTags(sel).map(([t, k]) => `<span class="gt-${k}">${escapeHtml(t)}</span>`).join('');
     $('garage-car-desc').textContent = sel.desc;
     const mb = $('garage-main-btn'), note = $('garage-main-note');
-    if (!owned) { mb.textContent = 'COMPRAR POR R$ ' + fmtMoney(sel.price); mb.disabled = Profile.money < sel.price; note.textContent = Profile.money < sel.price ? 'Faltam R$ ' + fmtMoney(sel.price - Profile.money) + '.' : ''; }
+    if (!owned) { const pr = precoCarro(sel), dc = descontoCarro(sel); mb.textContent = 'COMPRAR POR R$ ' + fmtMoney(pr); mb.disabled = Profile.money < pr; note.textContent = (dc ? 'Desconto de R$ ' + fmtMoney(dc) + ' por ter ajudado o Juninho (era R$ ' + fmtMoney(sel.price) + '). ' : '') + (Profile.money < pr ? 'Faltam R$ ' + fmtMoney(pr - Profile.money) + '.' : ''); }
     else if (Profile.current === sel.id) { mb.textContent = 'EM USO'; mb.disabled = true; note.textContent = ''; }
     else { mb.textContent = 'USAR ESTE CARRO'; mb.disabled = false; note.textContent = ''; }
     document.querySelectorAll('[data-gtab]').forEach((b) => b.classList.toggle('on', b.dataset.gtab === this.tab));
@@ -310,8 +310,9 @@ const Garage = {
     const sel = carById(this.sel);
     const prev = Profile.current;
     if (!Profile.owned[sel.id]) {
-      if (Profile.money < sel.price) { AudioSys.error(); return; }
-      Profile.money -= sel.price;
+      const pr = precoCarro(sel);
+      if (Profile.money < pr) { AudioSys.error(); return; }
+      Profile.money -= pr;
       Profile.owned[sel.id] = true;
       const cfg = carCfg(sel.id);
       if (this.previewColor) cfg.color = this.previewColor;
@@ -319,7 +320,7 @@ const Garage = {
       AudioSys.money();
       toast('Novo veículo!', carFullName(sel) + ' agora é seu.', 'good');
       if (sel.job) addMsg('Central de Fretes', 'Bem-vindo à frota', 'Recebemos o cadastro do seu ' + sel.name + '. Abra o app Fretes no celular (Q) para ver as cargas disponíveis perto de você. Quanto mais longe, mais paga. Cuidado com carga frágil e perigosa.');
-      UI.moneyDelta(-sel.price);
+      UI.moneyDelta(-pr);
     }
     // cada carro guarda o próprio estado: trocar de carro não leva o amassado junto
     if (prev !== sel.id) { stashCondition(prev); Profile.current = sel.id; loadCondition(sel.id); Som.on = false; }

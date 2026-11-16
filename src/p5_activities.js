@@ -430,7 +430,7 @@ function freeRoamHint() {
   const vis = Profile.visited.length, totV = World.shops.filter((x) => x.kind !== 'garagem').length;
   if (Profile.fuel < 22) { const s = nearestShop('posto'); return ['Combustível baixo', 'Procure um posto: ' + (s ? s.name : '') + '. Marque no mapa do celular (Q).']; }
   if (Profile.damage > 55) return ['Carro avariado', 'Passe na Oficina do Seu Zé, no Distrito da Gambiarra.'];
-  const cheapest = CARS.filter((c) => !Profile.owned[c.id]).sort((a, b) => a.price - b.price)[0];
+  const cheapest = CARS.filter((c) => !Profile.owned[c.id]).sort((a, b) => precoCarro(a) - precoCarro(b))[0];
   const list = [
     ['Exploração livre', 'Comércios com marcador amarelo oferecem entregas. Pare em frente e aperte E.'],
     ['Exploração livre', 'Pontos de interesse descobertos: ' + disc + '/' + totP + '. O mapa do celular (Q) mostra o que falta perto de você.'],
@@ -443,7 +443,7 @@ function freeRoamHint() {
     ['Cuide do carro', 'Pneus, óleo e bateria gastam. Troque na oficina, no posto (óleo) ou na borracharia (pneus).'],
     ['Farol (H)', 'Parado por muito tempo com o farol aceso, a bateria arria. Aperte H para desligar.'],
   ];
-  if (cheapest && Profile.money >= cheapest.price) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
+  if (cheapest && Profile.money >= precoCarro(cheapest)) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
   // sem dica de coisa que a história ainda não liberou
   const L2 = list.filter((h) => (liberado('entregas') || !/entrega/i.test(h[1])) && (liberado('percursos') || !/Percursos/.test(h[1])));
   return L2[Act.hintI % L2.length];

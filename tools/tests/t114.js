@@ -24,7 +24,7 @@ const { chromium } = require('playwright');
   await p.evaluate(() => { Profile.rides = (Profile.rides || 0) + 5; }); await p.waitForTimeout(1500);
   const c2 = await p.evaluate(() => Profile.hist.cap);
   // pula até o último e compra o Opalha
-  await p.evaluate(() => { Profile.hist.cap = 6; Profile.owned.brasa = true; }); await p.waitForTimeout(1500);
+  await p.evaluate(() => { Profile.hist.cap = 7; Profile.owned.brasa = true; }); await p.waitForTimeout(1500);
   const fim = await p.evaluate(() => ({ fim: Profile.hist.fim, pop: document.getElementById('ms-passou').textContent }));
   await p.evaluate(() => { Screens.open && Screens.open('screen-pause'); });
   console.log(JSON.stringify({ durante, depois, m0, c1, abre2, c2, fim }));

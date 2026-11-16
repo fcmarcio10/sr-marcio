@@ -6,7 +6,7 @@
 
 /* ---------- funções liberadas pela história ---------- */
 // capítulo (índice de HIST_CAPS) em que cada coisa fica liberada
-const LIBERA = { entregas: 2, fretes: 2, eventos: 3, percursos: 4, racha: 5 };
+const LIBERA = { entregas: 2, fretes: 2, eventos: 3, percursos: 4, racha: 6 };
 const LIBERA_NOME = { entregas: 'Entregas nos comércios', fretes: 'App Fretes', eventos: 'Pedidos de ajuda pela cidade', percursos: 'Percursos cronometrados', racha: 'Racha da madrugada' };
 function liberado(f) {
   if (navigator.webdriver && !window.__travas) return true; // testes e gravadores de vídeo antigos: tudo liberado
@@ -166,11 +166,15 @@ function lugaresDoCapitulo(i) {
       return [P(poi('fazenda'), 'Fazenda Muuuito Longe', 'Leite, queijo, vaca e lama até o joelho.', 'A roça'),
         r && { x: r.start[0], y: r.start[1], nome: 'Rali da Vaca Atolada', sub: 'A largada é aqui. Pare na bandeira e aperte E.', tag: 'Percurso' }];
     }
-    case 5: {
+    case 5: { // o Opalha do Juninho parado na rua
+      const E = Events.cur;
+      return [E && E.opalha && { x: E.x, y: E.y, nome: 'Juninho e o Opalha', sub: 'A bateria arriou. Encoste do lado e aperte E para a chupeta.', tag: 'Ajude' }];
+    }
+    case 6: {
       const r = World.rachas && World.rachas[0];
       return [r && { x: r.start[0], y: r.start[1], nome: r.name, sub: 'Das 22h às 4h30. Aposta contra ' + r.rival + '.', tag: 'Racha' }];
     }
-    case 6: return [of && { x: of.x, y: of.y, nome: 'O Opalha 6C', sub: 'Encerado, de tanque cheio, esperando no fundo da oficina.', tag: 'O sonho' }];
+    case 7: return [of && { x: of.x, y: of.y, nome: 'O Opalha 6C', sub: 'Encerado, de tanque cheio, esperando no fundo da oficina.', tag: 'O sonho' }];
   }
   return [];
 }
@@ -201,4 +205,64 @@ MissaoAjuda.update = function (dt) {
     Nevoa.revela(x, y, 500);
     Missao.legenda('<b>' + escapeHtml(EV_NAMES[C.type]) + '</b>: aperte <b>Y</b> para ajudar.', 6);
   }
+};
+
+/* ---------- capítulo 6: o Juninho e o Opalha parado (chupeta na bateria) ---------- */
+const MissaoOpalha = { t: 0 };
+MissaoOpalha.nasce = function () {
+  if (!player) return false;
+  if (Events.cur && !Events.cur.over && Events.cur.opalha) return true;
+  if (Events.cur) Events.clear(); // tira evento comum que estivesse na tela
+  let E = null;
+  for (let i = 0; i < 6 && !E; i++) E = evMakeQuebrado();
+  if (!E) return false;
+  E.model = 'muscle'; E.color = '#141416'; E.kind = 'bateria'; E.smoke = 0; E.who = 'Juninho';
+  E.type = 'quebrado'; E.t = 0; E.stage = 'wait'; E.life = 1e9; E.opalha = true; E.missao = true;
+  E.id = Events.idc = (Events.idc || 0) + 1;
+  E.intro = 'O Juninho está com o Opalha parado. Siga o ponto rosa no mapa.';
+  Events.cur = E; Act.gpsT = 0;
+  Nevoa.revela(E.x, E.y, 500);
+  return true;
+};
+MissaoOpalha.update = function (dt) {
+  const h = Profile.hist;
+  if (!h || h.fim || h.cap !== 5 || Apresenta.on || !player || Game.mode !== 'play') return;
+  const E = Events.cur;
+  if (E && E.opalha) {
+    if (E.over && E.ok && !h.juninho) {
+      h.juninho = true; saveGame();
+      const m = charVoice('juninho_empresta');
+      if (m && m.voice) setTimeout(() => VoicePlayer.play(m), 1200);
+      Missao.legenda('<b>Juninho</b>: "Valeu, parceiro! Na hora do racha, o Opalha é teu."', 7);
+    }
+    return;
+  }
+  if (h.juninho) return;
+  if (E && !E.over) return; // espera o evento comum acabar
+  if (Events.busy() || Socorro.job) return;
+  this.t -= dt; if (this.t > 0) return; this.t = 4;
+  MissaoOpalha.nasce();
+};
+
+/* ---------- capítulo 7: o Opalha emprestado para o racha ---------- */
+const Emprestimo = {};
+Emprestimo.empresta = function () {
+  if (Profile.owned[SONHO] || Profile.emprestimo) return;
+  Profile.emprestimo = { prev: Profile.current, tinha: !!(Profile.cars && Profile.cars[SONHO]) };
+  const cfg = carCfg(SONHO); cfg.color = '#141416';
+  if (Profile.current !== SONHO) { stashCondition(Profile.current); Profile.current = SONHO; loadCondition(SONHO); Som.on = false; }
+  if (player) player.setCar(SONHO);
+  Profile.damage = 0; Profile.fuel = 100;
+  toast('Opalha emprestado', 'O Juninho te emprestou o Opalha 6C para o racha. Cuida bem!', 'good');
+  saveGame();
+};
+Emprestimo.devolve = function () {
+  const E = Profile.emprestimo; if (!E) return;
+  Profile.emprestimo = null;
+  if (Profile.owned[SONHO]) return;
+  const volta = Profile.owned[E.prev] ? E.prev : Object.keys(Profile.owned)[0];
+  if (Profile.current === SONHO) { stashCondition(SONHO); Profile.current = volta; loadCondition(volta); Som.on = false; if (player) player.setCar(volta); }
+  if (!E.tinha && Profile.cars) delete Profile.cars[SONHO];
+  setTimeout(() => toast('Opalha devolvido', 'O Juninho buscou o Opalha. Agora é juntar o dinheiro pra ter o seu.', 'info'), 5000);
+  saveGame();
 };

@@ -1,4 +1,4 @@
-// t116: chuva e água viva — chão molhado, respingos (asfalto e barro), respingos no teto dos carros, espirro do trânsito,
+// t116: chuva e água viva — sem respingos no chão nem no teto dos carros; anel de gota só na água;
 // rio correndo, espuma do mar (trechos da beira calculados) e detalhes da rua (vagas, bueiros) sem erro
 const { chromium } = require('playwright');
 (async () => {
@@ -13,16 +13,16 @@ const { chromium } = require('playwright');
     const out = {};
     const vai = async (x, y, s) => { player.place(x, y, 0); Cam.x = x; Cam.y = y; forceGround = true; await new Promise((r) => setTimeout(r, s * 1000)); };
     await vai(1350, 2580, 2.5);
-    out.ripAsf = Weather.ripples.filter((q) => !q.barro).length; out.carro = Agua.respC.length;
+    out.ripChao = Weather.ripples.filter((q) => groundAt(q.x, q.y) !== SF.WATER).length;
     await vai(6900, 3880, 2.5);
-    out.ripBarro = Weather.ripples.filter((q) => q.barro).length;
-    await vai(5200, 2880, 1); out.pontes = Agua.pontes.length;
+    out.ripBarro = Weather.ripples.filter((q) => groundAt(q.x, q.y) !== SF.WATER).length;
+    await vai(5200, 2880, 2); out.pontes = Agua.pontes.length; out.ripRio = Weather.ripples.filter((q) => groundAt(q.x, q.y) === SF.WATER).length;
     await vai(6650, 8800, 1); out.trechos = Agua.trechos.length; out.beira = Math.round(Agua.beira[Math.round(6700 / 20)]);
     return out;
   });
   await p.screenshot({ path: 't116_chuva.png' });
   console.log(JSON.stringify(r));
-  const ok = r.ripAsf > 10 && r.ripBarro > 0 && r.carro > 0 && r.pontes >= 3 && r.trechos >= 1 && r.beira >= 8950 && r.beira <= 8990;
-  console.log(ok ? 'OK: chuva, respingos e água viva' : 'FALHOU');
+  const ok = r.ripChao === 0 && r.ripBarro === 0 && r.ripRio > 0 && r.pontes >= 3 && r.trechos >= 1 && r.beira >= 8950 && r.beira <= 8990;
+  console.log(ok ? 'OK: chuva sem respingos, rio e mar' : 'FALHOU');
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();

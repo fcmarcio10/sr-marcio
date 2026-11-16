@@ -344,11 +344,11 @@ Events.update = function (dt) {
   // sorteio de um evento novo
   if (!this.cur) {
     const tutOn = Profile.tut !== undefined && Profile.tut < TUT_STEPS.length;
-    const histOk = liberado('eventos') && !(Profile.hist && !Profile.hist.fim && Profile.hist.cap === 3); // no capítulo 4 quem chama é a missão
+    const histOk = liberado('eventos') && !(Profile.hist && !Profile.hist.fim && (Profile.hist.cap === 3 || Profile.hist.cap === 5)); // no capítulo 4 e no 6 quem chama é a missão
     if (!Act.race && !Socorro.job && !tutOn && histOk) this.spawnT -= dt;
     if (this.spawnT <= 0) {
       // só 40% das vezes rola um evento (60% menos que antes)
-      if (!chance(0.4)) { this.spawnT = rnd(90, 160); return; }
+      if (!chance(0.3)) { this.spawnT = rnd(90, 160); return; } // 25% menos eventos que antes (nov/2026)
       const types = busy ? ['blitz', 'banana', 'festa'] : ['quebrado', 'noivo', 'banana', 'blitz', 'festa', 'carona'];
       const last = this.lastType;
       const opts = types.filter((t) => t !== last);
@@ -445,7 +445,8 @@ function evQuebrado(E, dt, prompt, busy, busyMsg) {
         E.smoke = -1; E.leave = { v: 0 };
         const v = Math.round(rnd(90, 150) / 5) * 5;
         AudioSys.tone(220, 0.25, 'sawtooth', 0.05, 'engine'); AudioSys.aiHorn(40, 'dupla', 0);
-        evFinish(E, true, 'Motorista salvo!', E.who + ': "Pegou! Deus te abençoe, toma aqui pela ajuda."', v);
+        if (E.opalha) evFinish(E, true, 'Opalha pegou!', 'Juninho: "Escuta esse ronco! Tu salvou minha noite, parceiro."', v);
+        else evFinish(E, true, 'Motorista salvo!', E.who + ': "Pegou! Deus te abençoe, toma aqui pela ajuda."', v);
       }
     } else if (d > 160) { E.hold = Math.max(0, E.hold - dt); }
   } else if (E.stage === 'fetch') {

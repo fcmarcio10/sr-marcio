@@ -148,7 +148,7 @@ function stepPlay(dt) {
   Particles.update(dt);
   updateActivities(dt);
   Events.update(dt);
-  MissaoAjuda.update(dt); Nevoa.update(dt);
+  MissaoAjuda.update(dt); MissaoOpalha.update(dt); Nevoa.update(dt);
   CarLife.update(dt);
   Finance.update(dt);
   Som.update(dt);

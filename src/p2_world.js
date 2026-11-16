@@ -86,8 +86,9 @@ const World = {
 
 /* -------- tipos de via -------- */
 const RT = {
-  street: { id: 'street', w: 95, sw: 22, lanes: [23], speed: 150, asphalt: true, center: 'dash' },
-  avenue: { id: 'avenue', w: 180, sw: 22, lanes: [25, 67], speed: 190, asphalt: true, center: 'double', laneDiv: 46 },
+  // ruas da cidade largas (nov/2026): faixa de rodar + faixa de estacionamento do tamanho de um carro junto da calçada
+  street: { id: 'street', w: 124, sw: 22, lanes: [24], speed: 150, asphalt: true, center: 'dash', larga: true },
+  avenue: { id: 'avenue', w: 222, sw: 22, lanes: [27, 71], speed: 190, asphalt: true, center: 'double', laneDiv: 49, larga: true },
   highway: { id: 'highway', w: 180, sw: 0, lanes: [24, 66], speed: 280, asphalt: true, center: 'double', laneDiv: 45, edgeLine: true, shoulder: 16 },
   road: { id: 'road', w: 90, sw: 0, lanes: [23], speed: 200, asphalt: true, center: 'dash', edgeLine: true, shoulder: 12 },
   dirt: { id: 'dirt', w: 76, sw: 0, lanes: [18], speed: 115, asphalt: false },
@@ -1390,6 +1391,7 @@ const RUA_LARG = 1.1;
 function alargaRuas() {
   const old = {};
   for (const k in RT) {
+    if (RT[k].larga) continue; // rua e avenida da cidade já são montadas largas
     const T = RT[k], dw = T.w * (RUA_LARG - 1) / 2; old[k] = T.w / 2;
     T.w = +(T.w * RUA_LARG).toFixed(2);
     if (T.sw) T.sw = +(T.sw - dw).toFixed(2); else if (T.shoulder) T.shoulder = +Math.max(5, T.shoulder - dw).toFixed(2);
@@ -1435,13 +1437,14 @@ function alargaRuas() {
 }
 // depois de alargar: semáforo, poste, radar ou objeto de calçada que ficou com o pé no asfalto novo vai para a beira
 function empurraDaPista() {
-  const faixas = World.edges.filter((e) => e.hw > (e.hw0 || e.hw));
+  const faixas = World.edges; // todas: as alargadas depois e as que já nascem largas (rua e avenida da cidade)
   const desloca = (x, y, r) => {
     for (const e of faixas) {
       const al = e.h ? x : y, a0 = e.h ? Math.min(e.a.x, e.b.x) : Math.min(e.a.y, e.b.y), a1 = e.h ? Math.max(e.a.x, e.b.x) : Math.max(e.a.y, e.b.y);
       if (al < a0 - r || al > a1 + r) continue;
       const d = (e.h ? y - e.a.y : x - e.a.x);
-      if (Math.abs(d) >= e.hw + r || Math.abs(d) < e.hw0 - r - 1) continue; // fora da faixa nova, ou já estava na pista de propósito
+      const fundo = e.hw0 && e.hw0 < e.hw ? e.hw0 - r - 1 : e.hw - 14; // mais para dentro que isso é de propósito (obra, cone, lombada)
+      if (Math.abs(d) >= e.hw + r || Math.abs(d) < fundo) continue;
       const v = (d < 0 ? -1 : 1) * (e.hw + r + 1) - d;
       return e.h ? [0, v] : [v, 0];
     }

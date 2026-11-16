@@ -1099,8 +1099,7 @@ Weather.update = function (dt) {
     const v = Cam.view, n = this.rain * (Settings.quality === 'alta' ? 95 : 60) * dt;
     for (let i = 0; i < n || (Math.random() < n - Math.floor(n) && i < n + 1); i++) {
       const x = rnd(v.x0, v.x1), y = rnd(v.y0, v.y1), g = groundAt(x, y);
-      if (g === SF.ROAD || g === SF.PAVED || g === SF.SIDEWALK || g === SF.BRIDGE || g === SF.WATER) this.ripples.push({ x, y, t: 0, a: Math.random() * TAU });
-      else if (g === SF.DIRT || g === SF.EARTH) this.ripples.push({ x, y, t: 0, a: Math.random() * TAU, barro: true });
+      if (g === SF.WATER) this.ripples.push({ x, y, t: 0, a: Math.random() * TAU }); // gota só faz anel na água (rio e mar); no chão, nada
     }
   }
   for (const r of this.ripples) r.t += dt;
@@ -1187,24 +1186,6 @@ Weather.drawRipples = function (ctx, view) {
   ctx.beginPath();
   for (const r of this.ripples) { if (r.barro || !inView(view, r.x, r.y, 10)) continue; const k = r.t / 0.45, rr = 1 + k * 6; ctx.moveTo(r.x + rr, r.y); ctx.ellipse(r.x, r.y, rr, rr * 0.6, 0, 0, TAU); }
   ctx.globalAlpha = 0.6; ctx.stroke();
-  // coroinha: a gota bate e solta gotinhas para os lados
-  ctx.fillStyle = 'rgba(225,235,250,0.75)'; ctx.globalAlpha = 1;
-  ctx.beginPath();
-  for (const r of this.ripples) {
-    if (r.barro || r.t > 0.2 || !inView(view, r.x, r.y, 8)) continue;
-    const k = r.t / 0.2, d = 1.5 + k * 5, up = Math.sin(k * Math.PI) * 2.5;
-    for (let j = 0; j < 4; j++) { const a = r.a + j * 1.57; ctx.rect(r.x + Math.cos(a) * d - 0.6, r.y + Math.sin(a) * d * 0.6 - up - 0.6, 1.2, 1.2); }
-  }
-  ctx.fill();
-  // na terra a gota levanta um pinguinho de barro
-  ctx.fillStyle = 'rgba(70,46,24,0.7)';
-  ctx.beginPath();
-  for (const r of this.ripples) {
-    if (!r.barro || r.t > 0.25 || !inView(view, r.x, r.y, 6)) continue;
-    const k = r.t / 0.25, d = 1 + k * 3;
-    for (let j = 0; j < 3; j++) { const a = r.a + j * 2.1; ctx.rect(r.x + Math.cos(a) * d - 0.6, r.y + Math.sin(a) * d * 0.6 - Math.sin(k * Math.PI) * 1.6 - 0.6, 1.2, 1.2); }
-  }
-  ctx.fill();
   ctx.globalAlpha = 1;
 };
 Weather.drawDrops = function (ctx) {
