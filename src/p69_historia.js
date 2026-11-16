@@ -4,7 +4,7 @@
    cada capítulo abre com um áudio do Seu Zé no zap, tem uma meta, paga um prêmio e leva ao próximo.
    O progresso conta a partir do começo do capítulo (Profile.hist = { cap, base }). */
 const SONHO = 'brasa'; // Opalha 6C
-const CAP_FINAL = 7; // índice do final (os capítulos vão de 0 a 6)
+const CAP_FINAL = 7; // 7 capítulos (0 a 6); a história termina quando ganha o racha (sem missão de juntar dinheiro)
 const capNome = (i) => (i >= CAP_FINAL ? 'Final' : 'Capítulo ' + (i + 1));
 // preço do Opalha: R$ 35.000; quem ajudou o Juninho paga R$ 29.000
 const OPALHA_CHEIO = 35000, OPALHA_AMIGO = 29000;
@@ -20,7 +20,6 @@ const HIST_PORQUE = [
   'Agora a cidade te conhece. Falta provar que você também dirige na terra, lá na roça.',
   'O Zé do Canecão te desafiou pro racha, mas o Gou Quadrado não aguenta. O Juninho tem um Opalha parado...',
   'O Juninho te emprestou o Opalha dele. Hora de calar a boca do Zé do Canecão.',
-  'O Juninho falou com o Seu Zé: o seu Opalha agora sai com desconto. É só juntar o dinheiro.',
 ];
 const HIST_CAPS = [
   { nome: 'Chegada', leg: 'Siga o <b>Seu Zé</b> no passo a passo.', dica: '', meta: 'Termine o passo a passo com o Seu Zé.', voz: null, premio: 200,
@@ -34,9 +33,6 @@ const HIST_CAPS = [
   { nome: 'O dono do Opalha', leg: 'O Opalha do <b>Juninho</b> morreu na rua: vá lá e dê uma <b>chupeta</b>.', dica: 'O Gou Quadrado não ganha do carro do Zé do Canecão. Ajude o <b>Juninho</b> e ele te empresta o <b>Opalha</b> pro racha.', meta: 'Ajude o Juninho com o Opalha parado (siga o ponto rosa).', voz: 'cap_opalha', premio: 600,
     val: () => (Profile.hist && Profile.hist.juninho ? 1 : 0), alvo: 1, absoluto: true },
   { nome: 'Tudo ou nada', leg: 'Ganhe o <b>racha</b> do <b>Zé do Canecão</b> com o Opalha emprestado.', dica: 'Rachas acontecem das <b>22h às 4h30</b>. Veja no app <b>Racha</b> do celular. Depois o Opalha volta pro Juninho.', meta: 'Ganhe um racha de madrugada (das 22h às 4h30) com o Opalha do Juninho.', voz: 'cap_6', premio: 1500, val: () => Profile.rachaWins || 0, alvo: 1 },
-  { nome: 'O carro dos sonhos', leg: 'Junte o dinheiro e compre o <b>Opalha 6C</b> na garagem.', dica: 'O Opalha custa <b>R$ 35.000</b>, mas quem ajudou o Juninho paga <b>R$ 29.000</b>. Compre na <b>garagem</b>.', meta: 'Junte o dinheiro e compre o Opalha 6C na sua garagem.', voz: 'cap_7', premio: 0,
-    val: () => (Profile.owned && Profile.owned[SONHO] ? 1 : 0), alvo: 1, absoluto: true,
-    extra: () => { const pr = precoCarro(carById(SONHO)); return 'R$ ' + fmtMoney(Math.max(0, Math.min(Profile.money, pr))) + ' de R$ ' + fmtMoney(pr) + (descontoCarro(carById(SONHO)) ? ' (com desconto)' : ''); } },
 ];
 const Historia = {
   t: 0, popT: 0,
@@ -44,13 +40,15 @@ const Historia = {
     if (!Profile.hist) {
       // quem já jogava antes da história começa no capítulo 2 (o passo a passo não existia)
       const veterano = Profile.tut === undefined && (Profile.rides || Profile.deliveries || Profile.earned);
-      Profile.hist = { cap: veterano ? 1 : 0, base: 0, fim: false, v: 3 };
+      Profile.hist = { cap: veterano ? 1 : 0, base: 0, fim: false, v: 4 };
       if (veterano) { Profile.hist.base = this.cru(1); Profile.hist.anunciar = true; Profile.hist.tudo = true; Profile.hist.apres = true; }
     }
     // história começada na versão anterior (sem travas): quem já jogava continua com tudo liberado e sem a apresentação inicial
     if (Profile.hist.v === undefined) { Profile.hist.v = 2; Profile.hist.apres = true; if (Profile.rides || Profile.deliveries || Profile.earned > 0) Profile.hist.tudo = true; }
     // v3 (nov/2026): entrou o capítulo do Juninho antes do racha; quem já estava no racha ou no final pula ele (e ganha o desconto)
     if (Profile.hist.v === 2) { Profile.hist.v = 3; if (Profile.hist.cap >= 5) { Profile.hist.cap++; Profile.hist.juninho = true; } }
+    // v4: saiu o capítulo final de juntar dinheiro: quem estava nele já terminou a história
+    if (Profile.hist.v === 3) { Profile.hist.v = 4; if (Profile.hist.cap >= CAP_FINAL) Profile.hist.fim = true; }
     return Profile.hist;
   },
   cru(i) { const c = HIST_CAPS[i]; return c ? c.val() : 0; },
@@ -75,6 +73,7 @@ const Historia = {
     }
     if (Apresenta.on) return;
     if (Profile.tut !== undefined && Profile.tut < TUT_STEPS.length && h.cap === 0) return;
+    if (!HIST_CAPS[h.cap]) { this.final(); return; } // capítulo que não existe mais (save antigo): história concluída
     const c = HIST_CAPS[h.cap], f = this.feito();
     // avanço do capítulo aparece como legenda (sem quadro fixo na tela)
     if (h.cap > 0 && c.alvo > 1 && f > (this.ultimo === undefined ? f : this.ultimo) && f < c.alvo && telaLivre() && !Apresenta.on && !document.querySelector('#ms-titulo.ms-on:not(.ms-sai)')) Missao.legenda(escapeHtml(c.nome) + ': <b>' + f + ' de ' + c.alvo + '</b>', 5);
@@ -85,12 +84,12 @@ const Historia = {
     const h = this.h(), c = HIST_CAPS[h.cap], n = h.cap + 1;
     if (c.premio) pay(c.premio);
     if (h.cap === HIST_CAPS.length - 1) { this.final(); return; }
-    Missao.passou('Capítulo concluído', c.nome, c.premio); confete(60);
+    Missao.passou('Missão cumprida', c.nome, c.premio); confete(60);
     h.cap++; h.base = this.cru(h.cap);
     if (h.cap === 4) Profile.histRali = 0;
     if (h.cap === 7) Emprestimo.devolve(); // ganhou o racha: o Opalha volta para o Juninho
     saveGame();
-    setTimeout(() => this.abre(h.cap), 6500);
+    clearTimeout(this.abreT); this.abreT = setTimeout(() => this.abre(h.cap), 6500); // só um (pular várias seguidas não abre repetido)
   },
   // começa um capítulo: nome grande no meio, objetivo em legenda, dica no canto e áudio do Seu Zé no zap
   abre(i, recomeco) {
@@ -151,11 +150,21 @@ const Historia = {
     if (el.innerHTML !== html) el.innerHTML = html;
   },
   final() {
-    const h = this.h(); h.fim = true; saveGame();
-    confete(160);
-    Missao.passou('História concluída', 'O Opalha 6C é seu. São Gambiarra inteira sabe o seu nome.', 0);
-    const m = charVoice('cap_fim'); if (m && m.voice) setTimeout(() => VoicePlayer.play(m), 2200);
+    const h = this.h(); h.fim = true;
+    if (Profile.emprestimo) Emprestimo.devolve();
+    saveGame(); confete(160);
+    Missao.passou('História concluída', 'Você venceu o Zé do Canecão com o Opalha do Juninho. Agora a cidade é sua.', 0);
     try { AudioSys.chime(); setTimeout(() => AudioSys.chime(), 350); } catch (e) {}
+  },
+  // trapaça do dono: cumpre a missão atual na hora (para testar a história)
+  pula() {
+    const h = this.h(); if (h.fim) return false;
+    if (Apresenta.on) Apresenta.encerra();
+    if (h.cap === 0) Profile.tut = TUT_STEPS.length;
+    if (h.cap === 5) h.juninho = true;
+    if (Events.cur && Events.cur.missao) Events.clear();
+    clearTimeout(this.reT); this.ultimo = undefined;
+    this.conclui(); return true;
   },
   // tela de pausa: lista dos capítulos
   listaHTML() {

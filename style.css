@@ -1430,3 +1430,10 @@ body.cinema #missao-trk { opacity: 0; }
 #pause-hist .hist-agora { grid-column: 1 / -1; margin-top: 8px; font: 500 13px/1.4 var(--f-body); color: rgba(255, 255, 255, 0.85); text-align: center; }
 #pause-hist .hist-agora em { display: block; font-style: italic; color: rgba(255, 255, 255, 0.6); margin-bottom: 4px; }
 #pause-hist .hist-agora b { color: #f0c850; }
+/* celular 25% menor: ícones grandes com o nome pequeno embaixo */
+#phone-body.home .ph-grid.simples { grid-template-columns: repeat(4, 1fr); gap: 20px 4px; }
+#phone-body.home .ph-grid.simples .ph-ico, #phone-body.home .ph-dock .ph-ico { width: 64px; height: 64px; border-radius: 17px; }
+#phone-body.home .ph-grid.simples .ph-ico svg, #phone-body.home .ph-dock .ph-ico svg { width: 34px; height: 34px; }
+#phone-body.home .ph-grid.simples .ph-lbl, #phone-body.home .ph-dock .ph-lbl { font-size: 10px; margin-top: 5px; opacity: 0.9; }
+.aj-sec { font: 600 12px/1 -apple-system, "Segoe UI", sans-serif; color: rgba(255, 255, 255, 0.55); text-transform: uppercase; letter-spacing: 0.06em; margin: 14px 4px 8px; }
+.aj-walls.cores span { background-size: cover; }

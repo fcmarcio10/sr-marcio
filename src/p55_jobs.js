@@ -289,6 +289,19 @@ function socorroBar(H) {
 /* ---------- APP TEMPORÁRIO DE TRAPAÇAS (para testes) ----------
    Para remover: troque CHEATS_ENABLED para false (o ícone some e nada disso roda). */
 const CHEATS_ENABLED = true;
+// as trapaças só aparecem para o dono: digite GAMBIARRA no jogo (liga e desliga). Em navegador de teste ficam ligadas.
+function modoDono() { try { return !!navigator.webdriver || localStorage.getItem('brnd_dono') === '1'; } catch (e) { return false; } }
+const Segredo = { buf: '' };
+Segredo.tecla = function (code) {
+  if (!/^Key[A-Z]$/.test(code)) return;
+  this.buf = (this.buf + code.slice(3)).slice(-9);
+  if (this.buf === 'GAMBIARRA') {
+    this.buf = '';
+    let on = false; try { on = localStorage.getItem('brnd_dono') === '1'; localStorage.setItem('brnd_dono', on ? '0' : '1'); } catch (e) {}
+    toast(on ? 'Modo dono desligado' : 'Modo dono ligado', on ? 'As trapaças sumiram do celular.' : 'O app Trapaças apareceu no celular.', 'info');
+    if (Screens.current === 'screen-phone') Phone.render();
+  }
+};
 const Cheats = { god: false, turbo: false };
 const CHEAT_PLACES = [
   ['Garagem', () => World.home], ['Oficina do Seu Zé', () => World.shops.find((s) => s.kind === 'oficina')], ['Batalhão da PM', () => World.shops.find((s) => s.kind === 'batalhao')],
@@ -312,6 +325,7 @@ function cheatDo(k, v) {
   if (k === 'police') { const n = +v; if (n === 0) { Police.level = 0; Police.units.length = 0; ok('Polícia liberada'); } else { Police.crime('Trapaça', n, player.x, player.y, true); Police.level = n; ok(n + ' estrela(s)'); } }
   if (k === 'ev') { Events.clear(); let okv = false; for (let i = 0; i < 12 && !okv; i++) okv = Events.spawn(v); Screens.closeAll(); ok(okv ? 'Evento: ' + EV_NAMES[v] : 'Não achei lugar pra esse evento aqui; tente em outra região'); return; }
   if (k === 'wear') { const L = carLife(), n = +v; L.tires = L.oil = L.bat = n; CarLife.warned = {}; if (n > 5) CarLife.stalled = false; ok('Pneus, óleo e bateria em ' + n + '%'); }
+  if (k === 'missao') { if (Historia.pula()) { Screens.closeAll(); ok('Missão cumprida (trapaça)'); } else ok('A história já terminou'); return; }
   if (k === 'god') { Cheats.god = !Cheats.god; ok('Modo indestrutível ' + (Cheats.god ? 'ligado' : 'desligado')); }
   if (k === 'turbo') { Cheats.turbo = !Cheats.turbo; player.recalc(); ok('Turbo ' + (Cheats.turbo ? 'ligado' : 'desligado')); }
   if (k === 'tp') { const pl = CHEAT_PLACES[+v]; cheatTeleport(pl && pl[1]()); Screens.closeAll(); ok('Teleporte: ' + (pl ? pl[0] : '')); return; }
@@ -411,7 +425,15 @@ const WALLS = [
   { id: 'dunas', name: 'Dunas de Ita-Unhas', place: 'Conceição da Barraca' },
   { id: 'bandeira', name: 'Trabalha e Confia', place: 'Bandeira da cidade' },
   { id: 'estrada', name: 'Estrada da Madrugada', place: 'Rodovia BR-101 e Pouco' },
+  // cores lisas (o jogador escolhe em Ajustes > Papel de parede)
+  { id: 'cor_noite', name: 'Azul noite', place: 'Cor lisa', cor: ['#1c2a4a', '#0b1222'] },
+  { id: 'cor_preto', name: 'Preto', place: 'Cor lisa', cor: ['#1a1a1c', '#050506'] },
+  { id: 'cor_roxo', name: 'Roxo', place: 'Cor lisa', cor: ['#5b2a86', '#2a1040'] },
+  { id: 'cor_verde', name: 'Verde', place: 'Cor lisa', cor: ['#1f6b4a', '#0c2f21'] },
+  { id: 'cor_vermelho', name: 'Vermelho', place: 'Cor lisa', cor: ['#9b2b2b', '#3d0f0f'] },
+  { id: 'cor_laranja', name: 'Pôr do sol', place: 'Cor lisa', cor: ['#f08a3c', '#7a2e5a'] },
 ];
+const PAISAGENS = WALLS.filter((w) => !w.cor);
 const _wallCache = {};
 function wallSVG(id) {
   const R = mulberry32(id.length * 977 + id.charCodeAt(0) * 31);
@@ -493,7 +515,7 @@ function wallSVG(id) {
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 600" preserveAspectRatio="xMidYMid slice">${g}</svg>`;
 }
-function wallURL(id) { if (!_wallCache[id]) _wallCache[id] = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(wallSVG(id)) + '")'; return _wallCache[id]; }
+function wallURL(id) { const Wc = WALLS.find((w) => w.id === id); if (Wc && Wc.cor) return `linear-gradient(180deg, ${Wc.cor[0]}, ${Wc.cor[1]})`; if (!_wallCache[id]) _wallCache[id] = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(wallSVG(id)) + '")'; return _wallCache[id]; }
 function phoneCfg() { if (!Profile.phone) Profile.phone = { wall: 'auto', notif: true, sounds: true, lastSave: null }; return Profile.phone; }
 function phoneTone(f, d, v, delay) { if (phoneCfg().sounds) AudioSys.tone(f, d, 'sine', v, 'ui', null, delay); }
 const PERA_OS = '18.4';
@@ -502,7 +524,7 @@ const Phone = {
   app: 'home', fretes: [], fretesT: -1e9, chat: null,
   open(app) {
     ensurePhoneData(); const cfg = phoneCfg();
-    if (cfg.wall === 'auto' || !WALLS.some((w) => w.id === cfg.wall)) { let w; do { w = pick(WALLS).id; } while (w === this.wall); this.wall = w; } else this.wall = cfg.wall;
+    if (cfg.wall === 'auto' || !WALLS.some((w) => w.id === cfg.wall)) { let w; do { w = pick(PAISAGENS).id; } while (w === this.wall); this.wall = w; } else this.wall = cfg.wall;
     this.app = app || 'home'; if (Screens.current !== 'screen-phone') Screens.open('screen-phone'); this.render(); phoneTone(1200, 0.05, 0.05);
   },
   go(app) { this.app = app; this.chat = null; if (app !== 'pegaai') { this.pgChat = null; this.pgTab = 'drv'; } if (app !== 'fretes') { this.frChat = null; this.frTab = 'job'; } if (app === 'aj-update') this.updT = performance.now(); this.render(); if (phoneCfg().sounds) AudioSys.click(); },
@@ -524,7 +546,7 @@ const Phone = {
       const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
       // tela inicial simples (nov/2026): hora grande, uma grade com os apps e a barra de baixo; sem caixinhas nem textos
       html = `<div class="ph-lock simples"><div class="ph-time">${clockStr()}</div><div class="ph-date">${wl ? H(wl) + ' · ' : ''}${temp}° · R$ ${fmtMoney(Profile.money)}</div></div>` +
-        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'conquistas', 'camera', 'colecao'].concat(CHEATS_ENABLED ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
+        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'conquistas', 'camera', 'colecao'].concat(CHEATS_ENABLED && modoDono() ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
         '<div class="ph-dock">' + ['mapa', 'msgs', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
@@ -535,7 +557,7 @@ const Phone = {
     } else if (this.app === 'aj-wall') {
       html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Papel de parede</div>' +
         '<div class="aj-group">' + tog('autoWall', 'Variar a cada vez que abrir') + '</div>' +
-        '<div class="aj-walls">' + WALLS.map((w) => `<button class="aj-wall${cfg.wall === w.id ? ' sel' : ''}" data-wall="${w.id}"><span style="background-image:${wallURL(w.id).replace(/"/g, "'")}"></span><b>${H(w.name)}</b><small>${H(w.place)}</small></button>`).join('') + '</div>';
+        '<div class="aj-sec">Paisagens</div><div class="aj-walls">' + PAISAGENS.map((w) => `<button class="aj-wall${cfg.wall === w.id ? ' sel' : ''}" data-wall="${w.id}"><span style="background-image:${wallURL(w.id).replace(/"/g, "'")}"></span><b>${H(w.name)}</b><small>${H(w.place)}</small></button>`).join('') + '</div>' + '<div class="aj-sec">Cores</div><div class="aj-walls cores">' + WALLS.filter((w) => w.cor).map((w) => `<button class="aj-wall${cfg.wall === w.id ? ' sel' : ''}" data-wall="${w.id}"><span style="background:${wallURL(w.id)}"></span><b>${H(w.name)}</b></button>`).join('') + '</div>';
     } else if (this.app === 'aj-sobre') {
       const free = 256 - 41 - Math.min(60, Math.floor((Profile.distance || 0) / 90000));
       html = '<div class="ph-head"><button class="ph-back" data-go="ajustes">‹</button>Sobre</div><div class="aj-hero">' + PERA_LOGO + '<b>Pera 15 Pro</b></div>' +
@@ -604,9 +626,10 @@ const Phone = {
       const open = rachaOpen();
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Racha</div>' + (open ? '<p class="ph-note">Madrugada liberada. Vá até o ponto e aperte E. Quem ganhar leva o dobro da aposta. Se uma viatura chegar perto, é multa e aposta perdida.</p>' : '<p class="ph-empty">Os rachas só rolam de madrugada, das 22h às 4h30. Agora são ' + clockStr() + '.</p>') +
         World.rachas.map((r, i) => `<button class="ph-row" data-racha="${i}"><b>${H(r.name)} · aposta R$ ${fmtMoney(r.bet)}</b><span>contra ${H(r.rival)} (${fmtTime(r.rivalTime)}) · toque para marcar no GPS</span></button>`).join('');
-    } else if (this.app === 'trapaca' && CHEATS_ENABLED) {
+    } else if (this.app === 'trapaca' && CHEATS_ENABLED && modoDono()) {
       const btn = (k, v, label, on) => `<button class="ch-btn${on ? ' on' : ''}" data-cheat="${k}" data-cv="${v}">${label}</button>`;
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Trapaças</div><p class="ph-note">App temporário de testes.</p>' +
+        '<div class="ch-sec">História</div><div class="ch-grid">' + btn('missao', 0, 'Pular missão') + '</div>' +
         '<div class="ch-sec">Dinheiro e carro</div><div class="ch-grid">' + btn('money', 0, '+R$ 10.000') + btn('fix', 0, 'Consertar e encher') + btn('cars', 0, 'Liberar veículos') + btn('pois', 0, 'Revelar pontos') + btn('god', 0, 'Indestrutível', Cheats.god) + btn('turbo', 0, 'Turbo', Cheats.turbo) + '</div>' +
         '<div class="ch-sec">Horário</div><div class="ch-grid">' + btn('time', 19 * 60 + 40, '19:40') + btn('time', 22 * 60 + 5, '22:05 (racha)') + btn('time', 26 * 60, '02:00') + btn('time', 28 * 60 + 40, '04:40') + '</div>' +
         '<div class="ch-sec">Clima</div><div class="ch-grid">' + btn('wx', 'limpo', 'Limpo', Settings.weather === 'limpo') + btn('wx', 'garoa', 'Garoa') + btn('wx', 'chuva', 'Temporal', Settings.weather === 'chuva') + btn('wx', 'auto', 'Dinâmico', Settings.weather === 'auto') + '</div>' +
@@ -682,7 +705,7 @@ const Phone = {
     }
     if (t.dataset.wall) { phoneCfg().wall = this.wall = t.dataset.wall; phoneTone(1100, 0.05, 0.05); this.render(); return; }
     const a = t.dataset.act2;
-    if (t.dataset.cheat && CHEATS_ENABLED) { cheatDo(t.dataset.cheat, t.dataset.cv); return; }
+    if (t.dataset.cheat && CHEATS_ENABLED && modoDono()) { cheatDo(t.dataset.cheat, t.dataset.cv); return; }
     if (a === 'map-full') { Object.assign(MapState.full, MapState.phone); Screens.open('screen-map'); AudioSys.click(); return; }
     if (a === 'save') { saveGame(); phoneCfg().lastSave = clockStr(); writeProfile(); AudioSys.chime(); toast('Jogo salvo', 'Progresso, dinheiro e carros guardados neste navegador.', 'good'); this.render(); return; }
     if (a === 'ride-toggle') { Act.rideOnline = !Act.rideOnline; Act.rideT = rnd(3, 6); if (!Act.rideOnline) Act.ride = null; AudioSys.click(); this.render(); }

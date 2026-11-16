@@ -206,6 +206,11 @@ function frame(now) {
     updateFireflies(dt);
     Weather.update(dt); Agua.atualiza(dt);
   } else accT = 0;
+  // enquanto a tela de carregar está na frente: tudo mudo (volume geral a zero); volta quando ela some
+  if (AudioSys.ctx && AudioSys.master && frame.mudo !== !!Game.carregando) {
+    frame.mudo = !!Game.carregando;
+    AudioSys.master.gain.setTargetAtTime(frame.mudo ? 0 : (Settings.master / 100) * 0.9, AudioSys.ctx.currentTime, 0.06);
+  }
   AposCarga.update(dt);
   Radio.update(dt);
   if (!Game.carregando) { Ambiente.update(dt); PedVoz.update(); } // sons de ambiente por região; voz do pedestre

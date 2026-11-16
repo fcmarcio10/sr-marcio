@@ -25,7 +25,7 @@ const { chromium } = require('playwright');
     out.carro = Profile.current; out.temp = !!Profile.emprestimo; out.racha2 = liberado('racha'); out.dono = !!Profile.owned.brasa;
     // ganha o racha
     Profile.rachaWins = (Profile.rachaWins || 0) + 1; await espera(2);
-    out.cap2 = Profile.hist.cap; out.volta = Profile.current; out.temp2 = !!Profile.emprestimo; out.temCfg = !!(Profile.cars && Profile.cars.brasa);
+    out.cap2 = Profile.hist.fim ? 'fim' : Profile.hist.cap; out.volta = Profile.current; out.temp2 = !!Profile.emprestimo; out.temCfg = !!(Profile.cars && Profile.cars.brasa);
     out.preco1 = precoCarro(carById('brasa')); out.desconto = descontoCarro(carById('brasa'));
     return out;
   });
@@ -35,7 +35,7 @@ const { chromium } = require('playwright');
   await p.screenshot({ path: 't117_garagem.png' });
   console.log(JSON.stringify({ r, gar }));
   const ok = r.preco0 === 35000 && r.ev && r.modelo === 'muscle' && !r.racha && r.juninho && r.msg && r.cap === 6 && r.carro === 'brasa' && r.temp && r.racha2 && !r.dono
-    && r.cap2 === 7 && r.volta === 'pampeiro' && !r.temp2 && !r.temCfg && r.preco1 === 29000 && r.desconto === 6000 && /29\.000/.test(gar.btn) && /Juninho/.test(gar.nota);
+    && r.cap2 === 'fim' && r.volta === 'pampeiro' && !r.temp2 && !r.temCfg && r.preco1 === 29000 && r.desconto === 6000 && /29\.000/.test(gar.btn) && /Juninho/.test(gar.nota);
   console.log(ok ? 'OK: Juninho, Opalha emprestado e desconto' : 'FALHOU');
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();

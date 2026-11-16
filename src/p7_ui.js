@@ -72,7 +72,7 @@ function ajustaCelular() {
   const d = $('hud-dash'), ph = document.querySelector('#screen-phone .phone'); if (!d || !ph) return;
   const dw = d.offsetWidth || 240, h = ph.offsetHeight || 640, livre = window.innerHeight - 18 - 96; // do chão até abaixo do quadro de objetivo
   document.documentElement.style.setProperty('--dash-w', dw + 'px');
-  document.documentElement.style.setProperty('--ph-s', clamp(livre / h, 0.45, 0.85).toFixed(3));
+  document.documentElement.style.setProperty('--ph-s', (clamp(livre / h, 0.45, 0.85) * 0.75).toFixed(3)); // 25% menor (nov/2026)
 }
 window.addEventListener('resize', () => { if (Screens.current === 'screen-phone') ajustaCelular(); });
 function updateHudVisibility() {

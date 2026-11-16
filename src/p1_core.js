@@ -152,6 +152,7 @@ addEventListener('keydown', (e) => {
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code) && !isTyping(e)) e.preventDefault();
   if (isTyping(e) && e.code !== 'Escape') return;
   if (!Keys[e.code]) KeyPress.push(e.code);
+  if (typeof Segredo !== 'undefined') Segredo.tecla(e.code);
   Keys[e.code] = true;
 });
 addEventListener('keyup', (e) => { Keys[e.code] = false; });
@@ -286,7 +287,7 @@ const AudioSys = {
   applyVolumes() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    this.master.gain.setTargetAtTime((Settings.master / 100) * 0.9, t, 0.05);
+    this.master.gain.setTargetAtTime(typeof Game !== "undefined" && Game.carregando ? 0 : (Settings.master / 100) * 0.9, t, 0.05); // mudo enquanto carrega
     this.bus.engine.gain.setTargetAtTime(Settings.engine / 100, t, 0.05);
     this.bus.ambient.gain.setTargetAtTime(Settings.ambient / 100 * 0.7, t, 0.05); // ambiente todo 30% mais baixo
     this.bus.ui.gain.setTargetAtTime(Settings.ui / 100, t, 0.05);
