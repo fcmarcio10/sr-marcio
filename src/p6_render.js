@@ -24,9 +24,9 @@ AutoRes.quadro = function (dtReal, trabalhoMs, cap) {
   if (nk !== this.k && Game.state === 'playing') { this.k = nk; resize(); }
 };
 const Cam = { x: 1000, y: 2700, zoom: 1, shake: 0, quick: 1, view: { x0: 0, y0: 0, x1: 0, y1: 0 }, dark: 0.84, menuTarget: null, menuT: 0 };
-const PAR = 1 / 1700;
+const PAR = 1 / 1150; // mais profundidade (nov/2026): prédios e árvores inclinam mais conforme a distância do centro
 const SQ = 1;      // visão de cima (sem achatamento vertical)
-const TILT_H = 0;  // sem inclinação extra: só a paralaxe 2.5D a partir do centro da tela
+const TILT_H = 0.1; // câmera levemente inclinada (vista 3/4): mostra a fachada de baixo dos prédios e a lateral dos carros
 
 function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
@@ -381,7 +381,7 @@ function signGlow(b) {
 /* ---------- prédios em 2.5D ---------- */
 function bldOffset(b) {
   let ox = (b.cx - Cam.x) * b.h * PAR, oy = (b.cy - Cam.y) * b.h * PAR;
-  const m = b.h * 0.85, l = Math.hypot(ox, oy);
+  const m = b.h * 0.95, l = Math.hypot(ox, oy);
   if (l > m) { ox *= m / l; oy *= m / l; }
   return [ox, oy - b.h * TILT_H];
 }
@@ -452,9 +452,9 @@ function lampGlowSprite(hex) {
 }
 // o objeto aparece na tela? (com a inclinação 2.5D, que nunca passa de 0,9x a altura) — fora da tela não desenha nada
 function tallVisible(o, v) {
-  if (o.kind === 'bld') { const m = o.h * 0.9 + (o.sign ? 60 : 6); return !(o.x1 + m < v.x0 || o.x0 - m > v.x1 || o.y1 + m < v.y0 || o.y0 - m > v.y1); }
-  if (o.kind === 'tree') { const m = 34 * o.size + o.h * 0.9; return o.x + m > v.x0 && o.x - m < v.x1 && o.y + m > v.y0 && o.y - m < v.y1; }
-  if (o.kind === 'lamp') { const m = o.h * 0.9 + 18; return Math.max(o.x, o.hx) + m > v.x0 && Math.min(o.x, o.hx) - m < v.x1 && Math.max(o.y, o.hy) + m > v.y0 && Math.min(o.y, o.hy) - m < v.y1; }
+  if (o.kind === 'bld') { const m = o.h * 1.1 + (o.sign ? 60 : 6); return !(o.x1 + m < v.x0 || o.x0 - m > v.x1 || o.y1 + m < v.y0 || o.y0 - m > v.y1); }
+  if (o.kind === 'tree') { const m = 34 * o.size + o.h * 1.15; return o.x + m > v.x0 && o.x - m < v.x1 && o.y + m > v.y0 && o.y - m < v.y1; }
+  if (o.kind === 'lamp') { const m = o.h * 1.15 + 18; return Math.max(o.x, o.hx) + m > v.x0 && Math.min(o.x, o.hx) - m < v.x1 && Math.max(o.y, o.hy) + m > v.y0 && Math.min(o.y, o.hy) - m < v.y1; }
   return true;
 }
 const FAVELA_RK = { feurosa: 1, carapina: 1, novarosa: 1, flexal: 1, saopedro: 1, terravermelha: 1 };

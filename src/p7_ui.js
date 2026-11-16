@@ -641,6 +641,13 @@ function renderPauseStats() {
 
 /* ---------- HUD ---------- */
 function clockStr() { const t = Math.floor(Profile.time) % 1440; const h = Math.floor(t / 60), m = t % 60; return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
+// objetivo em legenda: o nome do lugar ou da pessoa em amarelo
+function objLegenda(title, desc) {
+  const d = String(desc || ''), m = d.match(/^(Buscar em|Levar até|Destino:|Siga|Corre!)\s*(.*)$/);
+  if (m && m[1] !== 'Corre!' && m[1] !== 'Siga') return escapeHtml(m[1]) + ' <b>' + escapeHtml(m[2].replace(/ · .*$/, '')) + '</b>.';
+  const t = String(title || '').split(': ');
+  return (t.length > 1 ? '<b>' + escapeHtml(t.slice(1).join(': ')) + '</b> · ' : '') + escapeHtml(d);
+}
 function updateHUD(dt) {
   if (Game.mode !== 'play' || !player) return;
   const rk = regionKeyAt(player.x, player.y);
@@ -689,6 +696,15 @@ function updateHUD(dt) {
   UI.set('obj-tag', cls === 'historia' ? 'HISTÓRIA' : 'OBJETIVO');
   UI.set('obj-title', title); UI.set('obj-desc', desc); UI.set('obj-meta', meta);
   if (UI.last.objcls !== cls) { UI.last.objcls = cls; $('hud-objective').className = 'glass ' + cls; }
+  // tela limpa: o quadro de objetivo não aparece mais; quando o objetivo muda, ele vem como legenda embaixo (uma vez)
+  if (cls && cls !== 'historia') {
+    const key = cls + '|' + title + '|' + (cls === 'race' ? '' : desc);
+    if (key !== UI.last.objKey) { UI.last.objKey = key; if (telaLivre() && !Apresenta.on) Missao.legenda(objLegenda(title, desc), 6); }
+  } else UI.last.objKey = '';
+  // aviso de prazo acabando (entrega e corrida com hora marcada)
+  { const D = Act.delivery, R = Act.ride;
+    if (D && D.stage !== 'pickup' && D.par - D.t < 30 && D.par - D.t > 0 && !D.av30) { D.av30 = true; Missao.legenda('Faltam <b>30 segundos</b> para o prazo da entrega!', 5); }
+    if (R && R.tmax && R.stage === 'drive' && R.tmax - R.t < 30 && R.tmax - R.t > 0 && !R.av30) { R.av30 = true; Missao.legenda('Faltam <b>30 segundos</b>: o passageiro tá com pressa!', 5); } }
   // veículo
   UI.set('car-name', carFullName(player.car));
   { const w = $('hud-wanted'), L = Police.level; w.classList.toggle('hidden', L <= 0);

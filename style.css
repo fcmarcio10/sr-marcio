@@ -1385,3 +1385,5 @@ body.cinema #hud-region, body.cinema #hud-radio-btn, body.cinema #toasts, body.c
 /* celular aberto: a legenda do tutorial fica embaixo, à esquerda do celular; os avisos descem para não tapar o objetivo */
 #tutorial.in-phone { top: auto; bottom: 92px; left: calc((100vw - var(--dash-w, 240px) - 306px * var(--ph-s, 0.78) - 46px) / 2); max-width: calc(100vw - var(--dash-w, 240px) - 306px * var(--ph-s, 0.78) - 90px); }
 body.cel-aberto #toasts { top: 150px; }
+/* tela limpa: sem o quadro de objetivo no topo (o objetivo vem como legenda embaixo) */
+#hud-objective { display: none !important; }

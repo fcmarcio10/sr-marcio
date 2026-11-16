@@ -53,8 +53,11 @@ const Historia = {
     }
     if (Apresenta.on) return;
     if (Profile.tut !== undefined && Profile.tut < TUT_STEPS.length && h.cap === 0) return;
-    const c = HIST_CAPS[h.cap];
-    if (this.feito() >= c.alvo) this.conclui();
+    const c = HIST_CAPS[h.cap], f = this.feito();
+    // avanço do capítulo aparece como legenda (sem quadro fixo na tela)
+    if (h.cap > 0 && c.alvo > 1 && f > (this.ultimo === undefined ? f : this.ultimo) && f < c.alvo && telaLivre() && !Apresenta.on) Missao.legenda(escapeHtml(c.nome) + ': <b>' + f + ' de ' + c.alvo + '</b>', 5);
+    this.ultimo = f;
+    if (f >= c.alvo) { this.ultimo = undefined; this.conclui(); }
   },
   conclui() {
     const h = this.h(), c = HIST_CAPS[h.cap], n = h.cap + 1;
