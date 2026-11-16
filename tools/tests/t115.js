@@ -27,6 +27,7 @@ const { chromium } = require('playwright');
   await p.click('#phone-body [data-app="fretes"]'); await p.waitForTimeout(400);
   const naoAbriu = await p.evaluate(() => Phone.app !== 'fretes');
   // mapa explorado
+  await p.screenshot({ path: 't115_antesmapa.png' }); console.log('app', await p.evaluate(() => [Phone.app, Screens.current]));
   await p.click('#phone-body [data-app="mapa"]'); await p.waitForTimeout(600);
   const nev = await p.evaluate(() => ({ pct: Nevoa.pct(), aqui: Nevoa.aberto(player.x, player.y), longe: Nevoa.aberto(8000, 8800), oficina: Nevoa.aberto(oficinaZe().x, oficinaZe().y) }));
   await p.screenshot({ path: 't115_mapa.png' });
