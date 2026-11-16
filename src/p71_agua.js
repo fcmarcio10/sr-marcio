@@ -341,3 +341,27 @@ Agua.luar = function (ctx, view) {
   ctx.restore();
   if (this.espuma.length) { ctx.save(); ctx.globalAlpha = 0.5; ctx.fillStyle = '#eef6fa'; for (const f of this.espuma) { ctx.globalAlpha = 0.45 * (1 - f.t / f.vida); ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 + f.t * 0.8), 0, TAU); ctx.fill(); } ctx.restore(); }
 };
+
+// ---------- entrou inteiro no mar: escurece suave, espirra água e o carro volta para a areia ----------
+const Praia = { t: 0, D: 1.3, feito: false };
+Praia.comeca = function () {
+  this.t = this.D; this.feito = false;
+  for (let k = 0; k < 30; k++) { const a = rnd(0, TAU); Agua.espuma.push({ x: player.x + Math.cos(a) * rnd(4, 20), y: player.y + Math.sin(a) * rnd(3, 14), vx: Math.cos(a) * rnd(20, 60), vy: Math.sin(a) * rnd(15, 45) - 20, r: rnd(1.2, 3), t: 0, vida: rnd(0.8, 1.5) }); }
+  if (AudioSys.ok) { AudioSys.noise(0.9, 700, 0.5, 0.12, 'ambient', 'bandpass'); AudioSys.noise(0.4, 2400, 0.8, 0.05, 'ambient', 'highpass', 0.1); }
+};
+Praia.update = function (dt) {
+  if (!this.t || !player) return;
+  this.t = Math.max(0, this.t - dt);
+  if (!this.feito && this.t < this.D / 2) { // meio da animação (tela escura): põe o carro na areia, de frente para a cidade
+    this.feito = true;
+    const B = Agua.beira, i = Math.round(player.x / 20), yb = (B && B[i]) || SEA_Y;
+    player.x = clamp(player.x, ORLA_X0 + 60, WORLD_W - 260); player.y = yb - 48; player.a = -Math.PI / 2;
+    player.vx = player.vy = 0; player.spin = 0; Cam.x = player.x; Cam.y = player.y; Agua.molhaCarro = 0;
+  }
+};
+// escurecimento suave por cima de tudo
+Praia.desenha = function (ctx, W, H) {
+  if (!this.t) return;
+  const p = 1 - this.t / this.D, a = Math.sin(p * Math.PI);
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = `rgba(4,10,20,${(a * 0.92).toFixed(3)})`; ctx.fillRect(0, 0, W, H); ctx.restore();
+};

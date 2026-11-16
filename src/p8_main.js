@@ -157,6 +157,7 @@ function stepPlay(dt) {
   player.update(dt, inp);
   if (trava) { player.vx = player.vy = 0; }
   if (!trava) Desafios.update(dt);
+  Praia.update(dt);
   Traffic.update(dt, Game.time, player.x, player.y, Cam.view);
   Animals.update(dt, Cam.x, Cam.y);
   if (Settings.quality !== 'baixa') Peladas.update(dt, Cam.x, Cam.y);

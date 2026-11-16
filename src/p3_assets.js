@@ -105,6 +105,12 @@ function buildPatterns() {
         g.fillStyle = 'rgba(120,170,90,0.12)'; g.beginPath(); g.arc(x + ox - r * 0.3, y + oy - r * 0.3, r * 0.5, 0, TAU); g.fill();
       }
     }
+    // folhagem miúda por cima (cara de mata de verdade, não de bolinhas lisas): pontinhos claros e escuros e alguns ipês
+    for (let i = 0; i < 520; i++) {
+      const x = R() * s, y = R() * s, k = R();
+      g.fillStyle = k < 0.45 ? 'rgba(0,0,0,0.22)' : k < 0.93 ? 'rgba(110,160,80,0.2)' : (k < 0.97 ? 'rgba(230,200,60,0.45)' : 'rgba(220,120,170,0.4)');
+      g.beginPath(); g.arc(x, y, 1.2 + R() * 2.2, 0, TAU); g.fill();
+    }
   });
 }
 function pat(g, name) {

@@ -19,12 +19,17 @@ const { chromium } = require('playwright');
   await p.waitForTimeout(200);
   await p.evaluate(() => document.querySelectorAll('[id^=ms-], #hud-objective').forEach((e) => e.remove()));
   await p.screenshot({ path: 't120_onda.png' });
-  // acelera para dentro do mar: para sem batida
-  await p.keyboard.down('KeyS'); await p.waitForTimeout(100); await p.keyboard.up('KeyS');
-  await p.evaluate(() => { player.vx = 0; player.vy = 260; });
-  await p.waitForTimeout(1200);
-  const r = await p.evaluate(() => ({ batidas: window.__bat, espuma: Agua.espuma.length, molha: +(Agua.molhaCarro || 0).toFixed(2), y: Math.round(player.y), dentro: player.inWater() }));
+  // entra com o carro inteiro no mar: escurece, e o carro volta para a areia (sem batida)
+  await p.evaluate(() => { const x = player.x, yb = Agua.beira[Math.round(x / 20)]; player.place(x, yb - 40, Math.PI / 2); player.vx = 0; player.vy = 200; window.__yb = yb; const o = Praia.comeca; Praia.comeca = function () { window.__praia = true; return o.call(this); }; });
+  await p.waitForTimeout(400);
+  const meio = true;
+  await p.waitForTimeout(1600);
+  const r = await p.evaluate(() => ({ batidas: window.__bat, praia: Praia.t, y: Math.round(player.y), yb: Math.round(window.__yb), areia: groundAt(player.x, player.y) !== SF.WATER, dentro: player.inWater() }));
+  r.comecou = await p.evaluate(() => !!window.__praia);
+  // no rio continua batendo (não entra)
+  const rio = await p.evaluate(() => { const y = 2600, x = riverCX(y) - riverHW(y) - 30; player.place(x, y, 0); player.vx = 300; player.vy = 0; for (let i = 0; i < 60; i++) player.update(1 / 60, { thr: true, brk: false, steer: 0, hb: false }); return { dentro: player.todoNaAgua(), x: Math.round(player.x), margem: Math.round(riverCX(y) - riverHW(y)) }; });
   console.log(JSON.stringify(ini), JSON.stringify(r));
-  console.log(r.batidas === 0 && !r.dentro ? 'OK: onda sem batida, espuma no carro' : 'FALHOU');
+  console.log(JSON.stringify(rio));
+  console.log(r.batidas === 0 && r.comecou && r.areia && r.y < r.yb && !r.dentro && !rio.dentro ? 'OK: onda sem batida, espuma no carro, mar devolve para a areia e rio bate' : 'FALHOU');
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();

@@ -429,6 +429,14 @@ const AudioSys = {
     this.tone(70, 0.3, 'sine', 0.5 * i, 'engine', 40);
     if (i > 0.5) this.noise(0.5, 3200, 2, 0.12 * i, 'engine', 'bandpass', 0.03);
   },
+  // batida na mata: folhagem chacoalhando, galho estalando e um baque abafado (sem barulho de lata)
+  mato(i) {
+    i = clamp(i, 0.1, 1);
+    this.noise(0.45, 3800, 0.7, 0.16 * i, 'engine', 'highpass');
+    this.noise(0.08, 1400, 3, 0.18 * i, 'engine', 'bandpass', 0.04);
+    if (i > 0.4) this.noise(0.06, 900, 4, 0.14 * i, 'engine', 'bandpass', 0.12);
+    this.tone(60, 0.2, 'sine', 0.3 * i, 'engine', 35);
+  },
   breakSnd(mat, k) {
     k = clamp(k || 0.5, 0.2, 1);
     if (mat === 'wood') { this.noise(0.18, 900, 1.5, 0.35 * k, 'engine', 'bandpass'); this.tone(160, 0.12, 'triangle', 0.2 * k, 'engine', 90); }

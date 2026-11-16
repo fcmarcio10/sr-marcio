@@ -664,14 +664,14 @@ function drawTall(ctx, o) {
         break;
       }
       const [ox0, oy] = offAt(o.x, o.y, o.h);
-      const ox = ox0 + Math.sin(Game.time * 1.3 + o.x * 0.05) * 0.9 * o.size;
+      const bv = Vento.bal(o.x, o.y, o.x * 0.05 + o.y * 0.03, (o.type === 'bush' ? 1.1 : 1.8) * o.size), ox = ox0 + bv; // balança com o vento (rajadas passando)
       const spr = treeSprite(o.type, o.v);
       const S = 64 * o.size * (o.type === 'bush' ? 0.55 : 1);
       let a = 1;
       if (player && Game.state !== 'menu') { const d = Math.hypot(player.x - o.x - ox, player.y - o.y - oy); if (d < S * 0.45) a = 0.42; }
       if (a < 1) ctx.globalAlpha = a;
       if (o.type !== 'bush' && Math.hypot(ox, oy) > 3) { ctx.strokeStyle = '#3a2a1c'; ctx.lineWidth = 3 * o.size; ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + ox * 0.8, o.y + oy * 0.8); ctx.stroke(); }
-      ctx.drawImage(spr, o.x + ox - S / 2, o.y + oy - S / 2, S, S);
+      ctx.drawImage(spr, o.x + ox - S / 2, o.y + oy + bv * 0.3 - S / 2, S, S);
       if (a < 1) ctx.globalAlpha = 1;
       break;
     }
@@ -1570,6 +1570,7 @@ function render() {
   drawGround(view, forceGround); forceGround = false;
   pm('ground');
   Agua.desenhaChao(ctx, view); // rio correndo, ondas do mar e chão molhado
+  Mata.chao(ctx, view); // vento nas copas da mata, plantação balançando e tufos de mato nos campos
   Weather.drawPuddles(ctx, view);
   Skids.draw(ctx, view);
   Weather.drawRipples(ctx, view);
@@ -1608,6 +1609,7 @@ function render() {
   }
   Particles.draw(ctx);
   Agua.respingosCarro(ctx, view);
+  Mata.copa(ctx, view); // copas na borda da mata (por cima do carro que encosta nela)
   pm('vehicles');
   // objetos altos ordenados por distância à câmera (longe primeiro)
   rendGrid.query(view.x0 - 170, view.y0 - 170, view.x1 + 170, view.y1 + 170, _rq);
@@ -1655,6 +1657,7 @@ function render() {
   Weather.drawDrops(ctx);
   pm('drops');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  Praia.desenha(ctx, W, Hh); // carro voltando do mar para a areia
   if (Cam.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${(Cam.flash * 0.6).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
 }
 

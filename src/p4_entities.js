@@ -144,9 +144,11 @@ class Player {
     let impact = this.collide();
     impact = Math.max(impact, this.collideDynamic());
     if (this.inWater()) {
-      this.x = this.px; this.y = this.py;
-      if (this.y > SAND_Y - 40) { this.vx *= 0.2; this.vy *= 0.2; } // beira do mar: o carro só para (sem batida nem dano)
-      else { impact = Math.max(impact, this.speed * 0.6); this.vx *= -0.25; this.vy *= -0.25; }
+      if (this.y > SAND_Y - 40) { // mar: o carro entra devagar (a água segura); entrou inteiro, volta para a areia (Praia.volta)
+        const k = Math.exp(-1.6 * dt); this.vx *= k; this.vy *= k;
+        this.marT = groundAt(this.x, this.y) === SF.WATER ? (this.marT || 0) + dt : 0; // o meio do carro já está na água
+        if (!Praia.t && (this.todoNaAgua() || this.marT > 0.7)) { this.marT = 0; Praia.comeca(); }
+      } else { this.x = this.px; this.y = this.py; impact = Math.max(impact, this.speed * 0.6); this.vx *= -0.25; this.vy *= -0.25; } // rio: bate
     }
     this.impactCd -= dt;
     if (impact > 70 && this.impactCd <= 0) onPlayerImpact(impact);
@@ -297,7 +299,9 @@ class Player {
           const vn = this.vx * nx + this.vy * ny;
           // raspando na parede: faíscas e chiado
           const vtan = Math.abs(-this.vx * ny + this.vy * nx);
-          if (vtan > 140 && vn > -60) { if (chance(0.5)) Particles.emit('spark', cx - nx * r, cy - ny * r, -this.vx * 0.3 + rnd(-60, 60), -this.vy * 0.3 + rnd(-60, 60), rnd(0.15, 0.35), 2); this.scrapeT = 0.12; }
+          const verde = o.tag === 'forest' || o.tag === 'tree';
+          if (verde && vtan > 100 && chance(0.4)) Particles.emit('leaf', cx - nx * r + rnd(-6, 6), cy - ny * r + rnd(-6, 6), rnd(-50, 50), rnd(-50, 50), rnd(0.6, 1.2), 2); // raspando na mata: folhas, sem faísca
+          if (!verde && vtan > 140 && vn > -60) { if (chance(0.5)) Particles.emit('spark', cx - nx * r, cy - ny * r, -this.vx * 0.3 + rnd(-60, 60), -this.vy * 0.3 + rnd(-60, 60), rnd(0.15, 0.35), 2); this.scrapeT = 0.12; }
           if (vn < 0) {
             const e = clamp(0.32 + vn / 1400, 0.08, 0.32); // batida forte quica menos (a lataria amassa e segura)
             const jx = -(1 + e) * vn * nx, jy = -(1 + e) * vn * ny;
@@ -307,7 +311,7 @@ class Player {
             this.vx -= tx * atr; this.vy -= ty * atr;
             const tau = (c * k) * jy - (s * k) * jx;
             this.spin = clamp(this.spin + tau * 0.00018, -2.5, 2.5);
-            if (-vn > impact) { impact = -vn; this.hitX = cx - nx * r; this.hitY = cy - ny * r; }
+            if (-vn > impact) { impact = -vn; this.hitX = cx - nx * r; this.hitY = cy - ny * r; this.hitTag = o.tag; }
           }
         }
       }
@@ -374,6 +378,13 @@ class Player {
       }
     }
     return impact;
+  }
+  todoNaAgua() {
+    const c = Math.cos(this.a), s = Math.sin(this.a), hl = this.m.L / 2, hw = this.m.W / 2;
+    // o meio do carro e pelo menos 3 dos 4 cantos na água (perto da borda do mapa o mar é raso e não cabe o carro todo)
+    if (groundAt(this.x, this.y) !== SF.WATER) return false;
+    let n = 0; for (const [u, v] of [[hl, hw], [hl, -hw], [-hl, hw], [-hl, -hw]]) if (groundAt(this.x + c * u - s * v, this.y + s * u + c * v) === SF.WATER) n++;
+    return n >= 3;
   }
   inWater() {
     const c = Math.cos(this.a), s = Math.sin(this.a), hl = this.m.L / 2 - 3, hw = this.m.W / 2 - 3;
