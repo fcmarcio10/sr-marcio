@@ -3611,12 +3611,13 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   ctx.restore();
   if (lift && m.kind !== 'moto') {
     const bp = bodyPath(m), base = m.kind === 'car' ? color : m.kind === 'bus' ? '#d8d6ce' : m.kind === 'truck' ? (o.box || '#d9d6cc') : color;
-    const steps = [[0, -0.7], [0.35, -0.6], [0.7, -0.48]];
-    for (const [k, sh] of steps) {
-      ctx.save(); ctx.translate(x, y - lift * k / sq); ctx.scale(1, 1 / sq); ctx.rotate(as);
-      ctx.fillStyle = shade(base, sh); ctx.fill(bp);
-      ctx.restore();
+    // lateral do carro: uma faixa só, contínua (a carroceria "esticada" do chão até a altura), sem fatias
+    const n = Math.max(2, Math.ceil(lift * 2.5));
+    ctx.save(); ctx.fillStyle = shade(base, -0.55);
+    for (let i = 0; i < n; i++) {
+      ctx.save(); ctx.translate(x, y - lift * (i / n) / sq); ctx.scale(1, 1 / sq); ctx.rotate(as); ctx.fill(bp); ctx.restore();
     }
+    ctx.restore();
   }
   ctx.save();
   ctx.translate(x, y - lift / sq); ctx.scale(1, 1 / sq); ctx.rotate(as);
