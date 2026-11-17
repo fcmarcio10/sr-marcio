@@ -271,7 +271,7 @@ function edgePave(e) {
 function edgeWalk(e) {
   if (e.walkT) return e.walkT;
   const rk = regionKeyAt((e.a.x + e.b.x) / 2, (e.a.y + e.b.y) / 2);
-  return (e.walkT = rk === 'centro' || (e.T.id === 'avenue' && (rk === 'jardim' || rk === 'vila')) ? 'portuguesa' : 'sidewalk');
+  return (e.walkT = rk === 'centro' || rk === 'camburi' || rk === 'orla' || (e.T.id === 'avenue' && (rk === 'jardim' || rk === 'vila')) ? 'portuguesa' : 'sidewalk');
 }
 const CURB_W = '#e6e3d6', CURB_Y = '#e0b83a';
 function drawEdgeBase(g, e) {

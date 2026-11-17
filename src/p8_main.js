@@ -296,8 +296,9 @@ async function boot() {
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
+  NOBRE_EXT = true; // margem leste do rio passa a ser Jardim Camburiso (depois de montar: o sorteio do mapa não muda)
   alargaRuas(); empurraDaPista(); marcaVagas(); elevaPredios(); aoPredios(); // ruas 10% mais largas (depois de montar tudo: a cidade não muda)
-  pruneRoadTrees(); thinTrees(); addBuracos(); Colecao.monta();
+  pruneRoadTrees(); thinTrees(); addBuracos(); Colecao.monta(); posMontagem(); // outdoors no pasto, lotes à venda, estradinhas, palmeiras e empenas
   buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();
   buildMapImage();

@@ -225,10 +225,11 @@ const REGIONS = {
   orla: { name: 'Orla de Camburiso', dark: 0.72, city: 0.5, rural: 0 },
 };
 const SUBREG = [];
+let NOBRE_EXT = false; // liga depois de montar o mapa: a margem leste do rio (Barra) passa a ser Jardim Camburiso
 function regionKeyAt(x, y) {
   if (y > CALC_Y - 40) return x < ORLA_X0 ? 'mata' : 'orla';
   if (x < 230 || y < 230 || x > 8790) return 'mata';
-  if (y > 6440 && x >= 4660) return x >= 7520 ? 'porto' : x >= 6300 ? 'camburi' : 'barra';
+  if (y > 6440 && x >= 4660) return x >= 7520 ? 'porto' : x >= 6300 ? 'camburi' : NOBRE_EXT && y < 8080 && x > riverCX(y) + riverHW(y) + 40 ? 'camburi' : 'barra';
   for (const s of SUBREG) if (x > s[0] && x < s[2] && y > s[1] && y < s[3]) return s[4];
   if (y > 8030 && x < 4660) return x < 2700 ? 'novarosa' : 'flexal';
   if (y > 6440 && x < 4660) return x < 2100 ? 'feurosa' : 'carapina';
@@ -1370,11 +1371,8 @@ function buildHighwayStrip() {
   for (const x of [900, 3400, 5000, 6900, 8200]) {
     const bx = x, by = x > 4700 ? 6320 : 6080;
     if (areaBlocked(bx - 40, by - 10, bx + 40, by + 10)) continue;
-    const bd = { kind: 'billboard', x: bx, y: by, h: 62, text: ads[ai % ads.length], col: pick(['#ffb547', '#59e0ff', '#ff5f7a', '#5be38f']), ad: ai, panel: null };
-    ai++;
-    addTall(bd, bx - 90, by - 90, bx + 90, by + 90);
-    addCircCol(bx - 34, by, 4, 'pole'); addCircCol(bx + 34, by, 4, 'pole');
-    addLight(bx, by - 20, 110, 0.6, 'white');
+    // nov/2026: os outdoors foram para o meio do pasto (campo.js); aqui só gasta os mesmos sorteios de antes (cor e luz)
+    pick(['#ffb547', '#59e0ff', '#ff5f7a', '#5be38f']); ai++; rnd();
   }
   // cachorros pelas ruas residenciais
   World.animalsDef.push({ type: 'dog', n: 1, rect: [640, 2700 + RT.street.w / 2 + 5, 1380, 2700 + RT.street.w / 2 + 17] });
@@ -1567,6 +1565,7 @@ function addBuracos() {
       if (World.bumps.some((b) => x > b.x0 - 40 && x < b.x1 + 40 && y > b.y0 - 40 && y < b.y1 + 40)) continue;
       const g = groundAt(x, y); if (g !== SF.ROAD && g !== SF.PAVED) continue;
       const k = 0.7 + R() * 0.45, a = R() * 3, p = { type: 'buraco', x, y, k, a };
+      if (regionKeyAt(x, y) === 'camburi' || regionKeyAt(x, y) === 'orla') continue; // área nobre: asfalto liso
       bake(x - 16, y - 16, x + 16, y + 16, 5.6, (gc) => drawBuraco(gc, p));
       World.buracos.push({ x, y, r: 9 * k, t: -9 });
     }
@@ -1640,21 +1639,6 @@ function buildMarcosDaCidade() {
   addLight(4760, 3275, 110, 0.9, 'warm', { shop: true });
   for (let i = 0; i < 5; i++) addProp('pot', 4745, 3250 + i * 14, { col: 'circ', cr: 5, R: 10 });
   addShop({ kind: 'paneleiras', name: 'Galpão das Paneleiras', x: 4600 + RT.street.lanes[0], y: 3275, bld: pb, color: '#ff9a4a', region: 'rio', pickup: true, items: ['Panela de barro grande', 'Jogo de panelas de barro', 'Moquequeira de barro'] });
-  // outdoors na rodovia (antes eram placas verdes com as cidades vizinhas)
-  let bbExtra = 0;
-  // entre os outdoors que já existiam (900, 3400, 5000, 6900, 8200), para não ficarem um em cima do outro
-  for (const x0 of [2150, 4200, 5950, 7550]) {
-    const y = HWY_Y - RT.highway.w / 2 - 14;
-    const livre = (xx) => !areaBlocked(xx - 40, y - 8, xx + 40, y + 8) && [-40, 0, 40].every((d) => { const g = groundAt(xx + d, y - 6); return g !== SF.ROAD && g !== SF.BRIDGE; }) && [-80, 80].every((d) => groundAt(xx + d, y - 30) !== SF.ROAD);
-    const x = [0, 250, -250, 500, -500, 750].map((d) => x0 + d).find(livre); // anda um pouco se o lugar estiver ocupado
-    if (x === undefined) continue;
-    // no lugar das placas verdes de rodovia: outdoors de verdade (desenho com humor)
-    const g = { kind: 'billboard', x, y: y - 6, h: 62, ad: 5 + (bbExtra++), panel: null };
-    addTall(g, x - 90, y - 96, x + 90, y + 84);
-    addCircCol(x - 34, y - 6, 4, 'pole'); addCircCol(x + 34, y - 6, 4, 'pole');
-    addLightFixa(x, y - 26, 110, 0.6, 'white');
-  }
-  { const x = 5000, y = 1500 - RT.road.w / 2 - 20; const g = { kind: 'billboard', x, y, h: 62, ad: 5 + (bbExtra++), panel: null }; addTall(g, x - 90, y - 90, x + 90, y + 90); addCircCol(x - 34, y, 4, 'pole'); addCircCol(x + 34, y, 4, 'pole'); addLightFixa(x, y - 20, 110, 0.6, 'white'); }
   // feira livre perto das chácaras
   const cols = ['#e63946', '#2a9d8f', '#f4c430', '#3a86ff', '#ff7f11'];
   let n = 0;
@@ -1866,6 +1850,39 @@ function litRoads(c, r) {
 function addRock(x, y, r, h) { const o = { kind: 'rock', x, y, r, h, seed: rnd() }; addTall(o, x - r - 40, y - r - 40, x + r + 40, y + r + 40); addCircCol(x, y, r * 0.92, 'bld'); return o; }
 // guindaste do porto
 function addCrane(x, y, len, ang) { const o = { kind: 'crane', x, y, len, a: ang, h: 120, seed: rnd() }; addTall(o, x - len - 60, y - len - 60, x + len + 60, y + len + 60); for (const [dx, dy] of [[-16, -16], [16, -16], [-16, 16], [16, 16]]) addCircCol(x + dx, y + dy, 3, 'pole'); return o; }
+// quarteirão nobre (nov/2026, margem leste do rio, estilo capital): torres residenciais altas com jardim gramado,
+// passeio de pedra, piscina, palmeiras, cerca viva baixa e muro claro com guarita. Sorteio próprio (ver buildLitoral).
+function blocoNobre(R, roads, k) {
+  decal(R.x0, R.y0, R.x1, R.y1, 'lawn2');
+  const w = R.x1 - R.x0, h = R.y1 - R.y0, cx = (R.x0 + R.x1) / 2;
+  decal(R.x0, R.y0, R.x1, R.y0 + 16, 'plaza'); decal(R.x0, R.y1 - 16, R.x1, R.y1, 'plaza'); decal(R.x1 - 16, R.y0, R.x1, R.y1, 'plaza');
+  const nx = Math.max(1, Math.round(w / 230)), ny = Math.max(1, Math.round(h / 300));
+  const CORES = ['#ece7dc', '#dcd6ca', '#c9d3d8', '#efe6d6', '#d7dde0', '#e4dccb'];
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const cx0 = R.x0 + 24 + i * (w - 48) / nx, cx1 = R.x0 + 24 + (i + 1) * (w - 48) / nx, cy0 = R.y0 + 30 + j * (h - 60) / ny, cy1 = R.y0 + 30 + (j + 1) * (h - 60) / ny;
+    const cw = cx1 - cx0, ch = cy1 - cy0;
+    // torre (prédio residencial alto) com varandas: ocupa ~55% do terreno
+    const tw = Math.min(150, cw * rnd(0.5, 0.6)), th = Math.min(170, ch * rnd(0.42, 0.52));
+    const tx = cx0 + (cw - tw) / 2 + rnd(-8, 8), ty = cy0 + 18 + rnd(0, 10);
+    addBuilding(tx, ty, tx + tw, ty + th, rnd(96, 128), { style: 'apart', front: 'S', roofType: 'flat', roofColor: pick(['#6d7074', '#75777a', '#646a70']), wall: pick(CORES), lit: 0.6 });
+    // piscina com deck na frente da torre
+    const py0 = ty + th + 18, py1 = Math.min(cy1 - 12, py0 + 46);
+    if (py1 - py0 > 28) {
+      const pw = Math.min(tw * 0.7, 90), px0 = tx + (tw - pw) / 2;
+      decal(px0 - 8, py0 - 8, px0 + pw + 8, py1 + 8, 'plaza'); decal(px0, py0, px0 + pw, py1, 'pool');
+      for (const sx of [px0 - 18, px0 + pw + 18]) addTree(sx, (py0 + py1) / 2, 'palm', rnd(0.95, 1.2));
+    }
+    // jardim: palmeiras e árvores floridas nos cantos, moitas baixas
+    for (const [x, y] of [[cx0 + 14, cy0 + 14], [cx1 - 14, cy0 + 14], [cx0 + 14, cy1 - 14], [cx1 - 14, cy1 - 14]]) addTree(x, y, pick(['palm', 'palm', 'ipeY', 'ipeP', 'round']), rnd(0.9, 1.15));
+    for (let b = 0; b < 4; b++) addTree(cx0 + rnd(10, cw - 10), cy1 - rnd(6, 16), 'bush', rnd(0.8, 1));
+    addLamp(cx0 + 6, (cy0 + cy1) / 2, cx0 + 6, (cy0 + cy1) / 2, 'warm', { style: 'globe', h: 30, r: 110, i: 0.7 });
+  }
+  // muro baixo claro na frente da rua, com guarita e portão
+  const wc = '#e8e4da';
+  addWall(R.x0 + 4, R.y1 - 6, cx - 30, R.y1 - 2, wc, { h: 3 }); addWall(cx + 30, R.y1 - 6, R.x1 - 4, R.y1 - 2, wc, { h: 3 });
+  addBuilding(cx + 34, R.y1 - 40, cx + 60, R.y1 - 10, 14, { style: 'kiosk', roofType: 'flat', roofColor: '#4a5560', wall: '#f2efe8', lit: 1 });
+  World.animalsDef.push({ type: 'person', n: 4 + k, rect: [R.x0 + 30, R.y1 - 30, R.x1 - 30, R.y1 - 12] });
+}
 function buildLitoral() {
   // ---- Barra do Jururuzinho: vila de pescadores dos dois lados do rio ----
   for (let r = 0; r < 3; r++) {
@@ -1875,6 +1892,9 @@ function buildLitoral() {
     const W = { x0: R.x0, x1: wl, y0: R.y0, y1: R.y1 }, E = { x0: er, x1: R.x1, y0: R.y0, y1: R.y1 };
     if (W.x1 - W.x0 > 160) residentialBlock(W, { rich: false, roads, region: 'barra', sides: ['N', 'S', 'W'] });
     if (E.x1 - E.x0 > 160) {
+      // nov/2026: a margem leste do rio (r 0 e 1) virou parte nobre do Jardim Camburiso. As casinhas saíram, mas os
+      // sorteios que elas gastavam continuam sendo gastos (315 e 249), para o resto do mapa não mudar.
+      if (r < 2) { for (let i = 0, n = r === 0 ? 315 : 249; i < n; i++) RNG(); const sv = RNG; RNG = mulberry32(9100 + r); blocoNobre(E, roads, r); RNG = sv; } else
       if (r === 2) residentialBlock(E, { rich: false, roads, region: 'barra', sides: ['N', 'S', 'E'], special: { side: 'S', w: 170, build: shopLotBuilder({ kind: 'bar', name: 'Bar do Pescador Mentiroso', sign: 'PESCADOR MENTIROSO', color: '#59e0ff', h: 26, depth: 90, pickup: true, items: ['Moqueca pra viagem', 'Isca viva', 'Caldo de sururu'], tables: true }) } });
       else residentialBlock(E, { rich: false, roads, region: 'barra', sides: ['N', 'S', 'E'] });
     }

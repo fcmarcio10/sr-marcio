@@ -422,7 +422,7 @@ function wsClear() { WS_CACHE.clear(); WS_K = RS >= 1.5 ? 2.5 : 1.6; }
 const WS_LINES = { warehouse: 1, barn: 1, container: 1, shed: 1 };
 function wallKey(b, side, len, Lb) {
   const ws = WIN_STYLES[b.style];
-  let k = b.style + '|' + b.wall + '|' + side + '|' + Lb + (b.front === side ? 'F' : '') + (b.brick ? 'B' : '') + (b.vidro ? 'V' + Math.floor(b.h / 15) : '');
+  let k = b.style + '|' + b.wall + '|' + side + '|' + Lb + (b.front === side ? 'F' : '') + (b.brick ? 'B' : '') + (b.vidro ? 'V' + Math.floor(b.h / 15) : '') + (b.empena !== undefined ? 'E' + b.empena + b.x0 : '');
   if (WS_LINES[b.style]) k += '|' + Math.floor(len / 5);
   if (b.style === 'colonial') k += '|' + (b.seed % 2) + Math.floor(len / 18);
   if (b.style === 'apart') k += '|' + Math.floor(b.h / 15);
@@ -629,6 +629,7 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
     }
     if (b.vidro) { vidroFachada(ctx, b, ax, ay, bx, by, ox, oy); return; }
     wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, false);
+    if (b.empena !== undefined && (side === 'N' || side === 'S')) empenaPinta(ctx, b, ax, ay, bx, by, ox, oy, side); // propaganda pintada na parede
     if (b.style === 'colonial') {
       // janelas coloniais com venezianas coloridas
       ctx.fillStyle = b.seed % 2 ? '#2f6b4a' : '#2d4f7a';
@@ -725,7 +726,7 @@ function offAt(x, y, h) {
 const FLAG_COLS = ['#e63946', '#f4c430', '#2a9d8f', '#3a86ff', '#ff7f11', '#8338ec', '#f1f1f1', '#2bb24c'];
 function drawTall(ctx, o) {
   switch (o.kind) {
-    case 'bld': drawBuilding(ctx, o); break;
+    case 'bld': drawBuilding(ctx, o); if (o.topo) desenhaTopo(ctx, o); break;
     case 'tree': {
       if (o.removed) break;
       if (o.down !== undefined) {
@@ -1048,7 +1049,7 @@ function drawFallen(ctx, o, poleCol, head) {
 function drawTallEmissive(ctx, o) {
   if (o.kind === 'crane' && o.lightAt && (Game.time + o.seed * 3) % 1.4 < 0.5) { const g = glowSprite('#ff3b3b'); ctx.drawImage(g, o.lightAt[0] - 10, o.lightAt[1] - 10, 20, 20); return; }
   switch (o.kind) {
-    case 'bld': drawBuildingEmissive(ctx, o); break;
+    case 'bld': drawBuildingEmissive(ctx, o); if (o.topo) topoLuz(ctx, o); break;
     case 'lamp': {
       if (o.broken) { if (o.light && o.light.dieAt && Game.time < o.light.dieAt && Math.random() < 0.5) { const [ox, oy] = offAt(o.hx, o.hy, o.h); ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 8, o.hy + oy - 8, 16, 16); } return; }
       if (Dia.apaga && Dia.posteApagado(o.hx * 7 + o.hy * 13)) break; // de dia o poste fica apagado

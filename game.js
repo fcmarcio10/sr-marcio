@@ -918,10 +918,11 @@ const REGIONS = {
   orla: { name: 'Orla de Camburiso', dark: 0.72, city: 0.5, rural: 0 },
 };
 const SUBREG = [];
+let NOBRE_EXT = false; // liga depois de montar o mapa: a margem leste do rio (Barra) passa a ser Jardim Camburiso
 function regionKeyAt(x, y) {
   if (y > CALC_Y - 40) return x < ORLA_X0 ? 'mata' : 'orla';
   if (x < 230 || y < 230 || x > 8790) return 'mata';
-  if (y > 6440 && x >= 4660) return x >= 7520 ? 'porto' : x >= 6300 ? 'camburi' : 'barra';
+  if (y > 6440 && x >= 4660) return x >= 7520 ? 'porto' : x >= 6300 ? 'camburi' : NOBRE_EXT && y < 8080 && x > riverCX(y) + riverHW(y) + 40 ? 'camburi' : 'barra';
   for (const s of SUBREG) if (x > s[0] && x < s[2] && y > s[1] && y < s[3]) return s[4];
   if (y > 8030 && x < 4660) return x < 2700 ? 'novarosa' : 'flexal';
   if (y > 6440 && x < 4660) return x < 2100 ? 'feurosa' : 'carapina';
@@ -2063,11 +2064,8 @@ function buildHighwayStrip() {
   for (const x of [900, 3400, 5000, 6900, 8200]) {
     const bx = x, by = x > 4700 ? 6320 : 6080;
     if (areaBlocked(bx - 40, by - 10, bx + 40, by + 10)) continue;
-    const bd = { kind: 'billboard', x: bx, y: by, h: 62, text: ads[ai % ads.length], col: pick(['#ffb547', '#59e0ff', '#ff5f7a', '#5be38f']), ad: ai, panel: null };
-    ai++;
-    addTall(bd, bx - 90, by - 90, bx + 90, by + 90);
-    addCircCol(bx - 34, by, 4, 'pole'); addCircCol(bx + 34, by, 4, 'pole');
-    addLight(bx, by - 20, 110, 0.6, 'white');
+    // nov/2026: os outdoors foram para o meio do pasto (campo.js); aqui só gasta os mesmos sorteios de antes (cor e luz)
+    pick(['#ffb547', '#59e0ff', '#ff5f7a', '#5be38f']); ai++; rnd();
   }
   // cachorros pelas ruas residenciais
   World.animalsDef.push({ type: 'dog', n: 1, rect: [640, 2700 + RT.street.w / 2 + 5, 1380, 2700 + RT.street.w / 2 + 17] });
@@ -2260,6 +2258,7 @@ function addBuracos() {
       if (World.bumps.some((b) => x > b.x0 - 40 && x < b.x1 + 40 && y > b.y0 - 40 && y < b.y1 + 40)) continue;
       const g = groundAt(x, y); if (g !== SF.ROAD && g !== SF.PAVED) continue;
       const k = 0.7 + R() * 0.45, a = R() * 3, p = { type: 'buraco', x, y, k, a };
+      if (regionKeyAt(x, y) === 'camburi' || regionKeyAt(x, y) === 'orla') continue; // área nobre: asfalto liso
       bake(x - 16, y - 16, x + 16, y + 16, 5.6, (gc) => drawBuraco(gc, p));
       World.buracos.push({ x, y, r: 9 * k, t: -9 });
     }
@@ -2333,21 +2332,6 @@ function buildMarcosDaCidade() {
   addLight(4760, 3275, 110, 0.9, 'warm', { shop: true });
   for (let i = 0; i < 5; i++) addProp('pot', 4745, 3250 + i * 14, { col: 'circ', cr: 5, R: 10 });
   addShop({ kind: 'paneleiras', name: 'Galpão das Paneleiras', x: 4600 + RT.street.lanes[0], y: 3275, bld: pb, color: '#ff9a4a', region: 'rio', pickup: true, items: ['Panela de barro grande', 'Jogo de panelas de barro', 'Moquequeira de barro'] });
-  // outdoors na rodovia (antes eram placas verdes com as cidades vizinhas)
-  let bbExtra = 0;
-  // entre os outdoors que já existiam (900, 3400, 5000, 6900, 8200), para não ficarem um em cima do outro
-  for (const x0 of [2150, 4200, 5950, 7550]) {
-    const y = HWY_Y - RT.highway.w / 2 - 14;
-    const livre = (xx) => !areaBlocked(xx - 40, y - 8, xx + 40, y + 8) && [-40, 0, 40].every((d) => { const g = groundAt(xx + d, y - 6); return g !== SF.ROAD && g !== SF.BRIDGE; }) && [-80, 80].every((d) => groundAt(xx + d, y - 30) !== SF.ROAD);
-    const x = [0, 250, -250, 500, -500, 750].map((d) => x0 + d).find(livre); // anda um pouco se o lugar estiver ocupado
-    if (x === undefined) continue;
-    // no lugar das placas verdes de rodovia: outdoors de verdade (desenho com humor)
-    const g = { kind: 'billboard', x, y: y - 6, h: 62, ad: 5 + (bbExtra++), panel: null };
-    addTall(g, x - 90, y - 96, x + 90, y + 84);
-    addCircCol(x - 34, y - 6, 4, 'pole'); addCircCol(x + 34, y - 6, 4, 'pole');
-    addLightFixa(x, y - 26, 110, 0.6, 'white');
-  }
-  { const x = 5000, y = 1500 - RT.road.w / 2 - 20; const g = { kind: 'billboard', x, y, h: 62, ad: 5 + (bbExtra++), panel: null }; addTall(g, x - 90, y - 90, x + 90, y + 90); addCircCol(x - 34, y, 4, 'pole'); addCircCol(x + 34, y, 4, 'pole'); addLightFixa(x, y - 20, 110, 0.6, 'white'); }
   // feira livre perto das chácaras
   const cols = ['#e63946', '#2a9d8f', '#f4c430', '#3a86ff', '#ff7f11'];
   let n = 0;
@@ -2559,6 +2543,39 @@ function litRoads(c, r) {
 function addRock(x, y, r, h) { const o = { kind: 'rock', x, y, r, h, seed: rnd() }; addTall(o, x - r - 40, y - r - 40, x + r + 40, y + r + 40); addCircCol(x, y, r * 0.92, 'bld'); return o; }
 // guindaste do porto
 function addCrane(x, y, len, ang) { const o = { kind: 'crane', x, y, len, a: ang, h: 120, seed: rnd() }; addTall(o, x - len - 60, y - len - 60, x + len + 60, y + len + 60); for (const [dx, dy] of [[-16, -16], [16, -16], [-16, 16], [16, 16]]) addCircCol(x + dx, y + dy, 3, 'pole'); return o; }
+// quarteirão nobre (nov/2026, margem leste do rio, estilo capital): torres residenciais altas com jardim gramado,
+// passeio de pedra, piscina, palmeiras, cerca viva baixa e muro claro com guarita. Sorteio próprio (ver buildLitoral).
+function blocoNobre(R, roads, k) {
+  decal(R.x0, R.y0, R.x1, R.y1, 'lawn2');
+  const w = R.x1 - R.x0, h = R.y1 - R.y0, cx = (R.x0 + R.x1) / 2;
+  decal(R.x0, R.y0, R.x1, R.y0 + 16, 'plaza'); decal(R.x0, R.y1 - 16, R.x1, R.y1, 'plaza'); decal(R.x1 - 16, R.y0, R.x1, R.y1, 'plaza');
+  const nx = Math.max(1, Math.round(w / 230)), ny = Math.max(1, Math.round(h / 300));
+  const CORES = ['#ece7dc', '#dcd6ca', '#c9d3d8', '#efe6d6', '#d7dde0', '#e4dccb'];
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const cx0 = R.x0 + 24 + i * (w - 48) / nx, cx1 = R.x0 + 24 + (i + 1) * (w - 48) / nx, cy0 = R.y0 + 30 + j * (h - 60) / ny, cy1 = R.y0 + 30 + (j + 1) * (h - 60) / ny;
+    const cw = cx1 - cx0, ch = cy1 - cy0;
+    // torre (prédio residencial alto) com varandas: ocupa ~55% do terreno
+    const tw = Math.min(150, cw * rnd(0.5, 0.6)), th = Math.min(170, ch * rnd(0.42, 0.52));
+    const tx = cx0 + (cw - tw) / 2 + rnd(-8, 8), ty = cy0 + 18 + rnd(0, 10);
+    addBuilding(tx, ty, tx + tw, ty + th, rnd(96, 128), { style: 'apart', front: 'S', roofType: 'flat', roofColor: pick(['#6d7074', '#75777a', '#646a70']), wall: pick(CORES), lit: 0.6 });
+    // piscina com deck na frente da torre
+    const py0 = ty + th + 18, py1 = Math.min(cy1 - 12, py0 + 46);
+    if (py1 - py0 > 28) {
+      const pw = Math.min(tw * 0.7, 90), px0 = tx + (tw - pw) / 2;
+      decal(px0 - 8, py0 - 8, px0 + pw + 8, py1 + 8, 'plaza'); decal(px0, py0, px0 + pw, py1, 'pool');
+      for (const sx of [px0 - 18, px0 + pw + 18]) addTree(sx, (py0 + py1) / 2, 'palm', rnd(0.95, 1.2));
+    }
+    // jardim: palmeiras e árvores floridas nos cantos, moitas baixas
+    for (const [x, y] of [[cx0 + 14, cy0 + 14], [cx1 - 14, cy0 + 14], [cx0 + 14, cy1 - 14], [cx1 - 14, cy1 - 14]]) addTree(x, y, pick(['palm', 'palm', 'ipeY', 'ipeP', 'round']), rnd(0.9, 1.15));
+    for (let b = 0; b < 4; b++) addTree(cx0 + rnd(10, cw - 10), cy1 - rnd(6, 16), 'bush', rnd(0.8, 1));
+    addLamp(cx0 + 6, (cy0 + cy1) / 2, cx0 + 6, (cy0 + cy1) / 2, 'warm', { style: 'globe', h: 30, r: 110, i: 0.7 });
+  }
+  // muro baixo claro na frente da rua, com guarita e portão
+  const wc = '#e8e4da';
+  addWall(R.x0 + 4, R.y1 - 6, cx - 30, R.y1 - 2, wc, { h: 3 }); addWall(cx + 30, R.y1 - 6, R.x1 - 4, R.y1 - 2, wc, { h: 3 });
+  addBuilding(cx + 34, R.y1 - 40, cx + 60, R.y1 - 10, 14, { style: 'kiosk', roofType: 'flat', roofColor: '#4a5560', wall: '#f2efe8', lit: 1 });
+  World.animalsDef.push({ type: 'person', n: 4 + k, rect: [R.x0 + 30, R.y1 - 30, R.x1 - 30, R.y1 - 12] });
+}
 function buildLitoral() {
   // ---- Barra do Jururuzinho: vila de pescadores dos dois lados do rio ----
   for (let r = 0; r < 3; r++) {
@@ -2568,6 +2585,9 @@ function buildLitoral() {
     const W = { x0: R.x0, x1: wl, y0: R.y0, y1: R.y1 }, E = { x0: er, x1: R.x1, y0: R.y0, y1: R.y1 };
     if (W.x1 - W.x0 > 160) residentialBlock(W, { rich: false, roads, region: 'barra', sides: ['N', 'S', 'W'] });
     if (E.x1 - E.x0 > 160) {
+      // nov/2026: a margem leste do rio (r 0 e 1) virou parte nobre do Jardim Camburiso. As casinhas saíram, mas os
+      // sorteios que elas gastavam continuam sendo gastos (315 e 249), para o resto do mapa não mudar.
+      if (r < 2) { for (let i = 0, n = r === 0 ? 315 : 249; i < n; i++) RNG(); const sv = RNG; RNG = mulberry32(9100 + r); blocoNobre(E, roads, r); RNG = sv; } else
       if (r === 2) residentialBlock(E, { rich: false, roads, region: 'barra', sides: ['N', 'S', 'E'], special: { side: 'S', w: 170, build: shopLotBuilder({ kind: 'bar', name: 'Bar do Pescador Mentiroso', sign: 'PESCADOR MENTIROSO', color: '#59e0ff', h: 26, depth: 90, pickup: true, items: ['Moqueca pra viagem', 'Isca viva', 'Caldo de sururu'], tables: true }) } });
       else residentialBlock(E, { rich: false, roads, region: 'barra', sides: ['N', 'S', 'E'] });
     }
@@ -3082,7 +3102,7 @@ function edgePave(e) {
 function edgeWalk(e) {
   if (e.walkT) return e.walkT;
   const rk = regionKeyAt((e.a.x + e.b.x) / 2, (e.a.y + e.b.y) / 2);
-  return (e.walkT = rk === 'centro' || (e.T.id === 'avenue' && (rk === 'jardim' || rk === 'vila')) ? 'portuguesa' : 'sidewalk');
+  return (e.walkT = rk === 'centro' || rk === 'camburi' || rk === 'orla' || (e.T.id === 'avenue' && (rk === 'jardim' || rk === 'vila')) ? 'portuguesa' : 'sidewalk');
 }
 const CURB_W = '#e6e3d6', CURB_Y = '#e0b83a';
 function drawEdgeBase(g, e) {
@@ -8586,7 +8606,7 @@ function wsClear() { WS_CACHE.clear(); WS_K = RS >= 1.5 ? 2.5 : 1.6; }
 const WS_LINES = { warehouse: 1, barn: 1, container: 1, shed: 1 };
 function wallKey(b, side, len, Lb) {
   const ws = WIN_STYLES[b.style];
-  let k = b.style + '|' + b.wall + '|' + side + '|' + Lb + (b.front === side ? 'F' : '') + (b.brick ? 'B' : '') + (b.vidro ? 'V' + Math.floor(b.h / 15) : '');
+  let k = b.style + '|' + b.wall + '|' + side + '|' + Lb + (b.front === side ? 'F' : '') + (b.brick ? 'B' : '') + (b.vidro ? 'V' + Math.floor(b.h / 15) : '') + (b.empena !== undefined ? 'E' + b.empena + b.x0 : '');
   if (WS_LINES[b.style]) k += '|' + Math.floor(len / 5);
   if (b.style === 'colonial') k += '|' + (b.seed % 2) + Math.floor(len / 18);
   if (b.style === 'apart') k += '|' + Math.floor(b.h / 15);
@@ -8793,6 +8813,7 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
     }
     if (b.vidro) { vidroFachada(ctx, b, ax, ay, bx, by, ox, oy); return; }
     wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, false);
+    if (b.empena !== undefined && (side === 'N' || side === 'S')) empenaPinta(ctx, b, ax, ay, bx, by, ox, oy, side); // propaganda pintada na parede
     if (b.style === 'colonial') {
       // janelas coloniais com venezianas coloridas
       ctx.fillStyle = b.seed % 2 ? '#2f6b4a' : '#2d4f7a';
@@ -8889,7 +8910,7 @@ function offAt(x, y, h) {
 const FLAG_COLS = ['#e63946', '#f4c430', '#2a9d8f', '#3a86ff', '#ff7f11', '#8338ec', '#f1f1f1', '#2bb24c'];
 function drawTall(ctx, o) {
   switch (o.kind) {
-    case 'bld': drawBuilding(ctx, o); break;
+    case 'bld': drawBuilding(ctx, o); if (o.topo) desenhaTopo(ctx, o); break;
     case 'tree': {
       if (o.removed) break;
       if (o.down !== undefined) {
@@ -9212,7 +9233,7 @@ function drawFallen(ctx, o, poleCol, head) {
 function drawTallEmissive(ctx, o) {
   if (o.kind === 'crane' && o.lightAt && (Game.time + o.seed * 3) % 1.4 < 0.5) { const g = glowSprite('#ff3b3b'); ctx.drawImage(g, o.lightAt[0] - 10, o.lightAt[1] - 10, 20, 20); return; }
   switch (o.kind) {
-    case 'bld': drawBuildingEmissive(ctx, o); break;
+    case 'bld': drawBuildingEmissive(ctx, o); if (o.topo) topoLuz(ctx, o); break;
     case 'lamp': {
       if (o.broken) { if (o.light && o.light.dieAt && Game.time < o.light.dieAt && Math.random() < 0.5) { const [ox, oy] = offAt(o.hx, o.hy, o.h); ctx.drawImage(glowSprite('#ffffff'), o.hx + ox - 8, o.hy + oy - 8, 16, 16); } return; }
       if (Dia.apaga && Dia.posteApagado(o.hx * 7 + o.hy * 13)) break; // de dia o poste fica apagado
@@ -13680,8 +13701,10 @@ const OUTDOORS = [
   { marca: 'ACADEMIA BOMBADÃO', frase: 'Músculo de verdade, preço de mentira', c1: '#ff3b3b', c2: '#1a0606', arte: 'halter' },
 ];
 const OD_W = 640, OD_H = 240;
+const _odArte = new Map(); // uma arte por propaganda (vários outdoors e prédios podem usar a mesma)
 function outdoorArte(o) {
   if (o.panel) return o.panel;
+  const ja = _odArte.get((o.ad || 0) % OUTDOORS.length); if (ja) return (o.panel = ja);
   const A = OUTDOORS[(o.ad || 0) % OUTDOORS.length];
   const c = makeCanvas(OD_W, OD_H), g = c.getContext('2d');
   // fundo: degradê com faixas diagonais e brilho
@@ -13708,7 +13731,7 @@ function outdoorArte(o) {
   g.fillStyle = 'rgba(255,255,255,0.05)'; for (let x = 160; x < OD_W; x += 160) g.fillRect(x, 0, 1.5, OD_H);
   const vg = g.createLinearGradient(0, 0, 0, OD_H); vg.addColorStop(0, 'rgba(255,255,255,0.10)'); vg.addColorStop(0.5, 'rgba(255,255,255,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.25)');
   g.fillStyle = vg; g.fillRect(0, 0, OD_W, OD_H);
-  o.panel = c; return c;
+  _odArte.set((o.ad || 0) % OUTDOORS.length, c); o.panel = c; return c;
 }
 // ajudantes de desenho
 const odRR = (g, x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
@@ -13872,42 +13895,371 @@ const OD_ARTE = {
   },
 };
 const A_BG = '#1d1408';
-// desenho do outdoor no mundo: sombra no chão, duas colunas de aço com reforço, passarela, painel com moldura e refletores
+// desenho do outdoor no mundo (nov/2026: menor, no meio do pasto e meio de lado, como na beira de estrada do Brasil):
+// sombra no chão, duas colunas de aço com reforço, painel com moldura, passarela e refletores — tudo girado em o.rot
+const OD_PW = 104, OD_PH = 39;
 function desenhaOutdoor(ctx, o) {
-  const [ox, oy] = offAt(o.x, o.y, o.h), [mx, my] = offAt(o.x, o.y, o.h * 0.55);
-  const W = 150, H = 56, px = o.x + ox, py = o.y + oy;
-  // sombra no chão (painel projetado de lado)
-  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.moveTo(o.x - W / 2 + 10, o.y + 4); ctx.lineTo(o.x + W / 2 + 10, o.y + 4); ctx.lineTo(o.x + W / 2 + 26, o.y + 16); ctx.lineTo(o.x - W / 2 + 26, o.y + 16); ctx.fill();
-  // colunas: cilindro (escuro + brilho) e reforço em X entre elas
-  for (const sx of [-34, 34]) {
-    ctx.strokeStyle = '#2e3136'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(o.x + sx, o.y); ctx.lineTo(px + sx, py + H / 2 - 4); ctx.stroke();
-    ctx.strokeStyle = '#7a8088'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(o.x + sx - 1.4, o.y); ctx.lineTo(px + sx - 1.4, py + H / 2 - 4); ctx.stroke();
-    ctx.fillStyle = '#55595f'; ctx.beginPath(); ctx.ellipse(o.x + sx, o.y, 5, 3, 0, 0, TAU); ctx.fill();
+  const [ox, oy] = offAt(o.x, o.y, o.h), rot = o.rot || 0, c = Math.cos(rot), s = Math.sin(rot);
+  const W = OD_PW, H = OD_PH, px = o.x + ox, py = o.y + oy, pe = W * 0.3;
+  // sombra no chão (o painel deitado pelo sol, de leve)
+  ctx.save(); ctx.translate(o.x + 8, o.y + 7); ctx.rotate(rot); ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(-W / 2, -4, W, 9); ctx.restore();
+  // colunas do chão até o painel (cilindro: escuro + brilho)
+  for (const k of [-1, 1]) {
+    const bx = o.x + c * pe * k, by = o.y + s * pe * k, tx = px + c * pe * k - s * (H / 2 - 3), ty = py + s * pe * k + c * (H / 2 - 3);
+    ctx.strokeStyle = '#2e3136'; ctx.lineWidth = 4.4; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(tx, ty); ctx.stroke();
+    ctx.strokeStyle = '#7a8088'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(bx - 1, by); ctx.lineTo(tx - 1, ty); ctx.stroke();
+    ctx.fillStyle = '#6e6658'; ctx.beginPath(); ctx.ellipse(bx, by, 4.5, 3, rot, 0, TAU); ctx.fill(); // sapata de concreto
   }
-  ctx.strokeStyle = 'rgba(70,74,80,0.9)'; ctx.lineWidth = 1.6; ctx.beginPath();
-  ctx.moveTo(o.x - 34 + mx, o.y + my); ctx.lineTo(o.x + 34 + (ox + mx) / 2, o.y + (oy + my) / 2 + H / 2 - 4);
-  ctx.moveTo(o.x + 34 + mx, o.y + my); ctx.lineTo(o.x - 34 + (ox + mx) / 2, o.y + (oy + my) / 2 + H / 2 - 4); ctx.stroke();
-  // fundo da estrutura (profundidade) e painel
-  ctx.fillStyle = '#1b1d21'; ctx.fillRect(px - W / 2 + 3, py - H / 2 + 4, W, H);
-  ctx.drawImage(outdoorArte(o), px - W / 2, py - H / 2, W, H);
-  ctx.strokeStyle = '#2a2c30'; ctx.lineWidth = 2.4; ctx.strokeRect(px - W / 2, py - H / 2, W, H);
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(px - W / 2 + 1, py - H / 2 + 1); ctx.lineTo(px + W / 2 - 1, py - H / 2 + 1); ctx.stroke();
-  // passarela embaixo com grade
-  ctx.fillStyle = '#3a3d42'; ctx.fillRect(px - W / 2 - 2, py + H / 2, W + 4, 4);
-  ctx.fillStyle = 'rgba(255,255,255,0.18)'; for (let x = px - W / 2; x < px + W / 2; x += 6) ctx.fillRect(x, py + H / 2 + 1, 1, 2);
-  // refletores em cima (braço + cabeça)
-  ctx.strokeStyle = '#3a3d42'; ctx.lineWidth = 1.4; ctx.fillStyle = '#4a4e55';
-  for (const k of [-0.33, 0, 0.33]) { const x = px + k * W; ctx.beginPath(); ctx.moveTo(x, py - H / 2); ctx.lineTo(x, py - H / 2 - 7); ctx.stroke(); ctx.fillRect(x - 4, py - H / 2 - 10, 8, 4); }
+  ctx.save(); ctx.translate(px, py); ctx.rotate(rot);
+  ctx.fillStyle = '#1b1d21'; ctx.fillRect(-W / 2 + 2, -H / 2 + 3, W, H); // fundo (profundidade)
+  ctx.drawImage(outdoorArte(o), -W / 2, -H / 2, W, H);
+  ctx.strokeStyle = '#2a2c30'; ctx.lineWidth = 2; ctx.strokeRect(-W / 2, -H / 2, W, H);
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(-W / 2 + 1, -H / 2 + 1); ctx.lineTo(W / 2 - 1, -H / 2 + 1); ctx.stroke();
+  ctx.fillStyle = '#3a3d42'; ctx.fillRect(-W / 2 - 1, H / 2, W + 2, 3); // passarela
+  ctx.fillStyle = 'rgba(255,255,255,0.18)'; for (let x = -W / 2; x < W / 2; x += 5) ctx.fillRect(x, H / 2 + 0.8, 0.8, 1.5);
+  ctx.strokeStyle = '#3a3d42'; ctx.lineWidth = 1.1; ctx.fillStyle = '#4a4e55';
+  for (const k of [-0.3, 0.3]) { const x = k * W; ctx.beginPath(); ctx.moveTo(x, -H / 2); ctx.lineTo(x, -H / 2 - 5); ctx.stroke(); ctx.fillRect(x - 3, -H / 2 - 7.5, 6, 3); }
+  ctx.restore();
 }
-// de noite: refletores acesos lavando o painel de luz de cima para baixo
+// de noite: dois refletores acesos lavando o painel de luz
 function outdoorLuz(ctx, o) {
   if (Dia.apaga > 0.6) return;
-  const [ox, oy] = offAt(o.x, o.y, o.h), W = 150, H = 56, px = o.x + ox, py = o.y + oy;
-  ctx.save(); ctx.globalAlpha = 0.5 * (1 - Dia.apaga); ctx.drawImage(outdoorArte(o), px - W / 2, py - H / 2, W, H);
-  const lg = ctx.createLinearGradient(0, py - H / 2, 0, py + H / 2); lg.addColorStop(0, 'rgba(255,245,215,0.35)'); lg.addColorStop(1, 'rgba(255,245,215,0)');
-  ctx.globalAlpha = 1 - Dia.apaga; ctx.fillStyle = lg; ctx.fillRect(px - W / 2, py - H / 2, W, H);
-  for (const k of [-0.33, 0, 0.33]) ctx.drawImage(glowSprite('#fff4d8'), px + k * W - 8, py - H / 2 - 16, 16, 16);
+  const [ox, oy] = offAt(o.x, o.y, o.h), W = OD_PW, H = OD_PH, px = o.x + ox, py = o.y + oy, k = 1 - Dia.apaga;
+  ctx.save(); ctx.translate(px, py); ctx.rotate(o.rot || 0);
+  ctx.globalAlpha = 0.5 * k; ctx.drawImage(outdoorArte(o), -W / 2, -H / 2, W, H);
+  const lg = ctx.createLinearGradient(0, -H / 2, 0, H / 2); lg.addColorStop(0, 'rgba(255,245,215,0.35)'); lg.addColorStop(1, 'rgba(255,245,215,0)');
+  ctx.globalAlpha = k; ctx.fillStyle = lg; ctx.fillRect(-W / 2, -H / 2, W, H);
+  for (const x of [-0.3, 0.3]) ctx.drawImage(glowSprite('#fff4d8'), x * W - 7, -H / 2 - 13, 14, 14);
   ctx.restore();
+}
+
+/* ---------- propaganda pintada na parede de prédio (empena) ---------- */
+const _empArte = new Map();
+function empenaArte(i) {
+  let c = _empArte.get(i); if (c) return c;
+  const A = OUTDOORS[i % OUTDOORS.length], W = 360, H = 300; c = makeCanvas(W, H); const g = c.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, shade(A.c2, 0.3)); bg.addColorStop(1, A.c2); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  g.save(); g.globalAlpha = 0.1; g.fillStyle = A.c1; for (let x = -H; x < W; x += 40) { g.beginPath(); g.moveTo(x, H); g.lineTo(x + 18, H); g.lineTo(x + 18 + H, 0); g.lineTo(x + H, 0); g.fill(); } g.restore();
+  g.save(); g.translate(W / 2, 118); g.scale(0.85, 0.85); OD_ARTE[A.arte](g, A); g.restore();
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  let fs = 46; g.font = `${fs}px "BRND Anton", Impact, sans-serif`; while (g.measureText(A.marca).width > W - 30 && fs > 22) { fs -= 2; g.font = `${fs}px "BRND Anton", Impact, sans-serif`; }
+  g.lineWidth = 6; g.strokeStyle = 'rgba(0,0,0,0.5)'; g.strokeText(A.marca, W / 2, 252); g.fillStyle = '#fff'; g.fillText(A.marca, W / 2, 252);
+  g.fillStyle = A.c1; g.fillRect(W / 2 - 50, 264, 100, 6);
+  g.font = '700 20px "BRND Cond", "Arial Narrow", sans-serif'; g.fillStyle = shade(A.c1, 0.5); g.fillText(A.frase, W / 2, 290, W - 24);
+  // pintura velha: bordas gastas
+  g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 8; g.strokeRect(0, 0, W, H);
+  _empArte.set(i, c); return c;
+}
+// pinta a propaganda na parede N ou S (no N direto; no S girado 180°, para ler certo na tela)
+function empenaPinta(ctx, b, ax, ay, bx, by, ox, oy, side) {
+  if (Math.hypot(ox, oy) < 3) return;
+  const u0 = 0.14, u1 = 0.86, v0 = 0.18, v1 = 0.9;
+  ctx.save(); ctx.transform(bx - ax, by - ay, ox, oy, ax, ay);
+  const art = empenaArte(b.empena);
+  if (side === 'N') ctx.drawImage(art, u0, v0, u1 - u0, v1 - v0);
+  else { ctx.translate(u1, v1); ctx.scale(-1, -1); ctx.drawImage(art, 0, 0, u1 - u0, v1 - v0); }
+  ctx.restore();
+}
+
+/* ---------- painel de propaganda em cima do prédio (comum nas capitais) ---------- */
+function topoGeo(b) {
+  const W = Math.min(96, (b.x1 - b.x0) * 0.78), H = W * OD_PH / OD_PW, cy = b.y0 + (b.y1 - b.y0) * 0.62, cx = (b.x0 + b.x1) / 2;
+  return { W, H, cx, cy };
+}
+function desenhaTopo(ctx, b) {
+  const T = topoGeo(b), [rx, ry] = bldOffset(b), h2 = b.h + 16, [px, py] = offAt(T.cx, T.cy, h2), k = b.h / h2;
+  // pés de aço saindo da laje (laje = deslocamento do prédio) até o painel
+  ctx.strokeStyle = '#2e3136'; ctx.lineWidth = 2.6;
+  for (const f of [-0.32, 0.32]) { ctx.beginPath(); ctx.moveTo(T.cx + f * T.W + rx, T.cy + ry); ctx.lineTo(T.cx + f * T.W + px, T.cy + py + T.H / 2 - 2); ctx.stroke(); }
+  ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(T.cx + rx - T.W / 2 + 4, T.cy + ry - 2, T.W, 5); // sombra na laje
+  ctx.fillStyle = '#1b1d21'; ctx.fillRect(T.cx + px - T.W / 2 + 2, T.cy + py - T.H / 2 + 2, T.W, T.H);
+  ctx.drawImage(outdoorArte({ ad: b.empena }), T.cx + px - T.W / 2, T.cy + py - T.H / 2, T.W, T.H);
+  ctx.strokeStyle = '#2a2c30'; ctx.lineWidth = 1.6; ctx.strokeRect(T.cx + px - T.W / 2, T.cy + py - T.H / 2, T.W, T.H);
+}
+function topoLuz(ctx, b) {
+  if (Dia.apaga > 0.6) return;
+  const T = topoGeo(b), [px, py] = offAt(T.cx, T.cy, b.h + 16);
+  ctx.save(); ctx.globalAlpha = 0.45 * (1 - Dia.apaga); ctx.drawImage(outdoorArte({ ad: b.empena }), T.cx + px - T.W / 2, T.cy + py - T.H / 2, T.W, T.H); ctx.restore();
+}
+/* ============================ CAMPO PERTO DO ASFALTO E CIDADE NOBRE (nov/2026) ============================
+   Feito depois de montar o mapa, com sorteio próprio (não mexe no resto):
+   - outdoors menores no meio do pasto, meio de lado, perto das rodovias e estradas asfaltadas;
+   - lotes à venda na beira do asfalto: só a plaquinha no mato alto, lote cercado, lote com os cantos de tijolo
+     começando e obra (laje, paredes subindo, ferragem, tijolo, areia e carrinho de mão);
+   - entre os lotes, estradinhas de terra apertadas com mato fechando dos dois lados;
+   - palmeiras nas calçadas do Jardim Camburiso (cidade limpa e chique);
+   - propaganda pintada na parede (empena) de alguns prédios altos da cidade. */
+const CAMPO_REG = { rio: 1, sitio: 1, fazenda: 1, rodovia: 1 };
+const VENDE_TIT = ['VENDE-SE', 'VENDE-SE', 'LOTE À VENDA', 'VENDO', 'VENDE-SE URGENTE'];
+const VENDE_SUB = ['TRATAR 9 9171-0000', 'DIRETO C/ DONO', 'ACEITO CARRO', 'LOTE 12 x 30', 'ACEITO PIX', 'PARCELO', 'NÃO É GOLPE'];
+// lugar livre no pasto? Árvore no meio não impede: o terreno é limpo (a árvore sai) quando "limpa" é verdadeiro
+const _campoQ = [];
+function campoLivre(x0, y0, x1, y1, limpa) {
+  if (x0 < 260 || y0 < 260 || x1 > WORLD_W - 260 || y1 > WORLD_H - 260) return false;
+  _campoQ.length = 0; colGrid.query(x0, y0, x1, y1, _campoQ);
+  const arv = [];
+  for (const c of _campoQ) {
+    const dentro = c.t === 1 ? c.x + c.r > x0 && c.x - c.r < x1 && c.y + c.r > y0 && c.y - c.r < y1 : c.x1 > x0 && c.x0 < x1 && c.y1 > y0 && c.y0 < y1;
+    if (!dentro || c.tag === 'none') continue;
+    if (c.tag === 'tree' && limpa) { arv.push(c); continue; }
+    return false;
+  }
+  for (let x = x0; x <= x1; x += 12) for (let y = y0; y <= y1; y += 12) if (groundAt(x, y) !== SF.GRASS) return false;
+  for (let x = x0; x <= x1; x += 24) if (groundAt(x, y1) !== SF.GRASS || groundAt(x, y0) !== SF.GRASS) return false;
+  for (const c of arv) { const t = World.tall.find((o) => o.col === c); if (t) t.removed = true; c.x = c.y = -1e6; c.r = 0; c.tag = 'none'; c.brk = null; } // limpa o terreno
+  return true;
+}
+// retângulo em coordenadas da rua: s ao longo da rua, d para o lado (sd = +1 ou -1)
+function ruaRet(e, s0, s1, d0, d1, sd) {
+  const nx = -e.dy * sd, ny = e.dx * sd, P = (s, d) => [e.a.x + e.dx * s + nx * d, e.a.y + e.dy * s + ny * d];
+  const A = P(s0, d0), B = P(s1, d1);
+  return [Math.min(A[0], B[0]), Math.min(A[1], B[1]), Math.max(A[0], B[0]), Math.max(A[1], B[1])];
+}
+function posMontagem() {
+  const sv = RNG; RNG = mulberry32(78078);
+  try { lotesEEstradinhas(); outdoorsNoPasto(); palmeirasNobres(); empenas(); } finally { RNG = sv; }
+  World.tall = World.tall.filter((t) => !t.removed);
+}
+function bordasRurais() {
+  return World.edges.filter((e) => e.T.asphalt && !e.bridge && e.len > 260 && CAMPO_REG[regionKeyAt(e.a.x + e.dx * e.len / 2, e.a.y + e.dy * e.len / 2)]);
+}
+const beiraDa = (e) => e.hw + (e.T.sw || 0) + (e.T.shoulder || 0);
+
+/* ---------- outdoors no pasto ---------- */
+function outdoorsNoPasto() {
+  const feitos = [], E = bordasRurais().sort((p, q) => p.id - q.id);
+  let ad = 0;
+  for (let volta = 0; volta < 3 && feitos.length < 10; volta++) for (const e of E) {
+    if (feitos.length >= 10) break;
+    const s = 200 + rnd(0, Math.max(1, e.len - 400)), sd = chance(0.5) ? 1 : -1, d = beiraDa(e) + rnd(70, 130);
+    const [x0, y0, x1, y1] = ruaRet(e, s - 1, s + 1, d - 1, d + 1, sd), x = (x0 + x1) / 2, y = (y0 + y1) / 2;
+    if (feitos.some((q) => Math.hypot(q.x - x, q.y - y) < 800)) continue;
+    if (y > 6200 || !CAMPO_REG[regionKeyAt(x, y)] || !campoLivre(x - 62, y - 46, x + 62, y + 30, true)) continue;
+    // meio de lado: quase de frente para a tela, virado uns 15° a 30° (cada um para um lado)
+    const rot = (chance(0.5) ? 1 : -1) * rnd(0.26, 0.52);
+    const o = { kind: 'billboard', x, y, h: 44, ad: ad++ % OUTDOORS.length, rot, panel: null };
+    addTall(o, x - 80, y - 80, x + 80, y + 80);
+    for (const k of [-1, 1]) addCircCol(x + Math.cos(rot) * OD_PW * 0.3 * k, y + Math.sin(rot) * OD_PW * 0.3 * k, 3.5, 'pole');
+    addLightFixa(x, y + 10, 80, 0.55, 'white');
+    // capim alto em volta do pé
+    bake(x - 60, y - 30, x + 60, y + 30, 6.4, (g) => tufosMato(g, x, y, 54, 18, 26, mulberry32((x | 0) * 7 + (y | 0))));
+    feitos.push(o);
+  }
+}
+
+/* ---------- lotes à venda e estradinhas ---------- */
+function lotesEEstradinhas() {
+  let nLotes = 0, nRuas = 0;
+  for (const e of bordasRurais().sort((p, q) => p.id - q.id)) {
+    const beira = beiraDa(e);
+    for (const sd of [1, -1]) {
+      let s = 140 + rnd(0, 120), seguidos = 0, grupo = 0;
+      while (s < e.len - 150 && nLotes < 70) {
+        if (!grupo) { if (!chance(0.3)) { s += 150; continue; } grupo = 2 + Math.floor(rnd(0, 4)); seguidos = 0; }
+        // estradinha de terra no meio do grupo
+        if (seguidos >= 1 && nRuas < 14 && chance(0.6)) {
+          const lw = 34, s1 = s + 6; let feito = false;
+          for (const L of [rnd(320, 470), 260, 190]) { // tenta comprida; se não couber, mais curta
+            const r = ruaRet(e, s1, s1 + lw, beira, beira + L, sd), m = ruaRet(e, s1 - 4, s1 + lw + 4, beira + 10, beira + L, sd);
+            if (r[3] < 6150 && campoLivre(m[0], m[1], m[2], m[3], true) && CAMPO_REG[regionKeyAt((r[0] + r[2]) / 2, (r[1] + r[3]) / 2)]) { estradinha(e, s1, lw, beira, L, sd); feito = true; break; }
+          }
+          if (feito) { nRuas++; s = s1 + lw + 14; seguidos = 0; continue; }
+        }
+        const W = rnd(118, 140), D = rnd(98, 128), d0 = beira + 16;
+        const r = ruaRet(e, s, s + W, d0, d0 + D, sd);
+        if (r[3] < 6150 && campoLivre(r[0] - 4, r[1] - 4, r[2] + 4, r[3] + 4, true) && CAMPO_REG[regionKeyAt((r[0] + r[2]) / 2, (r[1] + r[3]) / 2)]) {
+          const frente = e.h ? (sd * e.dx > 0 ? 'N' : 'S') : (sd * e.dy > 0 ? 'E' : 'W'); // lado do lote que dá para a rua
+          lote(r, frente); nLotes++; seguidos++;
+        } else seguidos = 0;
+        s += W + rnd(8, 30); grupo--;
+      }
+    }
+  }
+  World.loteamento = { lotes: nLotes, estradinhas: nRuas };
+}
+// lote: tipo sorteado; a plaquinha fica na frente, virada para a rua
+function lote(r, frente) {
+  const [x0, y0, x1, y1] = r, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, rr = rnd();
+  const tipo = rr < 0.25 ? 'mato' : rr < 0.55 ? 'cercado' : rr < 0.75 ? 'cantos' : 'obra';
+  (World.lotes || (World.lotes = [])).push({ x: cx, y: cy, tipo });
+  const fx = frente === 'W' ? x0 + 10 : frente === 'E' ? x1 - 10 : cx + rnd(-30, 30), fy = frente === 'N' ? y0 + 10 : frente === 'S' ? y1 - 10 : cy + rnd(-30, 30);
+  const seed = (x0 * 13 + y0 * 7) | 0, R = () => mulberry32(seed);
+  const placa = { x: fx, y: fy, t: tipo === 'obra' ? 'OBRA' : pick(VENDE_TIT), s: tipo === 'obra' ? 'ENG. ZÉ DA LAJE' : pick(VENDE_SUB), a: rnd(-0.12, 0.12) };
+  if (tipo === 'mato') bake(x0, y0, x1, y1, 6.2, (g) => tufosMato(g, cx, cy, (x1 - x0) / 2, (y1 - y0) / 2, 70, R()));
+  if (tipo === 'cercado') {
+    const gap = { N: frente === 'N', S: frente === 'S', W: frente === 'W', E: frente === 'E' }, G = 34;
+    const lado = (a, b, mk, temGap, meio) => { if (!temGap) mk(a, b); else { mk(a, meio - G / 2); mk(meio + G / 2, b); } };
+    lado(x0, x1, (a, b) => addFence(a, y0 - 1.5, b, y0 + 1.5), gap.N, cx); lado(x0, x1, (a, b) => addFence(a, y1 - 1.5, b, y1 + 1.5), gap.S, cx);
+    lado(y0, y1, (a, b) => addFence(x0 - 1.5, a, x0 + 1.5, b), gap.W, cy); lado(y0, y1, (a, b) => addFence(x1 - 1.5, a, x1 + 1.5, b), gap.E, cy);
+    bake(x0, y0, x1, y1, 6.2, (g) => tufosMato(g, cx, cy, (x1 - x0) / 2 - 6, (y1 - y0) / 2 - 6, 26, R()));
+  }
+  if (tipo === 'cantos') {
+    const k = 12, C = [[x0 + 8, y0 + 8, 1, 1], [x1 - 8, y0 + 8, -1, 1], [x0 + 8, y1 - 8, 1, -1], [x1 - 8, y1 - 8, -1, -1]];
+    const alt = C.map(() => rnd(4, 10));
+    bake(x0 - 6, y0 - 6, x1 + 10, y1 + 10, 7.4, (g) => { linhaDeObra(g, C); C.forEach(([x, y, sx, sy], i) => cantoTijolo(g, x, y, sx, sy, k + alt[i] * 1.2, alt[i])); pilhaTijolo(g, cx - 20, cy, 0.3); monteAreia(g, cx + 26, cy + 10, 13); tufosMato(g, cx, cy, (x1 - x0) / 2 - 10, (y1 - y0) / 2 - 10, 20, R()); });
+    for (const [x, y] of C) addRectCol(x - 4, y - 4, x + 4, y + 4, 'wall');
+    addRectCol(cx - 30, cy - 8, cx - 10, cy + 8, 'prop');
+  }
+  if (tipo === 'obra') {
+    const m = 14, L = { x0: x0 + m, y0: y0 + m, x1: x1 - m, y1: y1 - m };
+    decal(L.x0, L.y0, L.x1, L.y1, 'concrete', { z: 2.3 });
+    const paredes = [], lados = ['N', 'S', 'W', 'E'].filter((q) => q !== frente);
+    for (const ld of lados) if (chance(0.8)) paredes.push({ ld, alt: rnd(5, 14), fim: rnd(0.45, 1) });
+    bake(x0 - 6, y0 - 6, x1 + 12, y1 + 12, 7.4, (g) => {
+      tufosMato(g, cx, cy, (x1 - x0) / 2, (y1 - y0) / 2, 18, R());
+      for (const p of paredes) paredeTijolo(g, L, p);
+      for (const [x, y] of [[L.x0, L.y0], [L.x1, L.y0], [L.x0, L.y1], [L.x1, L.y1], [(L.x0 + L.x1) / 2, L.y0], [(L.x0 + L.x1) / 2, L.y1]]) ferragem(g, x, y);
+      pilhaTijolo(g, cx - 18, cy - 4, 0); pilhaTijolo(g, cx - 18, cy + 14, 0.1); monteAreia(g, cx + 22, cy + 6, 15); sacosCimento(g, cx + 4, cy - 18); carrinhoMao(g, cx + 6, cy + 18, 0.6);
+    });
+    for (const p of paredes) { const q = paredeRet(L, p); addRectCol(q[0], q[1], q[2], q[3], 'wall'); }
+    addRectCol(cx - 28, cy - 12, cx - 8, cy + 22, 'prop'); addRectCol(cx + 10, cy - 6, cx + 36, cy + 18, 'prop');
+  }
+  bake(placa.x - 22, placa.y - 16, placa.x + 24, placa.y + 18, 7.6, (g) => plaquinha(g, placa));
+  addCircCol(placa.x, placa.y + 5, 2, 'prop');
+}
+// estradinha de terra apertada, com mato e moitas fechando dos dois lados
+function estradinha(e, s, lw, beira, L, sd) {
+  const r = ruaRet(e, s, s + lw, beira, beira + L, sd);
+  (World.estradinhas || (World.estradinhas = [])).push({ x: (r[0] + r[2]) / 2, y: (r[1] + r[3]) / 2 });
+  decal(r[0], r[1], r[2], r[3], 'earth', { z: 2.2 });
+  const vert = (r[3] - r[1]) > (r[2] - r[0]), R = mulberry32((r[0] * 3 + r[1]) | 0);
+  bake(r[0] - 16, r[1] - 16, r[2] + 16, r[3] + 16, 6.3, (g) => trilhaTerra(g, r, vert, R));
+  // moitas dos dois lados (algumas avançando um pouco na estrada) e árvores atrás
+  const comp = vert ? r[3] - r[1] : r[2] - r[0];
+  for (let t = 14; t < comp - 6; t += rnd(15, 24)) for (const lado of [0, 1]) {
+    if (chance(0.12)) continue;
+    const dentro = rnd(0, 4), x = vert ? (lado ? r[2] + 5 - dentro : r[0] - 5 + dentro) : r[0] + t, y = vert ? r[1] + t : (lado ? r[3] + 5 - dentro : r[1] - 5 + dentro);
+    addTree(x, y, 'bush', rnd(0.85, 1.15), { force: true });
+    if (chance(0.18)) { const fx = vert ? x + (lado ? 22 : -22) : x, fy = vert ? y : y + (lado ? 22 : -22); if (groundAt(fx, fy) === SF.GRASS && !areaBlocked(fx - 6, fy - 6, fx + 6, fy + 6)) addTree(fx, fy, pick(['round', 'mango', 'round']), rnd(0.75, 1)); }
+  }
+}
+
+/* ---------- desenhos (pintados uma vez no chão) ---------- */
+function tufosMato(g, cx, cy, rx, ry, n, R) {
+  g.lineCap = 'round';
+  for (let i = 0; i < n; i++) {
+    const x = cx + (R() * 2 - 1) * rx, y = cy + (R() * 2 - 1) * ry, h = 4 + R() * 7, seco = R() < 0.35;
+    g.strokeStyle = seco ? 'rgba(170,160,90,0.85)' : 'rgba(58,98,40,0.9)'; g.lineWidth = 1.1;
+    g.beginPath(); for (let k = -2; k <= 2; k++) { g.moveTo(x + k * 1.2, y); g.quadraticCurveTo(x + k * 2, y - h * 0.6, x + k * 2.6 + (R() - 0.5) * 2, y - h); } g.stroke();
+  }
+}
+function plaquinha(g, p) {
+  g.save(); g.translate(p.x, p.y); g.rotate(p.a);
+  g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-14, 2, 32, 15); // sombra
+  g.fillStyle = '#6a4a2a'; g.fillRect(-1, 2, 2.4, 8); // estaca
+  g.fillStyle = '#f4f1e8'; g.fillRect(-17, -11, 34, 16); g.strokeStyle = '#8a8478'; g.lineWidth = 0.8; g.strokeRect(-17, -11, 34, 16);
+  g.textAlign = 'center'; g.fillStyle = p.t === 'OBRA' ? '#1d4f9c' : '#d42a1a';
+  let fs = 7; g.font = `${fs}px "BRND Anton", Impact, sans-serif`; while (g.measureText(p.t).width > 31 && fs > 4) { fs -= 0.5; g.font = `${fs}px "BRND Anton", Impact, sans-serif`; }
+  g.textBaseline = 'alphabetic'; g.fillText(p.t, 0, -3);
+  g.fillStyle = '#222'; g.font = '3.4px "BRND Cond", sans-serif'; g.fillText(p.s, 0, 2.6, 32);
+  g.restore();
+}
+const TIJ = '#b5502e', TIJ2 = '#c96a3e', REB = '#9a948a';
+function blocoTij(g, x, y, w, h, alt) { // bloco de tijolo com "altura": sombra, lado escuro, topo claro e juntas
+  g.fillStyle = 'rgba(0,0,0,0.28)'; g.fillRect(x + alt * 0.5, y + alt * 0.7, w, h);
+  g.fillStyle = '#8a3a20'; g.fillRect(x, y + h - 1, w, Math.min(alt * 0.5, 4) + 1);
+  g.fillStyle = TIJ; g.fillRect(x, y, w, h);
+  g.strokeStyle = 'rgba(230,220,200,0.55)'; g.lineWidth = 0.5;
+  if (w > h) { for (let xx = x + 4; xx < x + w; xx += 4) { g.beginPath(); g.moveTo(xx, y); g.lineTo(xx, y + h); g.stroke(); } }
+  else { for (let yy = y + 4; yy < y + h; yy += 4) { g.beginPath(); g.moveTo(x, yy); g.lineTo(x + w, yy); g.stroke(); } }
+  g.fillStyle = 'rgba(255,220,180,0.35)'; g.fillRect(x, y, w, 1);
+}
+function cantoTijolo(g, x, y, sx, sy, k, alt) {
+  blocoTij(g, Math.min(x, x + sx * k), y - 2.5, k, 5, alt);
+  blocoTij(g, x - 2.5, Math.min(y, y + sy * k), 5, k, alt);
+  ferragem(g, x, y);
+}
+function linhaDeObra(g, C) { // linha de nylon esticada marcando o lote
+  g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 0.5; g.beginPath();
+  g.moveTo(C[0][0], C[0][1]); g.lineTo(C[1][0], C[1][1]); g.lineTo(C[3][0], C[3][1]); g.lineTo(C[2][0], C[2][1]); g.closePath(); g.stroke();
+}
+function paredeRet(L, p) {
+  const t = 5;
+  if (p.ld === 'N') return [L.x0, L.y0 - t / 2, L.x0 + (L.x1 - L.x0) * p.fim, L.y0 + t / 2];
+  if (p.ld === 'S') return [L.x1 - (L.x1 - L.x0) * p.fim, L.y1 - t / 2, L.x1, L.y1 + t / 2];
+  if (p.ld === 'W') return [L.x0 - t / 2, L.y1 - (L.y1 - L.y0) * p.fim, L.x0 + t / 2, L.y1];
+  return [L.x1 - t / 2, L.y0, L.x1 + t / 2, L.y0 + (L.y1 - L.y0) * p.fim];
+}
+function paredeTijolo(g, L, p) {
+  const [a, b, c, d] = paredeRet(L, p);
+  blocoTij(g, a, b, c - a, d - b, p.alt);
+  // fiada de cima desigual (parede subindo)
+  const hz = c - a > d - b;
+  g.fillStyle = TIJ2; for (let k = 0; k < 4; k++) { const f = 0.5 + k * 0.12; if (hz) g.fillRect(a + (c - a) * f, b - 1, (c - a) * 0.08, d - b); else g.fillRect(a, b + (d - b) * f, c - a, (d - b) * 0.08); }
+}
+function ferragem(g, x, y) { // ferro da coluna saindo do chão
+  g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x - 2, y + 1, 6, 4);
+  g.fillStyle = REB; g.fillRect(x - 2.5, y - 2.5, 5, 5);
+  g.fillStyle = '#5a3a28'; for (const [dx, dy] of [[-1.6, -1.6], [1.6, -1.6], [-1.6, 1.6], [1.6, 1.6]]) g.fillRect(x + dx - 0.6, y + dy - 0.6, 1.2, 1.2);
+}
+function pilhaTijolo(g, x, y, a) {
+  g.save(); g.translate(x, y); g.rotate(a);
+  g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-8, -5, 20, 14);
+  g.fillStyle = '#7a5a3a'; g.fillRect(-10, -7, 20, 14); // palete
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) { g.fillStyle = (i + j) % 2 ? TIJ : TIJ2; g.fillRect(-9 + i * 4.6, -6 + j * 4.2, 4.2, 3.8); }
+  g.fillStyle = 'rgba(255,230,200,0.25)'; g.fillRect(-9, -6, 18, 1);
+  g.restore();
+}
+function monteAreia(g, x, y, r) {
+  g.fillStyle = 'rgba(0,0,0,0.22)'; g.beginPath(); g.ellipse(x + 3, y + 3, r, r * 0.75, 0, 0, TAU); g.fill();
+  const gr = g.createRadialGradient(x - r * 0.3, y - r * 0.35, 1, x, y, r); gr.addColorStop(0, '#f0dca4'); gr.addColorStop(0.7, '#d8bc7c'); gr.addColorStop(1, '#b89a5a');
+  g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, r, r * 0.75, 0, 0, TAU); g.fill();
+}
+function sacosCimento(g, x, y) {
+  for (let i = 0; i < 3; i++) { g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x + i * 7 + 1, y + 2, 6, 9); g.fillStyle = '#d8d4c8'; g.fillRect(x + i * 7, y, 6, 9); g.fillStyle = '#c03a2a'; g.fillRect(x + i * 7, y + 3, 6, 2); }
+}
+function carrinhoMao(g, x, y, a) {
+  g.save(); g.translate(x, y); g.rotate(a);
+  g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(-5, -3, 16, 9);
+  g.strokeStyle = '#3a3a3a'; g.lineWidth = 1; g.beginPath(); g.moveTo(2, -3); g.lineTo(14, -4); g.moveTo(2, 3); g.lineTo(14, 4); g.stroke();
+  g.fillStyle = '#2f6db0'; g.beginPath(); g.moveTo(-7, -5); g.lineTo(5, -4); g.lineTo(5, 4); g.lineTo(-7, 5); g.closePath(); g.fill();
+  g.fillStyle = '#9a8a6a'; g.fillRect(-5, -2.6, 8, 5.2); // massa
+  g.fillStyle = '#1a1a1a'; g.fillRect(-9, -1.5, 3, 3);
+  g.restore();
+}
+function trilhaTerra(g, r, vert, R) {
+  const [x0, y0, x1, y1] = r, L = vert ? y1 - y0 : x1 - x0, W = vert ? x1 - x0 : y1 - y0;
+  const P = (t, w) => (vert ? [x0 + w, y0 + t] : [x0 + t, y0 + w]);
+  // duas trilhas de pneu mais escuras e capim no meio
+  g.strokeStyle = 'rgba(70,48,28,0.35)'; g.lineWidth = 4.5; g.lineCap = 'round';
+  for (const w of [W * 0.3, W * 0.7]) { g.beginPath(); for (let t = 0; t <= L; t += 20) { const p = P(t, w + Math.sin(t * 0.03) * 1.5); if (t) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); } g.stroke(); }
+  g.lineWidth = 1;
+  for (let t = 4; t < L; t += 5) { const p = P(t, W / 2 + (R() - 0.5) * 4), h = 2 + R() * 4; g.strokeStyle = R() < 0.4 ? 'rgba(150,150,80,0.8)' : 'rgba(60,100,40,0.85)'; g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(p[0] + (R() - 0.5) * 3, p[1] - h); g.stroke(); }
+  // capim avançando das beiradas (a estrada vai se fechando)
+  for (let t = 0; t < L; t += 3) for (const lado of [0, 1]) {
+    if (R() < 0.35) continue;
+    const w = lado ? W - R() * 7 : R() * 7, p = P(t, w), h = 3 + R() * 6;
+    g.strokeStyle = R() < 0.3 ? 'rgba(160,150,85,0.85)' : 'rgba(55,95,38,0.9)';
+    g.beginPath(); g.moveTo(p[0], p[1]); g.quadraticCurveTo(p[0] + (R() - 0.5) * 4, p[1] - h * 0.6, p[0] + (R() - 0.5) * 6, p[1] - h); g.stroke();
+  }
+  // pedrinhas e poça seca
+  g.fillStyle = 'rgba(120,100,80,0.6)'; for (let i = 0; i < L / 12; i++) { const p = P(R() * L, W * (0.2 + R() * 0.6)); g.fillRect(p[0], p[1], 1.4, 1.2); }
+}
+
+/* ---------- cidade nobre e empenas ---------- */
+function palmeirasNobres() {
+  for (const e of World.edges) {
+    if (!e.T.asphalt || !e.T.sw || e.bridge) continue;
+    if (regionKeyAt(e.a.x + e.dx * e.len / 2, e.a.y + e.dy * e.len / 2) !== 'camburi') continue;
+    const d = e.hw + e.T.sw * 0.55;
+    for (const sd of [1, -1]) for (let s = (e.clearA || 40) + 40; s < e.len - (e.clearB || 40) - 30; s += 86) {
+      const x = e.a.x + e.dx * s - e.dy * sd * d, y = e.a.y + e.dy * s + e.dx * sd * d;
+      if (regionKeyAt(x, y) !== 'camburi') continue;
+      addTree(x, y, 'palm', rnd(0.95, 1.15), { sidewalk: true });
+    }
+  }
+}
+function empenas() {
+  const REG = { centro: 1, camburi: 1.4, industrial: 0.7, jardim: 0.8, vila: 0.6, porto: 0.8 };
+  let n = 0;
+  for (const b of World.buildings) {
+    if ((b.style !== 'office' && b.style !== 'apart') || b.h < 50 || b.vidro || b.sign) continue;
+    const r = REG[regionKeyAt(b.cx, b.cy)]; if (!r) continue;
+    if (hash2((b.x0 | 0) + 313, (b.y0 | 0) + 71) > 0.34 * r) continue;
+    b.empena = Math.floor(hash2(b.x1 | 0, b.y1 | 0) * OUTDOORS.length); n++;
+    if (b.x1 - b.x0 >= 70 && hash2((b.x0 | 0) + 5, (b.y1 | 0) + 9) < 0.55) b.topo = true; // painel em cima do prédio
+  }
+  World.nEmpenas = n;
 }
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {
@@ -14207,8 +14559,9 @@ async function boot() {
     [buildRoadProps, 'Acendendo os postes…'], [buildActivitiesData, 'Espalhando segredos pela cidade…'],
   ];
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
+  NOBRE_EXT = true; // margem leste do rio passa a ser Jardim Camburiso (depois de montar: o sorteio do mapa não muda)
   alargaRuas(); empurraDaPista(); marcaVagas(); elevaPredios(); aoPredios(); // ruas 10% mais largas (depois de montar tudo: a cidade não muda)
-  pruneRoadTrees(); thinTrees(); addBuracos(); Colecao.monta();
+  pruneRoadTrees(); thinTrees(); addBuracos(); Colecao.monta(); posMontagem(); // outdoors no pasto, lotes à venda, estradinhas, palmeiras e empenas
   buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();
   buildMapImage();

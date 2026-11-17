@@ -15,8 +15,10 @@ const OUTDOORS = [
   { marca: 'ACADEMIA BOMBADÃO', frase: 'Músculo de verdade, preço de mentira', c1: '#ff3b3b', c2: '#1a0606', arte: 'halter' },
 ];
 const OD_W = 640, OD_H = 240;
+const _odArte = new Map(); // uma arte por propaganda (vários outdoors e prédios podem usar a mesma)
 function outdoorArte(o) {
   if (o.panel) return o.panel;
+  const ja = _odArte.get((o.ad || 0) % OUTDOORS.length); if (ja) return (o.panel = ja);
   const A = OUTDOORS[(o.ad || 0) % OUTDOORS.length];
   const c = makeCanvas(OD_W, OD_H), g = c.getContext('2d');
   // fundo: degradê com faixas diagonais e brilho
@@ -43,7 +45,7 @@ function outdoorArte(o) {
   g.fillStyle = 'rgba(255,255,255,0.05)'; for (let x = 160; x < OD_W; x += 160) g.fillRect(x, 0, 1.5, OD_H);
   const vg = g.createLinearGradient(0, 0, 0, OD_H); vg.addColorStop(0, 'rgba(255,255,255,0.10)'); vg.addColorStop(0.5, 'rgba(255,255,255,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.25)');
   g.fillStyle = vg; g.fillRect(0, 0, OD_W, OD_H);
-  o.panel = c; return c;
+  _odArte.set((o.ad || 0) % OUTDOORS.length, c); o.panel = c; return c;
 }
 // ajudantes de desenho
 const odRR = (g, x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
@@ -207,40 +209,89 @@ const OD_ARTE = {
   },
 };
 const A_BG = '#1d1408';
-// desenho do outdoor no mundo: sombra no chão, duas colunas de aço com reforço, passarela, painel com moldura e refletores
+// desenho do outdoor no mundo (nov/2026: menor, no meio do pasto e meio de lado, como na beira de estrada do Brasil):
+// sombra no chão, duas colunas de aço com reforço, painel com moldura, passarela e refletores — tudo girado em o.rot
+const OD_PW = 104, OD_PH = 39;
 function desenhaOutdoor(ctx, o) {
-  const [ox, oy] = offAt(o.x, o.y, o.h), [mx, my] = offAt(o.x, o.y, o.h * 0.55);
-  const W = 150, H = 56, px = o.x + ox, py = o.y + oy;
-  // sombra no chão (painel projetado de lado)
-  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.moveTo(o.x - W / 2 + 10, o.y + 4); ctx.lineTo(o.x + W / 2 + 10, o.y + 4); ctx.lineTo(o.x + W / 2 + 26, o.y + 16); ctx.lineTo(o.x - W / 2 + 26, o.y + 16); ctx.fill();
-  // colunas: cilindro (escuro + brilho) e reforço em X entre elas
-  for (const sx of [-34, 34]) {
-    ctx.strokeStyle = '#2e3136'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(o.x + sx, o.y); ctx.lineTo(px + sx, py + H / 2 - 4); ctx.stroke();
-    ctx.strokeStyle = '#7a8088'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(o.x + sx - 1.4, o.y); ctx.lineTo(px + sx - 1.4, py + H / 2 - 4); ctx.stroke();
-    ctx.fillStyle = '#55595f'; ctx.beginPath(); ctx.ellipse(o.x + sx, o.y, 5, 3, 0, 0, TAU); ctx.fill();
+  const [ox, oy] = offAt(o.x, o.y, o.h), rot = o.rot || 0, c = Math.cos(rot), s = Math.sin(rot);
+  const W = OD_PW, H = OD_PH, px = o.x + ox, py = o.y + oy, pe = W * 0.3;
+  // sombra no chão (o painel deitado pelo sol, de leve)
+  ctx.save(); ctx.translate(o.x + 8, o.y + 7); ctx.rotate(rot); ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(-W / 2, -4, W, 9); ctx.restore();
+  // colunas do chão até o painel (cilindro: escuro + brilho)
+  for (const k of [-1, 1]) {
+    const bx = o.x + c * pe * k, by = o.y + s * pe * k, tx = px + c * pe * k - s * (H / 2 - 3), ty = py + s * pe * k + c * (H / 2 - 3);
+    ctx.strokeStyle = '#2e3136'; ctx.lineWidth = 4.4; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(tx, ty); ctx.stroke();
+    ctx.strokeStyle = '#7a8088'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(bx - 1, by); ctx.lineTo(tx - 1, ty); ctx.stroke();
+    ctx.fillStyle = '#6e6658'; ctx.beginPath(); ctx.ellipse(bx, by, 4.5, 3, rot, 0, TAU); ctx.fill(); // sapata de concreto
   }
-  ctx.strokeStyle = 'rgba(70,74,80,0.9)'; ctx.lineWidth = 1.6; ctx.beginPath();
-  ctx.moveTo(o.x - 34 + mx, o.y + my); ctx.lineTo(o.x + 34 + (ox + mx) / 2, o.y + (oy + my) / 2 + H / 2 - 4);
-  ctx.moveTo(o.x + 34 + mx, o.y + my); ctx.lineTo(o.x - 34 + (ox + mx) / 2, o.y + (oy + my) / 2 + H / 2 - 4); ctx.stroke();
-  // fundo da estrutura (profundidade) e painel
-  ctx.fillStyle = '#1b1d21'; ctx.fillRect(px - W / 2 + 3, py - H / 2 + 4, W, H);
-  ctx.drawImage(outdoorArte(o), px - W / 2, py - H / 2, W, H);
-  ctx.strokeStyle = '#2a2c30'; ctx.lineWidth = 2.4; ctx.strokeRect(px - W / 2, py - H / 2, W, H);
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(px - W / 2 + 1, py - H / 2 + 1); ctx.lineTo(px + W / 2 - 1, py - H / 2 + 1); ctx.stroke();
-  // passarela embaixo com grade
-  ctx.fillStyle = '#3a3d42'; ctx.fillRect(px - W / 2 - 2, py + H / 2, W + 4, 4);
-  ctx.fillStyle = 'rgba(255,255,255,0.18)'; for (let x = px - W / 2; x < px + W / 2; x += 6) ctx.fillRect(x, py + H / 2 + 1, 1, 2);
-  // refletores em cima (braço + cabeça)
-  ctx.strokeStyle = '#3a3d42'; ctx.lineWidth = 1.4; ctx.fillStyle = '#4a4e55';
-  for (const k of [-0.33, 0, 0.33]) { const x = px + k * W; ctx.beginPath(); ctx.moveTo(x, py - H / 2); ctx.lineTo(x, py - H / 2 - 7); ctx.stroke(); ctx.fillRect(x - 4, py - H / 2 - 10, 8, 4); }
+  ctx.save(); ctx.translate(px, py); ctx.rotate(rot);
+  ctx.fillStyle = '#1b1d21'; ctx.fillRect(-W / 2 + 2, -H / 2 + 3, W, H); // fundo (profundidade)
+  ctx.drawImage(outdoorArte(o), -W / 2, -H / 2, W, H);
+  ctx.strokeStyle = '#2a2c30'; ctx.lineWidth = 2; ctx.strokeRect(-W / 2, -H / 2, W, H);
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(-W / 2 + 1, -H / 2 + 1); ctx.lineTo(W / 2 - 1, -H / 2 + 1); ctx.stroke();
+  ctx.fillStyle = '#3a3d42'; ctx.fillRect(-W / 2 - 1, H / 2, W + 2, 3); // passarela
+  ctx.fillStyle = 'rgba(255,255,255,0.18)'; for (let x = -W / 2; x < W / 2; x += 5) ctx.fillRect(x, H / 2 + 0.8, 0.8, 1.5);
+  ctx.strokeStyle = '#3a3d42'; ctx.lineWidth = 1.1; ctx.fillStyle = '#4a4e55';
+  for (const k of [-0.3, 0.3]) { const x = k * W; ctx.beginPath(); ctx.moveTo(x, -H / 2); ctx.lineTo(x, -H / 2 - 5); ctx.stroke(); ctx.fillRect(x - 3, -H / 2 - 7.5, 6, 3); }
+  ctx.restore();
 }
-// de noite: refletores acesos lavando o painel de luz de cima para baixo
+// de noite: dois refletores acesos lavando o painel de luz
 function outdoorLuz(ctx, o) {
   if (Dia.apaga > 0.6) return;
-  const [ox, oy] = offAt(o.x, o.y, o.h), W = 150, H = 56, px = o.x + ox, py = o.y + oy;
-  ctx.save(); ctx.globalAlpha = 0.5 * (1 - Dia.apaga); ctx.drawImage(outdoorArte(o), px - W / 2, py - H / 2, W, H);
-  const lg = ctx.createLinearGradient(0, py - H / 2, 0, py + H / 2); lg.addColorStop(0, 'rgba(255,245,215,0.35)'); lg.addColorStop(1, 'rgba(255,245,215,0)');
-  ctx.globalAlpha = 1 - Dia.apaga; ctx.fillStyle = lg; ctx.fillRect(px - W / 2, py - H / 2, W, H);
-  for (const k of [-0.33, 0, 0.33]) ctx.drawImage(glowSprite('#fff4d8'), px + k * W - 8, py - H / 2 - 16, 16, 16);
+  const [ox, oy] = offAt(o.x, o.y, o.h), W = OD_PW, H = OD_PH, px = o.x + ox, py = o.y + oy, k = 1 - Dia.apaga;
+  ctx.save(); ctx.translate(px, py); ctx.rotate(o.rot || 0);
+  ctx.globalAlpha = 0.5 * k; ctx.drawImage(outdoorArte(o), -W / 2, -H / 2, W, H);
+  const lg = ctx.createLinearGradient(0, -H / 2, 0, H / 2); lg.addColorStop(0, 'rgba(255,245,215,0.35)'); lg.addColorStop(1, 'rgba(255,245,215,0)');
+  ctx.globalAlpha = k; ctx.fillStyle = lg; ctx.fillRect(-W / 2, -H / 2, W, H);
+  for (const x of [-0.3, 0.3]) ctx.drawImage(glowSprite('#fff4d8'), x * W - 7, -H / 2 - 13, 14, 14);
   ctx.restore();
+}
+
+/* ---------- propaganda pintada na parede de prédio (empena) ---------- */
+const _empArte = new Map();
+function empenaArte(i) {
+  let c = _empArte.get(i); if (c) return c;
+  const A = OUTDOORS[i % OUTDOORS.length], W = 360, H = 300; c = makeCanvas(W, H); const g = c.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, shade(A.c2, 0.3)); bg.addColorStop(1, A.c2); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  g.save(); g.globalAlpha = 0.1; g.fillStyle = A.c1; for (let x = -H; x < W; x += 40) { g.beginPath(); g.moveTo(x, H); g.lineTo(x + 18, H); g.lineTo(x + 18 + H, 0); g.lineTo(x + H, 0); g.fill(); } g.restore();
+  g.save(); g.translate(W / 2, 118); g.scale(0.85, 0.85); OD_ARTE[A.arte](g, A); g.restore();
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  let fs = 46; g.font = `${fs}px "BRND Anton", Impact, sans-serif`; while (g.measureText(A.marca).width > W - 30 && fs > 22) { fs -= 2; g.font = `${fs}px "BRND Anton", Impact, sans-serif`; }
+  g.lineWidth = 6; g.strokeStyle = 'rgba(0,0,0,0.5)'; g.strokeText(A.marca, W / 2, 252); g.fillStyle = '#fff'; g.fillText(A.marca, W / 2, 252);
+  g.fillStyle = A.c1; g.fillRect(W / 2 - 50, 264, 100, 6);
+  g.font = '700 20px "BRND Cond", "Arial Narrow", sans-serif'; g.fillStyle = shade(A.c1, 0.5); g.fillText(A.frase, W / 2, 290, W - 24);
+  // pintura velha: bordas gastas
+  g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 8; g.strokeRect(0, 0, W, H);
+  _empArte.set(i, c); return c;
+}
+// pinta a propaganda na parede N ou S (no N direto; no S girado 180°, para ler certo na tela)
+function empenaPinta(ctx, b, ax, ay, bx, by, ox, oy, side) {
+  if (Math.hypot(ox, oy) < 3) return;
+  const u0 = 0.14, u1 = 0.86, v0 = 0.18, v1 = 0.9;
+  ctx.save(); ctx.transform(bx - ax, by - ay, ox, oy, ax, ay);
+  const art = empenaArte(b.empena);
+  if (side === 'N') ctx.drawImage(art, u0, v0, u1 - u0, v1 - v0);
+  else { ctx.translate(u1, v1); ctx.scale(-1, -1); ctx.drawImage(art, 0, 0, u1 - u0, v1 - v0); }
+  ctx.restore();
+}
+
+/* ---------- painel de propaganda em cima do prédio (comum nas capitais) ---------- */
+function topoGeo(b) {
+  const W = Math.min(96, (b.x1 - b.x0) * 0.78), H = W * OD_PH / OD_PW, cy = b.y0 + (b.y1 - b.y0) * 0.62, cx = (b.x0 + b.x1) / 2;
+  return { W, H, cx, cy };
+}
+function desenhaTopo(ctx, b) {
+  const T = topoGeo(b), [rx, ry] = bldOffset(b), h2 = b.h + 16, [px, py] = offAt(T.cx, T.cy, h2), k = b.h / h2;
+  // pés de aço saindo da laje (laje = deslocamento do prédio) até o painel
+  ctx.strokeStyle = '#2e3136'; ctx.lineWidth = 2.6;
+  for (const f of [-0.32, 0.32]) { ctx.beginPath(); ctx.moveTo(T.cx + f * T.W + rx, T.cy + ry); ctx.lineTo(T.cx + f * T.W + px, T.cy + py + T.H / 2 - 2); ctx.stroke(); }
+  ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fillRect(T.cx + rx - T.W / 2 + 4, T.cy + ry - 2, T.W, 5); // sombra na laje
+  ctx.fillStyle = '#1b1d21'; ctx.fillRect(T.cx + px - T.W / 2 + 2, T.cy + py - T.H / 2 + 2, T.W, T.H);
+  ctx.drawImage(outdoorArte({ ad: b.empena }), T.cx + px - T.W / 2, T.cy + py - T.H / 2, T.W, T.H);
+  ctx.strokeStyle = '#2a2c30'; ctx.lineWidth = 1.6; ctx.strokeRect(T.cx + px - T.W / 2, T.cy + py - T.H / 2, T.W, T.H);
+}
+function topoLuz(ctx, b) {
+  if (Dia.apaga > 0.6) return;
+  const T = topoGeo(b), [px, py] = offAt(T.cx, T.cy, b.h + 16);
+  ctx.save(); ctx.globalAlpha = 0.45 * (1 - Dia.apaga); ctx.drawImage(outdoorArte({ ad: b.empena }), T.cx + px - T.W / 2, T.cy + py - T.H / 2, T.W, T.H); ctx.restore();
 }
