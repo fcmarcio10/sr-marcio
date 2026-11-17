@@ -999,13 +999,8 @@ function addTree(x, y, type, size, opt) {
   const tc = type !== 'bush' ? addCircCol(x, y, type === 'palm' ? 4 : 5 * size, 'tree') : addCircCol(x, y, 7 * size, 'tree');
   t.col = tc;
   if (opt.sidewalk || type === 'bush' || size < 0.9) tc.brk = { kind: 'tree', obj: t };
-  const sr = R * 0.9;
-  bake(x - sr, y - sr, x + sr * 2, y + sr * 2, 7, (g) => {
-    if (t.removed) return;
-    // sombra com o desenho da própria copa (silhueta da árvore), jogada para baixo e para a direita
-    const S = 64 * t.size * (t.type === 'bush' ? 0.55 : 1), off = S * (t.type === 'bush' ? 0.12 : 0.22);
-    g.globalAlpha = 0.34; g.drawImage(sombraArvore(t.type, t.v), x - S / 2 + off, y - S / 2 + off * 1.2, S, S); g.globalAlpha = 1;
-  });
+  // (nov/2026) a sombra da árvore saiu do chão pintado: agora é desenhada pelo sol a cada quadro (Sombras.altos) e some quando ela cai
+
   return t;
 }
 function scatterTrees(x0, y0, x1, y1, n, types, smin, smax) {
@@ -1021,7 +1016,7 @@ function addLamp(bx, by, hx, hy, col, opt) {
   rendGrid.insert(lamp, Math.min(bx, hx) - 60, Math.min(by, hy) - 60, Math.max(bx, hx) + 60, Math.max(by, hy) + 60);
   const lc = addCircCol(bx, by, 4, 'pole'); lc.brk = { kind: 'lamp', obj: lamp };
   if (!lamp.broken) lamp.light = addLight(hx, hy, opt.r || 175, opt.i || 0.92, col, { lamp, flick: opt.flick ? 1 : 0 });
-  bake(bx - 4, by - 4, bx + 30, by + 34, 7, (g) => { g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 3; g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + 22, by + 28); g.stroke(); });
+  // (nov/2026) sombra do poste pelo sol a cada quadro (Sombras.altos); não fica mais pintada no chão quando ele cai
   return lamp;
 }
 // objetos baixos (desenhados no chão pré-renderizado)
@@ -1883,7 +1878,8 @@ function forest(x0, y0, x1, y1, noCol) {
 }
 function buildRural() {
   // bordas do mundo
-  forest(0, 0, WORLD_W, 230); forest(0, 230, 230, SEA_Y); forest(8790, 230, WORLD_W, SEA_Y);
+  // mata fechada até a beira do mundo (a borda recortada fica do lado de fora; lá fora a mata continua: bordaFora em p78_campo.js)
+  forest(-60, -60, WORLD_W + 60, 230); forest(-60, 230, 230, SEA_Y); forest(8790, 230, WORLD_W + 60, SEA_Y);
   addRectCol(-200, -200, WORLD_W + 200, 20, 'world'); addRectCol(-200, WORLD_H - 20, WORLD_W + 200, WORLD_H + 200, 'world');
   addRectCol(-200, 0, 20, WORLD_H, 'world'); addRectCol(WORLD_W - 20, 0, WORLD_W + 200, WORLD_H, 'world');
   // faixa norte da cidade (entre a mata e a primeira rua)
@@ -3028,6 +3024,23 @@ function drawDecal(g, d) {
       g.closePath();
       g.save(); g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 0; g.shadowOffsetX = 6; g.shadowOffsetY = 8; g.fill(); g.restore();
       g.fill();
+      // copas de árvore por toda a mata (antes o miolo era um chão liso): sombra, copa, tufos e luz de cima
+      {
+        const G = 24, C = ['#1d3c1c', '#244621', '#2a5226', '#1a361a', '#30592a'];
+        const ax = Math.floor(Math.max(x0 + 18, ix0 - 20) / G), bx = Math.ceil(Math.min(x1 - 18, ix1 + 20) / G), ay = Math.floor(Math.max(y0 + 18, iy0 - 20) / G), by = Math.ceil(Math.min(y1 - 18, iy1 + 20) / G);
+        const sombra = new Path2D(), luz = new Path2D(), base = C.map(() => new Path2D());
+        for (let gy = ay; gy <= by; gy++) for (let gx = ax; gx <= bx; gx++) {
+          const x = gx * G + hash2(gx * 3, gy * 5) * G, y = gy * G + hash2(gy * 7, gx * 11) * G, r = 11 + hash2(gx + 13, gy + 17) * 8, k = (gx * 7 + gy * 13) % 5;
+          if (x < x0 + 14 || x > x1 - 14 || y < y0 + 14 || y > y1 - 14) continue;
+          sombra.moveTo(x + 4 + r, y + 6); sombra.arc(x + 4, y + 6, r, 0, TAU);
+          const P = base[(k + 5) % 5]; P.moveTo(x + r, y); P.arc(x, y, r, 0, TAU);
+          for (let j = 0; j < 3; j++) { const a = j * 2.1 + gx, rr = r * 0.45, px = x + Math.cos(a) * r * 0.7, py = y + Math.sin(a) * r * 0.7; P.moveTo(px + rr, py); P.arc(px, py, rr, 0, TAU); }
+          luz.moveTo(x - r * 0.25 + r * 0.42, y - r * 0.3); luz.arc(x - r * 0.25, y - r * 0.3, r * 0.42, 0, TAU);
+        }
+        g.fillStyle = 'rgba(0,0,0,0.32)'; g.fill(sombra);
+        C.forEach((c, i) => { g.fillStyle = c; g.fill(base[i]); });
+        g.fillStyle = 'rgba(130,180,95,0.15)'; g.fill(luz);
+      }
       break;
     }
     case 'corn': case 'cane': case 'soy': case 'coffee': case 'garden': {
@@ -3770,6 +3783,7 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   const sq = o.noSq ? 1 : SQ;
   const as = o.noSq ? a : Math.atan2(Math.sin(a) * SQ, Math.cos(a));
   const lift = o.noLift ? 0 : vehLift(m);
+  if (!o.noSq && typeof sombraCarroSol === 'function') sombraCarroSol(ctx, m, x, y, as, sq); // sombra pelo sol com o contorno da carroceria
   ctx.save();
   ctx.translate(x + 2.5, y + 3.5 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as);
   if (typeof SHSPR !== 'undefined' && SHSPR && Settings.quality === 'alta') { const ga = ctx.globalAlpha; ctx.translate(-1, -1); ctx.globalAlpha = ga * 0.78; softCarShadow(ctx, m.L + 4, m.W + 3); ctx.globalAlpha = ga; } // sombra de contato macia
@@ -4398,11 +4412,15 @@ class Player {
     this.x += this.vx * dt; this.y += this.vy * dt;
     let impact = this.collide();
     impact = Math.max(impact, this.collideDynamic());
+    this.agua = 0;
     if (this.inWater()) {
       if (this.y > SAND_Y - 40 && Agua.pontaY(this.x)) { // praia: o carro entra devagar (no porto e no píer bate, para não cair na água) (a água segura); entrou inteiro, volta para a areia (Praia.volta)
-        const k = Math.exp(-1.6 * dt); this.vx *= k; this.vy *= k;
-        this.marT = groundAt(this.x, this.y) === SF.WATER ? (this.marT || 0) + dt : 0; // o meio do carro já está na água
-        Praia.naAgua = this.todoNaAgua() || this.marT > 0.7; // conta 3, 2, 1 e volta para a areia (Praia.update)
+        // quanto do carro está coberto pela água: quanto mais fundo, mais ele perde velocidade (começa a boiar)
+        const f = this.fracAgua(); this.agua = f;
+        const k = Math.exp(-(0.8 + 5.5 * f * f) * dt); this.vx *= k; this.vy *= k;
+        // boiando: balança devagar e a correnteza empurra de leve para o lado
+        if (f > 0.4) { this.spin += Math.sin(Game.time * 1.3 + this.x * 0.01) * 0.25 * f * dt; this.vx += Math.sin(Game.time * 0.7) * 6 * f * dt; }
+        Praia.naAgua = f >= 0.75; // com 75% do carro coberto entra a contagem 3, 2, 1 (Praia.update)
       } else { this.x = this.px; this.y = this.py; impact = Math.max(impact, this.speed * 0.6); this.vx *= -0.25; this.vy *= -0.25; } // rio: bate
     }
     this.impactCd -= dt;
@@ -4649,6 +4667,13 @@ class Player {
       }
     }
     return impact;
+  }
+  // parte do carro coberta pela água (0 a 1), por uma grade de 5 x 3 pontos na carroceria
+  fracAgua() {
+    const c = Math.cos(this.a), s = Math.sin(this.a), hl = this.m.L / 2, hw = this.m.W / 2;
+    let n = 0;
+    for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) { const u = (i / 4 - 0.5) * 2 * hl, v = (j / 2 - 0.5) * 2 * hw; if (groundAt(this.x + c * u - s * v, this.y + s * u + c * v) === SF.WATER) n++; }
+    return n / 15;
   }
   todoNaAgua() {
     const c = Math.cos(this.a), s = Math.sin(this.a), hl = this.m.L / 2, hw = this.m.W / 2;
@@ -5776,6 +5801,7 @@ function breakObject(col, vx, vy, sp, hx, hy) {
   }
   if (b.kind === 'tree') {
     o.down = ang; (World.caidos || (World.caidos = [])).push(o); AudioSys.breakSnd('wood', 0.8);
+    refreshGroundArea(o.x - 190, o.y - 190, o.x + 190, o.y + 190); // tira a sombra que a luz dos postes fazia dela
     for (let i = 0; i < 14; i++) Particles.emit('leaf', o.x + rnd(-14, 14), o.y + rnd(-14, 14), rnd(-60, 60) + Math.cos(ang) * 60, rnd(-60, 60) + Math.sin(ang) * 60, rnd(0.8, 1.6), 2);
     Cam.shake = Math.max(Cam.shake, 5);
     return;
@@ -5793,6 +5819,7 @@ function breakObject(col, vx, vy, sp, hx, hy) {
   } else if (b.kind === 'lamp') {
     o.broken = true; o.down = ang; (World.caidos || (World.caidos = [])).push(o);
     if (o.light) o.light.dieAt = Game.time + 1.1;
+    refreshGroundArea(o.x - 190, o.y - 190, o.x + 190, o.y + 190); // a sombra de luz deste poste some do chão
     World.sparkers.push({ x: o.hx, y: o.hy, until: Game.time + 1.5 });
     AudioSys.breakSnd('lamp', k);
     if (chance(0.5)) toast('Derrubou o poste!', 'A rua ficou no escuro. A prefeitura agradece…', 'bad');
@@ -9825,6 +9852,7 @@ function render() {
   WS_BASE.ctx = ctx; WS_BASE.z = z; WS_BASE.zs = z * SQ; WS_BASE.tx = W / 2 - cx * z; WS_BASE.ty = Hh / 2 - cy * z * SQ; wsTrim();
   ctx.imageSmoothingEnabled = true;
   drawGround(view, forceGround); forceGround = false;
+  bordaFora(ctx, view); // além da borda: mata e mar continuam (por cima do chão que passa da borda)
   pm('ground');
   Agua.desenhaChao(ctx, view); // rio correndo, ondas do mar e chão molhado
   Mata.chao(ctx, view); // vento nas copas da mata, plantação balançando e tufos de mato nos campos
@@ -9835,6 +9863,7 @@ function render() {
   Atropelo.desenhaSangue(ctx, view);
   Colecao.desenha(ctx, view); // panelas de barro e placas de zoeira
   Tutorial.desenha(ctx, view); // seta do tutorial em cima do lugar certo
+  Sol.calc(); Sombras.chao(ctx, view); // sombras pelo sol: pessoas, bichos, bancos, mesas... (no formato de cada um)
   drawDynShadows(ctx, view);
   pm('decals');
   // veículos e animais
@@ -9868,6 +9897,7 @@ function render() {
   Agua.respingosCarro(ctx, view);
   Mata.copa(ctx, view); // copas na borda da mata (por cima do carro que encosta nela)
   Dia.sombrasSol(ctx, view); // sombra dos prédios pelo sol (direção e tamanho pela hora)
+  Sombras.altos(ctx, view); // árvores, postes, semáforos, outdoors... (some quando o objeto cai)
   pm('vehicles');
   // objetos altos ordenados por distância à câmera (longe primeiro)
   rendGrid.query(view.x0 - 170, view.y0 - 170, view.x1 + 170, view.y1 + 170, _rq);
@@ -10296,6 +10326,7 @@ function drawDynShadows(ctx, view) {
   const ped = (o) => {
     for (const [L, d, w] of lampsAt(o.x, o.y)) {
       const dx = (o.x - L.x) / d, dy = (o.y - L.y) / d, len = 6 + 22 * (d / L.r);
+      if (o.type === 'person' && typeof sombraPessoaLuz === 'function') { sombraPessoaLuz(ctx, o, dx, dy, len, Math.min(0.6, 0.7 * w + 0.1)); continue; } // corpinho na sombra
       ctx.globalAlpha = Math.min(0.7, 0.8 * w + 0.1);
       ctx.save(); ctx.translate(o.x + dx * len * 0.5, o.y + dy * len * 0.5); ctx.rotate(Math.atan2(dy, dx)); ctx.drawImage(SHDOT, -len * 0.5 - 4, -4.5, len + 8, 9); ctx.restore();
     }
@@ -10353,14 +10384,14 @@ function bakeLampShadows() {
         g.beginPath();
         for (const s of shapes) {
           if (s.poly) { s.poly.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); }
-          else if (!s.tree.removed) { g.moveTo(s.cx + Math.cos(s.a) * s.rx, s.cy + Math.sin(s.a) * s.rx); g.ellipse(s.cx, s.cy, s.rx, s.ry, s.a, 0, TAU); }
+          else if (!s.tree.removed && s.tree.down === undefined) { g.moveTo(s.cx + Math.cos(s.a) * s.rx, s.cy + Math.sin(s.a) * s.rx); g.ellipse(s.cx, s.cy, s.rx, s.ry, s.a, 0, TAU); }
         }
       };
       // três passadas levemente deslocadas = borda de penumbra macia
       for (const [ox, oy, al] of [[0, 0, 0.5], [1.6, 1.2, 0.28], [-1.6, 1.2, 0.28]]) { g.globalAlpha = al; g.save(); g.translate(ox, oy); path(); g.fill(); g.restore(); }
       // tronco das árvores
       g.globalAlpha = 0.5; g.lineWidth = 3;
-      for (const s of shapes) if (s.tree && !s.tree.removed) { g.beginPath(); g.moveTo(s.bx, s.by); g.lineTo(s.cx, s.cy); g.stroke(); }
+      for (const s of shapes) if (s.tree && !s.tree.removed && s.tree.down === undefined) { g.beginPath(); g.moveTo(s.bx, s.by); g.lineTo(s.cx, s.cy); g.stroke(); }
       g.restore();
     });
   }
@@ -13140,9 +13171,9 @@ Praia.update = function (dt) {
   if (!player) return;
   // contagem antes de voltar: "Voltando em 3, 2, 1, 0"; se o carro sair da água, cancela
   if (!this.t) {
-    const fora = !player.inWater() || player.y < SAND_Y - 40;
+    const fora = !player.inWater() || player.y < SAND_Y - 40 || (player.agua || 0) < 0.5; // saiu (ou ficou raso): cancela
     if (this.naAgua && !fora) {
-      if (this.conta === undefined) this.conta = 3.99;
+      if (this.conta === undefined) { this.conta = 3.99; this.mostraConta(3); } // aparece na hora
       const ant = Math.floor(this.conta); this.conta -= dt; const n = Math.floor(Math.max(0, this.conta));
       if (n !== ant || !this.el) this.mostraConta(n);
       if (this.conta <= 0) { this.conta = undefined; this.escondeConta(); this.comeca(); }
@@ -13530,8 +13561,19 @@ Dia.sombrasSol = function (ctx, view) {
 // luz do sol de dia: um toque quente e mais contraste (estilo cinema), por cima de tudo
 Dia.luzSol = function (ctx, W, H) {
   if (this.sol < 0.04 || Settings.quality === 'baixa') return;
+  const k = this.sol, sx = -(typeof Sol !== 'undefined' ? Sol.dx : 0), sy = -(typeof Sol !== 'undefined' ? Sol.dy : 0.5), l = Math.hypot(sx, sy) || 1;
+  // lado de onde vem o sol (oposto às sombras): mais claro e quente; o outro lado fica um pouco mais frio
+  const cx = W / 2 + sx / l * W * 0.6, cy = H / 2 + sy / l * H * 0.6, fx = W / 2 - sx / l * W * 0.6, fy = H / 2 - sy / l * H * 0.6;
+  const ar = this.aurora || 0; // manhãzinha e fim de tarde: luz mais dourada
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'soft-light';
-  ctx.fillStyle = `rgba(255,200,130,${(0.42 * this.sol).toFixed(3)})`; ctx.fillRect(0, 0, W, H);
+  const g = ctx.createLinearGradient(cx, cy, fx, fy);
+  g.addColorStop(0, `rgba(255,${200 - ar * 40 | 0},${130 - ar * 50 | 0},${(0.55 * k).toFixed(3)})`); g.addColorStop(1, `rgba(200,215,255,${(0.22 * k).toFixed(3)})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // brilho do sol "estourando" de leve do lado dele (como numa foto de dia claro)
+  ctx.globalCompositeOperation = 'screen';
+  const r = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.75);
+  r.addColorStop(0, `rgba(255,236,200,${(0.16 * k * (1 + ar * 0.6)).toFixed(3)})`); r.addColorStop(1, 'rgba(255,236,200,0)');
+  ctx.fillStyle = r; ctx.fillRect(0, 0, W, H);
   ctx.restore();
 };
 /* ============================ SALVAMENTOS, TECLAS, CONTROLE E LEGENDAS ============================
@@ -14260,6 +14302,177 @@ function empenas() {
     if (b.x1 - b.x0 >= 70 && hash2((b.x0 | 0) + 5, (b.y1 | 0) + 9) < 0.55) b.topo = true; // painel em cima do prédio
   }
   World.nEmpenas = n;
+}
+
+/* ---------- além da borda do mapa: a mata continua (cada vez mais longe e enevoada) e o mar segue até o horizonte ---------- */
+function bordaFora(ctx, view) {
+  const L = view.x0, T = view.y0, R = view.x1, B = view.y1;
+  if (L >= 0 && T >= 0 && R <= WORLD_W && B <= WORLD_H) return;
+  const terra = (x0, y0, x1, y1) => { if (x1 > x0 && y1 > y0) ctx.fillRect(x0, y0, x1 - x0, y1 - y0); };
+  ctx.save();
+  // mata lá fora
+  ctx.fillStyle = pat(ctx, 'forest');
+  terra(L, T, R, Math.min(0, B)); terra(L, Math.max(0, T), Math.min(0, R), Math.min(SEA_Y, B)); terra(Math.max(WORLD_W, L), Math.max(0, T), R, Math.min(SEA_Y, B));
+  // copas grandes por cima (presas ao mapa) para não parecer chão liso
+  const G = 46, cores = ['#1d3c1c', '#244621', '#2a5226', '#1a361a'];
+  for (let gy = Math.floor(T / G); gy * G < B; gy++) for (let gx = Math.floor(L / G); gx * G < R; gx++) {
+    const x = gx * G + hash2(gx, gy) * G, y = gy * G + hash2(gy, gx) * G;
+    if (!(x < 0 || y < 0 || x > WORLD_W) || y > SEA_Y - 20) continue;
+    const r = 18 + hash2(gx + 7, gy) * 16;
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.arc(x + 5, y + 7, r, 0, TAU); ctx.fill();
+    ctx.fillStyle = cores[(gx * 7 + gy * 3 & 0xffff) % 4]; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(130,180,95,0.13)'; ctx.beginPath(); ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.5, 0, TAU); ctx.fill();
+  }
+  // mar lá fora (até o horizonte)
+  ctx.fillStyle = pat(ctx, 'water');
+  terra(L, Math.max(WORLD_H, T), R, B); terra(L, Math.max(SEA_Y, T), Math.min(0, R), Math.min(WORLD_H, B)); terra(Math.max(WORLD_W, L), Math.max(SEA_Y, T), R, Math.min(WORLD_H, B));
+  // quanto mais longe da borda, mais escuro e enevoado (fundo da paisagem)
+  const nevoa = (x0, y0, x1, y1, gx0, gy0, gx1, gy1, cor) => {
+    if (x1 <= x0 || y1 <= y0) return;
+    const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1); g.addColorStop(0, cor + '0)'); g.addColorStop(1, cor + '0.75)');
+    ctx.fillStyle = g; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  };
+  nevoa(L, T, R, Math.min(0, B), 0, 0, 0, -700, 'rgba(14,24,18,');
+  nevoa(L, Math.max(0, T), Math.min(0, R), Math.min(SEA_Y, B), 0, 0, -700, 0, 'rgba(14,24,18,');
+  nevoa(Math.max(WORLD_W, L), Math.max(0, T), R, Math.min(SEA_Y, B), WORLD_W, 0, WORLD_W + 700, 0, 'rgba(14,24,18,');
+  nevoa(L, Math.max(WORLD_H, T), R, B, 0, WORLD_H, 0, WORLD_H + 700, 'rgba(10,30,48,');
+  ctx.restore();
+}
+/* ============================ SOL E SOMBRAS FIÉIS (nov/2026) ============================
+   O sol (pela hora do dia) decide a direção e o tamanho de todas as sombras: cada coisa projeta a sombra no
+   formato dela — árvore (silhueta da copa + tronco), poste, semáforo, outdoor, ponto de ônibus, orelhão,
+   cobertura do posto, bancos, mesas, lixeiras, hidrantes, cones, pessoas (pernas andando, corpo, braços e
+   cabeça), bichos (corpo, patas e cabeça) e carros (contorno da carroceria). O que é derrubado ou quebrado
+   perde a sombra na hora (não fica mais "pintada" no chão). De noite as sombras vêm dos postes (p65).
+   Todas as sombras do chão de um quadro vão num caminho só e são pintadas de uma vez: onde duas se cruzam
+   não fica mais escuro (como na vida real). */
+const Sol = { a: 0, dx: 0, dy: 0 };
+const SOMBRA_COR = (a) => `rgba(16,20,40,${a.toFixed(3)})`; // sombra azulada (o céu clareia a sombra)
+Sol.calc = function () {
+  if (typeof Dia === 'undefined' || Settings.quality === 'baixa') { this.a = 0; return; }
+  const h = Dia.hora(), th = clamp(Math.PI * (h - 6) / 12, 0.08, Math.PI - 0.08);
+  const comp = 0.32 + 1.25 * Math.pow(1 - Math.sin(th), 1.4); // de manhã cedo e no fim da tarde, sombras compridas
+  this.dx = -Math.cos(th) * comp; this.dy = 0.5 * comp; this.a = Dia.sol > 0.04 ? Dia.sol : 0;
+};
+// ---- formas (tudo em coordenadas do mundo, somado num Path2D) ----
+function sbSeg(P, x1, y1, x2, y2, w) { // traço grosso como polígono (para ir no mesmo caminho)
+  const dx = x2 - x1, dy = y2 - y1, l = Math.hypot(dx, dy) || 1, nx = -dy / l * w / 2, ny = dx / l * w / 2;
+  P.moveTo(x1 + nx, y1 + ny); P.lineTo(x2 + nx, y2 + ny); P.lineTo(x2 - nx, y2 - ny); P.lineTo(x1 - nx, y1 - ny); P.closePath();
+}
+function sbCirc(P, x, y, r) { P.moveTo(x + r, y); P.arc(x, y, r, 0, TAU); }
+function sbElip(P, x, y, rx, ry, a) { P.moveTo(x + Math.cos(a) * rx, y + Math.sin(a) * rx); P.ellipse(x, y, rx, ry, a, 0, TAU); }
+// pegada (polígono) arrastada pela sombra: desenha na base, no meio e na ponta (fica uma forma comprida e cheia)
+function sbArrasta(P, pts, sx, sy) {
+  for (const t of [0, 0.34, 0.67, 1]) { pts.forEach((p, i) => (i ? P.lineTo(p[0] + sx * t, p[1] + sy * t) : P.moveTo(p[0] + sx * t, p[1] + sy * t))); P.closePath(); }
+  for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; P.moveTo(a[0], a[1]); P.lineTo(b[0], b[1]); P.lineTo(b[0] + sx, b[1] + sy); P.lineTo(a[0] + sx, a[1] + sy); P.closePath(); }
+}
+function sbRet(cx, cy, L, W, a) { const c = Math.cos(a), s = Math.sin(a); return [[-L / 2, -W / 2], [L / 2, -W / 2], [L / 2, W / 2], [-L / 2, W / 2]].map(([u, v]) => [cx + c * u - s * v, cy + s * u + c * v]); }
+// pessoa: pernas (andando), quadril, tronco, braços balançando e cabeça, esticada na direção da sombra
+function sbPessoa(P, an, sx, sy) {
+  const x = an.x, y = an.y, L = Math.hypot(sx, sy) || 0.001, ux = sx / L, uy = sy / L, nx = -uy, ny = ux;
+  const hx = Math.cos(an.a), hy = Math.sin(an.a), sw = an.v > 0 ? Math.sin(an.phase) : 0;
+  const at = (t, w) => [x + sx * t + nx * w, y + sy * t + ny * w];
+  // pés (um para frente e outro para trás quando anda) e pernas até o quadril
+  const q = at(0.46, 0);
+  for (const k of [-1, 1]) { const fx = x + hx * sw * 2.2 * k + nx * k * 0.9, fy = y + hy * sw * 2.2 * k + ny * k * 0.9; sbSeg(P, fx, fy, q[0] + nx * k * 1, q[1] + ny * k * 1, 1.7); }
+  // tronco (mais largo nos ombros)
+  const a1 = at(0.44, -1.7), a2 = at(0.44, 1.7), b1 = at(0.8, 2.4), b2 = at(0.8, -2.4);
+  P.moveTo(a1[0], a1[1]); P.lineTo(a2[0], a2[1]); P.lineTo(b1[0], b1[1]); P.lineTo(b2[0], b2[1]); P.closePath();
+  // braços (balançam ao contrário das pernas)
+  for (const k of [-1, 1]) { const o = at(0.78, 2.5 * k), m = at(0.5, 3 * k); sbSeg(P, o[0], o[1], m[0] - hx * sw * 1.6 * k, m[1] - hy * sw * 1.6 * k, 1.2); }
+  // pescoço e cabeça
+  const pc = at(0.86, 0), cb = at(0.93, 0); sbSeg(P, q[0], q[1], pc[0], pc[1], 1.2); sbCirc(P, cb[0], cb[1], 1.9);
+  sbElip(P, x, y, 2.6, 1.6, an.a); // pé no chão (contato)
+}
+// bichos: corpo, patas, pescoço e cabeça
+const SB_BICHO = { cow: [11, 13, 7.5, 6], horse: [13, 13, 5.5, 6.5], dog: [6, 6, 2.6, 3], capybara: [5, 7, 3.6, 2.5], chicken: [4, 3.2, 2.6, 1.6] };
+function sbBicho(P, an, sx, sy, Hk) {
+  const D = SB_BICHO[an.type]; if (!D) return;
+  const [H, L, W, cab] = D, x = an.x, y = an.y, hx = Math.cos(an.a), hy = Math.sin(an.a), px = -hy, py = hx;
+  const bx = x + sx * H * Hk * 0.62, by = y + sy * H * Hk * 0.62, sw = an.v > 0 ? Math.sin(an.phase) * 0.35 : 0;
+  sbElip(P, bx, by, L * 0.55, W * 0.55, an.a); // corpo
+  if (an.type !== 'chicken') for (const [u, v] of [[0.38, 1], [0.38, -1], [-0.38, 1], [-0.38, -1]]) {
+    const fx = x + hx * L * (u + sw * Math.sign(u * v)) * 0.55 + px * v * W * 0.4, fy = y + hy * L * (u + sw * Math.sign(u * v)) * 0.55 + py * v * W * 0.4;
+    sbSeg(P, fx, fy, bx + hx * L * u * 0.5 + px * v * W * 0.3, by + hy * L * u * 0.5 + py * v * W * 0.3, an.type === 'dog' ? 0.9 : 1.6);
+  }
+  const graze = an.state === 'graze', ch = graze ? 0.3 : 0.85;
+  const kx = x + hx * L * 0.62 + sx * H * Hk * ch, ky = y + hy * L * 0.62 + sy * H * Hk * ch;
+  sbSeg(P, bx + hx * L * 0.4, by + hy * L * 0.4, kx, ky, cab * 0.55); sbElip(P, kx + hx * cab * 0.4, ky + hy * cab * 0.4, cab * 0.7, cab * 0.45, an.a);
+  if (an.type === 'cow' || an.type === 'horse') { const tx = bx - hx * L * 0.55, ty = by - hy * L * 0.55; sbSeg(P, tx, ty, tx - hx * 3 + sx * 1.5, ty - hy * 3 + sy * 1.5, 0.8); } // rabo
+}
+// objetos baixos do chão (bancos, mesas, lixeiras...): pegada e altura
+const SB_PROP = { bench: [26, 8, 5], table: [12, 12, 7, 1], bin: [6, 6, 8, 1], hydrant: [5, 5, 6, 1], cone: [5, 5, 6, 1], bollard: [4, 4, 6, 1], orelhao: [8, 8, 14, 1], pot: [10, 10, 6, 1], tires: [12, 12, 4, 1], scarecrow: [14, 3, 14], goal: [6, 30, 12], barrier: [28, 4, 6], cart: [16, 9, 10], well: [14, 14, 8, 1], trough: [22, 7, 5] };
+
+const Sombras = {};
+// sombras no chão: pessoas, bichos e objetos baixos (debaixo deles)
+Sombras.chao = function (ctx, view) {
+  if (!Sol.a) return;
+  const P = new Path2D(), sx = Sol.dx, sy = Sol.dy;
+  for (const an of Animals.list) {
+    if (an.morto || an.oculto || an.type === 'owl' || !inView(view, an.x, an.y, 60)) continue;
+    if (an.type === 'person') sbPessoa(P, an, sx * 14, sy * 14); else sbBicho(P, an, sx, sy, 1);
+  }
+  if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 60)) sbPessoa(P, { x: Act.ride.pick.x, y: Act.ride.pick.y, a: Math.PI / 2, v: 0, phase: 0 }, sx * 14, sy * 14);
+  for (const p of World.props || []) {
+    const D = SB_PROP[p.type]; if (!D || p.broken || !inView(view, p.x, p.y, 50)) continue;
+    const [L, W, H, redondo] = D;
+    if (redondo) { for (const t of [0, 0.5, 1]) sbCirc(P, p.x + sx * H * t, p.y + sy * H * t, L / 2); sbSeg(P, p.x, p.y, p.x + sx * H, p.y + sy * H, L * 0.9); }
+    else sbArrasta(P, sbRet(p.x, p.y, L, W, p.a || 0), sx * H, sy * H);
+  }
+  ctx.save(); ctx.fillStyle = SOMBRA_COR(0.34 * Sol.a); ctx.fill(P); ctx.restore();
+};
+// sombras dos objetos altos (árvores, postes, semáforos, outdoors...): pintadas por cima do chão e dos carros
+// (um carro embaixo de uma árvore fica na sombra dela); o próprio objeto é desenhado depois, por cima
+Sombras.altos = function (ctx, view) {
+  if (!Sol.a) return;
+  const P = new Path2D(), sx = Sol.dx, sy = Sol.dy, q = [];
+  rendGrid.query(view.x0 - 220, view.y0 - 220, view.x1 + 220, view.y1 + 220, q);
+  ctx.save(); ctx.globalAlpha = 0.36 * Sol.a;
+  for (const o of q) {
+    if (o.down !== undefined || o.removed) continue; // derrubado ou arrancado: sem sombra
+    switch (o.kind) {
+      case 'tree': {
+        const S = 64 * o.size * (o.type === 'bush' ? 0.55 : 1), H = o.h * 0.95, cx = o.x + sx * H, cy = o.y + sy * H;
+        if (!inView(view, cx, cy, S)) break;
+        ctx.drawImage(sombraArvore(o.type, o.v), cx - S / 2, cy - S / 2, S, S); // copa com o contorno dela
+        if (o.type !== 'bush') sbSeg(P, o.x, o.y, o.x + sx * H * 0.75, o.y + sy * H * 0.75, 2.4 * o.size); // tronco
+        break;
+      }
+      case 'lamp': {
+        const H = o.h, ex = o.x + sx * H, ey = o.y + sy * H; sbSeg(P, o.x, o.y, ex, ey, 2.4);
+        if (o.style === 'arm') { const ax = o.hx + sx * H, ay = o.hy + sy * H; sbSeg(P, ex, ey, ax, ay, 2); sbElip(P, ax, ay, 6, 3.4, Math.atan2(o.hy - o.y, o.hx - o.x)); }
+        else sbCirc(P, ex, ey, 4);
+        break;
+      }
+      case 'tlight': { const H = o.h, ex = o.x + sx * H, ey = o.y + sy * H; sbSeg(P, o.x, o.y, ex, ey, 2.2); const ax = o.hx + sx * H, ay = o.hy + sy * H; sbSeg(P, ex, ey, ax, ay, 2); sbArrasta(P, sbRet(ax, ay, 5, 12, o.a), sx * 3, sy * 3); break; }
+      case 'billboard': {
+        const c = Math.cos(o.rot || 0), s = Math.sin(o.rot || 0), pe = OD_PW * 0.3, H = o.h;
+        for (const k of [-1, 1]) sbSeg(P, o.x + c * pe * k, o.y + s * pe * k, o.x + c * pe * k + sx * H, o.y + s * pe * k + sy * H, 2.6);
+        const r = sbRet(o.x + sx * H, o.y + sy * H, OD_PW, 3, o.rot || 0); sbArrasta(P, r, sx * OD_PH * 0.9, sy * OD_PH * 0.9); // painel em pé
+        break;
+      }
+      case 'busstop': { sbArrasta(P, sbRet(o.x + sx * o.h, o.y + sy * o.h, 46, 14, o.a), sx * 3, sy * 3); for (const k of [-19, 19]) sbSeg(P, o.x + Math.cos(o.a) * k, o.y + Math.sin(o.a) * k, o.x + Math.cos(o.a) * k + sx * o.h, o.y + Math.sin(o.a) * k + sy * o.h, 1.6); break; }
+      case 'phone': { sbSeg(P, o.x, o.y, o.x + sx * o.h, o.y + sy * o.h, 1.8); sbCirc(P, o.x + sx * o.h, o.y + sy * o.h, 6); break; }
+      case 'flood': { sbSeg(P, o.x, o.y, o.x + sx * o.h, o.y + sy * o.h, 2.6); break; }
+      case 'canopy': { const H = o.h; P.moveTo(o.x0 + sx * H, o.y0 + sy * H); P.lineTo(o.x1 + sx * H, o.y0 + sy * H); P.lineTo(o.x1 + sx * H, o.y1 + sy * H); P.lineTo(o.x0 + sx * H, o.y1 + sy * H); P.closePath(); break; }
+      case 'watertower': case 'silo': { const H = o.h || 60, r = o.r || 14; sbSeg(P, o.x, o.y, o.x + sx * H, o.y + sy * H, r * 1.6); sbCirc(P, o.x + sx * H, o.y + sy * H, r); break; }
+    }
+  }
+  ctx.globalAlpha = 1; ctx.fillStyle = SOMBRA_COR(0.36 * Sol.a); ctx.fill(P);
+  ctx.restore();
+};
+// sombra do carro pelo sol: contorno fiel da carroceria, deslocada pela altura do carro (chamada em drawVehicle)
+function sombraCarroSol(ctx, m, x, y, as, sq) {
+  if (!Sol.a || Settings.quality === 'baixa') return;
+  const H = m.kind === 'bus' ? 16 : m.kind === 'truck' ? 13 : m.kind === 'moto' ? 6 : 7;
+  ctx.save(); ctx.fillStyle = SOMBRA_COR(0.34 * Sol.a);
+  for (const t of [0.45, 1]) { ctx.save(); ctx.translate(x + Sol.dx * H * t, y + Sol.dy * H * t); ctx.scale(1, 1 / sq); ctx.rotate(as); ctx.globalAlpha = t === 1 ? 1 : 0.55; if (m.kind === 'car') ctx.fill(bodyPath(m)); else { ctx.beginPath(); rrect(ctx, -m.L / 2, -m.W / 2, m.L, m.W, m.kind === 'moto' ? 3 : 5); ctx.fill(); } ctx.restore(); }
+  ctx.restore();
+}
+// de noite, perto de poste: pessoa com a silhueta do corpo para longe da luz (no lugar da mancha redonda)
+function sombraPessoaLuz(ctx, an, dx, dy, len, alpha) {
+  const P = new Path2D(); sbPessoa(P, an, dx * len, dy * len);
+  ctx.save(); ctx.fillStyle = `rgba(0,0,0,${alpha.toFixed(3)})`; ctx.fill(P); ctx.restore();
 }
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {

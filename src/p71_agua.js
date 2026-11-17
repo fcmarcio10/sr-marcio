@@ -353,9 +353,9 @@ Praia.update = function (dt) {
   if (!player) return;
   // contagem antes de voltar: "Voltando em 3, 2, 1, 0"; se o carro sair da água, cancela
   if (!this.t) {
-    const fora = !player.inWater() || player.y < SAND_Y - 40;
+    const fora = !player.inWater() || player.y < SAND_Y - 40 || (player.agua || 0) < 0.5; // saiu (ou ficou raso): cancela
     if (this.naAgua && !fora) {
-      if (this.conta === undefined) this.conta = 3.99;
+      if (this.conta === undefined) { this.conta = 3.99; this.mostraConta(3); } // aparece na hora
       const ant = Math.floor(this.conta); this.conta -= dt; const n = Math.floor(Math.max(0, this.conta));
       if (n !== ant || !this.el) this.mostraConta(n);
       if (this.conta <= 0) { this.conta = undefined; this.escondeConta(); this.comeca(); }

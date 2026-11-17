@@ -197,6 +197,23 @@ function drawDecal(g, d) {
       g.closePath();
       g.save(); g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 0; g.shadowOffsetX = 6; g.shadowOffsetY = 8; g.fill(); g.restore();
       g.fill();
+      // copas de árvore por toda a mata (antes o miolo era um chão liso): sombra, copa, tufos e luz de cima
+      {
+        const G = 24, C = ['#1d3c1c', '#244621', '#2a5226', '#1a361a', '#30592a'];
+        const ax = Math.floor(Math.max(x0 + 18, ix0 - 20) / G), bx = Math.ceil(Math.min(x1 - 18, ix1 + 20) / G), ay = Math.floor(Math.max(y0 + 18, iy0 - 20) / G), by = Math.ceil(Math.min(y1 - 18, iy1 + 20) / G);
+        const sombra = new Path2D(), luz = new Path2D(), base = C.map(() => new Path2D());
+        for (let gy = ay; gy <= by; gy++) for (let gx = ax; gx <= bx; gx++) {
+          const x = gx * G + hash2(gx * 3, gy * 5) * G, y = gy * G + hash2(gy * 7, gx * 11) * G, r = 11 + hash2(gx + 13, gy + 17) * 8, k = (gx * 7 + gy * 13) % 5;
+          if (x < x0 + 14 || x > x1 - 14 || y < y0 + 14 || y > y1 - 14) continue;
+          sombra.moveTo(x + 4 + r, y + 6); sombra.arc(x + 4, y + 6, r, 0, TAU);
+          const P = base[(k + 5) % 5]; P.moveTo(x + r, y); P.arc(x, y, r, 0, TAU);
+          for (let j = 0; j < 3; j++) { const a = j * 2.1 + gx, rr = r * 0.45, px = x + Math.cos(a) * r * 0.7, py = y + Math.sin(a) * r * 0.7; P.moveTo(px + rr, py); P.arc(px, py, rr, 0, TAU); }
+          luz.moveTo(x - r * 0.25 + r * 0.42, y - r * 0.3); luz.arc(x - r * 0.25, y - r * 0.3, r * 0.42, 0, TAU);
+        }
+        g.fillStyle = 'rgba(0,0,0,0.32)'; g.fill(sombra);
+        C.forEach((c, i) => { g.fillStyle = c; g.fill(base[i]); });
+        g.fillStyle = 'rgba(130,180,95,0.15)'; g.fill(luz);
+      }
       break;
     }
     case 'corn': case 'cane': case 'soy': case 'coffee': case 'garden': {
@@ -939,6 +956,7 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   const sq = o.noSq ? 1 : SQ;
   const as = o.noSq ? a : Math.atan2(Math.sin(a) * SQ, Math.cos(a));
   const lift = o.noLift ? 0 : vehLift(m);
+  if (!o.noSq && typeof sombraCarroSol === 'function') sombraCarroSol(ctx, m, x, y, as, sq); // sombra pelo sol com o contorno da carroceria
   ctx.save();
   ctx.translate(x + 2.5, y + 3.5 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as);
   if (typeof SHSPR !== 'undefined' && SHSPR && Settings.quality === 'alta') { const ga = ctx.globalAlpha; ctx.translate(-1, -1); ctx.globalAlpha = ga * 0.78; softCarShadow(ctx, m.L + 4, m.W + 3); ctx.globalAlpha = ga; } // sombra de contato macia

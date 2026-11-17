@@ -278,3 +278,38 @@ function empenas() {
   }
   World.nEmpenas = n;
 }
+
+/* ---------- além da borda do mapa: a mata continua (cada vez mais longe e enevoada) e o mar segue até o horizonte ---------- */
+function bordaFora(ctx, view) {
+  const L = view.x0, T = view.y0, R = view.x1, B = view.y1;
+  if (L >= 0 && T >= 0 && R <= WORLD_W && B <= WORLD_H) return;
+  const terra = (x0, y0, x1, y1) => { if (x1 > x0 && y1 > y0) ctx.fillRect(x0, y0, x1 - x0, y1 - y0); };
+  ctx.save();
+  // mata lá fora
+  ctx.fillStyle = pat(ctx, 'forest');
+  terra(L, T, R, Math.min(0, B)); terra(L, Math.max(0, T), Math.min(0, R), Math.min(SEA_Y, B)); terra(Math.max(WORLD_W, L), Math.max(0, T), R, Math.min(SEA_Y, B));
+  // copas grandes por cima (presas ao mapa) para não parecer chão liso
+  const G = 46, cores = ['#1d3c1c', '#244621', '#2a5226', '#1a361a'];
+  for (let gy = Math.floor(T / G); gy * G < B; gy++) for (let gx = Math.floor(L / G); gx * G < R; gx++) {
+    const x = gx * G + hash2(gx, gy) * G, y = gy * G + hash2(gy, gx) * G;
+    if (!(x < 0 || y < 0 || x > WORLD_W) || y > SEA_Y - 20) continue;
+    const r = 18 + hash2(gx + 7, gy) * 16;
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.arc(x + 5, y + 7, r, 0, TAU); ctx.fill();
+    ctx.fillStyle = cores[(gx * 7 + gy * 3 & 0xffff) % 4]; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(130,180,95,0.13)'; ctx.beginPath(); ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.5, 0, TAU); ctx.fill();
+  }
+  // mar lá fora (até o horizonte)
+  ctx.fillStyle = pat(ctx, 'water');
+  terra(L, Math.max(WORLD_H, T), R, B); terra(L, Math.max(SEA_Y, T), Math.min(0, R), Math.min(WORLD_H, B)); terra(Math.max(WORLD_W, L), Math.max(SEA_Y, T), R, Math.min(WORLD_H, B));
+  // quanto mais longe da borda, mais escuro e enevoado (fundo da paisagem)
+  const nevoa = (x0, y0, x1, y1, gx0, gy0, gx1, gy1, cor) => {
+    if (x1 <= x0 || y1 <= y0) return;
+    const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1); g.addColorStop(0, cor + '0)'); g.addColorStop(1, cor + '0.75)');
+    ctx.fillStyle = g; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  };
+  nevoa(L, T, R, Math.min(0, B), 0, 0, 0, -700, 'rgba(14,24,18,');
+  nevoa(L, Math.max(0, T), Math.min(0, R), Math.min(SEA_Y, B), 0, 0, -700, 0, 'rgba(14,24,18,');
+  nevoa(Math.max(WORLD_W, L), Math.max(0, T), R, Math.min(SEA_Y, B), WORLD_W, 0, WORLD_W + 700, 0, 'rgba(14,24,18,');
+  nevoa(L, Math.max(WORLD_H, T), R, B, 0, WORLD_H, 0, WORLD_H + 700, 'rgba(10,30,48,');
+  ctx.restore();
+}

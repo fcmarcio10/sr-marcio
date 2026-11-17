@@ -131,6 +131,7 @@ function breakObject(col, vx, vy, sp, hx, hy) {
   }
   if (b.kind === 'tree') {
     o.down = ang; (World.caidos || (World.caidos = [])).push(o); AudioSys.breakSnd('wood', 0.8);
+    refreshGroundArea(o.x - 190, o.y - 190, o.x + 190, o.y + 190); // tira a sombra que a luz dos postes fazia dela
     for (let i = 0; i < 14; i++) Particles.emit('leaf', o.x + rnd(-14, 14), o.y + rnd(-14, 14), rnd(-60, 60) + Math.cos(ang) * 60, rnd(-60, 60) + Math.sin(ang) * 60, rnd(0.8, 1.6), 2);
     Cam.shake = Math.max(Cam.shake, 5);
     return;
@@ -148,6 +149,7 @@ function breakObject(col, vx, vy, sp, hx, hy) {
   } else if (b.kind === 'lamp') {
     o.broken = true; o.down = ang; (World.caidos || (World.caidos = [])).push(o);
     if (o.light) o.light.dieAt = Game.time + 1.1;
+    refreshGroundArea(o.x - 190, o.y - 190, o.x + 190, o.y + 190); // a sombra de luz deste poste some do chão
     World.sparkers.push({ x: o.hx, y: o.hy, until: Game.time + 1.5 });
     AudioSys.breakSnd('lamp', k);
     if (chance(0.5)) toast('Derrubou o poste!', 'A rua ficou no escuro. A prefeitura agradece…', 'bad');

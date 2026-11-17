@@ -1641,6 +1641,7 @@ function render() {
   WS_BASE.ctx = ctx; WS_BASE.z = z; WS_BASE.zs = z * SQ; WS_BASE.tx = W / 2 - cx * z; WS_BASE.ty = Hh / 2 - cy * z * SQ; wsTrim();
   ctx.imageSmoothingEnabled = true;
   drawGround(view, forceGround); forceGround = false;
+  bordaFora(ctx, view); // além da borda: mata e mar continuam (por cima do chão que passa da borda)
   pm('ground');
   Agua.desenhaChao(ctx, view); // rio correndo, ondas do mar e chão molhado
   Mata.chao(ctx, view); // vento nas copas da mata, plantação balançando e tufos de mato nos campos
@@ -1651,6 +1652,7 @@ function render() {
   Atropelo.desenhaSangue(ctx, view);
   Colecao.desenha(ctx, view); // panelas de barro e placas de zoeira
   Tutorial.desenha(ctx, view); // seta do tutorial em cima do lugar certo
+  Sol.calc(); Sombras.chao(ctx, view); // sombras pelo sol: pessoas, bichos, bancos, mesas... (no formato de cada um)
   drawDynShadows(ctx, view);
   pm('decals');
   // veículos e animais
@@ -1684,6 +1686,7 @@ function render() {
   Agua.respingosCarro(ctx, view);
   Mata.copa(ctx, view); // copas na borda da mata (por cima do carro que encosta nela)
   Dia.sombrasSol(ctx, view); // sombra dos prédios pelo sol (direção e tamanho pela hora)
+  Sombras.altos(ctx, view); // árvores, postes, semáforos, outdoors... (some quando o objeto cai)
   pm('vehicles');
   // objetos altos ordenados por distância à câmera (longe primeiro)
   rendGrid.query(view.x0 - 170, view.y0 - 170, view.x1 + 170, view.y1 + 170, _rq);

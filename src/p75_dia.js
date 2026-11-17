@@ -103,7 +103,18 @@ Dia.sombrasSol = function (ctx, view) {
 // luz do sol de dia: um toque quente e mais contraste (estilo cinema), por cima de tudo
 Dia.luzSol = function (ctx, W, H) {
   if (this.sol < 0.04 || Settings.quality === 'baixa') return;
+  const k = this.sol, sx = -(typeof Sol !== 'undefined' ? Sol.dx : 0), sy = -(typeof Sol !== 'undefined' ? Sol.dy : 0.5), l = Math.hypot(sx, sy) || 1;
+  // lado de onde vem o sol (oposto às sombras): mais claro e quente; o outro lado fica um pouco mais frio
+  const cx = W / 2 + sx / l * W * 0.6, cy = H / 2 + sy / l * H * 0.6, fx = W / 2 - sx / l * W * 0.6, fy = H / 2 - sy / l * H * 0.6;
+  const ar = this.aurora || 0; // manhãzinha e fim de tarde: luz mais dourada
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'soft-light';
-  ctx.fillStyle = `rgba(255,200,130,${(0.42 * this.sol).toFixed(3)})`; ctx.fillRect(0, 0, W, H);
+  const g = ctx.createLinearGradient(cx, cy, fx, fy);
+  g.addColorStop(0, `rgba(255,${200 - ar * 40 | 0},${130 - ar * 50 | 0},${(0.55 * k).toFixed(3)})`); g.addColorStop(1, `rgba(200,215,255,${(0.22 * k).toFixed(3)})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // brilho do sol "estourando" de leve do lado dele (como numa foto de dia claro)
+  ctx.globalCompositeOperation = 'screen';
+  const r = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.75);
+  r.addColorStop(0, `rgba(255,236,200,${(0.16 * k * (1 + ar * 0.6)).toFixed(3)})`); r.addColorStop(1, 'rgba(255,236,200,0)');
+  ctx.fillStyle = r; ctx.fillRect(0, 0, W, H);
   ctx.restore();
 };

@@ -306,13 +306,8 @@ function addTree(x, y, type, size, opt) {
   const tc = type !== 'bush' ? addCircCol(x, y, type === 'palm' ? 4 : 5 * size, 'tree') : addCircCol(x, y, 7 * size, 'tree');
   t.col = tc;
   if (opt.sidewalk || type === 'bush' || size < 0.9) tc.brk = { kind: 'tree', obj: t };
-  const sr = R * 0.9;
-  bake(x - sr, y - sr, x + sr * 2, y + sr * 2, 7, (g) => {
-    if (t.removed) return;
-    // sombra com o desenho da própria copa (silhueta da árvore), jogada para baixo e para a direita
-    const S = 64 * t.size * (t.type === 'bush' ? 0.55 : 1), off = S * (t.type === 'bush' ? 0.12 : 0.22);
-    g.globalAlpha = 0.34; g.drawImage(sombraArvore(t.type, t.v), x - S / 2 + off, y - S / 2 + off * 1.2, S, S); g.globalAlpha = 1;
-  });
+  // (nov/2026) a sombra da árvore saiu do chão pintado: agora é desenhada pelo sol a cada quadro (Sombras.altos) e some quando ela cai
+
   return t;
 }
 function scatterTrees(x0, y0, x1, y1, n, types, smin, smax) {
@@ -328,7 +323,7 @@ function addLamp(bx, by, hx, hy, col, opt) {
   rendGrid.insert(lamp, Math.min(bx, hx) - 60, Math.min(by, hy) - 60, Math.max(bx, hx) + 60, Math.max(by, hy) + 60);
   const lc = addCircCol(bx, by, 4, 'pole'); lc.brk = { kind: 'lamp', obj: lamp };
   if (!lamp.broken) lamp.light = addLight(hx, hy, opt.r || 175, opt.i || 0.92, col, { lamp, flick: opt.flick ? 1 : 0 });
-  bake(bx - 4, by - 4, bx + 30, by + 34, 7, (g) => { g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 3; g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + 22, by + 28); g.stroke(); });
+  // (nov/2026) sombra do poste pelo sol a cada quadro (Sombras.altos); não fica mais pintada no chão quando ele cai
   return lamp;
 }
 // objetos baixos (desenhados no chão pré-renderizado)
@@ -1190,7 +1185,8 @@ function forest(x0, y0, x1, y1, noCol) {
 }
 function buildRural() {
   // bordas do mundo
-  forest(0, 0, WORLD_W, 230); forest(0, 230, 230, SEA_Y); forest(8790, 230, WORLD_W, SEA_Y);
+  // mata fechada até a beira do mundo (a borda recortada fica do lado de fora; lá fora a mata continua: bordaFora em p78_campo.js)
+  forest(-60, -60, WORLD_W + 60, 230); forest(-60, 230, 230, SEA_Y); forest(8790, 230, WORLD_W + 60, SEA_Y);
   addRectCol(-200, -200, WORLD_W + 200, 20, 'world'); addRectCol(-200, WORLD_H - 20, WORLD_W + 200, WORLD_H + 200, 'world');
   addRectCol(-200, 0, 20, WORLD_H, 'world'); addRectCol(WORLD_W - 20, 0, WORLD_W + 200, WORLD_H, 'world');
   // faixa norte da cidade (entre a mata e a primeira rua)

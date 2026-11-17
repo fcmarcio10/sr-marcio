@@ -143,11 +143,15 @@ class Player {
     this.x += this.vx * dt; this.y += this.vy * dt;
     let impact = this.collide();
     impact = Math.max(impact, this.collideDynamic());
+    this.agua = 0;
     if (this.inWater()) {
       if (this.y > SAND_Y - 40 && Agua.pontaY(this.x)) { // praia: o carro entra devagar (no porto e no píer bate, para não cair na água) (a água segura); entrou inteiro, volta para a areia (Praia.volta)
-        const k = Math.exp(-1.6 * dt); this.vx *= k; this.vy *= k;
-        this.marT = groundAt(this.x, this.y) === SF.WATER ? (this.marT || 0) + dt : 0; // o meio do carro já está na água
-        Praia.naAgua = this.todoNaAgua() || this.marT > 0.7; // conta 3, 2, 1 e volta para a areia (Praia.update)
+        // quanto do carro está coberto pela água: quanto mais fundo, mais ele perde velocidade (começa a boiar)
+        const f = this.fracAgua(); this.agua = f;
+        const k = Math.exp(-(0.8 + 5.5 * f * f) * dt); this.vx *= k; this.vy *= k;
+        // boiando: balança devagar e a correnteza empurra de leve para o lado
+        if (f > 0.4) { this.spin += Math.sin(Game.time * 1.3 + this.x * 0.01) * 0.25 * f * dt; this.vx += Math.sin(Game.time * 0.7) * 6 * f * dt; }
+        Praia.naAgua = f >= 0.75; // com 75% do carro coberto entra a contagem 3, 2, 1 (Praia.update)
       } else { this.x = this.px; this.y = this.py; impact = Math.max(impact, this.speed * 0.6); this.vx *= -0.25; this.vy *= -0.25; } // rio: bate
     }
     this.impactCd -= dt;
@@ -394,6 +398,13 @@ class Player {
       }
     }
     return impact;
+  }
+  // parte do carro coberta pela água (0 a 1), por uma grade de 5 x 3 pontos na carroceria
+  fracAgua() {
+    const c = Math.cos(this.a), s = Math.sin(this.a), hl = this.m.L / 2, hw = this.m.W / 2;
+    let n = 0;
+    for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) { const u = (i / 4 - 0.5) * 2 * hl, v = (j / 2 - 0.5) * 2 * hw; if (groundAt(this.x + c * u - s * v, this.y + s * u + c * v) === SF.WATER) n++; }
+    return n / 15;
   }
   todoNaAgua() {
     const c = Math.cos(this.a), s = Math.sin(this.a), hl = this.m.L / 2, hw = this.m.W / 2;

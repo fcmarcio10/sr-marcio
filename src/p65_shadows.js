@@ -45,6 +45,7 @@ function drawDynShadows(ctx, view) {
   const ped = (o) => {
     for (const [L, d, w] of lampsAt(o.x, o.y)) {
       const dx = (o.x - L.x) / d, dy = (o.y - L.y) / d, len = 6 + 22 * (d / L.r);
+      if (o.type === 'person' && typeof sombraPessoaLuz === 'function') { sombraPessoaLuz(ctx, o, dx, dy, len, Math.min(0.6, 0.7 * w + 0.1)); continue; } // corpinho na sombra
       ctx.globalAlpha = Math.min(0.7, 0.8 * w + 0.1);
       ctx.save(); ctx.translate(o.x + dx * len * 0.5, o.y + dy * len * 0.5); ctx.rotate(Math.atan2(dy, dx)); ctx.drawImage(SHDOT, -len * 0.5 - 4, -4.5, len + 8, 9); ctx.restore();
     }
@@ -102,14 +103,14 @@ function bakeLampShadows() {
         g.beginPath();
         for (const s of shapes) {
           if (s.poly) { s.poly.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); }
-          else if (!s.tree.removed) { g.moveTo(s.cx + Math.cos(s.a) * s.rx, s.cy + Math.sin(s.a) * s.rx); g.ellipse(s.cx, s.cy, s.rx, s.ry, s.a, 0, TAU); }
+          else if (!s.tree.removed && s.tree.down === undefined) { g.moveTo(s.cx + Math.cos(s.a) * s.rx, s.cy + Math.sin(s.a) * s.rx); g.ellipse(s.cx, s.cy, s.rx, s.ry, s.a, 0, TAU); }
         }
       };
       // três passadas levemente deslocadas = borda de penumbra macia
       for (const [ox, oy, al] of [[0, 0, 0.5], [1.6, 1.2, 0.28], [-1.6, 1.2, 0.28]]) { g.globalAlpha = al; g.save(); g.translate(ox, oy); path(); g.fill(); g.restore(); }
       // tronco das árvores
       g.globalAlpha = 0.5; g.lineWidth = 3;
-      for (const s of shapes) if (s.tree && !s.tree.removed) { g.beginPath(); g.moveTo(s.bx, s.by); g.lineTo(s.cx, s.cy); g.stroke(); }
+      for (const s of shapes) if (s.tree && !s.tree.removed && s.tree.down === undefined) { g.beginPath(); g.moveTo(s.bx, s.by); g.lineTo(s.cx, s.cy); g.stroke(); }
       g.restore();
     });
   }
