@@ -1,0 +1,113 @@
+<canvas id="cv"></canvas>
+<div id="vig"></div>
+<div id="hurt"></div>
+<div id="sleep"><div>Dormindo...</div><small>qualquer tecla para levantar</small></div>
+
+<div id="hud" hidden>
+  <div id="clock"><b id="ck-time">08:00</b><span id="ck-day">Dia 1</span><i id="ck-zone"></i></div>
+  <div id="moodles"></div>
+  <div id="bars">
+    <div class="bar" data-k="hp"><canvas width="40" height="40"></canvas><div><span></span></div></div>
+    <div class="bar" data-k="hunger"><canvas width="40" height="40"></canvas><div><span></span></div></div>
+    <div class="bar" data-k="thirst"><canvas width="40" height="40"></canvas><div><span></span></div></div>
+    <div class="bar" data-k="energy"><canvas width="40" height="40"></canvas><div><span></span></div></div>
+    <div class="bar" data-k="stam"><canvas width="40" height="40"></canvas><div><span></span></div></div>
+  </div>
+  <div id="hotwrap">
+    <div id="wpninfo"></div>
+    <div id="hotbar"></div>
+  </div>
+  <div id="prompt"></div>
+  <div id="toasts"></div>
+  <div id="hint">Tab mochila · M mapa · Esc pausa</div>
+</div>
+
+<div id="inv" class="overlay" hidden>
+  <div class="win">
+    <div class="col-main">
+      <div class="head"><h2>Mochila</h2><span id="inv-w"></span></div>
+      <div id="eq"></div>
+      <div id="inv-grid" class="grid"></div>
+      <div id="detail"></div>
+    </div>
+    <div class="col-side">
+      <div class="head"><h2 id="side-title">Fabricar</h2><button id="take-all" class="btn sm" hidden>Pegar tudo</button></div>
+      <div id="cont-grid" class="grid" hidden></div>
+      <div id="craft"></div>
+      <p class="tip">Clique para ver. Dois cliques para usar, equipar ou passar de um lado para o outro. O tempo não para com a mochila aberta.</p>
+    </div>
+  </div>
+</div>
+
+<div id="map" class="overlay" hidden>
+  <div class="mapbox"><h2>Santa Aurora</h2><div class="mapwrap"><canvas id="mapcv" width="448" height="448"></canvas></div>
+    <div id="legend"></div><p class="tip">M ou Esc para fechar</p></div>
+</div>
+
+<div id="menu" class="screen">
+  <div class="title">
+    <small>sobrevivência em Santa Aurora</small>
+    <h1>APAGÃO</h1>
+    <p>Faz três semanas que a luz caiu. Ontem o rádio parou de falar.</p>
+  </div>
+  <div class="btns">
+    <button class="btn" id="b-cont" hidden>Continuar</button>
+    <button class="btn" id="b-new">Novo jogo</button>
+    <button class="btn" id="b-help">Como jogar</button>
+    <button class="btn" id="b-cfg">Configurações</button>
+  </div>
+  <div class="foot">versão 0.1 · primeira versão jogável</div>
+</div>
+
+<div id="pause" class="screen dim" hidden>
+  <div class="box"><h2>Pausa</h2>
+    <button class="btn" id="p-resume">Continuar</button>
+    <button class="btn" id="p-help">Como jogar</button>
+    <button class="btn" id="p-cfg">Configurações</button>
+    <button class="btn" id="p-quit">Salvar e sair para o menu</button>
+  </div>
+</div>
+
+<div id="cfg" class="screen dim" hidden>
+  <div class="box wide"><h2>Configurações</h2>
+    <label>Volume geral <input type="range" id="c-vol" min="0" max="100"></label>
+    <label>Efeitos <input type="range" id="c-sfx" min="0" max="100"></label>
+    <label>Música <input type="range" id="c-mus" min="0" max="100"></label>
+    <label class="chk"><input type="checkbox" id="c-music"> Música de fundo</label>
+    <label class="chk"><input type="checkbox" id="c-shadows"> Sombras</label>
+    <label class="chk"><input type="checkbox" id="c-shake"> Tremida da tela</label>
+    <label>Aproximação da câmera <input type="range" id="c-zoom" min="0" max="26"></label>
+    <button class="btn" id="c-back">Voltar</button>
+  </div>
+</div>
+
+<div id="help" class="screen dim" hidden>
+  <div class="box wide"><h2>Como jogar</h2>
+    <div class="keys">
+      <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>andar</span></div>
+      <div><kbd>Mouse</kbd><span>mirar e olhar</span></div>
+      <div><kbd>Clique</kbd> ou <kbd>Espaço</kbd><span>atacar, atirar ou arremessar</span></div>
+      <div><kbd>Shift</kbd><span>correr (gasta fôlego, faz barulho)</span></div>
+      <div><kbd>C</kbd><span>andar agachado (silencioso)</span></div>
+      <div><kbd>E</kbd><span>abrir porta, revistar, pegar, dormir, pular janela</span></div>
+      <div><kbd>Q</kbd><span>empurrar zumbi</span></div>
+      <div><kbd>R</kbd><span>recarregar</span></div>
+      <div><kbd>F</kbd><span>lanterna</span></div>
+      <div><kbd>B</kbd><span>reforçar porta (martelo, tábua e pregos)</span></div>
+      <div><kbd>1</kbd>–<kbd>5</kbd><span>atalhos</span></div>
+      <div><kbd>Tab</kbd><span>mochila e fabricação</span></div>
+      <div><kbd>M</kbd><span>mapa</span> <kbd>Esc</kbd><span>pausa</span></div>
+    </div>
+    <p class="tip">Barulho chama zumbi: tiro, corrida, vidro quebrando. De noite eles enxergam menos, mas a sua lanterna aparece de longe. Coma, beba e durma. Mordida pode infeccionar: antibiótico só em farmácia e na UPA. A água da rua acaba no dia 4.</p>
+    <button class="btn" id="h-back">Voltar</button>
+  </div>
+</div>
+
+<div id="death" class="screen dim" hidden>
+  <div class="box"><h2 class="red">Você morreu</h2><p id="d-stats"></p>
+    <button class="btn" id="d-new">Tentar de novo</button>
+    <button class="btn" id="d-menu">Menu</button>
+  </div>
+</div>
+
+<div id="intro" hidden><div><small>Santa Aurora · interior do Brasil</small><h2>Dia 1 do resto da sua vida</h2><p>Você se trancou em casa quando a quarentena fechou as saídas da cidade. A comida acabou. Lá fora, eles andam devagar e escutam tudo.</p></div></div>

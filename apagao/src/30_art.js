@@ -278,7 +278,7 @@ const Art = {
           if (sg.st === 0) { R(0, 2.12, L, 2.62, shade(sg.col, dark)); R(0, 2.12, L, 2.15, 'rgba(0,0,0,.3)'); R(0, 2.59, L, 2.62, 'rgba(255,255,255,.18)'); }
           g.beginPath(); g.rect(0, 0, L, H); g.clip();
           g.translate(0, sg.st === 0 ? 2.24 : 1.15); g.scale(0.01, -0.01);
-          g.font = (sg.st === 0 ? '700 30px ' : '700 34px ') + '"Barlow Condensed", "Arial Narrow", Arial, sans-serif';
+          g.font = (sg.st === 0 ? '700 30px ' : '700 34px ') + '"BRND Cond", "Arial Narrow", Arial, sans-serif';
           g.textAlign = 'center'; g.textBaseline = 'alphabetic';
           g.fillStyle = sg.st === 0 ? 'rgba(244,238,220,.95)' : rgba(sg.col, 0.8);
           g.fillText(sg.txt, (sg.n / 2 - sg.i) * 100, 0);
@@ -336,7 +336,7 @@ const Art = {
     const RS = w * h < 140 ? 1.5 : 1, rng = mulberry32(b.seed + 11);
     const o = b.roof === 'telha' || b.roof === 'coreto' ? 0.4 : b.roof === 'zinco' ? 0.3 : 0.12;
     const x0 = -o, y0 = -o, x1 = w + o, y1 = h + o, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-    const s = Math.min(x1 - x0, y1 - y0) / 2, rh = b.roof === 'telha' ? s * 0.45 : b.roof === 'coreto' ? 1.2 : b.roof === 'zinco' ? s * 0.3 : 0.3;
+    const s = Math.min(x1 - x0, y1 - y0) / 2, rh = b.roof === 'telha' ? s * 0.45 : b.roof === 'coreto' ? 1.2 : b.roof === 'zinco' ? s * 0.3 : 0.7;
     const top = P3(x0, y0, H + rh + 1.3), lft = P3(x0, y1, H), rgt = P3(x1, y0, H), bot = P3(x1, y1, b.roof === 'posto' ? 0 : H - 0.3);
     const minx = lft[0] - 3, miny = top[1] - 3, cwid = rgt[0] - minx + 3, chei = bot[1] - miny + 3;
     const [cv, g] = mk(cwid * RS, chei * RS);
@@ -528,7 +528,7 @@ const MODELS = (function () {
   def('fogueira', () => [C(0.5, 0.5, 0, 0.1, 0.34, '#77736a', { top: '#1a120c' }), B(0.3, 0.44, 0.1, 0.72, 0.54, 0.2, '#3d2818'), B(0.45, 0.28, 0.1, 0.55, 0.72, 0.22, '#33200f'), F((g, P) => { const p = P(0.5, 0.5, 0.25); const gr = g.createRadialGradient(p[0], p[1], 1, p[0], p[1] - 5, 15); gr.addColorStop(0, 'rgba(255,230,150,.95)'); gr.addColorStop(0.45, 'rgba(255,130,40,.8)'); gr.addColorStop(1, 'rgba(200,40,10,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(p[0] - 8, p[1] + 2); g.quadraticCurveTo(p[0] - 8, p[1] - 10, p[0] - 2, p[1] - 20); g.quadraticCurveTo(p[0] + 2, p[1] - 10, p[0] + 5, p[1] - 22); g.quadraticCurveTo(p[0] + 10, p[1] - 8, p[0] + 8, p[1] + 2); g.fill(); }, [0.2, 0.2, 0.2, 0.8, 0.8, 1.2], 5)]);
   def('arquibancada', () => [B(0.05, 0.1, 0, 3.95, 0.4, 1.2, '#8f8c84'), B(0.05, 0.4, 0, 3.95, 0.65, 0.8, '#99968c'), B(0.05, 0.65, 0, 3.95, 0.92, 0.4, '#a39f94')]);
   def('placa_q', () => [B(0.2, 0.46, 0, 0.28, 0.54, 2.2, '#5a5e62'), B(1.72, 0.46, 0, 1.8, 0.54, 2.2, '#5a5e62'), B(0.08, 0.45, 1.2, 1.92, 0.55, 2.15, '#d9c23a'),
-    F((g, P) => { const a = P(0.12, 0.56, 2.1), b = P(1.88, 0.56, 2.1), c = P(0.12, 0.56, 1.25); g.save(); g.transform((b[0] - a[0]) / 100, (b[1] - a[1]) / 100, (c[0] - a[0]) / 40, (c[1] - a[1]) / 40, a[0], a[1]); g.fillStyle = '#1a1a1a'; g.textAlign = 'center'; g.font = '700 14px "Barlow Condensed", Arial, sans-serif'; g.fillText('ÁREA DE', 50, 15); g.font = '700 17px "Barlow Condensed", Arial, sans-serif'; g.fillText('QUARENTENA', 50, 33); g.restore(); }, [0.1, 0.5, 1.2, 1.9, 0.6, 2.2], 30)]);
+    F((g, P) => { const a = P(0.12, 0.56, 2.1), b = P(1.88, 0.56, 2.1), c = P(0.12, 0.56, 1.25); g.save(); g.transform((b[0] - a[0]) / 100, (b[1] - a[1]) / 100, (c[0] - a[0]) / 40, (c[1] - a[1]) / 40, a[0], a[1]); g.fillStyle = '#1a1a1a'; g.textAlign = 'center'; g.font = '700 14px "BRND Cond", Arial, sans-serif'; g.fillText('ÁREA DE', 50, 15); g.font = '700 17px "BRND Cond", Arial, sans-serif'; g.fillText('QUARENTENA', 50, 33); g.restore(); }, [0.1, 0.5, 1.2, 1.9, 0.6, 2.2], 30)]);
   return M;
 })();
 
