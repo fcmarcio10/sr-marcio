@@ -65,9 +65,9 @@ const BT = {
   sertao: { floor: GR.WOOD, rooms: ['ferragens', 'deposito'], maxA: 60, minS: 3, win: 0.3, roof: 'telha', cols: ['#b9a58c'], z: [1, 3], sign: ['ARMAZÉM DO SERTÃO'], sc: '#5a6a2a', tbl: 'sitio' },
   roupas: { floor: GR.CER, rooms: ['roupas', 'deposito'], maxA: 50, minS: 3, win: 0.7, roof: 'laje', cols: ['#b5a6b6', '#c0b39b'], z: [1, 2], sign: ['MODAS SANTA AURORA', 'LOJA DA MODA'], sc: '#8a2a6a', tbl: 'roupas' },
   restaurante: { floor: GR.CHECK, rooms: ['restaurante', 'cozinha_ind', 'banheiro'], maxA: 60, minS: 2, win: 0.6, roof: 'telha', cols: ['#c7b9a0', '#bf856a'], z: [2, 5], sign: ['RESTAURANTE SABOR CASEIRO', 'SELF-SERVICE DA DONA NENA', 'CHURRASCARIA BOI NA BRASA'], sc: '#9a2e25', tbl: 'cozinha' },
-  upa: { floor: GR.WHITE, rooms: ['recepcao', 'enfermaria', 'consultorio', 'farm_hosp', 'enfermaria', 'consultorio', 'banheiro', 'deposito', 'enfermaria', 'consultorio'], maxA: 40, minS: 3, win: 0.5, roof: 'laje', cols: ['#d8dcd6'], z: [12, 18], sign: ['UPA 24H SANTA AURORA'], sc: '#2e7a4f', tbl: 'hospital', wide: 1, emerg: 1, barrCol: '#3f8f66' },
-  delegacia: { floor: GR.CER, rooms: ['recep_del', 'escr_del', 'armaria', 'cela', 'cela', 'banheiro', 'escr_del'], maxA: 30, minS: 3, win: 0.3, roof: 'laje', cols: ['#bdb8aa'], z: [4, 7], sign: ['DELEGACIA DE POLÍCIA'], sc: '#1d2f4a', tbl: 'delegacia', emerg: 1, barrCol: '#2c456b' },
-  escola: { floor: GR.CER, rooms: ['recepcao', 'sala_aula', 'sala_aula', 'sala_aula', 'cantina', 'diretoria', 'banheiro', 'sala_aula'], maxA: 44, minS: 3, win: 0.6, roof: 'telha', cols: ['#d6c98f'], z: [5, 9], sign: ['ESCOLA MUNICIPAL PROF. ZULMIRA'], sc: '#1f5fa0', tbl: 'escola', barrCol: '#3566a0' },
+  upa: { floor: GR.WHITE, rooms: ['recepcao', 'enfermaria', 'consultorio', 'farm_hosp', 'enfermaria', 'consultorio', 'banheiro', 'deposito', 'enfermaria', 'consultorio'], maxA: 40, minS: 3, win: 0.5, roof: 'laje', cols: ['#d8dcd6'], front: 0.32, z: [12, 18], sign: ['UPA 24H SANTA AURORA'], sc: '#2e7a4f', tbl: 'hospital', wide: 1, emerg: 1, barrCol: '#3f8f66' },
+  delegacia: { floor: GR.CER, rooms: ['recep_del', 'escr_del', 'armaria', 'cela', 'cela', 'banheiro', 'escr_del'], maxA: 30, minS: 3, win: 0.3, roof: 'laje', cols: ['#bdb8aa'], front: 0.4, z: [4, 7], sign: ['DELEGACIA DE POLÍCIA'], sc: '#1d2f4a', tbl: 'delegacia', emerg: 1, barrCol: '#2c456b' },
+  escola: { floor: GR.CER, rooms: ['recepcao', 'sala_aula', 'sala_aula', 'sala_aula', 'cantina', 'diretoria', 'banheiro', 'sala_aula'], maxA: 44, minS: 3, win: 0.6, roof: 'telha', cols: ['#d6c98f'], front: 0.3, z: [5, 9], sign: ['ESCOLA MUNICIPAL PROF. ZULMIRA'], sc: '#1f5fa0', tbl: 'escola', barrCol: '#3566a0' },
   igreja: { floor: GR.WOOD, rooms: ['nave'], maxA: 999, minS: 3, win: 0.4, roof: 'telha', cols: ['#e2dccb'], z: [3, 6], levels: 2, tbl: 'igreja', barr: 1 },
   galpao: { floor: GR.CONC, rooms: ['galpao', 'escritorio'], maxA: 190, minS: 4, win: 0.12, roof: 'zinco', cols: ['#8d9296', '#9a9486', '#7f8a8c'], z: [2, 6], tbl: 'galpao', wide: 1 },
   oficina: { floor: GR.CONC, rooms: ['oficina', 'escritorio'], maxA: 80, minS: 3, win: 0.2, roof: 'zinco', cols: ['#a88f7c'], z: [1, 3], sign: ['BORRACHARIA DO ZÉ'], sc: '#222', tbl: 'oficina', wide: 1 },
@@ -307,7 +307,23 @@ const World = {
           split(a0, b0, a1, p - 1, depth + 1); split(a0, p, a1, b1, depth + 1);
         }
       };
-      split(x0, y0, x1, y1, 0);
+      /* comércio e prédios públicos: salão da frente inteiro, o resto fica nos fundos */
+      const fr = T.front || (T.tbl && T.rooms.length > 1 ? 0.68 : 0);
+      const dep = side === 'S' || side === 'N' ? h : w, bd = Math.max(T.minS, Math.round(dep * (1 - fr)));
+      if (fr && dep - bd >= 3) {
+        const dtp = () => R() < 0.5 ? E.DOOR : E.FRAME;
+        if (side === 'S' || side === 'N') {
+          const p = side === 'S' ? y0 + bd : y1 - bd + 1;
+          for (let x = x0; x <= x1; x++) setN(x, p, E.WALL);
+          const dx = ri(x0, x1); setN(dx, p, dtp()); W.keep[idx(dx, p)] = 1; W.keep[idx(dx, p - 1)] = 1;
+          if (side === 'S') { leaves.push([x0, p, x1, y1]); split(x0, y0, x1, p - 1, 1); } else { leaves.push([x0, y0, x1, p - 1]); split(x0, p, x1, y1, 1); }
+        } else {
+          const p = side === 'E' ? x0 + bd : x1 - bd + 1;
+          for (let y = y0; y <= y1; y++) setW(p, y, E.WALL);
+          const dy = ri(y0, y1); setW(p, dy, dtp()); W.keep[idx(p, dy)] = 1; W.keep[idx(p - 1, dy)] = 1;
+          if (side === 'E') { leaves.push([p, y0, x1, y1]); split(x0, y0, p - 1, y1, 1); } else { leaves.push([x0, y0, p - 1, y1]); split(p, y0, x1, y1, 1); }
+        }
+      } else split(x0, y0, x1, y1, 0);
       /* porta de fora */
       const mkDoor = (sd, wide, closedOnly) => {
         let dx, dy, ix, iy, ox, oy, t = closedOnly ? E.DOOR : (R() < (o.openP !== undefined ? o.openP : 0.35) ? (R() < 0.5 ? E.FRAME : E.DOPEN) : E.DOOR);

@@ -82,7 +82,7 @@ h2 { font-family: var(--f-title); font-weight: 400; font-size: 22px; letter-spac
 .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 16px; box-sizing: border-box; }
 .screen.dim { background: rgba(6,6,7,.72); }
 #menu { align-items: flex-start; justify-content: flex-end; padding: 0 0 9vh 8vw; background: linear-gradient(90deg, rgba(6,6,7,.88) 0%, rgba(6,6,7,.55) 38%, rgba(6,6,7,0) 70%); }
-.title small { text-transform: uppercase; letter-spacing: .34em; font-size: 13px; color: var(--amber); }
+.title small { display: block; margin-bottom: 22px; text-transform: uppercase; letter-spacing: .34em; font-size: 13px; color: var(--amber); }
 .title h1 { font-family: var(--f-title); font-weight: 400; font-size: clamp(64px, 13vw, 150px); line-height: .92; margin: 6px 0 10px; letter-spacing: .02em; color: var(--ink); text-shadow: 0 4px 0 rgba(0,0,0,.5); }
 .title p { margin: 0; color: var(--dim); max-width: 36ch; font-size: 16px; }
 .btns { display: flex; flex-direction: column; gap: 8px; width: min(280px, 80vw); } .btns .btn { text-align: left; }
@@ -252,6 +252,7 @@ function mk(w, h) {
   return [c, c.getContext('2d')];
 }
 function hexRgb(h) {
+  if (h[0] === 'r') { const m = h.match(/[\d.]+/g); return [+m[0], +m[1], +m[2]]; }
   if (h[0] === '#') h = h.slice(1);
   if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
   const n = parseInt(h, 16);
@@ -604,9 +605,9 @@ const BT = {
   sertao: { floor: GR.WOOD, rooms: ['ferragens', 'deposito'], maxA: 60, minS: 3, win: 0.3, roof: 'telha', cols: ['#b9a58c'], z: [1, 3], sign: ['ARMAZÉM DO SERTÃO'], sc: '#5a6a2a', tbl: 'sitio' },
   roupas: { floor: GR.CER, rooms: ['roupas', 'deposito'], maxA: 50, minS: 3, win: 0.7, roof: 'laje', cols: ['#b5a6b6', '#c0b39b'], z: [1, 2], sign: ['MODAS SANTA AURORA', 'LOJA DA MODA'], sc: '#8a2a6a', tbl: 'roupas' },
   restaurante: { floor: GR.CHECK, rooms: ['restaurante', 'cozinha_ind', 'banheiro'], maxA: 60, minS: 2, win: 0.6, roof: 'telha', cols: ['#c7b9a0', '#bf856a'], z: [2, 5], sign: ['RESTAURANTE SABOR CASEIRO', 'SELF-SERVICE DA DONA NENA', 'CHURRASCARIA BOI NA BRASA'], sc: '#9a2e25', tbl: 'cozinha' },
-  upa: { floor: GR.WHITE, rooms: ['recepcao', 'enfermaria', 'consultorio', 'farm_hosp', 'enfermaria', 'consultorio', 'banheiro', 'deposito', 'enfermaria', 'consultorio'], maxA: 40, minS: 3, win: 0.5, roof: 'laje', cols: ['#d8dcd6'], z: [12, 18], sign: ['UPA 24H SANTA AURORA'], sc: '#2e7a4f', tbl: 'hospital', wide: 1, emerg: 1, barrCol: '#3f8f66' },
-  delegacia: { floor: GR.CER, rooms: ['recep_del', 'escr_del', 'armaria', 'cela', 'cela', 'banheiro', 'escr_del'], maxA: 30, minS: 3, win: 0.3, roof: 'laje', cols: ['#bdb8aa'], z: [4, 7], sign: ['DELEGACIA DE POLÍCIA'], sc: '#1d2f4a', tbl: 'delegacia', emerg: 1, barrCol: '#2c456b' },
-  escola: { floor: GR.CER, rooms: ['recepcao', 'sala_aula', 'sala_aula', 'sala_aula', 'cantina', 'diretoria', 'banheiro', 'sala_aula'], maxA: 44, minS: 3, win: 0.6, roof: 'telha', cols: ['#d6c98f'], z: [5, 9], sign: ['ESCOLA MUNICIPAL PROF. ZULMIRA'], sc: '#1f5fa0', tbl: 'escola', barrCol: '#3566a0' },
+  upa: { floor: GR.WHITE, rooms: ['recepcao', 'enfermaria', 'consultorio', 'farm_hosp', 'enfermaria', 'consultorio', 'banheiro', 'deposito', 'enfermaria', 'consultorio'], maxA: 40, minS: 3, win: 0.5, roof: 'laje', cols: ['#d8dcd6'], front: 0.32, z: [12, 18], sign: ['UPA 24H SANTA AURORA'], sc: '#2e7a4f', tbl: 'hospital', wide: 1, emerg: 1, barrCol: '#3f8f66' },
+  delegacia: { floor: GR.CER, rooms: ['recep_del', 'escr_del', 'armaria', 'cela', 'cela', 'banheiro', 'escr_del'], maxA: 30, minS: 3, win: 0.3, roof: 'laje', cols: ['#bdb8aa'], front: 0.4, z: [4, 7], sign: ['DELEGACIA DE POLÍCIA'], sc: '#1d2f4a', tbl: 'delegacia', emerg: 1, barrCol: '#2c456b' },
+  escola: { floor: GR.CER, rooms: ['recepcao', 'sala_aula', 'sala_aula', 'sala_aula', 'cantina', 'diretoria', 'banheiro', 'sala_aula'], maxA: 44, minS: 3, win: 0.6, roof: 'telha', cols: ['#d6c98f'], front: 0.3, z: [5, 9], sign: ['ESCOLA MUNICIPAL PROF. ZULMIRA'], sc: '#1f5fa0', tbl: 'escola', barrCol: '#3566a0' },
   igreja: { floor: GR.WOOD, rooms: ['nave'], maxA: 999, minS: 3, win: 0.4, roof: 'telha', cols: ['#e2dccb'], z: [3, 6], levels: 2, tbl: 'igreja', barr: 1 },
   galpao: { floor: GR.CONC, rooms: ['galpao', 'escritorio'], maxA: 190, minS: 4, win: 0.12, roof: 'zinco', cols: ['#8d9296', '#9a9486', '#7f8a8c'], z: [2, 6], tbl: 'galpao', wide: 1 },
   oficina: { floor: GR.CONC, rooms: ['oficina', 'escritorio'], maxA: 80, minS: 3, win: 0.2, roof: 'zinco', cols: ['#a88f7c'], z: [1, 3], sign: ['BORRACHARIA DO ZÉ'], sc: '#222', tbl: 'oficina', wide: 1 },
@@ -846,7 +847,23 @@ const World = {
           split(a0, b0, a1, p - 1, depth + 1); split(a0, p, a1, b1, depth + 1);
         }
       };
-      split(x0, y0, x1, y1, 0);
+      /* comércio e prédios públicos: salão da frente inteiro, o resto fica nos fundos */
+      const fr = T.front || (T.tbl && T.rooms.length > 1 ? 0.68 : 0);
+      const dep = side === 'S' || side === 'N' ? h : w, bd = Math.max(T.minS, Math.round(dep * (1 - fr)));
+      if (fr && dep - bd >= 3) {
+        const dtp = () => R() < 0.5 ? E.DOOR : E.FRAME;
+        if (side === 'S' || side === 'N') {
+          const p = side === 'S' ? y0 + bd : y1 - bd + 1;
+          for (let x = x0; x <= x1; x++) setN(x, p, E.WALL);
+          const dx = ri(x0, x1); setN(dx, p, dtp()); W.keep[idx(dx, p)] = 1; W.keep[idx(dx, p - 1)] = 1;
+          if (side === 'S') { leaves.push([x0, p, x1, y1]); split(x0, y0, x1, p - 1, 1); } else { leaves.push([x0, y0, x1, p - 1]); split(x0, p, x1, y1, 1); }
+        } else {
+          const p = side === 'E' ? x0 + bd : x1 - bd + 1;
+          for (let y = y0; y <= y1; y++) setW(p, y, E.WALL);
+          const dy = ri(y0, y1); setW(p, dy, dtp()); W.keep[idx(p, dy)] = 1; W.keep[idx(p - 1, dy)] = 1;
+          if (side === 'E') { leaves.push([p, y0, x1, y1]); split(x0, y0, p - 1, y1, 1); } else { leaves.push([x0, y0, p - 1, y1]); split(p, y0, x1, y1, 1); }
+        }
+      } else split(x0, y0, x1, y1, 0);
       /* porta de fora */
       const mkDoor = (sd, wide, closedOnly) => {
         let dx, dy, ix, iy, ox, oy, t = closedOnly ? E.DOOR : (R() < (o.openP !== undefined ? o.openP : 0.35) ? (R() < 0.5 ? E.FRAME : E.DOPEN) : E.DOOR);
@@ -2516,7 +2533,7 @@ const Zombies = {
         if (z.bashT <= 0) {
           z.bashT = 0.85 + Math.random() * 0.3;
           const key = EKEY(o, i); let hp = W.edgeHp.get(key);
-          if (hp === undefined) hp = t === E.DOOR ? 55 : t === E.WIN ? 14 : 110;
+          if (hp === undefined) hp = t === E.DOOR ? 120 : t === E.WIN ? 20 : 170;
           hp -= z.type === 'bruto' ? 22 : 8; W.edgeHp.set(key, hp);
           AudioSys.thump(z.x, z.y); Noise.emit(z.x, z.y, 7, z);
           if (hp <= 0) {
@@ -2724,7 +2741,15 @@ const Render = {
       if (b.roofA < 0.02) continue;
       const row = b.x1 + b.y1 + 3; let a = roofRow.get(row); if (!a) roofRow.set(row, a = []); a.push(b);
     }
-    const drawRoof = (b) => { const r = Art.roof(b); g.globalAlpha = b.roofA; g.drawImage(r.img, r.dx, r.dy, r.w, r.h); g.globalAlpha = 1; };
+    /* construção na frente do jogador fica meio transparente */
+    for (const id of vb) {
+      const b = W.builds[id]; let hid = 0;
+      if (playing && !inB && !b.open && id !== pb) { const H = b.levels * LVL_H + 1.2; for (let t = 0.4; t < 16; t += 0.5) { const zz = 0.9 + t * 0.889; if (zz > H) break; const qx = P.x + t, qy = P.y + t; if (qx > b.x0 - 0.3 && qx < b.x1 + 1.3 && qy > b.y0 - 0.3 && qy < b.y1 + 1.3) { hid = 1; break; } } }
+      if (b.fadeA === undefined) b.fadeA = 1;
+      b.fadeA += clamp((hid ? 0.28 : 1) - b.fadeA, -G.dt * 4, G.dt * 4);
+    }
+    const drawRoof = (b) => { const r = Art.roof(b); g.globalAlpha = b.roofA * b.fadeA; g.drawImage(r.img, r.dx, r.dy, r.w, r.h); g.globalAlpha = 1; };
+    const wAlpha = (c) => { if (c.fb || !c.bb) return 1; const b = W.builds[c.bb]; return b.fadeA === undefined ? 1 : b.fadeA; };
     /* ---- passada em ordem ---- */
     const px = P.x, py = P.y;
     for (let s = sMin; s <= sMax; s++) {
@@ -2734,8 +2759,8 @@ const Render = {
         if (x < 0 || y < 0 || x >= MW || y >= MH) continue;
         const i = y * MW + x;
         const n = W.eN[i], w = W.eW[i];
-        if (n) { const c = this.wallSpr(0, i, x, y, n); const mine = inB && (c.fb === inB || c.bb === inB); const sp = mine ? (y > py && !c.low ? c.c : c.b) : c.a; g.drawImage(sp.img, (x - y) * HW - sp.ax, s * HH - sp.ay, sp.w, sp.h); }
-        if (w) { const c = this.wallSpr(1, i, x, y, w); const mine = inB && (c.fb === inB || c.bb === inB); const sp = mine ? (x > px && !c.low ? c.c : c.b) : c.a; g.drawImage(sp.img, (x - y) * HW - sp.ax, s * HH - sp.ay, sp.w, sp.h); }
+        if (n) { const c = this.wallSpr(0, i, x, y, n); const mine = inB && (c.fb === inB || c.bb === inB); const sp = mine ? (y > py && !c.low ? c.c : c.b) : c.a; const al = wAlpha(c); if (al < 0.99) g.globalAlpha = al; g.drawImage(sp.img, (x - y) * HW - sp.ax, s * HH - sp.ay, sp.w, sp.h); g.globalAlpha = 1; }
+        if (w) { const c = this.wallSpr(1, i, x, y, w); const mine = inB && (c.fb === inB || c.bb === inB); const sp = mine ? (x > px && !c.low ? c.c : c.b) : c.a; const al = wAlpha(c); if (al < 0.99) g.globalAlpha = al; g.drawImage(sp.img, (x - y) * HW - sp.ax, s * HH - sp.ay, sp.w, sp.h); g.globalAlpha = 1; }
         const td = W.tileDraw[i];
         if (td) for (const d of td) g.drawImage(d.img, d.sx, 0, d.sw, d.sh, d.dx, d.dy, d.sw / SS, d.sh / SS);
         const be = bk.get(i);

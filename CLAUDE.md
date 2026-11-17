@@ -117,3 +117,12 @@ O dono do projeto fala português e não é técnico: responda em português sim
 - Pichações foram removidas (pesavam). Polícia está desligada (`POLICE_ENABLED = false`) até ser refeita.
 - Pedidos chegam também por comentários no artefato: responder no próprio comentário, em português.
 - Ideias e ordem de desenvolvimento: `ROADMAP.md`. Próximos: controle e teclas configuráveis, menu animado, desafios diários.
+
+## Apagão (jogo novo, separado do BR Night Drive)
+
+- Jogo de sobrevivência zumbi em visão isométrica, na cidade inventada de Santa Aurora (interior do Brasil). Fica todo em `apagao/` e não usa nada do BR Night Drive, só as fontes embutidas do `style.css`. Não cita nem copia Project Zomboid.
+- Montar: `python3 apagao/tools/build.py` → junta `apagao/src/*.js` (ordem pelo número), `apagao/style.css` e `apagao/ui.html` em `apagao/dist/apagao.html` (página única) e `apagao/tools/teste.html` (para os testes).
+- Testes (Playwright, de dentro de `apagao/tools/`, passando uma pasta para as fotos): `node t1.js pasta` (abre e começa), `t2.js` (andar, luta, porta, noite com lanterna, tiro, salvar, mapa), `t3.js` (zumbis na porta, dormir, 8 bairros, tempo por quadro).
+- Partes: `00_core` (constantes, sorteio, teclas), `10_items` (itens, ícones desenhados, tabelas de saque, receitas), `20_world` (cidade montada por sorteio com semente fixa, colisão, visão e caminho A*), `30_art` (chão, paredes, telhados, objetos em caixas 3D, pessoas com esqueleto), `40_entities` (jogador, zumbis e IA, combate, barulho, relógio), `50_render` (ordem de desenho por fileira, sombras pelo sol, luz da noite e lanterna), `60_audio` (som todo sintetizado), `70_ui` (barras, mochila, mapa, menus, salvamento em `localStorage` `apagao_save_v1`), `90_main`.
+- Mapa: 224x224 casas, 5x5 quarteirões (`LAY` em `20_world.js`). Mudar a montagem muda o sorteio de tudo que vem depois (salvamentos antigos guardam só as diferenças do mapa).
+- Jogo no navegador: artefato https://claude.ai/artifact/3nB8Myr6JbXGffdsoW3MsB — publicar sempre `apagao/dist/apagao.html` nesse link.

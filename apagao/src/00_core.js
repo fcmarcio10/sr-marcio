@@ -36,6 +36,7 @@ function mk(w, h) {
   return [c, c.getContext('2d')];
 }
 function hexRgb(h) {
+  if (h[0] === 'r') { const m = h.match(/[\d.]+/g); return [+m[0], +m[1], +m[2]]; }
   if (h[0] === '#') h = h.slice(1);
   if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
   const n = parseInt(h, 16);

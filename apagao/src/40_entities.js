@@ -631,7 +631,7 @@ const Zombies = {
         if (z.bashT <= 0) {
           z.bashT = 0.85 + Math.random() * 0.3;
           const key = EKEY(o, i); let hp = W.edgeHp.get(key);
-          if (hp === undefined) hp = t === E.DOOR ? 55 : t === E.WIN ? 14 : 110;
+          if (hp === undefined) hp = t === E.DOOR ? 120 : t === E.WIN ? 20 : 170;
           hp -= z.type === 'bruto' ? 22 : 8; W.edgeHp.set(key, hp);
           AudioSys.thump(z.x, z.y); Noise.emit(z.x, z.y, 7, z);
           if (hp <= 0) {

@@ -75,7 +75,7 @@ h2 { font-family: var(--f-title); font-weight: 400; font-size: 22px; letter-spac
 .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 16px; box-sizing: border-box; }
 .screen.dim { background: rgba(6,6,7,.72); }
 #menu { align-items: flex-start; justify-content: flex-end; padding: 0 0 9vh 8vw; background: linear-gradient(90deg, rgba(6,6,7,.88) 0%, rgba(6,6,7,.55) 38%, rgba(6,6,7,0) 70%); }
-.title small { text-transform: uppercase; letter-spacing: .34em; font-size: 13px; color: var(--amber); }
+.title small { display: block; margin-bottom: 22px; text-transform: uppercase; letter-spacing: .34em; font-size: 13px; color: var(--amber); }
 .title h1 { font-family: var(--f-title); font-weight: 400; font-size: clamp(64px, 13vw, 150px); line-height: .92; margin: 6px 0 10px; letter-spacing: .02em; color: var(--ink); text-shadow: 0 4px 0 rgba(0,0,0,.5); }
 .title p { margin: 0; color: var(--dim); max-width: 36ch; font-size: 16px; }
 .btns { display: flex; flex-direction: column; gap: 8px; width: min(280px, 80vw); } .btns .btn { text-align: left; }

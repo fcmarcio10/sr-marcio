@@ -152,7 +152,15 @@ const Render = {
       if (b.roofA < 0.02) continue;
       const row = b.x1 + b.y1 + 3; let a = roofRow.get(row); if (!a) roofRow.set(row, a = []); a.push(b);
     }
-    const drawRoof = (b) => { const r = Art.roof(b); g.globalAlpha = b.roofA; g.drawImage(r.img, r.dx, r.dy, r.w, r.h); g.globalAlpha = 1; };
+    /* construção na frente do jogador fica meio transparente */
+    for (const id of vb) {
+      const b = W.builds[id]; let hid = 0;
+      if (playing && !inB && !b.open && id !== pb) { const H = b.levels * LVL_H + 1.2; for (let t = 0.4; t < 16; t += 0.5) { const zz = 0.9 + t * 0.889; if (zz > H) break; const qx = P.x + t, qy = P.y + t; if (qx > b.x0 - 0.3 && qx < b.x1 + 1.3 && qy > b.y0 - 0.3 && qy < b.y1 + 1.3) { hid = 1; break; } } }
+      if (b.fadeA === undefined) b.fadeA = 1;
+      b.fadeA += clamp((hid ? 0.28 : 1) - b.fadeA, -G.dt * 4, G.dt * 4);
+    }
+    const drawRoof = (b) => { const r = Art.roof(b); g.globalAlpha = b.roofA * b.fadeA; g.drawImage(r.img, r.dx, r.dy, r.w, r.h); g.globalAlpha = 1; };
+    const wAlpha = (c) => { if (c.fb || !c.bb) return 1; const b = W.builds[c.bb]; return b.fadeA === undefined ? 1 : b.fadeA; };
     /* ---- passada em ordem ---- */
     const px = P.x, py = P.y;
     for (let s = sMin; s <= sMax; s++) {
@@ -162,8 +170,8 @@ const Render = {
         if (x < 0 || y < 0 || x >= MW || y >= MH) continue;
         const i = y * MW + x;
         const n = W.eN[i], w = W.eW[i];
-        if (n) { const c = this.wallSpr(0, i, x, y, n); const mine = inB && (c.fb === inB || c.bb === inB); const sp = mine ? (y > py && !c.low ? c.c : c.b) : c.a; g.drawImage(sp.img, (x - y) * HW - sp.ax, s * HH - sp.ay, sp.w, sp.h); }
-        if (w) { const c = this.wallSpr(1, i, x, y, w); const mine = inB && (c.fb === inB || c.bb === inB); const sp = mine ? (x > px && !c.low ? c.c : c.b) : c.a; g.drawImage(sp.img, (x - y) * HW - sp.ax, s * HH - sp.ay, sp.w, sp.h); }
+        if (n) { const c = this.wallSpr(0, i, x, y, n); const mine = inB && (c.fb === inB || c.bb === inB); const sp = mine ? (y > py && !c.low ? c.c : c.b) : c.a; const al = wAlpha(c); if (al < 0.99) g.globalAlpha = al; g.drawImage(sp.img, (x - y) * HW - sp.ax, s * HH - sp.ay, sp.w, sp.h); g.globalAlpha = 1; }
+        if (w) { const c = this.wallSpr(1, i, x, y, w); const mine = inB && (c.fb === inB || c.bb === inB); const sp = mine ? (x > px && !c.low ? c.c : c.b) : c.a; const al = wAlpha(c); if (al < 0.99) g.globalAlpha = al; g.drawImage(sp.img, (x - y) * HW - sp.ax, s * HH - sp.ay, sp.w, sp.h); g.globalAlpha = 1; }
         const td = W.tileDraw[i];
         if (td) for (const d of td) g.drawImage(d.img, d.sx, 0, d.sw, d.sh, d.dx, d.dy, d.sw / SS, d.sh / SS);
         const be = bk.get(i);
