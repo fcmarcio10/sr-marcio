@@ -396,7 +396,7 @@ function addGraffiti(b, kind) {
   kind = kind || (chance(0.45) ? 'frase' : chance(0.6) ? 'pixo' : 'mural');
   b.graf = { kind, text: kind === 'frase' || kind === 'mural' ? pick(MURO_FRASES) : pick(PIXOS), color: kind === 'pixo' ? pick(['#111111', '#111111', '#f2f2ea', '#c8241c']) : pick(['#e63946', '#1d4f9c', '#2a9d8f', '#111111', '#f4c430']), seed: rnd() };
 }
-const BREAKABLE = { cone: 'plastic', barrier: 'wood', bench: 'wood', bin: 'plastic', hydrant: 'metal', bollard: 'metal', table: 'plastic', tires: 'rubber', cart: 'metal', pot: 'clay' };
+const BREAKABLE = { cone: 'plastic', barrier: 'wood', bench: 'wood', bin: 'plastic', hydrant: 'metal', bollard: 'metal', table: 'plastic', tires: 'rubber', cart: 'metal', pot: 'clay', placa: 'wood', tijolos: 'clay', cimento: 'plastic', carrinho: 'metal' }; // as quatro últimas: coisas dos lotes e obras (p78_campo.js)
 function lotFrame(x0, y0, x1, y1, front) {
   const F = { front, x0, y0, x1, y1 };
   const ns = front === 'N' || front === 'S';

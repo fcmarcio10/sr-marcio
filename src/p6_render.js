@@ -630,6 +630,7 @@ function drawWall(ctx, b, ax, ay, bx, by, ox, oy, side) {
     if (b.vidro) { vidroFachada(ctx, b, ax, ay, bx, by, ox, oy); return; }
     wallWindows(ctx, b, ax, ay, bx, by, ox, oy, side, false);
     if (b.empena !== undefined && (side === 'N' || side === 'S')) empenaPinta(ctx, b, ax, ay, bx, by, ox, oy, side); // propaganda pintada na parede
+    if (b.style === 'tijolo') vaosTijolo(ctx, b, ax, ay, bx, by, ox, oy, side); // casa sem reboco: vãos sem janela nem porta
     if (b.style === 'colonial') {
       // janelas coloniais com venezianas coloridas
       ctx.fillStyle = b.seed % 2 ? '#2f6b4a' : '#2d4f7a';

@@ -34,7 +34,7 @@ function ruaRet(e, s0, s1, d0, d1, sd) {
 }
 function posMontagem() {
   const sv = RNG; RNG = mulberry32(78078);
-  try { lotesEEstradinhas(); outdoorsNoPasto(); palmeirasNobres(); empenas(); } finally { RNG = sv; }
+  try { lotesEEstradinhas(); bairroDaPonte(); outdoorsNoPasto(); palmeirasNobres(); empenas(); } finally { RNG = sv; }
   World.tall = World.tall.filter((t) => !t.removed);
 }
 function bordasRurais() {
@@ -106,16 +106,20 @@ function lote(r, frente) {
   if (tipo === 'cercado') {
     const gap = { N: frente === 'N', S: frente === 'S', W: frente === 'W', E: frente === 'E' }, G = 34;
     const lado = (a, b, mk, temGap, meio) => { if (!temGap) mk(a, b); else { mk(a, meio - G / 2); mk(meio + G / 2, b); } };
-    lado(x0, x1, (a, b) => addFence(a, y0 - 1.5, b, y0 + 1.5), gap.N, cx); lado(x0, x1, (a, b) => addFence(a, y1 - 1.5, b, y1 + 1.5), gap.S, cx);
-    lado(y0, y1, (a, b) => addFence(x0 - 1.5, a, x0 + 1.5, b), gap.W, cy); lado(y0, y1, (a, b) => addFence(x1 - 1.5, a, x1 + 1.5, b), gap.E, cy);
+    const cerca = (fx0, fy0, fx1, fy1) => { addFence(fx0, fy0, fx1, fy1); sombraLote([[fx0, fy0], [fx1, fy0], [fx1, fy1], [fx0, fy1]], 6, null); };
+    lado(x0, x1, (a, b) => cerca(a, y0 - 1.5, b, y0 + 1.5), gap.N, cx); lado(x0, x1, (a, b) => cerca(a, y1 - 1.5, b, y1 + 1.5), gap.S, cx);
+    lado(y0, y1, (a, b) => cerca(x0 - 1.5, a, x0 + 1.5, b), gap.W, cy); lado(y0, y1, (a, b) => cerca(x1 - 1.5, a, x1 + 1.5, b), gap.E, cy);
     bake(x0, y0, x1, y1, 6.2, (g) => tufosMato(g, cx, cy, (x1 - x0) / 2 - 6, (y1 - y0) / 2 - 6, 26, R()));
   }
   if (tipo === 'cantos') {
     const k = 12, C = [[x0 + 8, y0 + 8, 1, 1], [x1 - 8, y0 + 8, -1, 1], [x0 + 8, y1 - 8, 1, -1], [x1 - 8, y1 - 8, -1, -1]];
     const alt = C.map(() => rnd(4, 10));
-    bake(x0 - 6, y0 - 6, x1 + 10, y1 + 10, 7.4, (g) => { linhaDeObra(g, C); C.forEach(([x, y, sx, sy], i) => cantoTijolo(g, x, y, sx, sy, k + alt[i] * 1.2, alt[i])); pilhaTijolo(g, cx - 20, cy, 0.3); monteAreia(g, cx + 26, cy + 10, 13); tufosMato(g, cx, cy, (x1 - x0) / 2 - 10, (y1 - y0) / 2 - 10, 20, R()); });
-    for (const [x, y] of C) addRectCol(x - 4, y - 4, x + 4, y + 4, 'wall');
-    addRectCol(cx - 30, cy - 8, cx - 10, cy + 8, 'prop');
+    bake(x0 - 6, y0 - 6, x1 + 10, y1 + 10, 7.4, (g) => { linhaDeObra(g, C); C.forEach(([x, y, sx, sy], i) => cantoTijolo(g, x, y, sx, sy, k + alt[i] * 1.2, alt[i])); monteAreia(g, cx + 26, cy + 10, 13); tufosMato(g, cx, cy, (x1 - x0) / 2 - 10, (y1 - y0) / 2 - 10, 20, R()); });
+    C.forEach(([x, y, sx, sy], i) => { const L = k + alt[i] * 1.2, H = alt[i] * 1.3;
+      const a = [Math.min(x, x + sx * L), y - 2.5, Math.max(x, x + sx * L), y + 2.5], b = [x - 2.5, Math.min(y, y + sy * L), x + 2.5, Math.max(y, y + sy * L)];
+      for (const q of [a, b]) { addRectCol(q[0], q[1], q[2], q[3], 'wall'); sombraLote([[q[0], q[1]], [q[2], q[1]], [q[2], q[3]], [q[0], q[3]]], H, null); } });
+    itemObra('tijolos', cx - 20, cy, 20, 14, 5, (g) => pilhaTijolo(g, cx - 20, cy, 0), TIJ);
+    sombraLoteCirc(cx + 26, cy + 10, 11, 4, null);
   }
   if (tipo === 'obra') {
     const m = 14, L = { x0: x0 + m, y0: y0 + m, x1: x1 - m, y1: y1 - m };
@@ -126,13 +130,22 @@ function lote(r, frente) {
       tufosMato(g, cx, cy, (x1 - x0) / 2, (y1 - y0) / 2, 18, R());
       for (const p of paredes) paredeTijolo(g, L, p);
       for (const [x, y] of [[L.x0, L.y0], [L.x1, L.y0], [L.x0, L.y1], [L.x1, L.y1], [(L.x0 + L.x1) / 2, L.y0], [(L.x0 + L.x1) / 2, L.y1]]) ferragem(g, x, y);
-      pilhaTijolo(g, cx - 18, cy - 4, 0); pilhaTijolo(g, cx - 18, cy + 14, 0.1); monteAreia(g, cx + 22, cy + 6, 15); sacosCimento(g, cx + 4, cy - 18); carrinhoMao(g, cx + 6, cy + 18, 0.6);
+      monteAreia(g, cx + 22, cy + 6, 15);
     });
-    for (const p of paredes) { const q = paredeRet(L, p); addRectCol(q[0], q[1], q[2], q[3], 'wall'); }
-    addRectCol(cx - 28, cy - 12, cx - 8, cy + 22, 'prop'); addRectCol(cx + 10, cy - 6, cx + 36, cy + 18, 'prop');
+    for (const p of paredes) { const q = paredeRet(L, p); addRectCol(q[0], q[1], q[2], q[3], 'wall'); sombraLote([[q[0], q[1]], [q[2], q[1]], [q[2], q[3]], [q[0], q[3]]], p.alt * 1.2, null); }
+    itemObra('tijolos', cx - 18, cy - 4, 20, 14, 5, (g) => pilhaTijolo(g, cx - 18, cy - 4, 0), TIJ);
+    itemObra('tijolos', cx - 18, cy + 15, 20, 14, 5, (g) => pilhaTijolo(g, cx - 18, cy + 15, 0), TIJ);
+    itemObra('cimento', cx + 11, cy - 14, 22, 10, 3, (g) => sacosCimento(g, cx + 1, cy - 18), '#d8d4c8');
+    itemObra('carrinho', cx + 8, cy + 20, 16, 10, 5, (g) => carrinhoMao(g, cx + 8, cy + 20, 0));
+    sombraLoteCirc(cx + 22, cy + 6, 13, 5, null);
   }
-  bake(placa.x - 22, placa.y - 16, placa.x + 24, placa.y + 18, 7.6, (g) => plaquinha(g, placa));
-  addCircCol(placa.x, placa.y + 5, 2, 'prop');
+  plaquinhaQuebra(placa);
+}
+// plaquinha de lote: quebra quando o carro bate; sombra da estaca e da placa
+function plaquinhaQuebra(placa) {
+  itemObra('placa', placa.x, placa.y + 3, 5, 5, 0, (g) => plaquinha(g, placa));
+  sombraLote([[placa.x - 17, placa.y - 11], [placa.x + 17, placa.y - 11], [placa.x + 17, placa.y - 7], [placa.x - 17, placa.y - 7]], 8, World.sombrasLote ? null : null);
+  World.sombrasLote[World.sombrasLote.length - 1].obj = World.sombrasLote[World.sombrasLote.length - 2].obj; // some junto com a placa
 }
 // estradinha de terra apertada, com mato e moitas fechando dos dois lados
 function estradinha(e, s, lw, beira, L, sd) {
@@ -149,6 +162,29 @@ function estradinha(e, s, lw, beira, L, sd) {
     addTree(x, y, 'bush', rnd(0.85, 1.15), { force: true });
     if (chance(0.18)) { const fx = vert ? x + (lado ? 22 : -22) : x, fy = vert ? y : y + (lado ? 22 : -22); if (groundAt(fx, fy) === SF.GRASS && !areaBlocked(fx - 6, fy - 6, fx + 6, fy + 6)) addTree(fx, fy, pick(['round', 'mango', 'round']), rnd(0.75, 1)); }
   }
+}
+
+
+/* ---------- itens de obra quebráveis e sombras dos lotes ---------- */
+// sombra extra pelo sol (Sombras.chao): pegada (polígono ou círculo) + altura; some quando o item quebra
+function sombraLote(pts, H, obj) { (World.sombrasLote || (World.sombrasLote = [])).push({ pts, H, obj }); }
+function sombraLoteCirc(x, y, r, H, obj) { (World.sombrasLote || (World.sombrasLote = [])).push({ c: [x, y, r], H, obj }); }
+// item que quebra quando o carro bate (vira caco no chão): placa, pilha de tijolo, saco de cimento e carrinho de mão
+function itemObra(tipo, x, y, w, h, H, desenha, cor) {
+  const o = { type: tipo, x, y, broken: false, c: cor || null }, R = Math.max(w, h) / 2 + 14;
+  bake(x - R, y - R, x + R, y + R, 7.6, (g) => { if (!o.broken) desenha(g); else cacosObra(g, o); });
+  const col = addRectCol(x - w / 2, y - h / 2, x + w / 2, y + h / 2, 'prop'); col.brk = { kind: 'prop', obj: o, R };
+  sombraLote([[x - w / 2, y - h / 2], [x + w / 2, y - h / 2], [x + w / 2, y + h / 2], [x - w / 2, y + h / 2]], H, o);
+  return o;
+}
+function cacosObra(g, o) { // o que sobra no chão depois da batida
+  const R = mulberry32((o.x * 31 + o.y * 17) | 0), a = o.fallA || 0;
+  for (let i = 0; i < 9; i++) {
+    const d = R() * 16, x = o.x + Math.cos(a) * d + (R() - 0.5) * 10, y = o.y + Math.sin(a) * d + (R() - 0.5) * 10;
+    g.fillStyle = o.type === 'tijolos' ? (i % 2 ? TIJ : TIJ2) : o.type === 'cimento' ? '#d8d4c8' : o.type === 'placa' ? (i % 3 ? '#f4f1e8' : '#6a4a2a') : '#2f6db0';
+    g.save(); g.translate(x, y); g.rotate(R() * 3); g.fillRect(-2, -1.4, 4, 2.8); g.restore();
+  }
+  if (o.type === 'cimento') { g.fillStyle = 'rgba(200,196,186,0.6)'; g.beginPath(); g.ellipse(o.x, o.y, 9, 6, a, 0, TAU); g.fill(); } // pó de cimento
 }
 
 /* ---------- desenhos (pintados uma vez no chão) ---------- */
@@ -312,4 +348,110 @@ function bordaFora(ctx, view) {
   nevoa(Math.max(WORLD_W, L), Math.max(0, T), R, Math.min(SEA_Y, B), WORLD_W, 0, WORLD_W + 700, 0, 'rgba(14,24,18,');
   nevoa(L, Math.max(WORLD_H, T), R, B, 0, WORLD_H, 0, WORLD_H + 700, 'rgba(10,30,48,');
   ctx.restore();
+}
+
+/* ---------- bairro novo na saída da Ponte Que Balança (a cidade crescendo para o caminho de terra) ----------
+   Dos dois lados da estrada de terra que sai da cidade e atravessa a ponte de madeira: casas de tijolo
+   prontas (telhado, sem reboco, sem janela nem porta: só os vãos), casas pela metade (paredes subindo sem
+   telhado), fundação (baldrame com ferragem) e lotes à venda. */
+function bairroDaPonte() {
+  const E = World.edges.filter((e) => e.T.id === 'dirt' && e.h && Math.abs(e.a.y - 3880) < 8).sort((p, q) => p.a.x - q.a.x);
+  let n = 0;
+  for (const e of E) {
+    const ponte = E.find((q) => q.bridge) ? E.find((q) => q.bridge).bridge : null, beira = beiraDa(e);
+    for (const sd of [1, -1]) {
+      for (let s = 50; s < e.len - 120;) {
+        const x = e.a.x + e.dx * s;
+        if (x > 6200 || x < 4700) { s += 60; continue; } // da beira da cidade até a estrada do outro lado do rio
+        if (ponte && x + 120 > ponte.x0 - 90 && x < ponte.x1 + 90) { s += 40; continue; } // nada colado na ponte
+        const W = rnd(92, 112), D = rnd(108, 128), r = ruaRet(e, s, s + W, beira + 10, beira + 10 + D, sd);
+        if (campoLivre(r[0] - 3, r[1] - 3, r[2] + 3, r[3] + 3, true)) {
+          const frente = sd * e.dx > 0 ? 'N' : 'S', t = rnd();
+          if (t < 0.36) casaTijolo(r, frente); else if (t < 0.6) casaMetade(r, frente); else if (t < 0.75) fundacao(r, frente); else lote(r, frente);
+          n++; s += W + rnd(4, 14);
+        } else s += 30;
+      }
+    }
+  }
+  World.bairroPonte = n;
+}
+// lote "pronto para construir": chão de terra batida, um pouco de mato e entulho
+function chaoDeObra(r) { decal(r[0] + 4, r[1] + 4, r[2] - 4, r[3] - 4, 'earth', { z: 2.25 }); }
+function placaDoLote(r, frente, obra) {
+  const cx = (r[0] + r[2]) / 2 + rnd(-30, 30), y = frente === 'N' ? r[1] + 9 : r[3] - 9;
+  plaquinhaQuebra({ x: cx, y, t: obra ? 'OBRA' : pick(VENDE_TIT), s: obra ? pick(['ENG. ZÉ DA LAJE', 'MESTRE TONHÃO', 'PEDREIRO DO ZAP']) : pick(VENDE_SUB), a: rnd(-0.12, 0.12) });
+}
+// casa de tijolo pronta: telhado, sem reboco, vãos sem janela e sem porta
+function casaTijolo(r, frente) {
+  chaoDeObra(r);
+  const recF = 22, rec = 12, hw = (r[2] - r[0]) - rec * 2, hd = (r[3] - r[1]) - recF - rec;
+  const x0 = r[0] + rec + rnd(0, 6), x1 = x0 + Math.min(hw, rnd(62, 80)), y0 = frente === 'N' ? r[1] + recF : r[1] + rec, y1 = y0 + Math.min(hd, rnd(58, 76));
+  const telha = rnd();
+  addBuilding(x0, y0, x1, y1, rnd(22, 27), { style: 'tijolo', front: frente, roofType: telha < 0.55 ? 'hip' : telha < 0.8 ? 'gable' : 'amianto', roofColor: telha < 0.8 ? pick(ROOF_TILE) : '#8c8f8a', wall: pick(['#b2532d', '#a84a28', '#bb5d34']), brick: true, lit: 0 });
+  // entulho e sobra de material no quintal
+  const qx = (x1 + r[2]) / 2 > r[2] - 14 ? r[0] + 14 : Math.min(r[2] - 14, x1 + 16), qy = (y0 + y1) / 2;
+  if (chance(0.7)) itemObra('tijolos', qx, qy, 20, 14, 5, (g) => pilhaTijolo(g, qx, qy, 0), TIJ);
+  if (chance(0.5)) { const ax = (r[0] + r[2]) / 2 + rnd(-20, 20), ay = frente === 'N' ? r[3] - 16 : r[1] + 16; bake(ax - 20, ay - 16, ax + 20, ay + 16, 7.2, (g) => monteAreia(g, ax, ay, 12)); sombraLoteCirc(ax, ay, 10, 4, null); }
+  if (chance(0.45)) placaDoLote(r, frente, false);
+}
+// casa pela metade: laje no chão, paredes de alturas diferentes com os vãos, divisória por dentro, ferragem e material
+function casaMetade(r, frente) {
+  chaoDeObra(r);
+  const L = { x0: r[0] + 14, y0: r[1] + (frente === 'N' ? 22 : 12), x1: r[2] - 14, y1: r[3] - (frente === 'N' ? 12 : 22) };
+  L.x1 = Math.min(L.x1, L.x0 + rnd(64, 82)); L.y1 = Math.min(L.y1, L.y0 + rnd(60, 78));
+  decal(L.x0, L.y0, L.x1, L.y1, 'concrete', { z: 2.3 });
+  const T = 5, segs = [], alt = () => rnd(6, 15);
+  const linha = (ax, ay, bx, by, vaos) => { // parede com vãos (porta/janela) como buracos
+    const hz = ay === by, comp = hz ? bx - ax : by - ay; let cur = 0;
+    for (const [a, w] of vaos.sort((p, q) => p[0] - q[0])) { if (a - cur > 6) segs.push(hz ? [ax + cur, ay, ax + a, ay] : [ax, ay + cur, ax, ay + a]); cur = a + w; }
+    if (comp - cur > 6) segs.push(hz ? [ax + cur, ay, bx, ay] : [ax, ay + cur, ax, by]);
+  };
+  const w = L.x1 - L.x0, h = L.y1 - L.y0;
+  linha(L.x0, L.y0, L.x1, L.y0, frente === 'N' ? [[w * 0.45, 14], [w * 0.12, 12]] : [[w * 0.6, 12]]);
+  linha(L.x0, L.y1, L.x1, L.y1, frente === 'S' ? [[w * 0.45, 14], [w * 0.12, 12]] : [[w * 0.3, 12]]);
+  linha(L.x0, L.y0, L.x0, L.y1, [[h * 0.4, 12]]); linha(L.x1, L.y0, L.x1, L.y1, chance(0.5) ? [[h * 0.35, 12]] : []);
+  linha(L.x0 + w * 0.55, L.y0, L.x0 + w * 0.55, L.y1, [[h * 0.3, 12]]); // divisória (quarto e sala)
+  const P = segs.map((q) => { const hz = q[1] === q[3]; return { r: hz ? [q[0], q[1] - T / 2, q[2], q[1] + T / 2] : [q[0] - T / 2, q[1], q[0] + T / 2, q[3]], alt: alt() }; });
+  bake(L.x0 - 10, L.y0 - 10, L.x1 + 16, L.y1 + 18, 7.45, (g) => {
+    for (const p of P) blocoTij(g, p.r[0], p.r[1], p.r[2] - p.r[0], p.r[3] - p.r[1], p.alt);
+    for (const [x, y] of [[L.x0, L.y0], [L.x1, L.y0], [L.x0, L.y1], [L.x1, L.y1], [L.x0 + w * 0.55, L.y0], [L.x0 + w * 0.55, L.y1]]) ferragem(g, x, y);
+    // andaime de madeira encostado numa parede
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(L.x0 + 8, L.y1 + 5, 30, 6); g.fillStyle = '#8a6a44'; g.fillRect(L.x0 + 6, L.y1 + 3, 30, 4); g.fillStyle = '#6a4a2a'; for (let k = 0; k < 4; k++) g.fillRect(L.x0 + 6 + k * 9, L.y1 + 2, 1.5, 6);
+  });
+  for (const p of P) { addRectCol(p.r[0], p.r[1], p.r[2], p.r[3], 'wall'); sombraLote([[p.r[0], p.r[1]], [p.r[2], p.r[1]], [p.r[2], p.r[3]], [p.r[0], p.r[3]]], p.alt * 1.2, null); }
+  const mx = (L.x0 + L.x1) / 2, ix = r[2] - 22 > L.x1 + 6 ? r[2] - 20 : r[0] + 16;
+  itemObra('tijolos', mx - 14, (L.y0 + L.y1) / 2, 20, 14, 5, (g) => pilhaTijolo(g, mx - 14, (L.y0 + L.y1) / 2, 0), TIJ);
+  itemObra('cimento', ix, L.y0 + 14, 22, 10, 3, (g) => sacosCimento(g, ix - 10, L.y0 + 10), '#d8d4c8');
+  itemObra('carrinho', ix, L.y1 - 12, 16, 10, 5, (g) => carrinhoMao(g, ix, L.y1 - 12, 0));
+  if (chance(0.6)) placaDoLote(r, frente, true);
+}
+// fundação: baldrame de concreto marcando os cômodos, ferragem nos cantos e a terra cavada em volta
+function fundacao(r, frente) {
+  chaoDeObra(r);
+  const L = { x0: r[0] + 16, y0: r[1] + (frente === 'N' ? 24 : 14), x1: r[2] - 16, y1: r[3] - (frente === 'N' ? 14 : 24) };
+  L.x1 = Math.min(L.x1, L.x0 + rnd(62, 82)); L.y1 = Math.min(L.y1, L.y0 + rnd(58, 76));
+  const mx = L.x0 + (L.x1 - L.x0) * rnd(0.45, 0.6), my = L.y0 + (L.y1 - L.y0) * rnd(0.45, 0.6);
+  const vigas = [[L.x0, L.y0, L.x1, L.y0], [L.x0, L.y1, L.x1, L.y1], [L.x0, L.y0, L.x0, L.y1], [L.x1, L.y0, L.x1, L.y1], [mx, L.y0, mx, L.y1], [L.x0, my, mx, my]];
+  bake(L.x0 - 12, L.y0 - 12, L.x1 + 14, L.y1 + 14, 7.35, (g) => {
+    g.fillStyle = 'rgba(70,50,30,0.45)'; for (const [a, b, c, d] of vigas) g.fillRect(Math.min(a, c) - 5, Math.min(b, d) - 5, Math.abs(c - a) + 10, Math.abs(d - b) + 10); // vala cavada
+    for (const [a, b, c, d] of vigas) { const x = Math.min(a, c) - 2.5, y = Math.min(b, d) - 2.5, w = Math.abs(c - a) + 5, h = Math.abs(d - b) + 5;
+      g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x + 1.2, y + 1.6, w, h); g.fillStyle = '#a9a69c'; g.fillRect(x, y, w, h); g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(x, y, w, 0.8); }
+    for (const [x, y] of [[L.x0, L.y0], [L.x1, L.y0], [L.x0, L.y1], [L.x1, L.y1], [mx, L.y0], [mx, L.y1], [mx, my], [L.x0, my]]) ferragem(g, x, y);
+    monteAreia(g, L.x1 + 2, L.y1 + 6, 9);
+  });
+  for (const [a, b, c, d] of vigas) sombraLote([[Math.min(a, c) - 2.5, Math.min(b, d) - 2.5], [Math.max(a, c) + 2.5, Math.min(b, d) - 2.5], [Math.max(a, c) + 2.5, Math.max(b, d) + 2.5], [Math.min(a, c) - 2.5, Math.max(b, d) + 2.5]], 1.5, null);
+  const tx = (L.x0 + mx) / 2, ty = (my + L.y1) / 2;
+  itemObra('tijolos', tx, ty, 20, 14, 5, (g) => pilhaTijolo(g, tx, ty, 0), TIJ);
+  if (chance(0.7)) placaDoLote(r, frente, true);
+}
+// vãos sem janela nem porta (casa de tijolo pronta): buracos escuros com verga de concreto em cima
+function vaosTijolo(ctx, b, ax, ay, bx, by, ox, oy, side) {
+  if (Math.hypot(ox, oy) < 1.5) return;
+  const len = WS_LEN || Math.hypot(bx - ax, by - ay), n = Math.max(1, Math.floor(len / 32)), ex = bx - ax, ey = by - ay;
+  const quad = (s0, s1, f0, f1) => { ctx.beginPath(); ctx.moveTo(ax + ex * s0 + ox * f0, ay + ey * s0 + oy * f0); ctx.lineTo(ax + ex * s1 + ox * f0, ay + ey * s1 + oy * f0); ctx.lineTo(ax + ex * s1 + ox * f1, ay + ey * s1 + oy * f1); ctx.lineTo(ax + ex * s0 + ox * f1, ay + ey * s0 + oy * f1); ctx.closePath(); ctx.fill(); };
+  for (let c = 0; c < n; c++) {
+    const porta = b.front === side && c === Math.floor(n / 2), s0 = (c + 0.3) / n, s1 = (c + 0.7) / n, f0 = porta ? 0 : 0.34, f1 = porta ? 0.72 : 0.68;
+    ctx.fillStyle = '#20140e'; quad(s0, s1, f0, f1);
+    ctx.fillStyle = '#9a968c'; quad(s0 - 0.04, s1 + 0.04, f1, f1 + 0.06); // verga
+  }
 }

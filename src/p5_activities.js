@@ -143,7 +143,7 @@ function breakObject(col, vx, vy, sp, hx, hy) {
     refreshGroundArea(o.x - b.R, o.y - b.R, o.x + b.R, o.y + b.R);
     const mat = BREAKABLE[o.type];
     AudioSys.breakSnd(mat, k);
-    const cols = { wood: ['#8a5a34', '#6a4224'], plastic: [o.c || '#2f6a3a', '#e8e2d0'], metal: ['#8a8d92', '#c8302a'], rubber: ['#18181a'], clay: ['#2a2420'] }[mat] || ['#888'];
+    const cols = { wood: ['#8a5a34', '#6a4224'], plastic: [o.c || '#2f6a3a', '#e8e2d0'], metal: ['#8a8d92', '#c8302a'], rubber: ['#18181a'], clay: [o.c || '#2a2420', o.c ? shade(o.c, 0.15) : '#2a2420'] }[mat] || ['#888'];
     for (let i = 0; i < 6 + k * 8; i++) Debris.list.push({ x: o.x + rnd(-6, 6) + Math.cos(ang) * rnd(4, 26), y: o.y + rnd(-6, 6) + Math.sin(ang) * rnd(4, 26), a: rnd(TAU), s: rnd(1.4, 3), type: 'paint', c: pick(cols), t: Game.time });
     if (o.type === 'hydrant') { World.geysers.push({ x: o.x, y: o.y, until: Game.time + 45 }); toast('Hidrante estourado!', 'Molhou a rua inteira.', 'bad'); }
   } else if (b.kind === 'lamp') {

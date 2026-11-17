@@ -79,6 +79,13 @@ Sombras.chao = function (ctx, view) {
     if (redondo) { for (const t of [0, 0.5, 1]) sbCirc(P, p.x + sx * H * t, p.y + sy * H * t, L / 2); sbSeg(P, p.x, p.y, p.x + sx * H, p.y + sy * H, L * 0.9); }
     else sbArrasta(P, sbRet(p.x, p.y, L, W, p.a || 0), sx * H, sy * H);
   }
+  // coisas dos lotes e obras (paredes, cantos de tijolo, pilhas, cercas, placas): somem quando quebram
+  for (const q of World.sombrasLote || []) {
+    if ((q.obj && q.obj.broken) || q.H <= 0) continue;
+    const x = q.c ? q.c[0] : q.pts[0][0], y = q.c ? q.c[1] : q.pts[0][1]; if (!inView(view, x, y, 90)) continue;
+    if (q.c) { for (const t of [0, 0.5, 1]) sbCirc(P, q.c[0] + sx * q.H * t, q.c[1] + sy * q.H * t, q.c[2]); }
+    else sbArrasta(P, q.pts, sx * q.H, sy * q.H);
+  }
   ctx.save(); ctx.fillStyle = SOMBRA_COR(0.34 * Sol.a); ctx.fill(P); ctx.restore();
 };
 // sombras dos objetos altos (árvores, postes, semáforos, outdoors...): pintadas por cima do chão e dos carros
