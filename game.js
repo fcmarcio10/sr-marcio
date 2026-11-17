@@ -4418,6 +4418,8 @@ class Player {
         // quanto do carro está coberto pela água: quanto mais fundo, mais ele perde velocidade (começa a boiar)
         const f = this.fracAgua(); this.agua = f;
         const k = Math.exp(-(0.8 + 5.5 * f * f) * dt); this.vx *= k; this.vy *= k;
+        // limite de velocidade na água (velocímetro): pisou na água ~11 km/h, no meio ~8, coberto ~5 (chega rapidinho)
+        { const lim = (11 - 6 * Math.min(1, f / 0.8)) / 0.3, sp = Math.hypot(this.vx, this.vy); if (f > 0 && sp > lim) { const q = lim + (sp - lim) * Math.exp(-9 * dt); this.vx *= q / sp; this.vy *= q / sp; } }
         // boiando: balança devagar e a correnteza empurra de leve para o lado
         if (f > 0.4) { this.spin += Math.sin(Game.time * 1.3 + this.x * 0.01) * 0.25 * f * dt; this.vx += Math.sin(Game.time * 0.7) * 6 * f * dt; }
         Praia.naAgua = f >= 0.75; // com 75% do carro coberto entra a contagem 3, 2, 1 (Praia.update)

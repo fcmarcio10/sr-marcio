@@ -21,9 +21,9 @@ const { chromium } = require('playwright');
   await p.screenshot({ path: 't120_onda.png' });
   // entra com o carro inteiro no mar: escurece, e o carro volta para a areia (sem batida)
   await p.evaluate(() => { const x = player.x, yb = Agua.beira[Math.round(x / 20)]; player.place(x, yb - 40, Math.PI / 2); player.vx = 0; player.vy = 200; window.__yb = yb; const o = Praia.comeca; Praia.comeca = function () { window.__praia = true; return o.call(this); }; });
-  await p.waitForTimeout(400);
-  const meio = true;
-  await p.waitForTimeout(1500);
+  await p.keyboard.down('KeyW');
+  await p.waitForFunction(() => { const e = document.getElementById('praia-conta'); return e && e.classList.contains('on'); }, null, { timeout: 12000 }).catch(() => {});
+  await p.keyboard.up('KeyW');
   const conta = await p.evaluate(() => { const e = document.getElementById('praia-conta'); return e && e.classList.contains('on') ? e.textContent : ''; });
   await p.waitForTimeout(4800);
   const r = await p.evaluate(() => ({ batidas: window.__bat, praia: Praia.t, y: Math.round(player.y), yb: Math.round(window.__yb), areia: groundAt(player.x, player.y) !== SF.WATER, dentro: player.inWater() }));
