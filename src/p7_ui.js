@@ -458,15 +458,6 @@ function openShopDialog(s) {
       saveGame(); openShopDialog(s);
     }, Profile.damage < 1 || Profile.money < 4);
     lifeButtons(B, s, ['oil', 'tires', 'bat'], true);
-    { // Kit completo: o Seu Zé olha o carro e faz tudo o que está faltando (lataria, óleo, pneus e bateria)
-      const kit = zeServicos(1).filter((i) => i.precisa), tot = kit.reduce((a, i) => a + i.preco, 0), fz = !fiadoOpen();
-      B(kit.length ? `Kit completo (${zeLista(kit)}) — R$ ${fmtMoney(tot)}${Profile.money < tot && fz ? ' (fiado)' : ''}` : 'Kit completo — o carro já está em dia', () => {
-        const ch = zeCharge(tot, fz); if (!ch) return;
-        for (const i of kit) zeAplica(i.k);
-        AudioSys.wrench(); toast('Seu Zé', '"Revisei tudo: ' + zeLista(kit) + '. Tá zerado!"' + (ch.owed ? ' (fiado R$ ' + fmtMoney(ch.owed) + ')' : ''), 'good');
-        saveGame(); openShopDialog(s);
-      }, !kit.length || (Profile.money < tot && !fz));
-    }
     B('Melhorias e pintura', () => { Garage.sel = Profile.current; Screens.replace('screen-garage'); });
   }
   if (s.kind === 'borracharia') { lifeButtons(B, s, ['tires']); B('Calibrar os pneus (grátis)', () => { Profile.damage = Math.max(0, Profile.damage - 3); AudioSys.pump(); toast('Borracharia', 'Pneus calibrados. Valeu, chefe!', 'info'); closeDialog(); }); }

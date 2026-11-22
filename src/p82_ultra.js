@@ -6,42 +6,32 @@
    - respingos das gotas batendo no chão (coroinha que abre e gotinhas pulando para fora);
    - gotas em quatro camadas (2,5x mais), com a ponta brilhando e algumas bem perto da câmera.
    Tudo num caminho só por camada (poucas pinceladas). */
-const Ultra = { resp: [], _mancha: {} };
-// mancha macia pronta (asfalto molhado fica quase preto-azulado; terra molhada vira marrom escuro)
-Ultra.mancha = function (tipo) {
-  let c = this._mancha[tipo];
-  if (!c) {
-    c = makeCanvas(64, 64); const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-    const cor = tipo === 'terra' ? '40,26,14' : tipo === 'areia' ? '120,96,60' : tipo === 'brilho' ? '170,190,225' : '6,9,16';
-    gr.addColorStop(0, `rgba(${cor},1)`); gr.addColorStop(0.55, `rgba(${cor},0.85)`); gr.addColorStop(1, `rgba(${cor},0)`);
-    g.fillStyle = gr; g.fillRect(0, 0, 64, 64); this._mancha[tipo] = c;
-  }
-  return c;
+const Ultra = { resp: [] };
+// valor suave (0 a 1) que muda devagar pelo mapa: decide onde o chão molha primeiro (áreas grandes e macias, sem bolhas)
+Ultra.ruidoSuave = function (x, y) {
+  const S = 220, gx = x / S, gy = y / S, ix = Math.floor(gx), iy = Math.floor(gy), fx = gx - ix, fy = gy - iy;
+  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy), h = (a, b) => hash2(a * 3 + 11, b * 5 + 7);
+  return lerp(lerp(h(ix, iy), h(ix + 1, iy), sx), lerp(h(ix, iy + 1), h(ix + 1, iy + 1), sx), sy);
 };
-// chão molhando: cada casinha de 56 do mapa tem a hora dela de molhar (hash), a mancha cresce com Weather.wet
+// chão molhando (0.2.0, refeito): o asfalto, a calçada e a terra escurecem por igual onde já molhou; a chuva vai
+// "avançando" em áreas grandes (ruído suave) e, molhado de vez, fica tudo uniforme. Desenhado numa tela 4x menor.
 Ultra.molhando = function (ctx, view) {
   if (Settings.quality === 'baixa' || Weather.wet < 0.02) return; // Médio, Alto e Ultra
-  // desenhado numa tela 4x menor (as manchas são macias, não perde nada) e ampliado numa pincelada só
-  const Q = 4, C = 56, w = Weather.wet, W = Math.ceil((view.x1 - view.x0) / Q) + 2, H = Math.ceil((view.y1 - view.y0) / Q) + 2;
+  const Q = 4, C = 28, w = Weather.wet, W = Math.ceil((view.x1 - view.x0) / Q) + 2, H = Math.ceil((view.y1 - view.y0) / Q) + 2;
   const ox = Math.floor(view.x0 / Q) * Q, oy = Math.floor(view.y0 / Q) * Q, chave = ox + ',' + oy + ',' + W + ',' + H + ',' + w.toFixed(3);
   let oc = this._oc; if (!oc) oc = this._oc = makeCanvas(W, H);
   if (chave !== this._chave) {
     this._chave = chave; if (oc.width !== W || oc.height !== H) { oc.width = W; oc.height = H; }
     const g = oc.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H); g.setTransform(1 / Q, 0, 0, 1 / Q, -ox / Q, -oy / Q);
-    for (let cy = Math.floor(view.y0 / C) - 1; cy <= Math.floor(view.y1 / C) + 1; cy++) for (let cx = Math.floor(view.x0 / C) - 1; cx <= Math.floor(view.x1 / C) + 1; cx++) {
-      const h = hash2(cx * 3 + 11, cy * 5 + 7), k = clamp((w - h * 0.75) / 0.3, 0, 1); if (k <= 0) continue;
-      const x = (cx + 0.3 + hash2(cx, cy + 91) * 0.4) * C, y = (cy + 0.3 + hash2(cx + 57, cy) * 0.4) * C, gs = groundAt(x, y);
-      const tipo = gs === SF.ROAD || gs === SF.PAVED || gs === SF.BRIDGE || gs === SF.SIDEWALK ? 'asfalto' : gs === SF.EARTH || gs === SF.DIRT ? 'terra' : gs === SF.SAND ? 'areia' : null; if (!tipo) continue;
-      const r = C * (0.35 + 0.75 * k);
-      g.globalAlpha = (tipo === 'asfalto' ? 0.62 : tipo === 'terra' ? 0.6 : 0.32) * (0.45 + 0.55 * k);
-      g.drawImage(this.mancha(tipo), x - r, y - r, r * 2, r * 2);
-      if (tipo === 'asfalto') { // brilho de água: o asfalto molhado reflete o céu e as luzes (bem visível de noite)
-        const rb = r * 0.55, ox2 = (hash2(cx + 3, cy + 9) - 0.5) * r * 0.5, oy2 = (hash2(cx + 7, cy + 2) - 0.5) * r * 0.5;
-        g.globalAlpha = 0.22 * k; g.drawImage(this.mancha('brilho'), x + ox2 - rb, y + oy2 - rb * 0.6, rb * 2, rb * 1.2);
-      }
+    for (let cy = Math.floor(view.y0 / C); cy <= Math.floor(view.y1 / C); cy++) for (let cx = Math.floor(view.x0 / C); cx <= Math.floor(view.x1 / C); cx++) {
+      const x = (cx + 0.5) * C, y = (cy + 0.5) * C, gs = groundAt(x, y);
+      const cor = gs === SF.ROAD || gs === SF.PAVED || gs === SF.BRIDGE || gs === SF.SIDEWALK ? '8,11,18' : gs === SF.EARTH || gs === SF.DIRT ? '38,24,12' : gs === SF.SAND ? '110,88,56' : null; if (!cor) continue;
+      const k = clamp((w - this.ruidoSuave(x, y) * 0.7) / 0.3, 0, 1); if (k <= 0) continue;
+      g.fillStyle = `rgba(${cor},${((cor === '8,11,18' ? 0.26 : cor === '38,24,12' ? 0.34 : 0.2) * k).toFixed(3)})`;
+      g.fillRect(cx * C, cy * C, C + 0.5, C + 0.5);
     }
   }
-  ctx.drawImage(oc, ox, oy, W * Q, H * Q);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(oc, ox, oy, W * Q, H * Q);
 };
 // poça na chuva (Ultra): cresce com a chuva, reflexo do céu e várias ondinhas abrindo em pontos diferentes
 Ultra.poca = function (ctx, p, k, T) {
