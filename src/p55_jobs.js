@@ -283,10 +283,13 @@ function socorroBar(H) {
   // cada serviço com o nome do que é feito, e o Kit completo (o Seu Zé vê sozinho o que falta)
   const S = zeServicos(1.15, true).filter((i) => i.precisa && i.preco >= 8);
   const opts = S.map((i) => [i.k, i.nome, i.preco, true]);
-  if (S.length > 1) opts.push(['kit', 'Kit completo<small>' + zeLista(S) + '</small>', S.reduce((a, i) => a + i.preco, 0), true]);
-  const sub = fiadoOpen() ? `<small class="wa-fiado">fiado R$ ${fmtMoney(Math.ceil(Profile.fiado.amount))}</small>` : '<small>+15% · faz fiado</small>';
-  return `<div class="wa-sos"><div class="wa-sos-h"><b>Socorro do Seu Zé</b>${sub}</div>` +
-    (opts.length ? '<div class="wa-sos-btns">' + opts.map((o) => `<button data-sos="${o[0]}">${o[1]}<small>R$ ${fmtMoney(o[2])}</small></button>`).join('') + '</div>' : '<small class="wa-sos-ok">Carro em dia, nada pra socorrer.</small>') + '</div>';
+  const kit = S.length > 1 ? ['kit', 'Kit completo', S.reduce((a, i) => a + i.preco, 0), zeLista(S)] : null;
+  const sub = fiadoOpen() ? `<span class="wa-fiado">Fiado em aberto: R$ ${fmtMoney(Math.ceil(Profile.fiado.amount))}</span>` : '<span>Ele vem até você · 15% a mais · faz fiado</span>';
+  const linha = (o) => `<button class="wa-sos-item" data-sos="${o[0]}"><span>${o[1]}</span><em>R$ ${fmtMoney(o[2])}</em></button>`;
+  return `<div class="wa-sos"><div class="wa-sos-h"><b>Chamar o Seu Zé</b>${sub}</div>` +
+    (opts.length ? '<div class="wa-sos-lista">' + opts.map(linha).join('') + '</div>' +
+      (kit ? `<button class="wa-sos-kit" data-sos="kit"><span><b>Kit completo</b><small>${kit[3]}</small></span><em>R$ ${fmtMoney(kit[2])}</em></button>` : '')
+      : '<small class="wa-sos-ok">Seu carro está em dia. Nada para consertar.</small>') + '</div>';
 }
 
 /* ---------- APP TEMPORÁRIO DE TRAPAÇAS (para testes) ----------

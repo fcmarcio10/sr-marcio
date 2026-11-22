@@ -1152,8 +1152,10 @@ Weather.update = function (dt) {
       }
     }
   }
-  this.rain += clamp(this.target - this.rain, -dt / 10, dt / 10);
-  this.wet = Math.max(this.rain, this.wet - dt / 70); // o asfalto demora a secar
+  // a chuva chega devagar (uns 40 s até engrossar) e o chão vai molhando atrás dela, aos poucos (uns 50 s); seca em ~70 s
+  this.rain += clamp(this.target - this.rain, -dt / 15, dt / 40);
+  if (this.rain > this.wet) this.wet = Math.min(this.rain, this.wet + dt / 50 * (0.3 + this.rain));
+  else this.wet = Math.max(this.rain, this.wet - dt / 70);
   // relâmpago e trovão no temporal
   if (this.rain > 0.6) { this.thunderT -= dt; if (this.thunderT <= 0) { this.thunderT = rnd(14, 32); Cam.flash = Math.max(Cam.flash, 0.55); const d = rnd(0.4, 2); setTimeout(() => AudioSys.thunder(d), d * 1000); } }
   // gotas na tela (espaço da tela)

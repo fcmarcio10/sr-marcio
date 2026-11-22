@@ -417,7 +417,7 @@ function openShopDialog(s) {
     const fala = dm < 3 ? '"Tá zerado, meu filho. Volta quando bater, que eu sei que vai."'
       : dm < 25 ? '"Uns arranhãozinho à toa. Isso eu resolvo enquanto o café passa."'
       : dm < 60 ? '"Rapaz… que pancada foi essa? Beijou o poste, foi? Deixa com o Seu Zé."'
-      : '"Nossa Senhora da Penha! Isso aqui tá pocado, menino! Quarenta anos de oficina e nunca vi um estrago desse."';
+      : '"Minha Nossa Senhora! Isso aqui tá destruído, menino! Quarenta anos de oficina e nunca vi um estrago desse."';
     $('dialog-text').textContent = 'Seu Zé limpa as mãos na estopa e olha o carro por cima dos óculos. ' + fala + lifeZeFala() + (zl.length ? ' Orçamento: ' + zl.join(', ') + '.' : '');
   }
   const btns = [];
@@ -718,7 +718,6 @@ function updateHUD(dt) {
     UI.set('tire-bar', Math.round(L.tires) + '%', 'width'); UI.set('tire-bar', low(L.tires), 'bg');
     UI.set('oil-bar', Math.round(L.oil) + '%', 'width'); UI.set('oil-bar', low(L.oil), 'bg');
     UI.set('bat-bar', Math.round(L.bat) + '%', 'width'); UI.set('bat-bar', low(L.bat), 'bg');
-    const lo = !!player.lightsOff; if (UI.last.lo !== lo) { UI.last.lo = lo; $('hud-dash').classList.toggle('lights-off', lo); }
     if (UI.last.som !== Som.on) { UI.last.som = Som.on; $('hud-dash').classList.toggle('som-on', Som.on); } }
   // prompt
   const pr = Act.prompt && telaLivre() ? '<kbd>E</kbd>' + escapeHtml(Act.prompt.text) : '';

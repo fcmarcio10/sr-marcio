@@ -20,7 +20,7 @@ Ultra.mancha = function (tipo) {
 };
 // chão molhando: cada casinha de 56 do mapa tem a hora dela de molhar (hash), a mancha cresce com Weather.wet
 Ultra.molhando = function (ctx, view) {
-  if (!ultraQ() || Weather.wet < 0.02) return;
+  if (!altaQ() || Weather.wet < 0.02) return; // Alto e Ultra
   // desenhado numa tela 4x menor (as manchas são macias, não perde nada) e ampliado numa pincelada só
   const Q = 4, C = 56, w = Weather.wet, W = Math.ceil((view.x1 - view.x0) / Q) + 2, H = Math.ceil((view.y1 - view.y0) / Q) + 2;
   const ox = Math.floor(view.x0 / Q) * Q, oy = Math.floor(view.y0 / Q) * Q, chave = ox + ',' + oy + ',' + W + ',' + H + ',' + w.toFixed(3);

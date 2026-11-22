@@ -144,7 +144,6 @@ html, body {
 #tire-bar { background: linear-gradient(90deg, #9aa4b5, #cfd6e2); }
 #oil-bar { background: linear-gradient(90deg, #c99a2e, #f2c14e); }
 #bat-bar { background: linear-gradient(90deg, #3fb5ff, #8fd8ff); }
-#hud-dash.lights-off #car-name::after { content: ' · farol off'; color: #ffb547; font-size: 0.7em; }
 .wa-locmsg { padding: 4px 4px 18px; max-width: 80%; }
 .wa-loc { display: block; width: 100%; border: 0; padding: 0; margin: 0; background: none; color: inherit; text-align: left; cursor: pointer; pointer-events: auto; border-radius: 8px; overflow: hidden; }
 .wa-loc svg { display: block; width: 100%; height: 96px; border-radius: 8px 8px 0 0; }
@@ -819,7 +818,6 @@ html, body { font-family: var(--f-body); }
 /* painel do carro */
 #hud-dash { border-radius: 6px; padding: 6px 12px 12px; border-bottom: 3px solid var(--ouro); }
 #car-name { font-family: var(--f-cond); font-weight: 800; font-style: normal; font-size: 17px; letter-spacing: 0.03em; color: var(--ouro); margin: -4px 0 8px; line-height: 1.05; }
-#hud-dash.lights-off #car-name::after { content: ' · FAROL OFF'; color: #ff9a6a; font-size: 0.75em; }
 .bar-row { font-family: var(--f-cond); font-weight: 700; font-size: 13px; letter-spacing: 0.04em; color: #c4cad8; text-transform: uppercase; margin-top: 6px; }
 .bar-row span { width: 98px; display: inline-flex; align-items: center; gap: 6px; }
 .bar { height: 7px; border-radius: 1px; background: rgba(255, 255, 255, 0.09); transform: skewX(-18deg); }
@@ -1579,3 +1577,20 @@ body.cinema #fala-leg { opacity: 0 !important; }
 #dash-ic .ic-farol.alto { color: #6fb6ff; } #dash-ic .ic-farol.alto .raio-alto { display: inline; }
 #dash-ic #ic-som .onda { display: none; } #dash-ic #ic-som.on { color: #ffcc2e; } #dash-ic #ic-som.on .onda { display: inline; }
 #hud-radio-btn, #hud-phone { gap: 6px; }
+/* ---------- socorro do Seu Zé no zap (0.2.0): lista limpa, um serviço por linha, Kit completo em destaque ---------- */
+.wa-sos { margin: 6px 4px 4px; padding: 10px; border-radius: 14px; background: #1b262d; border: 1px solid #2a3942; gap: 8px; }
+.wa-sos-h { flex-direction: column; align-items: flex-start; gap: 2px; }
+.wa-sos-h b { color: #e9edef; font-size: 13px; }
+.wa-sos-h span { color: #8696a0; font-size: 10.5px; }
+.wa-sos-h .wa-fiado { color: #ffb547; }
+.wa-sos-lista { display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; background: #111b21; }
+.wa-sos .wa-sos-item { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 8px 10px; border-radius: 0; background: transparent; color: #e9edef; font: 500 12px -apple-system, "Segoe UI", sans-serif; border-bottom: 1px solid #22303a; }
+.wa-sos .wa-sos-item:last-child { border-bottom: 0; }
+.wa-sos .wa-sos-item:hover { background: #1f2c34; }
+.wa-sos .wa-sos-item em, .wa-sos .wa-sos-kit em { font-style: normal; font-weight: 700; color: #25d366; }
+.wa-sos .wa-sos-kit { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 9px 10px; border-radius: 10px; background: #00a884; color: #fff; text-align: left; }
+.wa-sos .wa-sos-kit:hover { background: #06b892; }
+.wa-sos .wa-sos-kit span { display: flex; flex-direction: column; gap: 1px; }
+.wa-sos .wa-sos-kit b { color: #fff; font-size: 12.5px; }
+.wa-sos .wa-sos-kit small { font-size: 10px; opacity: 0.9; font-weight: 500; }
+.wa-sos .wa-sos-kit em { color: #fff; }

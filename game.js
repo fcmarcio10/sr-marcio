@@ -7088,10 +7088,13 @@ function socorroBar(H) {
   // cada serviço com o nome do que é feito, e o Kit completo (o Seu Zé vê sozinho o que falta)
   const S = zeServicos(1.15, true).filter((i) => i.precisa && i.preco >= 8);
   const opts = S.map((i) => [i.k, i.nome, i.preco, true]);
-  if (S.length > 1) opts.push(['kit', 'Kit completo<small>' + zeLista(S) + '</small>', S.reduce((a, i) => a + i.preco, 0), true]);
-  const sub = fiadoOpen() ? `<small class="wa-fiado">fiado R$ ${fmtMoney(Math.ceil(Profile.fiado.amount))}</small>` : '<small>+15% · faz fiado</small>';
-  return `<div class="wa-sos"><div class="wa-sos-h"><b>Socorro do Seu Zé</b>${sub}</div>` +
-    (opts.length ? '<div class="wa-sos-btns">' + opts.map((o) => `<button data-sos="${o[0]}">${o[1]}<small>R$ ${fmtMoney(o[2])}</small></button>`).join('') + '</div>' : '<small class="wa-sos-ok">Carro em dia, nada pra socorrer.</small>') + '</div>';
+  const kit = S.length > 1 ? ['kit', 'Kit completo', S.reduce((a, i) => a + i.preco, 0), zeLista(S)] : null;
+  const sub = fiadoOpen() ? `<span class="wa-fiado">Fiado em aberto: R$ ${fmtMoney(Math.ceil(Profile.fiado.amount))}</span>` : '<span>Ele vem até você · 15% a mais · faz fiado</span>';
+  const linha = (o) => `<button class="wa-sos-item" data-sos="${o[0]}"><span>${o[1]}</span><em>R$ ${fmtMoney(o[2])}</em></button>`;
+  return `<div class="wa-sos"><div class="wa-sos-h"><b>Chamar o Seu Zé</b>${sub}</div>` +
+    (opts.length ? '<div class="wa-sos-lista">' + opts.map(linha).join('') + '</div>' +
+      (kit ? `<button class="wa-sos-kit" data-sos="kit"><span><b>Kit completo</b><small>${kit[3]}</small></span><em>R$ ${fmtMoney(kit[2])}</em></button>` : '')
+      : '<small class="wa-sos-ok">Seu carro está em dia. Nada para consertar.</small>') + '</div>';
 }
 
 /* ---------- APP TEMPORÁRIO DE TRAPAÇAS (para testes) ----------
@@ -9864,8 +9867,10 @@ Weather.update = function (dt) {
       }
     }
   }
-  this.rain += clamp(this.target - this.rain, -dt / 10, dt / 10);
-  this.wet = Math.max(this.rain, this.wet - dt / 70); // o asfalto demora a secar
+  // a chuva chega devagar (uns 40 s até engrossar) e o chão vai molhando atrás dela, aos poucos (uns 50 s); seca em ~70 s
+  this.rain += clamp(this.target - this.rain, -dt / 15, dt / 40);
+  if (this.rain > this.wet) this.wet = Math.min(this.rain, this.wet + dt / 50 * (0.3 + this.rain));
+  else this.wet = Math.max(this.rain, this.wet - dt / 70);
   // relâmpago e trovão no temporal
   if (this.rain > 0.6) { this.thunderT -= dt; if (this.thunderT <= 0) { this.thunderT = rnd(14, 32); Cam.flash = Math.max(Cam.flash, 0.55); const d = rnd(0.4, 2); setTimeout(() => AudioSys.thunder(d), d * 1000); } }
   // gotas na tela (espaço da tela)
@@ -12430,7 +12435,7 @@ function openShopDialog(s) {
     const fala = dm < 3 ? '"Tá zerado, meu filho. Volta quando bater, que eu sei que vai."'
       : dm < 25 ? '"Uns arranhãozinho à toa. Isso eu resolvo enquanto o café passa."'
       : dm < 60 ? '"Rapaz… que pancada foi essa? Beijou o poste, foi? Deixa com o Seu Zé."'
-      : '"Nossa Senhora da Penha! Isso aqui tá pocado, menino! Quarenta anos de oficina e nunca vi um estrago desse."';
+      : '"Minha Nossa Senhora! Isso aqui tá destruído, menino! Quarenta anos de oficina e nunca vi um estrago desse."';
     $('dialog-text').textContent = 'Seu Zé limpa as mãos na estopa e olha o carro por cima dos óculos. ' + fala + lifeZeFala() + (zl.length ? ' Orçamento: ' + zl.join(', ') + '.' : '');
   }
   const btns = [];
@@ -12731,7 +12736,6 @@ function updateHUD(dt) {
     UI.set('tire-bar', Math.round(L.tires) + '%', 'width'); UI.set('tire-bar', low(L.tires), 'bg');
     UI.set('oil-bar', Math.round(L.oil) + '%', 'width'); UI.set('oil-bar', low(L.oil), 'bg');
     UI.set('bat-bar', Math.round(L.bat) + '%', 'width'); UI.set('bat-bar', low(L.bat), 'bg');
-    const lo = !!player.lightsOff; if (UI.last.lo !== lo) { UI.last.lo = lo; $('hud-dash').classList.toggle('lights-off', lo); }
     if (UI.last.som !== Som.on) { UI.last.som = Som.on; $('hud-dash').classList.toggle('som-on', Som.on); } }
   // prompt
   const pr = Act.prompt && telaLivre() ? '<kbd>E</kbd>' + escapeHtml(Act.prompt.text) : '';
@@ -15404,7 +15408,7 @@ Ultra.mancha = function (tipo) {
 };
 // chão molhando: cada casinha de 56 do mapa tem a hora dela de molhar (hash), a mancha cresce com Weather.wet
 Ultra.molhando = function (ctx, view) {
-  if (!ultraQ() || Weather.wet < 0.02) return;
+  if (!altaQ() || Weather.wet < 0.02) return; // Alto e Ultra
   // desenhado numa tela 4x menor (as manchas são macias, não perde nada) e ampliado numa pincelada só
   const Q = 4, C = 56, w = Weather.wet, W = Math.ceil((view.x1 - view.x0) / Q) + 2, H = Math.ceil((view.y1 - view.y0) / Q) + 2;
   const ox = Math.floor(view.x0 / Q) * Q, oy = Math.floor(view.y0 / Q) * Q, chave = ox + ',' + oy + ',' + W + ',' + H + ',' + w.toFixed(3);
