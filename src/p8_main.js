@@ -22,7 +22,7 @@ function startPlay() {
   Game.autosaveT = 30;
   updateHudVisibility();
   Nevoa.carrega(); if (Apresenta.on) Apresenta.encerra();
-  Profile.welcomed = true; // sem áudio de boas-vindas (o tutorial do Seu Zé já fala)
+  Profile.welcomed = true; // sem áudio de boas-vindas
 }
 // tela de carregamento entre o menu e o jogo, com dica
 function withTransit(fn) {
@@ -72,8 +72,6 @@ function newGameNow() {
   Profile = newProfile();
   startPlay();
   saveGame();
-  // as boas-vindas agora são a apresentação da cidade (câmera de cinema) no começo da história
-  Profile.tut = 0; Tutorial.t = 0; Tutorial.d0 = Profile.distance || 0; Tutorial.shown = -1; Tutorial.rapido = false;
 }
 function continueGame() {
   const p = loadProfileFromStorage();
@@ -224,7 +222,7 @@ function frame(now) {
   AudioSys.hornOn = Game.state === 'playing' && !!key.horn();
   render();
   updateHUD(dt);
-  Tutorial.update(dt);
+  Teclas.update(dt);
   if (Screens.current === 'screen-garage') drawGaragePreview(dt);
   if (Screens.current === 'screen-map' && bigMap) bigMap.draw();
   else if (Screens.current === 'screen-phone' && phoneMap && Phone.app === 'mapa') phoneMap.draw();
@@ -234,7 +232,7 @@ function frame(now) {
     const p = player;
     AudioSys.update({
       active: Game.state === 'playing' && !jogoTravado() && !!p, rpm: p ? p.rpm : 900, thr: p ? p.thr : 0, speed: p ? p.speed : 0, slip: p ? p.slip : 0,
-      surfaceRough: p ? SURF[p.surface].rough : 0, paved: p ? (p.surface === SF.ROAD || p.surface === SF.PAVED || p.surface === SF.BRIDGE || p.surface === SF.SIDEWALK) : true, rural: R.rural, city: R.city, river, pitch: p ? p.car.pitch : 1, cyl: p ? (p.car.cyl || 4) : 4,
+      surfaceRough: p ? SURF[p.surface].rough : 0, paved: p ? (p.surface === SF.ROAD || p.surface === SF.PAVED || p.surface === SF.BRIDGE || p.surface === SF.SIDEWALK) : true, rural: R.rural, city: R.city, river, pitch: p ? p.car.pitch * (carKit(p.car.id).exhaust ? 0.9 : 1) : 1, cyl: p ? Math.min(6, p.car.cyl || 4) : 4, // V8 usa o ronco de 6 (mais grave pelo pitch); escapamento esportivo engrossa
     });
     let md = Infinity;
     for (const s of World.shops) if (s.kind === 'bar' || s.kind === 'lanchonete' || s.kind === 'churrascaria' || s.kind === 'fazenda') md = Math.min(md, Math.hypot(s.x - Cam.x, s.y - Cam.y));

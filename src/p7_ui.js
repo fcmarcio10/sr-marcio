@@ -182,7 +182,7 @@ function bindSettings() {
 }
 
 /* ---------- garagem ---------- */
-const CAR_KIND_TXT = { gas: 'Caminhão de gás', guincho: 'Guincho', cacamba: 'Caçamba', bau: 'Caminhão baú', tanker: 'Caminhão-tanque', quadrado: 'Hatch quadrado', besouro: 'Clássico a ar', escada: 'Hatch caixote', hatch: 'Hatch', van: 'Furgão', pickup: 'Picape', sedan: 'Sedã', santana: 'Sedã quadrado', sport: 'Esportivo', muscle: 'Clássico V6' };
+const CAR_KIND_TXT = { gas: 'Caminhão de gás', guincho: 'Guincho', cacamba: 'Caçamba', bau: 'Caminhão baú', tanker: 'Caminhão-tanque', quadrado: 'Hatch quadrado', besouro: 'Clássico a ar', escada: 'Hatch caixote', hatch: 'Hatch', van: 'Furgão', pickup: 'Picape', sedan: 'Sedã', santana: 'Sedã quadrado', sport: 'Esportivo', muscle: 'Clássico V6', compacto: 'Compacto', perua: 'Perua', suv: 'Utilitário 4x4', cupe: 'Cupê', esportivo: 'Esportivo V8' };
 const JOB_TXT = { pickup: 'fretes de picape', gas: 'entrega de gás', guincho: 'reboque de carros', cacamba: 'retirada de entulho', bau: 'cargas de baú', tanker: 'abastecer postos' };
 function carTags(c) {
   const t = [];
@@ -200,7 +200,7 @@ const Garage = {
   previewKit() { const own = !!Profile.owned[this.sel]; return Object.assign({}, own ? carKit(this.sel) : KIT_DEFAULT, this.preview); },
   select(id) { this.sel = id; this.previewColor = null; this.preview = {}; if (!kitCatsFor(id).some((c) => c.id === this.cat)) this.cat = 'paint'; AudioSys.click(); this.render(); },
   render() {
-    const sel = carById(this.sel), owned = !!Profile.owned[sel.id], br = brandOf(sel.model);
+    const sel = carById(this.sel), owned = !!Profile.owned[sel.id], br = brandOf(sel.model, sel);
     $('garage-money').textContent = fmtMoney(Profile.money);
     // lista: meus carros / à venda
     const list = $('garage-list'); list.innerHTML = '';
@@ -209,7 +209,7 @@ const Garage = {
       if (!arr.length) continue;
       const h = document.createElement('div'); h.className = 'g-sec'; h.textContent = title + ' · ' + arr.length; list.appendChild(h);
       for (const c of arr) {
-        const b = brandOf(c.model), d = document.createElement('div');
+        const b = brandOf(c.model, c), d = document.createElement('div');
         d.className = 'gcard' + (c.id === this.sel ? ' sel' : '');
         const st = Profile.current === c.id ? '<span class="cur">EM USO</span>' : Profile.owned[c.id] ? '<span class="own">NA GARAGEM</span>' : '<span class="price' + (Profile.money >= c.price ? ' ok' : '') + '">R$ ' + fmtMoney(c.price) + '</span>';
         d.innerHTML = `<div class="gbrand" style="color:${b.color}">${escapeHtml(b.name)}</div><div class="gname">${escapeHtml(c.name)}</div><div class="gsub"><span>${CAR_KIND_TXT[c.model] || ''}</span>${st}</div>`;
@@ -547,73 +547,29 @@ function renderMapDests() {
     if (Act.waypoint) { const b = document.createElement('button'); b.className = 'off'; b.textContent = 'Remover destino'; b.addEventListener('click', () => { Act.waypoint = null; Act.gps = null; AudioSys.back(); renderMapDests(); drawBigMap(); }); box.appendChild(b); }
   }
 }
-/* ---------- tutorial curto do primeiro jogo ---------- */
-/* ---------- tutorial guiado (os primeiros 10 minutos): o Seu Zé fala cada passo, uma coisa de cada vez,
-   com seta no chão e GPS até o lugar certo. Vai até a primeira corrida e a primeira visita à oficina. ---------- */
 const oficinaZe = () => World.shops.find((x) => x.kind === 'oficina');
-const TUT_STEPS = [
-  { voz: 'tz_1', titulo: 'Bora dar uma volta', html: 'Acelere com <kbd>W</kbd> e vire com <kbd>A</kbd> <kbd>D</kbd>. Dê uma voltinha.', done: () => (Profile.distance || 0) - Tutorial.d0 > 220 },
-  { voz: 'tz_2', titulo: 'Freio é seu amigo', html: 'Agora freie com <kbd>S</kbd> até parar.', done: () => { if (player.speed > 70) Tutorial.rapido = true; return Tutorial.rapido && player.speed < 8; }, skipAfter: 40 },
-  { voz: 'tz_3', titulo: 'O celular é seu escritório', html: 'Abra o celular com <kbd>Q</kbd>.', done: () => Screens.current === 'screen-phone' },
-  { voz: 'tz_4', titulo: 'Hora de trabalhar', html: 'Toque no <b>PegaAí</b> e fique <b>online</b>.', inPhone: true, done: () => Act.rideOnline || !!Act.ride },
-  { voz: 'tz_5', titulo: 'Primeiro passageiro', html: () => 'Siga a seta e busque <b>' + escapeHtml(Act.ride ? Act.ride.name : 'o passageiro') + '</b>.', alvo: () => Act.ride && Act.ride.pick,
-    cada: () => { if (!Act.ride && Act.rideOnline) Act.rideT = Math.min(Act.rideT, 2); }, done: () => !!Act.ride && Act.ride.stage !== 'pickup' },
-  { voz: 'tz_6', titulo: 'Leve com carinho', html: () => 'Leve até <b>' + escapeHtml(Act.ride ? Act.ride.dest.name : 'o destino') + '</b>. Devagar nas curvas!', alvo: () => Act.ride && Act.ride.dest,
-    cada: () => { if (!Act.ride && Profile.rides <= Tutorial.rides0) { if (Act.rideOnline) Act.rideT = Math.min(Act.rideT, 2); Profile.tut = 4; Tutorial.shown = -1; } }, done: () => Profile.rides > Tutorial.rides0 },
-  { voz: 'tz_7', titulo: 'Visite o Seu Zé', html: 'Passe na <b>Oficina do Seu Zé</b> e aperte <kbd>E</kbd> na porta.', alvo: () => oficinaZe(),
-    entra: () => { const o = oficinaZe(); if (o) { Act.waypoint = { x: o.x, y: o.y, label: 'Oficina do Seu Zé' }; Act.gpsT = 0; } }, done: () => Screens.current === 'screen-dialog' || Screens.current === 'screen-garage', skipAfter: 240 },
-  { voz: 'tz_8', titulo: 'Você está pronto', html: 'Pronto! A cidade é sua. Trabalhe, explore e não esqueça do fiado.', done: () => Tutorial.t > 9 },
-];
-const Tutorial = {
-  t: 0, d0: 0, shown: -1, rides0: 0, rapido: false, a: null,
-  alvo() { const st = Profile.tut !== undefined && TUT_STEPS[Profile.tut]; return st && st.alvo ? st.alvo() : null; },
-  fala(clip) {
-    try { if (this.a) this.a.pause(); } catch (e) {}
-    this.a = null; this.fila = clip;
-  },
-  update(dt) {
-    const el = $('tutorial');
-    const vis = Game.mode === 'play' && carregou(1.5) && !Apresenta.on && (!Screens.current || Screens.current === 'screen-phone' || Screens.current === 'screen-dialog');
-    if (!el || !vis || Profile.tut === undefined || Profile.tut >= TUT_STEPS.length) { if (el && this.shown !== -2) { el.classList.add('hidden'); if (this.shown >= 0 && Profile.tut >= TUT_STEPS.length) Missao.esconde('ms-ajuda'); this.shown = -2; } return; }
-    const st = TUT_STEPS[Profile.tut];
-    this.t += dt;
-    if (this.shown !== Profile.tut) {
-      this.shown = Profile.tut; this.t = 0;
-      if (Profile.tut === 4) this.rides0 = Profile.rides || 0;
-      if (st.entra) st.entra();
-      const dots = TUT_STEPS.map((x, i) => `<i class="${i < Profile.tut ? 'ok' : i === Profile.tut ? 'at' : ''}"></i>`).join('');
-      el.innerHTML = `<span class="tut-ava">SZ</span><div class="tut-mid"><div class="tut-who">Seu Zé <span class="tut-dots">${dots}</span></div><div class="tut-text"></div></div><button class="tut-skip" id="tut-skip">Pular</button>`;
-      $('tut-skip').addEventListener('click', () => { Profile.tut = TUT_STEPS.length; AudioSys.back(); this.fala(null); Missao.esconde('ms-ajuda'); saveGame(); });
-      el.classList.remove('hidden'); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
-      this.fala(st.voz);
-      this.popup(st);
-    }
-    const txt = el.querySelector('.tut-text'), h = typeof st.html === 'function' ? st.html() : st.html;
-    if (txt && txt.innerHTML !== h) txt.innerHTML = h;
-    // a fala do Seu Zé espera o áudio de boas-vindas (e outros áudios) terminarem
-    if (this.fila && !VoicePlayer.msg && VOICE_CLIPS[this.fila]) {
-      try { const a = this.a = new Audio(VOICE_CLIPS[this.fila].src); a.volume = clamp((Settings.master !== undefined ? Settings.master : 80) / 100, 0, 1) * 0.95; a.play().catch(() => {}); } catch (e) {}
-      this.fila = null;
-    }
-    el.classList.toggle('in-phone', !!st.inPhone);
-    if (st.cada) st.cada();
-    if (Profile.tut < TUT_STEPS.length && TUT_STEPS[Profile.tut] === st && (st.done() || (st.skipAfter && this.t > st.skipAfter))) { Profile.tut++; this.t = 0; AudioSys.checkpoint(); saveGame(); }
-  },
-  // aviso grande no meio da tela anunciando o passo (some sozinho e deixa a caixa de baixo)
-  popup(st) {
-    const n = TUT_STEPS.indexOf(st) + 1, h = typeof st.html === 'function' ? st.html() : st.html;
-    Missao.ajuda(`<div class="ms-ajuda-tit">Passo ${n} de ${TUT_STEPS.length}</div><b>${escapeHtml(st.titulo || '')}</b>`, 6); // só o título: a instrução fica na legenda do Seu Zé (sem repetir)
-  },
-  // seta pulando em cima do lugar certo (no chão do jogo)
-  desenha(ctx, view) {
-    const q = this.alvo(); if (!q || !inView(view, q.x, q.y, 60)) return;
-    const k = (Game.time * 0.9) % 1, pulo = (0.5 + 0.5 * Math.sin(Game.time * 2.2)) * 4; // seta subindo e descendo de leve
-    ctx.save(); ctx.globalAlpha = 0.6 * (1 - k); ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(q.x, q.y, 14 + k * 16, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
-    ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 2;
-    ctx.beginPath(); const y = q.y - 30 - pulo; ctx.moveTo(q.x, y + 16); ctx.lineTo(q.x - 11, y); ctx.lineTo(q.x - 4, y); ctx.lineTo(q.x - 4, y - 12); ctx.lineTo(q.x + 4, y - 12); ctx.lineTo(q.x + 4, y); ctx.lineTo(q.x + 11, y); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.restore();
-  },
+/* ---------- quadro de teclas do começo (0.2.0, no lugar do passo a passo do Seu Zé) ----------
+   Só na primeira vez que a pessoa joga (neste navegador/computador): um quadro escuro no canto de cima com as
+   teclas principais, por 1 minuto, com um X para fechar. Mostra as teclas que a pessoa configurou. */
+const TECLAS_DICA = [['acelerar', 'Acelerar'], ['frear', 'Frear e ré'], ['esquerda', 'Virar', 'direita'], ['freioMao', 'Freio de mão'], ['celular', 'Celular e mapa'], ['interagir', 'Entrar nas lojas'], ['farol', 'Farol'], ['buzina', 'Buzina'], ['radio', 'Rádio'], ['reposicionar', 'Desvirar o carro']];
+const Teclas = { t: 0, on: false };
+Teclas.ja = function () { try { return localStorage.getItem('brnd_teclas') === '1'; } catch (e) { return false; } };
+Teclas.marca = function () { try { localStorage.setItem('brnd_teclas', '1'); } catch (e) {} };
+Teclas.abre = function () {
+  const el = $('teclas'); if (!el) return;
+  const k = (a) => '<kbd>' + escapeHtml(nomeTecla(tecla(a))) + '</kbd>';
+  el.innerHTML = '<button class="tc-x" id="tc-x" title="Fechar" aria-label="Fechar">×</button><div class="tc-tit">Controles</div>' +
+    TECLAS_DICA.map(([a, n, b]) => `<div class="tc-l"><span>${k(a)}${b ? k(b) : ''}</span><em>${n}</em></div>`).join('') +
+    '<div class="tc-pe">Dá para trocar as teclas em Configurações</div>';
+  $('tc-x').addEventListener('click', () => { AudioSys.back(); Teclas.fecha(); });
+  el.classList.remove('hidden', 'sai'); this.on = true; this.t = 60; this.marca();
+};
+Teclas.fecha = function () { const el = $('teclas'); if (!el || !this.on) return; this.on = false; el.classList.add('sai'); setTimeout(() => el.classList.add('hidden'), 350); };
+Teclas.update = function (dt) {
+  if (Game.mode !== 'play') { if (this.on) { this.on = false; const el = $('teclas'); if (el) el.classList.add('hidden'); } return; }
+  if (!this.on) { if (!this.ja() && carregou(1)) this.abre(); return; }
+  const el = $('teclas'); if (el) el.classList.toggle('escondido', !!Screens.current && Screens.current !== 'screen-phone');
+  this.t -= dt; if (this.t <= 0) this.fecha();
 };
 function showDialog(o) {
   $('dialog-kind').textContent = o.kind || ''; $('dialog-title').textContent = o.title || ''; $('dialog-text').textContent = o.text || '';

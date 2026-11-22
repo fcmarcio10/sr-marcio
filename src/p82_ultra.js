@@ -12,7 +12,7 @@ Ultra.mancha = function (tipo) {
   let c = this._mancha[tipo];
   if (!c) {
     c = makeCanvas(64, 64); const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-    const cor = tipo === 'terra' ? '40,26,14' : tipo === 'areia' ? '120,96,60' : '10,14,24';
+    const cor = tipo === 'terra' ? '40,26,14' : tipo === 'areia' ? '120,96,60' : tipo === 'brilho' ? '170,190,225' : '6,9,16';
     gr.addColorStop(0, `rgba(${cor},1)`); gr.addColorStop(0.55, `rgba(${cor},0.85)`); gr.addColorStop(1, `rgba(${cor},0)`);
     g.fillStyle = gr; g.fillRect(0, 0, 64, 64); this._mancha[tipo] = c;
   }
@@ -20,7 +20,7 @@ Ultra.mancha = function (tipo) {
 };
 // chão molhando: cada casinha de 56 do mapa tem a hora dela de molhar (hash), a mancha cresce com Weather.wet
 Ultra.molhando = function (ctx, view) {
-  if (!altaQ() || Weather.wet < 0.02) return; // Alto e Ultra
+  if (Settings.quality === 'baixa' || Weather.wet < 0.02) return; // Médio, Alto e Ultra
   // desenhado numa tela 4x menor (as manchas são macias, não perde nada) e ampliado numa pincelada só
   const Q = 4, C = 56, w = Weather.wet, W = Math.ceil((view.x1 - view.x0) / Q) + 2, H = Math.ceil((view.y1 - view.y0) / Q) + 2;
   const ox = Math.floor(view.x0 / Q) * Q, oy = Math.floor(view.y0 / Q) * Q, chave = ox + ',' + oy + ',' + W + ',' + H + ',' + w.toFixed(3);
@@ -33,8 +33,12 @@ Ultra.molhando = function (ctx, view) {
       const x = (cx + 0.3 + hash2(cx, cy + 91) * 0.4) * C, y = (cy + 0.3 + hash2(cx + 57, cy) * 0.4) * C, gs = groundAt(x, y);
       const tipo = gs === SF.ROAD || gs === SF.PAVED || gs === SF.BRIDGE || gs === SF.SIDEWALK ? 'asfalto' : gs === SF.EARTH || gs === SF.DIRT ? 'terra' : gs === SF.SAND ? 'areia' : null; if (!tipo) continue;
       const r = C * (0.35 + 0.75 * k);
-      g.globalAlpha = (tipo === 'asfalto' ? 0.42 : tipo === 'terra' ? 0.45 : 0.26) * (0.4 + 0.6 * k);
+      g.globalAlpha = (tipo === 'asfalto' ? 0.62 : tipo === 'terra' ? 0.6 : 0.32) * (0.45 + 0.55 * k);
       g.drawImage(this.mancha(tipo), x - r, y - r, r * 2, r * 2);
+      if (tipo === 'asfalto') { // brilho de água: o asfalto molhado reflete o céu e as luzes (bem visível de noite)
+        const rb = r * 0.55, ox2 = (hash2(cx + 3, cy + 9) - 0.5) * r * 0.5, oy2 = (hash2(cx + 7, cy + 2) - 0.5) * r * 0.5;
+        g.globalAlpha = 0.22 * k; g.drawImage(this.mancha('brilho'), x + ox2 - rb, y + oy2 - rb * 0.6, rb * 2, rb * 1.2);
+      }
     }
   }
   ctx.drawImage(oc, ox, oy, W * Q, H * Q);

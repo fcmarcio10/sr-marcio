@@ -7,20 +7,24 @@ const KIT_CATS = [
   { id: 'finish', name: 'Acabamento', car: true, opts: [['normal', 'Brilho de fábrica', 0], ['metal', 'Metálico', 350], ['fosco', 'Fosco', 400]] },
   { id: 'wheels', name: 'Rodas', car: true, opts: [['serie', 'De série', 0], ['cromada', 'Cromada', 450], ['esportiva', 'Esportiva vermelha', 550], ['preta', 'Preta fosca', 500], ['dourada', 'Dourada ostentação', 900], ['tala', 'Tala larga', 750]] },
   { id: 'tint', name: 'Insulfilm', car: true, opts: [[0, 'Sem insulfilm', 0], [1, 'Claro', 150], [2, 'Médio', 220], [3, 'Limousine', 300]] },
-  { id: 'sticker', name: 'Adesivo', car: true, opts: [['', 'Nenhum', 0], ['DEUS É FIEL', 'Deus é fiel', 50], ['NÃO SOU DE VITORINHA', 'Não sou de Vitorinha', 50], ['FILHO FEIO NÃO TEM PAI', 'Filho feio não tem pai', 50], ['100% GAMBIARRA', '100% gambiarra', 50], ['SE BEBER, CHAME O SEU ZÉ', 'Se beber, chame o Seu Zé', 50], ['BAH, TCHÊ', 'Bah, tchê', 50], ['OXENTE', 'Oxente', 50], ['UAI, SÔ', 'Uai, sô', 50], ['ÉGUA, MANO', 'Égua, mano', 50]] },
+  { id: 'sticker', name: 'Adesivo', car: true, opts: [['', 'Nenhum', 0], ['DEUS É FIEL', 'Deus é fiel', 50], ['BEBÊ A BORDO', 'Bebê a bordo', 50], ['PAZ NO TRÂNSITO', 'Paz no trânsito', 50], ['100% GAMBIARRA', '100% gambiarra', 50], ['SE BEBER, CHAME O SEU ZÉ', 'Se beber, chame o Seu Zé', 50], ['MOTORISTA DE APLICATIVO', 'Motorista de aplicativo', 50], ['FAMÍLIA EM PRIMEIRO LUGAR', 'Família em primeiro lugar', 50], ['SÃO GAMBIARRA', 'São Gambiarra', 50], ['MANTENHA DISTÂNCIA', 'Mantenha distância', 50]] },
   { id: 'hood', name: 'Desenho', car: true, opts: [['', 'Nenhum', 0], ['chamas', 'Chamas no capô', 300], ['faixas', 'Faixas de rally', 250], ['n27', 'Número 27 no teto', 200]] },
   { id: 'neon', name: 'Neon', car: false, opts: [['', 'Sem neon', 0], ['#22d1ff', 'Azul', 600], ['#ff2bd6', 'Rosa', 600], ['#39ff6a', 'Verde', 600], ['#b84dff', 'Roxo', 600], ['#ffcc2e', 'Amarelo', 600]] },
   { id: 'low', name: 'Suspensão', car: true, opts: [[false, 'Original', 0], [true, 'Rebaixada', 800]] },
   { id: 'sound', name: 'Som', car: false, opts: [[false, 'Rádio de fábrica', 0], [true, 'Paredão (tecla B)', 1200]] },
   { id: 'spoiler', name: 'Aerofólio', car: true, opts: [[false, 'Sem aerofólio', 0], [true, 'Aerofólio', 500]] },
+  { id: 'roof', name: 'Teto', car: true, opts: [['', 'Original', 0], ['vinil', 'Teto de vinil preto', 350], ['solar', 'Teto solar', 600], ['rack', 'Rack de teto', 300], ['bagageiro', 'Bagageiro com mala', 450]] },
+  { id: 'pin', name: 'Filete lateral', car: true, opts: [['', 'Sem filete', 0], ['#f2f2ee', 'Branco', 200], ['#e6b43a', 'Dourado', 250], ['#e0302a', 'Vermelho', 200], ['#22d1ff', 'Azul', 200]] },
+  { id: 'exhaust', name: 'Escapamento', car: false, opts: [['', 'Original', 0], ['esportivo', 'Esportivo (ronco mais grosso)', 650], ['duplo', 'Ponteira dupla cromada', 900]] },
 ];
 // só o que muda alguma coisa pra quem joga (o resto se vê na prévia)
 const KIT_DESC = {
   paint: 'R$ 150 cada pintura.',
   low: '+4% de aderência nas curvas. Solta faísca nas lombadas.',
   sound: 'Tecla B liga e desliga. Parado, gasta bateria.',
+  exhaust: 'Ronco mais grosso e estalos mais altos.',
 };
-const KIT_DEFAULT = { finish: 'normal', wheels: 'serie', tint: 0, sticker: '', hood: '', neon: '', low: false, sound: false, spoiler: false };
+const KIT_DEFAULT = { finish: 'normal', wheels: 'serie', tint: 0, sticker: '', hood: '', neon: '', low: false, sound: false, spoiler: false, roof: '', pin: '', exhaust: '' };
 function carKit(id) {
   const cfg = carCfg(id);
   if (!cfg.kit) cfg.kit = Object.assign({}, KIT_DEFAULT);
@@ -65,6 +69,21 @@ function kitOver(ctx, k, m, color, L, W, hl, hw, ws, rf, rr, rw, lean) {
     ctx.fillText(k.sticker, 0, 0, W - 10);
     ctx.restore();
   }
+  // teto: vinil preto, teto solar, rack ou bagageiro com mala (entre a coluna da frente e a de trás)
+  if (k.roof && m.bed === undefined) {
+    const x0 = rr + 1, x1 = rf - 1, y0 = -hw + 4 + lean, y1 = hw - 4 + lean, rl = x1 - x0;
+    if (k.roof === 'vinil') { ctx.fillStyle = 'rgba(18,18,22,0.92)'; ctx.fillRect(x0, y0, rl, y1 - y0); ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 0.4; ctx.beginPath(); for (let x = x0 + 1.5; x < x1; x += 2) { ctx.moveTo(x, y0); ctx.lineTo(x, y1); } ctx.stroke(); }
+    else if (k.roof === 'solar') { const cx = x0 + rl * 0.55; ctx.fillStyle = '#0d1420'; ctx.fillRect(cx - rl * 0.22, y0 + 2.5, rl * 0.44, y1 - y0 - 5); ctx.fillStyle = 'rgba(170,200,240,0.35)'; ctx.fillRect(cx - rl * 0.2, y0 + 3, rl * 0.12, y1 - y0 - 6); }
+    else { // rack (barras) e bagageiro (barras + mala)
+      ctx.fillStyle = '#1c1d21'; ctx.fillRect(x0, y0 + 0.5, rl, 1.1); ctx.fillRect(x0, y1 - 1.6, rl, 1.1);
+      for (const t of [0.15, 0.5, 0.85]) ctx.fillRect(x0 + rl * t - 0.5, y0 + 0.5, 1, y1 - y0 - 1);
+      if (k.roof === 'bagageiro') { ctx.fillStyle = '#3a2c22'; ctx.fillRect(x0 + rl * 0.18, y0 + 2.4, rl * 0.62, y1 - y0 - 4.8); ctx.fillStyle = '#5a4434'; ctx.fillRect(x0 + rl * 0.18, y0 + 2.4, rl * 0.62, 1.2); ctx.fillStyle = '#c9a24a'; ctx.fillRect(x0 + rl * 0.47, y0 + 2.4, 1, y1 - y0 - 4.8); }
+    }
+  }
+  // filete lateral (risca fina nas duas laterais da carroceria)
+  if (k.pin) { ctx.fillStyle = k.pin; ctx.fillRect(-hl + 4, -hw + 1.2, L - 9, 0.7); ctx.fillRect(-hl + 4, hw - 1.9, L - 9, 0.7); }
+  // ponteira do escapamento aparecendo atrás
+  if (k.exhaust) { ctx.fillStyle = '#c9ccd2'; ctx.fillRect(-hl - 1.6, hw * 0.45, 2.2, 1.6); if (k.exhaust === 'duplo') ctx.fillRect(-hl - 1.6, hw * 0.45 - 2.4, 2.2, 1.6); }
   // aerofólio
   if (k.spoiler) {
     ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(-hl - 0.5, -hw + 0.5, 4, W - 1);

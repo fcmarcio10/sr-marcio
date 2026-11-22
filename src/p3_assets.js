@@ -949,6 +949,12 @@ const VMODELS = {
   pickup: { id: 'pickup', L: 52, W: 24, ws: 0.25, rf: 0.13, rr: -0.07, rw: -0.10, nose: 5, tail: 3, kind: 'car', bed: -0.12 },
   van: { id: 'van', L: 48, W: 24, ws: 0.45, rf: 0.37, rr: -0.44, rw: -0.47, nose: 10, tail: 6, kind: 'car', van: true },
   sport: { id: 'sport', L: 45, W: 24, ws: 0.14, rf: -0.02, rr: -0.25, rw: -0.37, nose: 9, tail: 6, kind: 'car', stripes: true, spoiler: true },
+  // (0.2.0) carros novos da garagem: proporções próprias (o desenho é o mesmo de todo carro)
+  compacto: { id: 'compacto', L: 37, W: 21, ws: 0.22, rf: 0.08, rr: -0.30, rw: -0.42, nose: 6, tail: 5, kind: 'car' },
+  perua: { id: 'perua', L: 52, W: 23, ws: 0.20, rf: 0.06, rr: -0.40, rw: -0.47, nose: 5, tail: 3, kind: 'car', boxy: true },
+  suv: { id: 'suv', L: 49, W: 25, ws: 0.24, rf: 0.12, rr: -0.36, rw: -0.45, nose: 5, tail: 3, kind: 'car', boxy: true },
+  cupe: { id: 'cupe', L: 46, W: 23, ws: 0.12, rf: -0.06, rr: -0.22, rw: -0.33, nose: 9, tail: 6, kind: 'car' },
+  esportivo: { id: 'esportivo', L: 52, W: 25, ws: 0.08, rf: -0.08, rr: -0.27, rw: -0.37, nose: 11, tail: 6, kind: 'car', stripes: true, spoiler: true },
   muscle: { id: 'muscle', L: 56, W: 25, ws: 0.10, rf: -0.05, rr: -0.25, rw: -0.34, nose: 4, tail: 4, kind: 'car', chrome: true },
   truck: { id: 'truck', L: 84, W: 28, kind: 'truck' },
   bus: { id: 'bus', L: 112, W: 30, kind: 'bus' },

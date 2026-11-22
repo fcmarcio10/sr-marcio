@@ -343,7 +343,7 @@ Events.update = function (dt) {
   const busy = this.busy();
   // sorteio de um evento novo
   if (!this.cur) {
-    const tutOn = Profile.tut !== undefined && Profile.tut < TUT_STEPS.length;
+    const tutOn = false;
     const histOk = true;
     if (!Act.race && !Socorro.job && !tutOn && histOk) this.spawnT -= dt;
     if (this.spawnT <= 0) {

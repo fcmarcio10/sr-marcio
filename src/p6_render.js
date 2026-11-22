@@ -1660,7 +1660,6 @@ function render() {
   Debris.draw(ctx, view);
   Atropelo.desenhaSangue(ctx, view);
   Colecao.desenha(ctx, view); // panelas de barro e placas de zoeira
-  Tutorial.desenha(ctx, view); // seta do tutorial em cima do lugar certo
   Sol.calc(); Sombras.chao(ctx, view); // sombras pelo sol: pessoas, bichos, bancos, mesas... (no formato de cada um)
   drawDynShadows(ctx, view);
   pm('decals');

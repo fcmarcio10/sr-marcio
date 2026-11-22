@@ -12,6 +12,14 @@ const CARS = [
   { id: 'cacamba', name: 'Caçambão 113', model: 'cacamba', price: 12000, max: 320, acc: 80, brk: 260, steer: 0.78, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.8, offroad: true, job: 'cacamba', desc: 'Recolhe entulho das obras da cidade e leva para o aterro.' },
   { id: 'bau', name: 'Acelerado Baú', model: 'bau', price: 16000, max: 350, acc: 84, brk: 270, steer: 0.76, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.9, job: 'bau', desc: 'Caminhão baú que abastece mercados, bares e restaurantes. Fretes longos e bem pagos.' },
   { id: 'tanker', name: 'Tancão R440', model: 'tanker', price: 24000, max: 340, acc: 76, brk: 250, steer: 0.72, grip: 0.95, pitch: 0.5, cyl: 6, fuel: 2.1, job: 'tanker', desc: 'Caminhão-tanque que abastece os postos. O frete que mais paga, e o mais pesado de manobrar.' },
+  // (0.2.0) carros novos
+  { id: 'mimo', name: 'Mimo 1.0', model: 'compacto', brand: 'fia', price: 3200, max: 405, acc: 112, brk: 320, steer: 1.12, grip: 0.98, pitch: 1.15, cyl: 4, fuel: 0.75, desc: 'O menorzinho da cidade: estaciona em qualquer vaga e quase não bebe. Na subida, reza.' },
+  { id: 'celtinha', name: 'Celtinha 1.0', model: 'hatch', price: 6500, max: 440, acc: 126, brk: 335, steer: 1.06, grip: 1.0, pitch: 1.1, cyl: 4, fuel: 0.85, desc: 'Hatch popular de duas portas, simples e econômico. O primeiro carro de meia cidade.' },
+  { id: 'paraty', name: 'Paratinha Perua', model: 'perua', price: 9000, max: 455, acc: 124, brk: 330, steer: 0.98, grip: 1.0, pitch: 0.95, cyl: 4, fuel: 1.0, cargo: 1.2, desc: 'Perua de porta-malas enorme. Cabe a família, o cachorro e a mudança da sogra.' },
+  { id: 'corolinha', name: 'Corolinha XEi', model: 'sedan', brand: 'toyoda', price: 16000, max: 520, acc: 150, brk: 380, steer: 1.0, grip: 1.06, pitch: 0.98, cyl: 4, fuel: 1.0, desc: 'Sedã confortável e que não quebra nunca. Silencioso por dentro, valorizado na revenda.' },
+  { id: 'ecosporte', name: 'Ecosporte 4x4', model: 'suv', brand: 'fort', price: 22000, max: 495, acc: 148, brk: 360, steer: 0.94, grip: 1.08, pitch: 0.9, cyl: 4, fuel: 1.25, offroad: true, desc: 'Utilitário alto com tração nas quatro rodas. Encara a estrada de terra e a lama da roça.' },
+  { id: 'civilzinho', name: 'Civilzinho Si', model: 'cupe', brand: 'ronda', price: 27000, max: 590, acc: 182, brk: 430, steer: 1.15, grip: 1.14, pitch: 1.25, cyl: 4, fuel: 1.15, desc: 'Cupê de motor girador: grita lá em cima e faz curva como se tivesse trilho.' },
+  { id: 'camarote', name: 'Camarote SS V8', model: 'esportivo', brand: 'chevrole', price: 52000, max: 680, acc: 220, brk: 440, steer: 1.02, grip: 1.1, pitch: 0.72, cyl: 8, fuel: 1.7, desc: 'Esportivo americano de oito cilindros. O carro mais rápido de São Gambiarra, e o mais caro de encher o tanque.' },
   { id: 'brasa', name: 'Opalha 6C', model: 'muscle', price: 35000, max: 632, acc: 196, brk: 385, steer: 0.95, grip: 0.98, pitch: 0.78, cyl: 6, fuel: 1.4, desc: 'O sedã clássico de seis canecos, para-choques cromados e teto de vinil. Ronco grave e força de sobra.' },
 ];
 const PALETTE = ['#c0392b', '#e8e8e8', '#1f2a44', '#2e86de', '#f1c40f', '#27ae60', '#16181d', '#8e9aa6', '#e67e22', '#7d3c98', '#6d4c3a', '#ff6fa5'];
@@ -35,8 +43,8 @@ const BRANDS = {
   varmete: { name: 'Valmato', color: '#3cb371', slogan: 'Puxa até mudança de sogra.' },
 };
 const MODEL_BRAND = { quadrado: 'volks', besouro: 'volks', van: 'volks', pickup: 'volks', santana: 'volks', escada: 'fia', hatch: 'chevrole', police: 'chevrole', muscle: 'chevrole', sedan: 'toyoda', taxi: 'toyoda', sport: 'fort', guincho: 'fort', moto: 'ronda', gas: 'merces', bau: 'merces', bus: 'merces', truck: 'escania', tanker: 'escania', cacamba: 'escania', tractor: 'varmete' };
-function brandOf(model) { return BRANDS[MODEL_BRAND[model] || 'volks']; }
-function carFullName(c) { return brandOf(c.model).name + ' ' + c.name; }
+function brandOf(model, c) { return BRANDS[(c && c.brand) || MODEL_BRAND[model] || 'volks']; }
+function carFullName(c) { return brandOf(c.model, c).name + ' ' + c.name; }
 function carById(id) { return CARS.find((c) => c.id === id) || CARS[0]; }
 function carCfg(id) {
   if (!Profile.cars[id]) Profile.cars[id] = { color: PALETTE[CARS.findIndex((c) => c.id === id) % PALETTE.length], up: { motor: 0, cambio: 0, freio: 0, pneu: 0 } };
@@ -279,7 +287,7 @@ class Player {
       if (this.estaloT <= 0) {
         this.estalos--; this.estaloT = rnd(0.06, 0.15);
         Particles.emit('flame', this.x - c * this.m.L * 0.55, this.y - s * this.m.L * 0.55, -c * 60 + rnd(-15, 15), -s * 60 + rnd(-15, 15), rnd(0.1, 0.2), 5);
-        if (AudioSys.ok) { AudioSys.noise(0.05, rnd(700, 1300), 1, 0.2, 'engine', 'lowpass'); AudioSys.tone(rnd(60, 90), 0.06, 'square', 0.09, 'engine'); }
+        if (AudioSys.ok) { AudioSys.noise(0.05, rnd(700, 1300), 1, 0.2 * (carKit(this.car.id).exhaust ? 1.6 : 1), 'engine', 'lowpass'); AudioSys.tone(rnd(60, 90), 0.06, 'square', 0.09, 'engine'); }
       }
     } else if (inp.thr) this.estalos = 0;
     this.prevThr = inp.thr ? 1 : 0;
