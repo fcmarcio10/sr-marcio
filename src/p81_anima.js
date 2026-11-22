@@ -25,6 +25,7 @@ Embarque.sai = function (look, destX, destY) {
   if (!player) return;
   const lado = this.ladoDe(destX, destY), [px, py] = this.porta(lado);
   const w = this.novo(look, px, py, player.a + lado * Math.PI / 2, 'sai');
+  AudioSys.porta(false, 0.8); setTimeout(() => AudioSys.porta(true, 0.9), 650); // porta abrindo e fechando
   const d = Math.hypot(destX - px, destY - py) || 1, k = Math.min(1, 30 / d);
   w.tx = px + (destX - px) * k; w.ty = py + (destY - py) * k;
 };
@@ -57,6 +58,7 @@ Embarque.update = function (dt) {
       const k = Math.min(d, w.v * dt) / d; w.x += dx * k; w.y += dy * k;
     } else {
       w.v = Math.max(0, w.v - 160 * dt);
+      if (w.modo === 'entra' && !w.porta) { w.porta = 1; AudioSys.porta(false, 0.8); setTimeout(() => AudioSys.porta(true, 1), 380); } // abre e fecha a porta
       if (w.modo === 'entra') { w.alpha -= dt * 3.2; w.a += clamp(angDiff(w.a, player ? player.a : w.a), -6 * dt, 6 * dt); } // vira de costas para o carro e entra
       else if (w.t > 1.6) { w.alpha -= dt * 0.8; if (!w.olhou) { w.olhou = true; w.a += 0.9; } } // olha em volta e some andando devagar
     }

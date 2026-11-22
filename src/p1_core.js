@@ -474,13 +474,13 @@ const AudioSys = {
       }
     }
   },
-  bark(dist) {
-    const v = clamp(1 - dist / 1200, 0.05, 1) * 0.12;
-    for (let i = 0; i < 2; i++) { this.noise(0.09, 700, 3, v, 'ambient', 'bandpass', i * 0.22); this.tone(520, 0.08, 'sawtooth', v * 0.4, 'ambient', 300, i * 0.22); }
-  },
-  owl() { this.tone(390, 0.35, 'sine', 0.05, 'ambient', 360); this.tone(390, 0.5, 'sine', 0.05, 'ambient', 340, 0.5); },
+  // (0.2.0) sons de coisas que acontecem de verdade no jogo (cada um tem motivo para tocar)
+  porta(fecha, v) { v = v === undefined ? 1 : v; if (fecha) { this.tone(110, 0.09, 'sine', 0.12 * v, 'ambient', 70); this.noise(0.05, 1800, 2, 0.05 * v, 'ambient', 'bandpass'); } else { this.noise(0.06, 2600, 3, 0.05 * v, 'ambient', 'bandpass'); this.tone(240, 0.05, 'square', 0.02 * v, 'ambient', 180, 0.03); } },
+  chute(v) { this.tone(140, 0.07, 'sine', 0.1 * v, 'ambient', 80); this.noise(0.04, 900, 1.5, 0.05 * v, 'ambient', 'bandpass'); },
+  torcida(v) { for (let i = 0; i < 3; i++) this.noise(0.5 + i * 0.15, 650 + i * 260, 1.4, 0.05 * v, 'ambient', 'bandpass', i * 0.08); this.tone(620, 0.4, 'triangle', 0.02 * v, 'ambient', 760, 0.1); },
+  tabua(v) { this.tone(180 + Math.random() * 40, 0.06, 'triangle', 0.08 * v, 'engine', 120); this.noise(0.04, 700, 2, 0.05 * v, 'engine', 'bandpass'); },
+  papo(v) { for (let i = 0; i < 2; i++) this.tone(170 + Math.random() * 120, 0.12 + Math.random() * 0.1, 'triangle', 0.012 * v, 'ambient', 150 + Math.random() * 120, i * 0.18); },
   frog() { for (let i = 0; i < 3; i++) this.tone(170, 0.07, 'square', 0.025, 'ambient', 120, i * 0.13); },
-  moo() { this.tone(160, 1.1, 'sawtooth', 0.03, 'ambient', 120); },
   siren() {
     if (!this.ok) return;
     const c = this.ctx, t = c.currentTime;

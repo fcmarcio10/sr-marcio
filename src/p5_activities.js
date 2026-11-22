@@ -261,7 +261,7 @@ function visitShop(s) {
 }
 
 /* ---------- GPS (Dijkstra na malha viária) ---------- */
-function gpsRoute(sx, sy, tx, ty) {
+function gpsRoute(sx, sy, tx, ty, hx, hy) {
   const A = nearestEdge(sx, sy), B = nearestEdge(tx, ty);
   if (!A.e || !B.e) return null;
   const pA = A.e.h ? [A.e.a.x + A.s, A.e.a.y] : [A.e.a.x, A.e.a.y + A.s];
@@ -270,6 +270,8 @@ function gpsRoute(sx, sy, tx, ty) {
   const N = World.nodes.length;
   const dist = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), done = new Uint8Array(N);
   dist[A.e.a.id] = A.s; dist[A.e.b.id] = A.e.len - A.s;
+  // (0.2.0) respeita para onde você está indo: voltar para trás custa um retorno (só se precisar mesmo)
+  if (hx !== undefined) { const ux = A.e.b.x - A.e.a.x, uy = A.e.b.y - A.e.a.y, pr = (ux * hx + uy * hy) / (Math.hypot(ux, uy) || 1); if (pr > 0.3) dist[A.e.a.id] += 350; else if (pr < -0.3) dist[A.e.b.id] += 350; }
   for (;;) {
     let u = -1, best = Infinity;
     for (let i = 0; i < N; i++) if (!done[i] && dist[i] < best) { best = dist[i]; u = i; }
@@ -293,6 +295,47 @@ function gpsRoute(sx, sy, tx, ty) {
   for (const n of path) pts.push([n.x, n.y]);
   pts.push(pB, [tx, ty]);
   return { pts, len };
+}
+/* ---------- Nav: caminho pelas ruas para quem dirige (GPS, caminhão do Seu Zé e as próximas IAs, como a polícia) ----------
+   Usa a mesma malha de ruas do GPS (cruzamentos ligados pelas ruas), mas monta a linha por onde um carro anda de verdade:
+   na mão certa (faixa da direita de cada rua), com curva arredondada nos cruzamentos e, se pedir, sem as retas de fora da rua. */
+function navArestaEntre(a, b) { for (const e of a.edges) if ((e.a === a && e.b === b) || (e.b === a && e.a === b)) return e; return null; }
+function navRota(sx, sy, tx, ty, opt) {
+  opt = opt || {};
+  const r = gpsRoute(sx, sy, tx, ty, opt.hx, opt.hy); if (!r) return null;
+  let P = r.pts.slice(1, -1); // só a parte que está na rua (pA, cruzamentos, pB)
+  if (P.length < 2) return { pts: r.pts, len: r.len };
+  // faixa de cada trecho (mão direita): pega a rua entre os dois pontos; nas pontas usa a rua mais perto
+  const faixaDe = (a, b) => {
+    const na = World.nodes.find((n) => n.x === a[0] && n.y === a[1]), nb = World.nodes.find((n) => n.x === b[0] && n.y === b[1]);
+    const e = na && nb ? navArestaEntre(na, nb) : nearestEdge((a[0] + b[0]) / 2, (a[1] + b[1]) / 2).e;
+    return e ? (e.T.lanes ? e.T.lanes[0] : e.hw * 0.4) : 20;
+  };
+  const segs = [];
+  for (let i = 0; i < P.length - 1; i++) {
+    const a = P[i], b = P[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 0.5) continue;
+    const ux = (b[0] - a[0]) / L, uy = (b[1] - a[1]) / L, off = opt.centro ? 0 : faixaDe(a, b);
+    segs.push({ ax: a[0] - uy * off, ay: a[1] + ux * off, bx: b[0] - uy * off, by: b[1] + ux * off, ux, uy, L });
+  }
+  if (!segs.length) return { pts: r.pts, len: r.len };
+  const out = [[segs[0].ax, segs[0].ay]];
+  for (let i = 0; i < segs.length; i++) {
+    const S = segs[i], N = segs[i + 1];
+    if (!N) { out.push([S.bx, S.by]); break; }
+    const giro = S.ux * N.uy - S.uy * N.ux, reto = S.ux * N.ux + S.uy * N.uy;
+    if (Math.abs(giro) < 0.2 && reto > 0) { out.push([S.bx, S.by]); continue; } // segue reto
+    // curva arredondada: encontro das duas faixas e um arco por dentro do cruzamento (retorno vira um "U")
+    const R = Math.min(32, S.L / 2, N.L / 2);
+    // ponto de encontro das duas linhas (ruas são retas em x ou y)
+    const ix = Math.abs(S.ux) > 0.5 ? N.ax : S.bx, iy = Math.abs(S.ux) > 0.5 ? S.by : N.ay;
+    const p0 = [ix - S.ux * R, iy - S.uy * R], p2 = [ix + N.ux * R, iy + N.uy * R];
+    if (reto < -0.5) { out.push([S.bx, S.by], [N.ax, N.ay]); continue; }
+    out.push(p0);
+    for (let k = 1; k < 6; k++) { const t = k / 6, u = 1 - t; out.push([u * u * p0[0] + 2 * u * t * ix + t * t * p2[0], u * u * p0[1] + 2 * u * t * iy + t * t * p2[1]]); }
+    out.push(p2);
+  }
+  const pts = opt.soRua ? out : [[sx, sy], ...out, [tx, ty]];
+  return { pts, len: r.len, rua: out };
 }
 function currentTarget() {
   if (Act.race) { const R = Act.race; const p = R.idx < R.r.pts.length ? R.r.pts[R.idx] : null; return p ? { x: p[0], y: p[1], kind: 'race' } : null; }
@@ -366,7 +409,7 @@ function updateActivities(dt) {
   const tgt = currentTarget();
   if (Act.waypoint && Math.hypot(Act.waypoint.x - p.x, Act.waypoint.y - p.y) < 90) { Act.waypoint = null; toast('Você chegou ao destino', '', 'good'); AudioSys.checkpoint(); }
   Act.gpsT -= dt;
-  if (tgt && (Act.gpsT <= 0 || !Act.gps)) { Act.gps = gpsRoute(p.x, p.y, tgt.x, tgt.y); Act.gpsT = 0.8; Act.gpsTarget = tgt; }
+  if (tgt && (Act.gpsT <= 0 || !Act.gps)) { const sp = Math.hypot(p.vx, p.vy); Act.gps = navRota(p.x, p.y, tgt.x, tgt.y, sp > 40 ? { hx: p.vx / sp, hy: p.vy / sp } : {}); Act.gpsT = 0.8; Act.gpsTarget = tgt; } // rota pela faixa, com curvas e no sentido em que você vai
   if (!tgt) { Act.gps = null; Act.gpsTarget = null; }
   // vagas
   Act.parkSpot = null;

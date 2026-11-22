@@ -474,13 +474,13 @@ const AudioSys = {
       }
     }
   },
-  bark(dist) {
-    const v = clamp(1 - dist / 1200, 0.05, 1) * 0.12;
-    for (let i = 0; i < 2; i++) { this.noise(0.09, 700, 3, v, 'ambient', 'bandpass', i * 0.22); this.tone(520, 0.08, 'sawtooth', v * 0.4, 'ambient', 300, i * 0.22); }
-  },
-  owl() { this.tone(390, 0.35, 'sine', 0.05, 'ambient', 360); this.tone(390, 0.5, 'sine', 0.05, 'ambient', 340, 0.5); },
+  // (0.2.0) sons de coisas que acontecem de verdade no jogo (cada um tem motivo para tocar)
+  porta(fecha, v) { v = v === undefined ? 1 : v; if (fecha) { this.tone(110, 0.09, 'sine', 0.12 * v, 'ambient', 70); this.noise(0.05, 1800, 2, 0.05 * v, 'ambient', 'bandpass'); } else { this.noise(0.06, 2600, 3, 0.05 * v, 'ambient', 'bandpass'); this.tone(240, 0.05, 'square', 0.02 * v, 'ambient', 180, 0.03); } },
+  chute(v) { this.tone(140, 0.07, 'sine', 0.1 * v, 'ambient', 80); this.noise(0.04, 900, 1.5, 0.05 * v, 'ambient', 'bandpass'); },
+  torcida(v) { for (let i = 0; i < 3; i++) this.noise(0.5 + i * 0.15, 650 + i * 260, 1.4, 0.05 * v, 'ambient', 'bandpass', i * 0.08); this.tone(620, 0.4, 'triangle', 0.02 * v, 'ambient', 760, 0.1); },
+  tabua(v) { this.tone(180 + Math.random() * 40, 0.06, 'triangle', 0.08 * v, 'engine', 120); this.noise(0.04, 700, 2, 0.05 * v, 'engine', 'bandpass'); },
+  papo(v) { for (let i = 0; i < 2; i++) this.tone(170 + Math.random() * 120, 0.12 + Math.random() * 0.1, 'triangle', 0.012 * v, 'ambient', 150 + Math.random() * 120, i * 0.18); },
   frog() { for (let i = 0; i < 3; i++) this.tone(170, 0.07, 'square', 0.025, 'ambient', 120, i * 0.13); },
-  moo() { this.tone(160, 1.1, 'sawtooth', 0.03, 'ambient', 120); },
   siren() {
     if (!this.ok) return;
     const c = this.ctx, t = c.currentTime;
@@ -3541,27 +3541,40 @@ function drawProp(g, p) {
   g.save(); g.translate(p.x, p.y); g.rotate(p.a);
   if (p.broken) { drawBrokenProp(g, p); g.restore(); return; }
   switch (p.type) {
-    case 'bench':
-      g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-12, -2, 28, 9);
-      g.fillStyle = '#3a3a3a'; g.fillRect(-12, -4, 2, 8); g.fillRect(10, -4, 2, 8);
-      g.fillStyle = '#8a5a34'; g.fillRect(-13, -4, 26, 3); g.fillRect(-13, 0, 26, 3);
-      g.fillStyle = '#6a4224'; g.fillRect(-13, -1, 26, 1);
+    case 'bench': { // banco de praça: pés de ferro, tábuas com fresta, encosto e brilho de verniz
+      g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(-12, -3, 27, 10);
+      g.fillStyle = '#2c2d30'; for (const x of [-11, 9]) { g.fillRect(x, -5.5, 2.4, 10); g.fillRect(x - 0.6, 3.6, 3.6, 1.2); }
+      const gr = g.createLinearGradient(0, -5, 0, 4); gr.addColorStop(0, '#a87244'); gr.addColorStop(1, '#6f4426');
+      g.fillStyle = gr; for (const y of [-5, -1.6, 1.8]) g.fillRect(-13.5, y, 27, 2.6);
+      g.fillStyle = 'rgba(255,235,200,0.25)'; for (const y of [-5, -1.6, 1.8]) g.fillRect(-13.5, y, 27, 0.6);
+      g.fillStyle = 'rgba(40,24,12,0.5)'; for (let x = -10; x < 13; x += 5.5) g.fillRect(x, -5, 0.5, 9.4); // veio da madeira
       break;
-    case 'bin':
-      g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.arc(2, 3, 5, 0, TAU); g.fill();
-      g.fillStyle = '#2f6a3a'; g.beginPath(); g.arc(0, 0, 4.5, 0, TAU); g.fill();
-      g.fillStyle = '#1c3f22'; g.beginPath(); g.arc(0, 0, 2.5, 0, TAU); g.fill();
+    }
+    case 'bin': { // lixeira de rua: cesto verde com aro de metal, saco preto dentro e brilho de um lado
+      g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.arc(1.4, 2, 4.8, 0, TAU); g.fill();
+      const gr = g.createRadialGradient(-1.4, -1.4, 0.5, 0, 0, 4.8); gr.addColorStop(0, '#4f9a5c'); gr.addColorStop(1, '#22552c');
+      g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 4.6, 0, TAU); g.fill();
+      g.strokeStyle = '#a8adb2'; g.lineWidth = 0.8; g.beginPath(); g.arc(0, 0, 4.2, 0, TAU); g.stroke();
+      g.fillStyle = '#16181b'; g.beginPath(); g.arc(0.2, 0.2, 2.9, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.18)'; g.beginPath(); g.arc(-0.6, -0.7, 1.2, 0, TAU); g.fill(); // saco de lixo brilhando
       break;
-    case 'hydrant':
-      g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.arc(2, 3, 4, 0, TAU); g.fill();
-      g.fillStyle = '#c8302a'; g.beginPath(); g.arc(0, 0, 3.6, 0, TAU); g.fill();
-      g.fillStyle = '#ffd04a'; g.beginPath(); g.arc(0, 0, 1.6, 0, TAU); g.fill();
+    }
+    case 'hydrant': { // hidrante: corpo vermelho com tampa amarela, bocais dos lados e parafusos
+      g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.arc(1.4, 2.2, 4, 0, TAU); g.fill();
+      g.fillStyle = '#9a1f1a'; g.fillRect(-5, -1.4, 10, 2.8); // bocais
+      const gr = g.createRadialGradient(-1.2, -1.2, 0.3, 0, 0, 3.8); gr.addColorStop(0, '#ff5a4a'); gr.addColorStop(1, '#a8231c');
+      g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 3.6, 0, TAU); g.fill();
+      g.fillStyle = '#ffd04a'; g.beginPath(); g.arc(0, 0, 1.8, 0, TAU); g.fill();
+      g.fillStyle = '#8a6a10'; for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; g.fillRect(Math.cos(a) * 2.7 - 0.35, Math.sin(a) * 2.7 - 0.35, 0.7, 0.7); }
       break;
-    case 'bollard':
-      g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.arc(1.5, 2, 3, 0, TAU); g.fill();
-      g.fillStyle = '#5a5a5e'; g.beginPath(); g.arc(0, 0, 2.6, 0, TAU); g.fill();
-      g.fillStyle = '#e0c04a'; g.beginPath(); g.arc(0, 0, 1.2, 0, TAU); g.fill();
+    }
+    case 'bollard': { // frade de concreto com faixa refletiva
+      g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.arc(1.2, 1.8, 3, 0, TAU); g.fill();
+      const gr = g.createRadialGradient(-0.9, -0.9, 0.2, 0, 0, 2.8); gr.addColorStop(0, '#9a9aa0'); gr.addColorStop(1, '#4a4a4e');
+      g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 2.7, 0, TAU); g.fill();
+      g.strokeStyle = '#e0c04a'; g.lineWidth = 0.9; g.beginPath(); g.arc(0, 0, 1.6, 0, TAU); g.stroke();
       break;
+    }
     case 'island': {
       // ilha com meio-fio amarelo e preto, bombas com visor, mangueiras e extintor
       const w = p.w, h = p.h;
@@ -4360,17 +4373,17 @@ function glowSprite(hex) {
 /* ============================ VEÍCULOS DO JOGADOR ============================ */
 const CARS = [
   { id: 'pampeiro', name: 'Gou Quadrado 1.6', model: 'quadrado', price: 0, max: 418, acc: 118, brk: 330, steer: 1.0, grip: 1.0, pitch: 1.0, cyl: 4, fuel: 1.0, desc: 'O hatch quadradinho dos anos 80 que todo brasileiro já teve, ou já empurrou. Faróis retangulares, grade de frisos e valentia de sobra.' },
-  { id: 'besouro', name: 'Fuska 1300', model: 'besouro', price: 2800, max: 392, acc: 104, brk: 300, steer: 1.05, grip: 0.96, pitch: 1.22, cyl: 4, fuel: 0.9, desc: 'Motor a ar lá atrás, para-lamas redondos e faróis de sapo. Não corre, mas sobe qualquer ladeira de Vila Véia.' },
-  { id: 'tropeiro', name: 'Kombo Corujinha', model: 'van', price: 4500, max: 352, acc: 92, brk: 285, steer: 0.9, grip: 0.93, pitch: 0.82, cyl: 4, fuel: 1.15, cargo: 1.25, desc: 'Furgão de motor traseiro, frente em V e duas cores. O xodó das feiras e das mudanças: entregas rendem 25% a mais.' },
-  { id: 'escada', name: 'Unho Mile com Escada', model: 'escada', price: 5500, max: 425, acc: 121, brk: 330, steer: 1.08, grip: 1.0, pitch: 1.06, cyl: 4, fuel: 0.85, cargo: 1.1, desc: 'Hatch caixote de teto alto com a famosa escada no teto. Pau pra toda obra: entregas rendem 10% a mais.' },
-  { id: 'sertaneja', name: 'Salvêro do Peão', model: 'pickup', price: 3500, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.9, cyl: 4, fuel: 1.1, offroad: true, job: 'pickup', desc: 'Picape de cabine simples: o veículo de trabalho mais barato. Faz fretes pelo app Fretes e quase não perde velocidade na terra.' },
-  { id: 'cometa', name: 'Santanão 2.0', model: 'santana', price: 12500, max: 508, acc: 146, brk: 370, steer: 1.0, grip: 1.05, pitch: 0.95, cyl: 4, fuel: 1.05, desc: 'Sedã quadradão de quatro portas, o carro do tio no domingo. Firme e confortável na BR-101.' },
-  { id: 'bravo', name: 'Escorte XR3 Turbo', model: 'sport', price: 19000, max: 575, acc: 186, brk: 420, steer: 1.12, grip: 1.13, pitch: 1.12, cyl: 4, fuel: 1.2, desc: 'Hatch esportivo dos anos 90 com faixas, aerofólio e escapamento que acorda a rua inteira.' },
-  { id: 'gas', name: '1113 do Gás', model: 'gas', price: 7000, max: 330, acc: 86, brk: 270, steer: 0.84, grip: 0.92, pitch: 0.62, cyl: 6, fuel: 1.5, job: 'gas', desc: 'Caminhãozinho de gás com a musiquinha clássica. Entrega botijão de casa em casa pelo app Fretes.' },
-  { id: 'guincho', name: 'Cargo Guincho', model: 'guincho', price: 10000, max: 360, acc: 92, brk: 285, steer: 0.82, grip: 0.95, pitch: 0.6, cyl: 6, fuel: 1.6, job: 'guincho', desc: 'Plataforma para rebocar carros quebrados até a oficina do Seu Zé.' },
-  { id: 'cacamba', name: 'Caçambona 113', model: 'cacamba', price: 12000, max: 320, acc: 80, brk: 260, steer: 0.78, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.8, offroad: true, job: 'cacamba', desc: 'Recolhe entulho das obras da cidade e leva para o aterro.' },
-  { id: 'bau', name: 'Acelerô Baú', model: 'bau', price: 16000, max: 350, acc: 84, brk: 270, steer: 0.76, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.9, job: 'bau', desc: 'Caminhão baú que abastece mercados, bares e restaurantes. Fretes longos e bem pagos.' },
-  { id: 'tanker', name: 'Tanquezão R440', model: 'tanker', price: 24000, max: 340, acc: 76, brk: 250, steer: 0.72, grip: 0.95, pitch: 0.5, cyl: 6, fuel: 2.1, job: 'tanker', desc: 'Caminhão-tanque que abastece os postos. O frete que mais paga, e o mais pesado de manobrar.' },
+  { id: 'besouro', name: 'Besourão 1300', model: 'besouro', price: 2800, max: 392, acc: 104, brk: 300, steer: 1.05, grip: 0.96, pitch: 1.22, cyl: 4, fuel: 0.9, desc: 'Motor a ar lá atrás, para-lamas redondos e faróis de sapo. Não corre, mas sobe qualquer ladeira de Vila Véia.' },
+  { id: 'tropeiro', name: 'Kombão Lotação', model: 'van', price: 4500, max: 352, acc: 92, brk: 285, steer: 0.9, grip: 0.93, pitch: 0.82, cyl: 4, fuel: 1.15, cargo: 1.25, desc: 'Furgão de motor traseiro, frente em V e duas cores. O xodó das feiras e das mudanças: entregas rendem 25% a mais.' },
+  { id: 'escada', name: 'Unidade com Escadinha', model: 'escada', price: 5500, max: 425, acc: 121, brk: 330, steer: 1.08, grip: 1.0, pitch: 1.06, cyl: 4, fuel: 0.85, cargo: 1.1, desc: 'Hatch caixote de teto alto com a famosa escada no teto. Pau pra toda obra: entregas rendem 10% a mais.' },
+  { id: 'sertaneja', name: 'Saveirão do Peão', model: 'pickup', price: 3500, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.9, cyl: 4, fuel: 1.1, offroad: true, job: 'pickup', desc: 'Picape de cabine simples: o veículo de trabalho mais barato. Faz fretes pelo app Fretes e quase não perde velocidade na terra.' },
+  { id: 'cometa', name: 'Santinha 2.0', model: 'santana', price: 12500, max: 508, acc: 146, brk: 370, steer: 1.0, grip: 1.05, pitch: 0.95, cyl: 4, fuel: 1.05, desc: 'Sedã quadradão de quatro portas, o carro do tio no domingo. Firme e confortável na BR-101.' },
+  { id: 'bravo', name: 'Escoltinha XR3 Turbo', model: 'sport', price: 19000, max: 575, acc: 186, brk: 420, steer: 1.12, grip: 1.13, pitch: 1.12, cyl: 4, fuel: 1.2, desc: 'Hatch esportivo dos anos 90 com faixas, aerofólio e escapamento que acorda a rua inteira.' },
+  { id: 'gas', name: 'Botijão 1113', model: 'gas', price: 7000, max: 330, acc: 86, brk: 270, steer: 0.84, grip: 0.92, pitch: 0.62, cyl: 6, fuel: 1.5, job: 'gas', desc: 'Caminhãozinho de gás com a musiquinha clássica. Entrega botijão de casa em casa pelo app Fretes.' },
+  { id: 'guincho', name: 'Carguinho Guincho', model: 'guincho', price: 10000, max: 360, acc: 92, brk: 285, steer: 0.82, grip: 0.95, pitch: 0.6, cyl: 6, fuel: 1.6, job: 'guincho', desc: 'Plataforma para rebocar carros quebrados até a oficina do Seu Zé.' },
+  { id: 'cacamba', name: 'Caçambão 113', model: 'cacamba', price: 12000, max: 320, acc: 80, brk: 260, steer: 0.78, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.8, offroad: true, job: 'cacamba', desc: 'Recolhe entulho das obras da cidade e leva para o aterro.' },
+  { id: 'bau', name: 'Acelerado Baú', model: 'bau', price: 16000, max: 350, acc: 84, brk: 270, steer: 0.76, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.9, job: 'bau', desc: 'Caminhão baú que abastece mercados, bares e restaurantes. Fretes longos e bem pagos.' },
+  { id: 'tanker', name: 'Tancão R440', model: 'tanker', price: 24000, max: 340, acc: 76, brk: 250, steer: 0.72, grip: 0.95, pitch: 0.5, cyl: 6, fuel: 2.1, job: 'tanker', desc: 'Caminhão-tanque que abastece os postos. O frete que mais paga, e o mais pesado de manobrar.' },
   { id: 'brasa', name: 'Opalha 6C', model: 'muscle', price: 35000, max: 632, acc: 196, brk: 385, steer: 0.95, grip: 0.98, pitch: 0.78, cyl: 6, fuel: 1.4, desc: 'O sedã clássico de seis canecos, para-choques cromados e teto de vinil. Ronco grave e força de sobra.' },
 ];
 const PALETTE = ['#c0392b', '#e8e8e8', '#1f2a44', '#2e86de', '#f1c40f', '#27ae60', '#16181d', '#8e9aa6', '#e67e22', '#7d3c98', '#6d4c3a', '#ff6fa5'];
@@ -4383,15 +4396,15 @@ const UPGRADES = [
 // marcas inventadas, na zoeira (nenhuma marca real)
 // marcas "quase" reais, na zoeira (paródias com trocadilho, sem logotipos)
 const BRANDS = {
-  volks: { name: 'Volks Vagão', color: '#59a8ff', slogan: 'Carro do povo, fiado em 60 vezes.' },
-  fia: { name: 'Fiá', color: '#ff4d4d', slogan: 'Compra fiado e paga quando der.' },
-  fort: { name: 'Fort', color: '#4f8cff', slogan: 'Forte que nem pão dormido.' },
-  chevrole: { name: 'Chevrolé', color: '#ffd23a', slogan: 'Encontre o seu (no ferro-velho).' },
-  toyoda: { name: 'Toyoda', color: '#ff6b6b', slogan: 'Dura mais que a sogra.' },
-  ronda: { name: 'Ronda', color: '#ff3b30', slogan: 'Cabe em qualquer vão do trânsito.' },
-  merces: { name: 'Mercês-Benz', color: '#c9ccd2', slogan: 'Caminhão de fé, abençoado pela Nossa Senhora das Mercês.' },
-  escania: { name: 'Escânia', color: '#ff9f1c', slogan: 'Bruto na subida, manso no posto.' },
-  varmete: { name: 'Varmete', color: '#3cb371', slogan: 'Puxa até mudança de sogra.' },
+  volks: { name: 'Povowagen', color: '#59a8ff', slogan: 'O carro do povo. Parcela do povo também.' },
+  fia: { name: 'Fiapo', color: '#ff4d4d', slogan: 'Pequeno por fora, apertado por dentro.' },
+  fort: { name: 'Fordaço', color: '#4f8cff', slogan: 'Forte que nem pão dormido.' },
+  chevrole: { name: 'Chevrolata', color: '#ffd23a', slogan: 'Encontre o seu (no ferro-velho).' },
+  toyoda: { name: 'Toyoca', color: '#ff6b6b', slogan: 'Dura mais que a sogra.' },
+  ronda: { name: 'Hondura', color: '#ff3b30', slogan: 'Cabe em qualquer vão do trânsito.' },
+  merces: { name: 'Mercadão-Benz', color: '#c9ccd2', slogan: 'Caminhão de fé, abençoado pela Nossa Senhora das Mercês.' },
+  escania: { name: 'Scânio', color: '#ff9f1c', slogan: 'Bruto na subida, manso no posto.' },
+  varmete: { name: 'Valmato', color: '#3cb371', slogan: 'Puxa até mudança de sogra.' },
 };
 const MODEL_BRAND = { quadrado: 'volks', besouro: 'volks', van: 'volks', pickup: 'volks', santana: 'volks', escada: 'fia', hatch: 'chevrole', police: 'chevrole', muscle: 'chevrole', sedan: 'toyoda', taxi: 'toyoda', sport: 'fort', guincho: 'fort', moto: 'ronda', gas: 'merces', bau: 'merces', bus: 'merces', truck: 'escania', tanker: 'escania', cacamba: 'escania', tractor: 'varmete' };
 function brandOf(model) { return BRANDS[MODEL_BRAND[model] || 'volks']; }
@@ -4599,6 +4612,7 @@ class Player {
       const W2 = this.rodas(), k = chance(0.5) ? 0 : 1, areia = this.surface === SF.SAND;
       Particles.emit(areia ? 'areia' : 'dust', W2[k * 2] - c * 5 + rnd(-3, 3), W2[k * 2 + 1] - s * 5 + rnd(-3, 3), -this.vx * 0.12 + rnd(-12, 12), -this.vy * 0.12 + rnd(-12, 12), rnd(1.1, 2.2) * clamp(sp / 250, 0.7, 1.4), rnd(5, 8));
     }
+    if (this.surface === SF.BRIDGE && sp > 40) { this.tabuaD = (this.tabuaD || 0) + sp * dt; if (this.tabuaD > 26) { this.tabuaD = 0; AudioSys.tabua(clamp(sp / 400, 0.3, 1)); } } // tábuas da ponte batendo
     let onB = false;
     for (const b of World.bumps) if (this.x > b.x0 && this.x < b.x1 && this.y > b.y0 && this.y < b.y1) { onB = true; break; }
     if (onB && !this.onBump && sp > 80) {
@@ -5546,6 +5560,7 @@ class Animal {
       this.olhaT = (this.olhaT || 0) - dt;
       if (this.olhaT <= 0) { this.olhaT = 0.3; for (const c of Traffic.cars) if (c.v > 25 && Math.abs(c.x - this.x) < 26 && Math.abs(c.y - this.y) < 26) { this.scare(c.x, c.y, false); this.acao = null; break; } }
     }
+    if (this.acao === 'conversa' && Game.state === 'playing' && Math.random() < dt * 0.9) { const d = Math.hypot(this.x - Cam.x, this.y - Cam.y); if (d < 230) AudioSys.papo(clamp(1 - d / 230, 0.1, 1)); } // conversa baixinha de quem está batendo papo
     if (this.type === 'person' && this.cruzaPasso(dt)) return;
     if (this.state === 'idle' || this.state === 'graze') {
       if (this.v > 0) { // freia aos poucos (o último passo ainda leva para frente)
@@ -5608,8 +5623,8 @@ Animals.update = function (dt, cx, cy) {
     this.soundT = R.rural > 0.5 ? rnd(5, 10) : rnd(4, 8);
     if (Ambiente.sorteia(rk, R, cx, cy)) return; // som gravado do lugar (bichos, carros, gente); sintetizado enquanto não carrega
     const r = rnd();
-    if (R.rural > 0.6) { if (r < 0.3) AudioSys.owl(); else if (r < 0.55) AudioSys.moo(); else if (r < 0.75) AudioSys.frog(); }
-    else if (rk === 'rio') { if (r < 0.6) AudioSys.frog(); else AudioSys.owl(); }
+    // (0.2.0) sem mugido nem coruja inventados: bicho só faz barulho pelo Ambiente, quando existe um perto; à noite, sapo na beira do rio
+    if ((rk === 'rio' || R.rural > 0.6) && Dia.noite > 0.5 && r < 0.4) AudioSys.frog();
     else { if (r < 0.5) { /* sem sirene */ } else if (r < 0.7) AudioSys.aiHorn(rnd(500, 850), pick(Object.keys(HORNS)), rnd(-0.8, 0.8)); }
   }
 };
@@ -5667,7 +5682,7 @@ function pelada(G, P, dt) {
     const past = side ? G.by > gy - 6 : G.by < gy + 6; if (!past) continue;
     if (Math.abs(G.bx - P.cx) < 20 && G.bz < 14) { // gol!
       G.lastTeam = side ? 0 : 1; G.score[G.lastTeam]++; G.cel = 3.2; G.dono = null; G.festaX = clamp(G.bx, P.x0 + 20, P.x1 - 20); G.festaY = side ? gy - 30 : gy + 30;
-      if (player && Math.hypot(player.x - P.cx, player.y - P.cy) < 600) AudioSys.tone(660, 0.25, 'triangle', 0.05, 'ambient', 880);
+      if (player && Math.hypot(player.x - P.cx, player.y - P.cy) < 600) AudioSys.torcida(clamp(1 - Math.hypot(player.x - P.cx, player.y - P.cy) / 600, 0.2, 1)); // galera gritando gol
     } else { // pra fora / na trave: volta e o time lamenta
       G.by = side ? gy - 6 : gy + 6; G.bvy = -G.bvy * 0.5; G.dono = null;
       if (G.ultimoChute && Game.time - G.ultimoChute.t < 2) for (const p of pl) if (p.team === G.ultimoChute.team && !p.keeper && Math.random() < 0.5) p.reacao = { tipo: 'lamenta', t: Game.time };
@@ -5744,6 +5759,7 @@ function chuta(G, p, tx, ty, forca, aoGol) {
   const a = Math.atan2(ty - G.by, tx - G.bx) + (Math.random() - 0.5) * (aoGol ? 0.22 : 0.12);
   G.bvx = Math.cos(a) * forca; G.bvy = Math.sin(a) * forca; G.bvz = forca > 190 ? (forca - 150) * 1.1 : 0;
   G.cd = 0.45; G.dono = null; p.chute = 0.28; p.a = a; G.ultimoChute = { team: p.team, t: Game.time };
+  const d = Math.hypot(G.bx - Cam.x, G.by - Cam.y); if (d < 520 && Game.state === 'playing') AudioSys.chute(clamp(1 - d / 520, 0.1, 1) * (forca > 190 ? 1 : 0.6)); // som do chute
 }
 function goleiroRepoe(G, k, P) { // goleiro segura e repõe a bola longe, para um companheiro
   const alvo = P.cx + (Math.random() - 0.5) * 120, ty = P.cy + (k.team ? 30 : -30);
@@ -6307,7 +6323,7 @@ function visitShop(s) {
 }
 
 /* ---------- GPS (Dijkstra na malha viária) ---------- */
-function gpsRoute(sx, sy, tx, ty) {
+function gpsRoute(sx, sy, tx, ty, hx, hy) {
   const A = nearestEdge(sx, sy), B = nearestEdge(tx, ty);
   if (!A.e || !B.e) return null;
   const pA = A.e.h ? [A.e.a.x + A.s, A.e.a.y] : [A.e.a.x, A.e.a.y + A.s];
@@ -6316,6 +6332,8 @@ function gpsRoute(sx, sy, tx, ty) {
   const N = World.nodes.length;
   const dist = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), done = new Uint8Array(N);
   dist[A.e.a.id] = A.s; dist[A.e.b.id] = A.e.len - A.s;
+  // (0.2.0) respeita para onde você está indo: voltar para trás custa um retorno (só se precisar mesmo)
+  if (hx !== undefined) { const ux = A.e.b.x - A.e.a.x, uy = A.e.b.y - A.e.a.y, pr = (ux * hx + uy * hy) / (Math.hypot(ux, uy) || 1); if (pr > 0.3) dist[A.e.a.id] += 350; else if (pr < -0.3) dist[A.e.b.id] += 350; }
   for (;;) {
     let u = -1, best = Infinity;
     for (let i = 0; i < N; i++) if (!done[i] && dist[i] < best) { best = dist[i]; u = i; }
@@ -6339,6 +6357,47 @@ function gpsRoute(sx, sy, tx, ty) {
   for (const n of path) pts.push([n.x, n.y]);
   pts.push(pB, [tx, ty]);
   return { pts, len };
+}
+/* ---------- Nav: caminho pelas ruas para quem dirige (GPS, caminhão do Seu Zé e as próximas IAs, como a polícia) ----------
+   Usa a mesma malha de ruas do GPS (cruzamentos ligados pelas ruas), mas monta a linha por onde um carro anda de verdade:
+   na mão certa (faixa da direita de cada rua), com curva arredondada nos cruzamentos e, se pedir, sem as retas de fora da rua. */
+function navArestaEntre(a, b) { for (const e of a.edges) if ((e.a === a && e.b === b) || (e.b === a && e.a === b)) return e; return null; }
+function navRota(sx, sy, tx, ty, opt) {
+  opt = opt || {};
+  const r = gpsRoute(sx, sy, tx, ty, opt.hx, opt.hy); if (!r) return null;
+  let P = r.pts.slice(1, -1); // só a parte que está na rua (pA, cruzamentos, pB)
+  if (P.length < 2) return { pts: r.pts, len: r.len };
+  // faixa de cada trecho (mão direita): pega a rua entre os dois pontos; nas pontas usa a rua mais perto
+  const faixaDe = (a, b) => {
+    const na = World.nodes.find((n) => n.x === a[0] && n.y === a[1]), nb = World.nodes.find((n) => n.x === b[0] && n.y === b[1]);
+    const e = na && nb ? navArestaEntre(na, nb) : nearestEdge((a[0] + b[0]) / 2, (a[1] + b[1]) / 2).e;
+    return e ? (e.T.lanes ? e.T.lanes[0] : e.hw * 0.4) : 20;
+  };
+  const segs = [];
+  for (let i = 0; i < P.length - 1; i++) {
+    const a = P[i], b = P[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 0.5) continue;
+    const ux = (b[0] - a[0]) / L, uy = (b[1] - a[1]) / L, off = opt.centro ? 0 : faixaDe(a, b);
+    segs.push({ ax: a[0] - uy * off, ay: a[1] + ux * off, bx: b[0] - uy * off, by: b[1] + ux * off, ux, uy, L });
+  }
+  if (!segs.length) return { pts: r.pts, len: r.len };
+  const out = [[segs[0].ax, segs[0].ay]];
+  for (let i = 0; i < segs.length; i++) {
+    const S = segs[i], N = segs[i + 1];
+    if (!N) { out.push([S.bx, S.by]); break; }
+    const giro = S.ux * N.uy - S.uy * N.ux, reto = S.ux * N.ux + S.uy * N.uy;
+    if (Math.abs(giro) < 0.2 && reto > 0) { out.push([S.bx, S.by]); continue; } // segue reto
+    // curva arredondada: encontro das duas faixas e um arco por dentro do cruzamento (retorno vira um "U")
+    const R = Math.min(32, S.L / 2, N.L / 2);
+    // ponto de encontro das duas linhas (ruas são retas em x ou y)
+    const ix = Math.abs(S.ux) > 0.5 ? N.ax : S.bx, iy = Math.abs(S.ux) > 0.5 ? S.by : N.ay;
+    const p0 = [ix - S.ux * R, iy - S.uy * R], p2 = [ix + N.ux * R, iy + N.uy * R];
+    if (reto < -0.5) { out.push([S.bx, S.by], [N.ax, N.ay]); continue; }
+    out.push(p0);
+    for (let k = 1; k < 6; k++) { const t = k / 6, u = 1 - t; out.push([u * u * p0[0] + 2 * u * t * ix + t * t * p2[0], u * u * p0[1] + 2 * u * t * iy + t * t * p2[1]]); }
+    out.push(p2);
+  }
+  const pts = opt.soRua ? out : [[sx, sy], ...out, [tx, ty]];
+  return { pts, len: r.len, rua: out };
 }
 function currentTarget() {
   if (Act.race) { const R = Act.race; const p = R.idx < R.r.pts.length ? R.r.pts[R.idx] : null; return p ? { x: p[0], y: p[1], kind: 'race' } : null; }
@@ -6412,7 +6471,7 @@ function updateActivities(dt) {
   const tgt = currentTarget();
   if (Act.waypoint && Math.hypot(Act.waypoint.x - p.x, Act.waypoint.y - p.y) < 90) { Act.waypoint = null; toast('Você chegou ao destino', '', 'good'); AudioSys.checkpoint(); }
   Act.gpsT -= dt;
-  if (tgt && (Act.gpsT <= 0 || !Act.gps)) { Act.gps = gpsRoute(p.x, p.y, tgt.x, tgt.y); Act.gpsT = 0.8; Act.gpsTarget = tgt; }
+  if (tgt && (Act.gpsT <= 0 || !Act.gps)) { const sp = Math.hypot(p.vx, p.vy); Act.gps = navRota(p.x, p.y, tgt.x, tgt.y, sp > 40 ? { hx: p.vx / sp, hy: p.vy / sp } : {}); Act.gpsT = 0.8; Act.gpsTarget = tgt; } // rota pela faixa, com curvas e no sentido em que você vai
   if (!tgt) { Act.gps = null; Act.gpsTarget = null; }
   // vagas
   Act.parkSpot = null;
@@ -6880,12 +6939,14 @@ function updateJobs(dt) {
 /* ---------- socorro do Seu Zé: chama pelo zap e ele vem de guincho (15% mais caro que a oficina) ---------- */
 const ZE = 'Seu Zé (Oficina)';
 const Socorro = { job: null };
-function socorroQuote(kind) {
-  if (kind === 'bat') return Math.ceil(lifePrice('bat') * 1.15);
-  if (kind === 'pneu') return Math.ceil(lifePrice('tires') * 1.15);
-  const fuel = Math.ceil(Math.max(0, 100 - Profile.fuel) * 1.8 * 1.15), fix = Math.ceil(Profile.damage * 4 * 1.15);
-  return kind === 'gas' ? fuel : kind === 'fix' ? fix : fuel + fix;
+// itens do socorro: um serviço só, ou o Kit completo (tudo o que o carro está precisando, montado sozinho)
+function socorroItens(kind) {
+  const S = zeServicos(1.15, true);
+  if (kind === 'kit') return S.filter((i) => i.precisa);
+  if (kind === 'pneu') kind = 'tires';
+  return S.filter((i) => i.k === kind);
 }
+function socorroQuote(kind) { return socorroItens(kind).reduce((a, i) => a + i.preco, 0); }
 // rota pela mão direita da pista (os pontos do GPS ficam no meio da rua)
 function laneShift(pts, off) {
   const out = pts.map((p) => p.slice());
@@ -6922,13 +6983,19 @@ function socorroCall(kind) {
   let sx, sy;
   if (of && Math.hypot(of.x - player.x, of.y - player.y) < 2600) { sx = of.x; sy = of.y; }
   else { const a = rnd(TAU); const ne = nearestEdge(clamp(player.x + Math.cos(a) * 1300, 100, WORLD_W - 100), clamp(player.y + Math.sin(a) * 1300, 100, WORLD_H - 100)); sx = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x; sy = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s; }
-  const route = gpsRoute(sx, sy, player.x, player.y);
-  const pts = route ? laneShift(route.pts, 20) : [[sx, sy], [player.x, player.y]];
-  const J = { kind, x: sx, y: sy, a: 0, pts, ri: 1, state: 'coming', t: 0, rt: 3, quote: socorroQuote(kind) };
+  // (0.2.0) caminho só pelas ruas (Nav): sai da rua mais perto da oficina, vai na mão certa, faz as curvas e para na rua mais perto de você
+  const route = navRota(sx, sy, player.x, player.y, { soRua: true });
+  const pts = route ? route.pts : [[sx, sy], [player.x, player.y]];
+  if (route) { sx = pts[0][0]; sy = pts[0][1]; }
+  const len0 = route ? route.len : Math.hypot(sx - player.x, sy - player.y);
+  // chega uns 80% mais tarde que antes: anda um pouco mais devagar (260) e demora para sair da oficina (pega as ferramentas)
+  const sai = Math.max(4, len0 / 300 * 1.8 - len0 / 260);
+  const itens = socorroItens(kind).map((i) => i.k);
+  const J = { kind, itens, x: sx, y: sy, a: pts[1] ? Math.atan2(pts[1][1] - sy, pts[1][0] - sx) : 0, pts, ri: 1, state: 'coming', t: 0, rt: 3, quote: socorroQuote(kind), sai };
   Profile.sos = (Profile.sos || 0) + 1;
   Socorro.job = J;
-  const len = route ? route.len : Math.hypot(sx - player.x, sy - player.y), eta = Math.max(1, Math.round(len / 280 / 20));
-  const what = kind === 'gas' ? 'gasolina' : kind === 'fix' ? 'conserto' : kind === 'bat' ? 'uma chupeta, a bateria arriou' : kind === 'pneu' ? 'pneus novos, tô no aro' : 'gasolina e conserto';
+  const eta = Math.max(1, Math.round((sai + len0 / 260) / 20)); // minutos do relógio do jogo (1 min = 1 s... como antes: / 20)
+  const what = kind === 'kit' ? 'o kit completo (' + zeLista(itens) + ')' : kind === 'bat' ? 'uma carga na bateria, ela arriou' : kind === 'tires' || kind === 'pneu' ? 'pneus novos, tô no aro' : kind === 'oil' ? 'uma troca de óleo' : kind === 'fix' ? 'um conserto na lataria' : 'gasolina';
   Profile.msgs.unshift({ from: ZE, title: '', body: 'Seu Zé, preciso de ' + what + '. Me socorre aí!', read: true, me: true, t: Math.floor(Profile.time) });
   setTimeout(() => {
     addMsg(ZE, '', 'Tô indo aí com o guincho! Fica parado num lugar seguro, com o pisca ligado. Chego em uns ' + eta + ' min. Fica uns R$ ' + fmtMoney(J.quote) + ' (15% a mais que na oficina, por causa do deslocamento).', true);
@@ -6947,33 +7014,29 @@ Socorro.update = function (dt) {
   const J = this.job; if (!J || !player) return;
   J.t += dt;
   if (J.state === 'coming') {
-    // recalcula a rota se você saiu do lugar
+    if (J.sai > 0) { J.sai -= dt; return; } // ainda saindo da oficina (fora da tela)
+    // recalcula a rota (pelas ruas) se você saiu do lugar
     J.rt -= dt;
     const end = J.pts[J.pts.length - 1];
-    if (J.rt <= 0) { J.rt = 3; if (Math.hypot(end[0] - player.x, end[1] - player.y) > 150) { const r = gpsRoute(J.x, J.y, player.x, player.y); if (r) { J.pts = laneShift(r.pts, 20); J.ri = 1; } } }
-    socorroDrive(J, 300, dt);
-    if (J.ri >= J.pts.length) { const dx = player.x - J.x, dy = player.y - J.y, d = Math.hypot(dx, dy); if (d > 40) { const m = Math.min(d - 40, 200 * dt); J.x += dx / d * m; J.y += dy / d * m; J.a = Math.atan2(dy, dx); } }
-    if (Math.hypot(player.x - J.x, player.y - J.y) < 75) { J.state = 'arrived'; J.t = 0; toast('Seu Zé chegou!', 'Fica parado aí que ele já resolve.', 'info'); AudioSys.aiHorn(60, 'caminhao', 0); }
+    if (J.rt <= 0) { J.rt = 3; if (Math.hypot(end[0] - player.x, end[1] - player.y) > 150) { const r = navRota(J.x, J.y, player.x, player.y, { soRua: true }); if (r) { J.pts = [[J.x, J.y], ...r.pts]; J.ri = 1; } } }
+    socorroDrive(J, 260, dt);
+    // acabou a rua: só encosta o último pedacinho se você estiver logo ali (nunca corta casa, rio ou terreno)
+    const fim = J.ri >= J.pts.length;
+    if (fim) { const dx = player.x - J.x, dy = player.y - J.y, d = Math.hypot(dx, dy); if (d > 40 && d < 140 && !areaBlocked(J.x + dx / d * 20 - 6, J.y + dy / d * 20 - 6, J.x + dx / d * 20 + 6, J.y + dy / d * 20 + 6)) { const m = Math.min(d - 40, 120 * dt); J.x += dx / d * m; J.y += dy / d * m; J.a += angDiff(J.a, Math.atan2(dy, dx)) * Math.min(1, dt * 5); } }
+    if (Math.hypot(player.x - J.x, player.y - J.y) < 75 || (fim && Math.hypot(player.x - J.x, player.y - J.y) < 220)) { J.state = 'arrived'; J.t = 0; toast('Seu Zé chegou!', 'Fica parado aí que ele já resolve.', 'info'); AudioSys.aiHorn(60, 'caminhao', 0); }
   } else if (J.state === 'arrived') {
     if (player.speed > 30) { J.t = 0; if (Math.hypot(player.x - J.x, player.y - J.y) > 160) { J.state = 'coming'; J.rt = 0; } return; }
     if (J.t > 0.4 && Math.floor(J.t * 2.5) !== Math.floor((J.t - dt) * 2.5)) AudioSys.wrench();
     if (J.t > 3) {
       // serviço completo; o que faltar de dinheiro o Seu Zé anota no fiado (é amigo)
-      const L = carLife();
-      let cost = 0, what = '';
-      if (J.kind === 'bat') { L.bat = 100; CarLife.stalled = false; cost = J.quote; what = 'Chupeta feita, o motor pegou!'; }
-      else if (J.kind === 'pneu') { L.tires = 100; cost = J.quote; what = 'Pneus novos no lugar!'; }
-      else {
-        const fuelNeed = J.kind !== 'fix' ? Math.max(0, 100 - Profile.fuel) : 0, dmg = J.kind !== 'gas' ? Profile.damage : 0;
-        cost = fuelNeed * 1.8 * 1.15 + dmg * 4 * 1.15;
-        Profile.fuel = Math.min(100, Profile.fuel + fuelNeed);
-        if (dmg > 0) { Profile.damage = 0; if (Profile.zones) { for (const z of ['f', 'r', 'l', 'rt', 'fL', 'fR']) Profile.zones[z] = 0; Profile.zones.seed = (Profile.zones.seed || 0) + 1; } }
-        what = 'Tudo resolvido.';
-      }
+      // faz exatamente os itens pedidos (o preço é o de agora, pode ter mudado no caminho)
+      const itens = socorroItens(J.kind === 'kit' ? 'kit' : J.itens[0]).filter((x) => J.kind !== 'kit' || J.itens.includes(x.k));
+      let cost = 0; for (const it of itens) { cost += it.preco; zeAplica(it.k); }
+      const what = itens.length ? 'Feito: ' + zeLista(itens) + '.' : 'Tudo em dia.';
       const ch = zeCharge(cost, true);
       AudioSys.chime();
       toast('Socorro do Seu Zé', what + ' Pago R$ ' + fmtMoney(ch.paid) + (ch.owed ? ' · fiado R$ ' + fmtMoney(ch.owed) : ''), 'good');
-      const tip = J.kind === 'bat' ? ' Agora não fica parado com o farol aceso não, hein. Bateria não é poste.' : J.kind === 'pneu' ? ' Pneu novo, sapato novo! Para de cantar pneu em toda esquina.' : ' Vai com Deus e devagar.';
+      const tip = J.itens.includes('bat') && J.itens.length === 1 ? ' Agora não fica parado com o farol aceso não, hein. Bateria não é poste.' : J.itens.includes('tires') && J.itens.length === 1 ? ' Pneu novo, sapato novo! Para de cantar pneu em toda esquina.' : ' Vai com Deus e devagar.';
       addMsg(ZE, '', ch.owed ? (ch.paid ? 'Peguei os R$ ' + fmtMoney(ch.paid) + ' que você tinha e ' : 'Tá liso, né? Tranquilo, ') + 'anotei R$ ' + fmtMoney(ch.owed) + ' no fiado. Amanhã, na virada da noite, eu pego sozinho se tiver dinheiro. Se atrasar, entra jurinho, viu?' + tip : 'Prontinho, R$ ' + fmtMoney(ch.paid) + '.' + tip, true);
       J.kind = 'done';
       J.state = 'leaving'; J.t = 0; J.v = 0; saveGame();
@@ -6997,9 +7060,10 @@ function socorroBar(H) {
     const d = Math.round(Math.hypot(J.x - player.x, J.y - player.y) * 0.09);
     return `<div class="wa-sos"><b>${J.state === 'coming' ? 'Seu Zé está a caminho · ' + (d > 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : d + ' m') : J.state === 'arrived' ? 'Seu Zé chegou! Fique parado.' : 'Serviço concluído'}</b>${J.state === 'coming' ? '<button data-sos="cancel" class="off">Cancelar</button>' : ''}</div>`;
   }
-  const qg = socorroQuote('gas'), qf = socorroQuote('fix');
-  const L = carLife(), qb = socorroQuote('bat'), qp = socorroQuote('pneu');
-  const opts = [['gas', 'Gasolina', qg, qg >= 8], ['fix', 'Conserto', qf, qf >= 8], ['both', 'Os dois', qg + qf, qg >= 8 && qf >= 8], ['bat', 'Chupeta', qb, L.bat < 30], ['pneu', 'Pneus', qp, L.tires < 15]].filter((o) => o[3]);
+  // cada serviço com o nome do que é feito, e o Kit completo (o Seu Zé vê sozinho o que falta)
+  const S = zeServicos(1.15, true).filter((i) => i.precisa && i.preco >= 8);
+  const opts = S.map((i) => [i.k, i.nome, i.preco, true]);
+  if (S.length > 1) opts.push(['kit', 'Kit completo<small>' + zeLista(S) + '</small>', S.reduce((a, i) => a + i.preco, 0), true]);
   const sub = fiadoOpen() ? `<small class="wa-fiado">fiado R$ ${fmtMoney(Math.ceil(Profile.fiado.amount))}</small>` : '<small>+15% · faz fiado</small>';
   return `<div class="wa-sos"><div class="wa-sos-h"><b>Socorro do Seu Zé</b>${sub}</div>` +
     (opts.length ? '<div class="wa-sos-btns">' + opts.map((o) => `<button data-sos="${o[0]}">${o[1]}<small>R$ ${fmtMoney(o[2])}</small></button>`).join('') + '</div>' : '<small class="wa-sos-ok">Carro em dia, nada pra socorrer.</small>') + '</div>';
@@ -7340,7 +7404,7 @@ const Phone = {
     } else if (this.app === 'fretes') {
       const job = player.car.job, nF = frUnread();
       html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Fretes</div><div class="ph-tabs"><button class="on" data-frtab="job">Fretes</button><button data-frtab="msgs">Mensagens${nF ? ' (' + nF + ')' : ''}</button></div>`;
-      if (!job) html += '<p class="ph-empty">Seu veículo não faz fretes. Compre um veículo de trabalho na garagem: o mais barato é a Salvêro do Peão (R$ 3.500). Também tem caminhão de gás, guincho, caçamba, baú e tanque.</p>';
+      if (!job) html += '<p class="ph-empty">Seu veículo não faz fretes. Compre um veículo de trabalho na garagem: o mais barato é a Saveirão do Peão (R$ 3.500). Também tem caminhão de gás, guincho, caçamba, baú e tanque.</p>';
       else if (Act.delivery) html += `<div class="ph-card"><div class="ph-big">${H(Act.delivery.item)}</div><p>${Act.delivery.stage === 'pickup' ? 'Buscar em ' + H(Act.delivery.pick ? Act.delivery.pick.name : '') : 'Entregar em ' + H(Act.delivery.dest.name)}<br>R$ ${fmtMoney(Act.delivery.reward)}</p></div><button class="ph-btn off" data-act2="job-cancel">Cancelar frete</button>`;
       else {
         if (Game.time - this.fretesT > 60 || !this.fretes.length || this.fretes[0].type !== job) { this.fretes = [genJob(job), genJob(job), genJob(job)]; this.fretesT = Game.time; }
@@ -8348,6 +8412,29 @@ function lifeButtons(B, s, kinds, fiado) {
   if (kinds.includes('oil')) B(L.oil > 97 ? 'Óleo em dia (' + pct(L.oil) + ')' : `Trocar o óleo (${pct(L.oil)}) — R$ ${fmtMoney(lifePrice('oil'))}${lbl('oil')}`, () => { lifeService('oil', 1, fiado); openShopDialog(s); }, L.oil > 97 || no('oil'));
   if (kinds.includes('bat')) B(L.bat > 97 ? 'Bateria carregada (' + pct(L.bat) + ')' : `Carregar a bateria (${pct(L.bat)}) — R$ ${fmtMoney(lifePrice('bat'))}${lbl('bat')}`, () => { lifeService('bat', 1, fiado); openShopDialog(s); }, L.bat > 97 || no('bat'));
 }
+// serviços do Seu Zé (0.2.0): cada item com nome claro e preço; "precisa" diz se o carro está precisando
+// (taxa 1,15 no socorro, por causa do deslocamento). Usado na oficina e no socorro pelo celular.
+const ZE_NOMES = { gas: 'Gasolina', fix: 'Lataria', oil: 'Óleo', tires: 'Pneus', bat: 'Bateria' };
+function zeServicos(taxa, comGas) {
+  const L = carLife(), t = taxa || 1, out = [];
+  if (comGas) out.push({ k: 'gas', nome: 'Gasolina', preco: Math.ceil(Math.max(0, 100 - Profile.fuel) * 1.8 * t), precisa: Profile.fuel < 95 });
+  out.push({ k: 'fix', nome: 'Lataria', preco: Math.ceil(Profile.damage * 4 * t), precisa: Profile.damage >= 1 });
+  out.push({ k: 'oil', nome: 'Óleo', preco: Math.ceil(lifePrice('oil') * t), precisa: L.oil < 97 });
+  out.push({ k: 'tires', nome: 'Pneus', preco: Math.ceil(lifePrice('tires') * t), precisa: L.tires < 97 });
+  out.push({ k: 'bat', nome: 'Bateria', preco: Math.ceil(lifePrice('bat') * t), precisa: L.bat < 97 || CarLife.stalled });
+  return out;
+}
+// faz o serviço (sem cobrar: quem chama cobra)
+function zeAplica(k) {
+  const L = carLife();
+  if (k === 'gas') Profile.fuel = 100;
+  else if (k === 'fix') { Profile.damage = 0; if (Profile.zones) { for (const z of ['f', 'r', 'l', 'rt', 'fL', 'fR']) Profile.zones[z] = 0; Profile.zones.seed = (Profile.zones.seed || 0) + 1; } }
+  else if (k === 'bat') { L.bat = 100; CarLife.stalled = false; }
+  else if (k === 'oil' || k === 'tires') L[k] = 100;
+  CarLife.warned = {};
+}
+// lista em português: "lataria, óleo e pneus"
+function zeLista(itens) { const n = itens.map((i) => (ZE_NOMES[i.k || i] || '').toLowerCase()); return n.length > 1 ? n.slice(0, -1).join(', ') + ' e ' + n[n.length - 1] : n[0] || ''; }
 function lifeZeFala() {
   const L = carLife(), out = [];
   if (L.oil < 30) out.push('esse óleo tá parecendo café de rodoviária');
@@ -10606,7 +10693,7 @@ function mapSetWaypoint(x, y, label) {
   x = clamp(x, 0, WORLD_W); y = clamp(y, 0, WORLD_H);
   const ne = nearestEdge(x, y);
   const px = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x, py = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s;
-  Act.waypoint = { x: px, y: py, label }; Act.gpsT = 0; Act.gps = player ? gpsRoute(player.x, player.y, px, py) : null;
+  Act.waypoint = { x: px, y: py, label }; Act.gpsT = 0; Act.gps = player ? navRota(player.x, player.y, px, py) : null;
   AudioSys.click(); renderMapDests(); drawBigMap();
 }
 function buildMapLegend() {
@@ -10850,7 +10937,7 @@ function levelUp(L) {
 const RIDE_TYPES = {
   comum: { name: 'PegaAí', mult: 1, lvl: 1, rating: 0, w: 3, desc: 'Corridas normais pela cidade.' },
   aero: { name: 'PegaAí Aeroporto', mult: 1.3, lvl: 2, rating: 0, w: 1.3, desc: 'Passageiro com mala e hora do voo marcada. Atrasou, ele perde o avião.' },
-  mudanca: { name: 'PegaAí Mudança', mult: 1.8, lvl: 3, rating: 0, w: 1.3, desc: 'Precisa de Kombo, picape ou Unho com escada. Carga frágil: cada batida quebra alguma coisa.' },
+  mudanca: { name: 'PegaAí Mudança', mult: 1.8, lvl: 3, rating: 0, w: 1.3, desc: 'Precisa de Kombão, picape ou Unidade com escadinha. Carga frágil: cada batida quebra alguma coisa.' },
   vip: { name: 'PegaAí VIP', mult: 2.4, lvl: 5, rating: 4.5, w: 1.1, desc: 'Cliente exigente: carro limpo e inteiro, sem batida e sem demora. Paga muito bem.' },
 };
 const VIPS = ['Doutor Valdemar', 'Influencer Kamylla', 'Deputada Rosimeire', 'Empresário Juvenal', 'Jogador do Gambiarra FC', 'Cantor de Pagode Thiaguinho do Morro', 'Desembargador Otacílio', 'Fazendeiro do Agro de Goiás', 'Influencer de Floripa', 'Cantor de Sertanejo Universitário Repetente'];
@@ -10861,7 +10948,7 @@ function rideTypeCheck(id) {
   const T = RIDE_TYPES[id], C = career();
   if (C.lvl < T.lvl) return 'Libera no nível ' + T.lvl;
   if (T.rating && career().ratings.length >= 3 && recentRating() < T.rating) return 'Precisa de nota ' + fmtRating(T.rating) + ' (a sua: ' + fmtRating(recentRating()) + ')';
-  if (id === 'mudanca' && !['van', 'pickup', 'escada'].includes(player.car.model)) return 'Precisa de Kombo, picape ou Unho com escada';
+  if (id === 'mudanca' && !['van', 'pickup', 'escada'].includes(player.car.model)) return 'Precisa de Kombão, picape ou Unidade com escadinha';
   if (id === 'vip' && (Profile.damage > 30 || (Profile.dirt || 0) > 0.4)) return 'Carro amassado ou sujo demais pra VIP';
   return null;
 }
@@ -12354,6 +12441,15 @@ function openShopDialog(s) {
       saveGame(); openShopDialog(s);
     }, Profile.damage < 1 || Profile.money < 4);
     lifeButtons(B, s, ['oil', 'tires', 'bat'], true);
+    { // Kit completo: o Seu Zé olha o carro e faz tudo o que está faltando (lataria, óleo, pneus e bateria)
+      const kit = zeServicos(1).filter((i) => i.precisa), tot = kit.reduce((a, i) => a + i.preco, 0), fz = !fiadoOpen();
+      B(kit.length ? `Kit completo (${zeLista(kit)}) — R$ ${fmtMoney(tot)}${Profile.money < tot && fz ? ' (fiado)' : ''}` : 'Kit completo — o carro já está em dia', () => {
+        const ch = zeCharge(tot, fz); if (!ch) return;
+        for (const i of kit) zeAplica(i.k);
+        AudioSys.wrench(); toast('Seu Zé', '"Revisei tudo: ' + zeLista(kit) + '. Tá zerado!"' + (ch.owed ? ' (fiado R$ ' + fmtMoney(ch.owed) + ')' : ''), 'good');
+        saveGame(); openShopDialog(s);
+      }, !kit.length || (Profile.money < tot && !fz));
+    }
     B('Melhorias e pintura', () => { Garage.sel = Profile.current; Screens.replace('screen-garage'); });
   }
   if (s.kind === 'borracharia') { lifeButtons(B, s, ['tires']); B('Calibrar os pneus (grátis)', () => { Profile.damage = Math.max(0, Profile.damage - 3); AudioSys.pump(); toast('Borracharia', 'Pneus calibrados. Valeu, chefe!', 'info'); closeDialog(); }); }
@@ -12592,6 +12688,11 @@ function updateHUD(dt) {
     if (L > 0) { w.querySelectorAll('.w-stars i').forEach((s, i) => s.classList.toggle('on', i < L)); const lost = Police.lostT / (7 + L * 3), bust = Police.bustT / 2.6;
       w.querySelector('.w-label').textContent = bust > 0.05 ? 'PARE OU SERÁ PRESO' : lost > 0.02 ? 'DESPISTANDO…' : 'PROCURADO';
       $('w-bar').style.width = (Math.max(lost, bust) * 100).toFixed(0) + '%'; $('w-bar').className = bust > 0.05 ? 'bust' : ''; w.classList.toggle('flash', lost < 0.02 && bust < 0.05); } }
+  { // ícones de estado do carro (no lugar de texto): farol desligado / baixo / alto e som (paredão)
+    const f = !player.lightsOff && CarLife.lightsOn() ? (player.highBeam ? 'alto' : 'baixo') : 'off';
+    if (UI.last.farol !== f) { UI.last.farol = f; $('ic-farol').className = 'ic-farol ' + f; }
+    const so = Som.on ? 'on' : 'off'; if (UI.last.som !== so) { UI.last.som = so; $('ic-som').className = so; }
+  }
   UI.set('fuel-bar', Math.round(Profile.fuel) + '%', 'width');
   UI.set('fuel-bar', Profile.fuel < 20 ? 'linear-gradient(90deg,#ff5a5a,#ff8a7a)' : '', 'bg');
   UI.set('cond-bar', Math.round(100 - Profile.damage) + '%', 'width');
@@ -13854,6 +13955,41 @@ Mata.chao = function (ctx, view) {
   ctx.restore();
 };
 Mata.dentro = function (x, y) { for (const R of this.rects) if (x > R.x0 - 4 && x < R.x1 + 4 && y > R.y0 - 4 && y < R.y1 + 4) return true; return false; };
+
+/* ---------- mais verde nos gramados (0.2.0) ----------
+   Moitas baixas, canteiros com flores e tufos de capim alto nos gramados livres da cidade e da roça (quintais,
+   praças, beira de terreno). Sorteio próprio (não mexe no mapa), longe da rua e das construções, desenhado uma vez
+   no chão (não pesa nada por quadro) e com limite de quantidade. */
+const Verde = { n: 0 };
+Verde.monta = function () {
+  const R = mulberry32(91007), C = 70, MAX = 1100;
+  const longeDaRua = (x, y) => { for (const [dx, dy] of [[0, 0], [14, 0], [-14, 0], [0, 14], [0, -14]]) { const g = groundAt(x + dx, y + dy); if (g !== SF.GRASS && g !== SF.FIELD) return false; } return true; };
+  for (let y = 260; y < SEA_Y - 200 && this.n < MAX; y += C) for (let x = 260; x < WORLD_W - 260 && this.n < MAX; x += C) {
+    const px = x + R() * C, py = y + R() * C, sorte = R(), tipo = R();
+    const reg = REGIONS[regionKeyAt(px, py)], rural = reg ? reg.rural : 0.5;
+    if (sorte > (rural > 0.6 ? 0.05 : 0.16)) continue; // cidade: mais canteiro e moita; roça: só uma flor do mato aqui e ali
+    if (!longeDaRua(px, py) || areaBlocked(px - 10, py - 10, px + 10, py + 10)) continue;
+    const k = rural > 0.6 ? 'mato' : tipo < 0.42 ? 'moita' : tipo < 0.75 ? 'flores' : 'capim', s = 0.8 + R() * 0.5, sd = (R() * 1e6) | 0;
+    bake(px - 16, py - 16, px + 16, py + 16, 2.7, (g) => Verde.desenha(g, k, px, py, s, sd));
+    this.n++;
+  }
+};
+Verde.desenha = function (g, k, x, y, s, sd) {
+  const R = mulberry32(sd), FL = ['#f2d14a', '#f28ab0', '#ffffff', '#b58cf0', '#ff7a4a'];
+  g.save(); g.translate(x, y); g.scale(s, s);
+  if (k === 'moita' || k === 'flores' || k === 'mato') {
+    const n = k === 'mato' ? 4 : 7, raio = k === 'flores' ? 4.2 : 5.2;
+    g.fillStyle = 'rgba(0,0,0,0.22)'; g.beginPath(); g.ellipse(2, 2.4, raio * 1.6, raio * 1.1, 0, 0, TAU); g.fill();
+    for (let i = 0; i < n; i++) { const a = R() * TAU, d = R() * raio * 0.8, r = raio * (0.45 + R() * 0.4); g.fillStyle = ['#2f5f2a', '#3a7232', '#467e38', '#2a5326'][(R() * 4) | 0]; g.beginPath(); g.arc(Math.cos(a) * d, Math.sin(a) * d, r, 0, TAU); g.fill(); }
+    g.fillStyle = 'rgba(190,230,140,0.28)'; for (let i = 0; i < 4; i++) { g.beginPath(); g.arc(-1.4 + R() * 2, -1.6 + R() * 2, 1 + R(), 0, TAU); g.fill(); } // luz de cima
+    if (k !== 'moita') { const c = FL[(R() * FL.length) | 0], m = k === 'mato' ? 3 : 9; for (let i = 0; i < m; i++) { const a = R() * TAU, d = R() * raio; g.fillStyle = c; g.beginPath(); g.arc(Math.cos(a) * d, Math.sin(a) * d, 0.9, 0, TAU); g.fill(); } }
+  } else { // capim alto: folhas finas saindo do centro
+    g.strokeStyle = '#4f7a36'; g.lineWidth = 0.9; g.lineCap = 'round'; g.beginPath();
+    for (let i = 0; i < 14; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.4, l = 4 + R() * 6; g.moveTo((R() - 0.5) * 3, (R() - 0.5) * 2); g.quadraticCurveTo(Math.cos(a) * l * 0.5, Math.sin(a) * l * 0.5 - 1, Math.cos(a) * l, Math.sin(a) * l); }
+    g.stroke(); g.strokeStyle = 'rgba(200,210,120,0.5)'; g.lineWidth = 0.6; g.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2, l = 5 + R() * 5; g.moveTo(0, 0); g.lineTo(Math.cos(a) * l, Math.sin(a) * l); } g.stroke();
+  }
+  g.restore();
+};
 /* ============================ DIA E NOITE (24 horas, domingo a sábado) ============================
    Profile.time: minutos do dia (0 a 1440; 1 minuto do jogo = 1 segundo de verdade, um dia = 24 minutos).
    Profile.dia: 0 = domingo ... 6 = sábado. Vira à meia-noite.
@@ -14475,6 +14611,7 @@ function posMontagem() {
   try { lotesEEstradinhas(); bairroDaPonte(); outdoorsNoPasto(); palmeirasNobres(); empenas(); } finally { RNG = sv; }
   World.tall = World.tall.filter((t) => !t.removed);
   Juncao.monta(); // asfalto encontrando a terra (sorteio próprio de cada encontro)
+  Verde.monta(); // moitas, canteiros com flores e capim alto nos gramados (sorteio próprio)
 }
 function bordasRurais() {
   return World.edges.filter((e) => e.T.asphalt && !e.bridge && e.len > 260 && CAMPO_REG[regionKeyAt(e.a.x + e.dx * e.len / 2, e.a.y + e.dy * e.len / 2)]);
@@ -15166,6 +15303,7 @@ Embarque.sai = function (look, destX, destY) {
   if (!player) return;
   const lado = this.ladoDe(destX, destY), [px, py] = this.porta(lado);
   const w = this.novo(look, px, py, player.a + lado * Math.PI / 2, 'sai');
+  AudioSys.porta(false, 0.8); setTimeout(() => AudioSys.porta(true, 0.9), 650); // porta abrindo e fechando
   const d = Math.hypot(destX - px, destY - py) || 1, k = Math.min(1, 30 / d);
   w.tx = px + (destX - px) * k; w.ty = py + (destY - py) * k;
 };
@@ -15198,6 +15336,7 @@ Embarque.update = function (dt) {
       const k = Math.min(d, w.v * dt) / d; w.x += dx * k; w.y += dy * k;
     } else {
       w.v = Math.max(0, w.v - 160 * dt);
+      if (w.modo === 'entra' && !w.porta) { w.porta = 1; AudioSys.porta(false, 0.8); setTimeout(() => AudioSys.porta(true, 1), 380); } // abre e fecha a porta
       if (w.modo === 'entra') { w.alpha -= dt * 3.2; w.a += clamp(angDiff(w.a, player ? player.a : w.a), -6 * dt, 6 * dt); } // vira de costas para o carro e entra
       else if (w.t > 1.6) { w.alpha -= dt * 0.8; if (!w.olhou) { w.olhou = true; w.a += 0.9; } } // olha em volta e some andando devagar
     }
@@ -15346,7 +15485,7 @@ function handleKeys() {
     switch (ac) {
       case 'interagir': if (Act.prompt) Act.prompt.act(); break;
       case 'celular': Phone.open('home'); break;
-      case 'farol': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
+      case 'farol': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); break; // o ícone do farol no painel mostra o estado (sem aviso escrito)
       case 'paredao': Som.toggle(); break;
       case 'radio': Radio.toggle(); break;
       case 'farolAlto': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;

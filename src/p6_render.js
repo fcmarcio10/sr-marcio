@@ -2006,7 +2006,7 @@ function mapSetWaypoint(x, y, label) {
   x = clamp(x, 0, WORLD_W); y = clamp(y, 0, WORLD_H);
   const ne = nearestEdge(x, y);
   const px = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x, py = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s;
-  Act.waypoint = { x: px, y: py, label }; Act.gpsT = 0; Act.gps = player ? gpsRoute(player.x, player.y, px, py) : null;
+  Act.waypoint = { x: px, y: py, label }; Act.gpsT = 0; Act.gps = player ? navRota(player.x, player.y, px, py) : null;
   AudioSys.click(); renderMapDests(); drawBigMap();
 }
 function buildMapLegend() {

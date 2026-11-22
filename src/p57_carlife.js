@@ -119,6 +119,29 @@ function lifeButtons(B, s, kinds, fiado) {
   if (kinds.includes('oil')) B(L.oil > 97 ? 'Óleo em dia (' + pct(L.oil) + ')' : `Trocar o óleo (${pct(L.oil)}) — R$ ${fmtMoney(lifePrice('oil'))}${lbl('oil')}`, () => { lifeService('oil', 1, fiado); openShopDialog(s); }, L.oil > 97 || no('oil'));
   if (kinds.includes('bat')) B(L.bat > 97 ? 'Bateria carregada (' + pct(L.bat) + ')' : `Carregar a bateria (${pct(L.bat)}) — R$ ${fmtMoney(lifePrice('bat'))}${lbl('bat')}`, () => { lifeService('bat', 1, fiado); openShopDialog(s); }, L.bat > 97 || no('bat'));
 }
+// serviços do Seu Zé (0.2.0): cada item com nome claro e preço; "precisa" diz se o carro está precisando
+// (taxa 1,15 no socorro, por causa do deslocamento). Usado na oficina e no socorro pelo celular.
+const ZE_NOMES = { gas: 'Gasolina', fix: 'Lataria', oil: 'Óleo', tires: 'Pneus', bat: 'Bateria' };
+function zeServicos(taxa, comGas) {
+  const L = carLife(), t = taxa || 1, out = [];
+  if (comGas) out.push({ k: 'gas', nome: 'Gasolina', preco: Math.ceil(Math.max(0, 100 - Profile.fuel) * 1.8 * t), precisa: Profile.fuel < 95 });
+  out.push({ k: 'fix', nome: 'Lataria', preco: Math.ceil(Profile.damage * 4 * t), precisa: Profile.damage >= 1 });
+  out.push({ k: 'oil', nome: 'Óleo', preco: Math.ceil(lifePrice('oil') * t), precisa: L.oil < 97 });
+  out.push({ k: 'tires', nome: 'Pneus', preco: Math.ceil(lifePrice('tires') * t), precisa: L.tires < 97 });
+  out.push({ k: 'bat', nome: 'Bateria', preco: Math.ceil(lifePrice('bat') * t), precisa: L.bat < 97 || CarLife.stalled });
+  return out;
+}
+// faz o serviço (sem cobrar: quem chama cobra)
+function zeAplica(k) {
+  const L = carLife();
+  if (k === 'gas') Profile.fuel = 100;
+  else if (k === 'fix') { Profile.damage = 0; if (Profile.zones) { for (const z of ['f', 'r', 'l', 'rt', 'fL', 'fR']) Profile.zones[z] = 0; Profile.zones.seed = (Profile.zones.seed || 0) + 1; } }
+  else if (k === 'bat') { L.bat = 100; CarLife.stalled = false; }
+  else if (k === 'oil' || k === 'tires') L[k] = 100;
+  CarLife.warned = {};
+}
+// lista em português: "lataria, óleo e pneus"
+function zeLista(itens) { const n = itens.map((i) => (ZE_NOMES[i.k || i] || '').toLowerCase()); return n.length > 1 ? n.slice(0, -1).join(', ') + ' e ' + n[n.length - 1] : n[0] || ''; }
 function lifeZeFala() {
   const L = carLife(), out = [];
   if (L.oil < 30) out.push('esse óleo tá parecendo café de rodoviária');

@@ -159,12 +159,14 @@ function updateJobs(dt) {
 /* ---------- socorro do Seu Zé: chama pelo zap e ele vem de guincho (15% mais caro que a oficina) ---------- */
 const ZE = 'Seu Zé (Oficina)';
 const Socorro = { job: null };
-function socorroQuote(kind) {
-  if (kind === 'bat') return Math.ceil(lifePrice('bat') * 1.15);
-  if (kind === 'pneu') return Math.ceil(lifePrice('tires') * 1.15);
-  const fuel = Math.ceil(Math.max(0, 100 - Profile.fuel) * 1.8 * 1.15), fix = Math.ceil(Profile.damage * 4 * 1.15);
-  return kind === 'gas' ? fuel : kind === 'fix' ? fix : fuel + fix;
+// itens do socorro: um serviço só, ou o Kit completo (tudo o que o carro está precisando, montado sozinho)
+function socorroItens(kind) {
+  const S = zeServicos(1.15, true);
+  if (kind === 'kit') return S.filter((i) => i.precisa);
+  if (kind === 'pneu') kind = 'tires';
+  return S.filter((i) => i.k === kind);
 }
+function socorroQuote(kind) { return socorroItens(kind).reduce((a, i) => a + i.preco, 0); }
 // rota pela mão direita da pista (os pontos do GPS ficam no meio da rua)
 function laneShift(pts, off) {
   const out = pts.map((p) => p.slice());
@@ -201,13 +203,19 @@ function socorroCall(kind) {
   let sx, sy;
   if (of && Math.hypot(of.x - player.x, of.y - player.y) < 2600) { sx = of.x; sy = of.y; }
   else { const a = rnd(TAU); const ne = nearestEdge(clamp(player.x + Math.cos(a) * 1300, 100, WORLD_W - 100), clamp(player.y + Math.sin(a) * 1300, 100, WORLD_H - 100)); sx = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x; sy = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s; }
-  const route = gpsRoute(sx, sy, player.x, player.y);
-  const pts = route ? laneShift(route.pts, 20) : [[sx, sy], [player.x, player.y]];
-  const J = { kind, x: sx, y: sy, a: 0, pts, ri: 1, state: 'coming', t: 0, rt: 3, quote: socorroQuote(kind) };
+  // (0.2.0) caminho só pelas ruas (Nav): sai da rua mais perto da oficina, vai na mão certa, faz as curvas e para na rua mais perto de você
+  const route = navRota(sx, sy, player.x, player.y, { soRua: true });
+  const pts = route ? route.pts : [[sx, sy], [player.x, player.y]];
+  if (route) { sx = pts[0][0]; sy = pts[0][1]; }
+  const len0 = route ? route.len : Math.hypot(sx - player.x, sy - player.y);
+  // chega uns 80% mais tarde que antes: anda um pouco mais devagar (260) e demora para sair da oficina (pega as ferramentas)
+  const sai = Math.max(4, len0 / 300 * 1.8 - len0 / 260);
+  const itens = socorroItens(kind).map((i) => i.k);
+  const J = { kind, itens, x: sx, y: sy, a: pts[1] ? Math.atan2(pts[1][1] - sy, pts[1][0] - sx) : 0, pts, ri: 1, state: 'coming', t: 0, rt: 3, quote: socorroQuote(kind), sai };
   Profile.sos = (Profile.sos || 0) + 1;
   Socorro.job = J;
-  const len = route ? route.len : Math.hypot(sx - player.x, sy - player.y), eta = Math.max(1, Math.round(len / 280 / 20));
-  const what = kind === 'gas' ? 'gasolina' : kind === 'fix' ? 'conserto' : kind === 'bat' ? 'uma chupeta, a bateria arriou' : kind === 'pneu' ? 'pneus novos, tô no aro' : 'gasolina e conserto';
+  const eta = Math.max(1, Math.round((sai + len0 / 260) / 20)); // minutos do relógio do jogo (1 min = 1 s... como antes: / 20)
+  const what = kind === 'kit' ? 'o kit completo (' + zeLista(itens) + ')' : kind === 'bat' ? 'uma carga na bateria, ela arriou' : kind === 'tires' || kind === 'pneu' ? 'pneus novos, tô no aro' : kind === 'oil' ? 'uma troca de óleo' : kind === 'fix' ? 'um conserto na lataria' : 'gasolina';
   Profile.msgs.unshift({ from: ZE, title: '', body: 'Seu Zé, preciso de ' + what + '. Me socorre aí!', read: true, me: true, t: Math.floor(Profile.time) });
   setTimeout(() => {
     addMsg(ZE, '', 'Tô indo aí com o guincho! Fica parado num lugar seguro, com o pisca ligado. Chego em uns ' + eta + ' min. Fica uns R$ ' + fmtMoney(J.quote) + ' (15% a mais que na oficina, por causa do deslocamento).', true);
@@ -226,33 +234,29 @@ Socorro.update = function (dt) {
   const J = this.job; if (!J || !player) return;
   J.t += dt;
   if (J.state === 'coming') {
-    // recalcula a rota se você saiu do lugar
+    if (J.sai > 0) { J.sai -= dt; return; } // ainda saindo da oficina (fora da tela)
+    // recalcula a rota (pelas ruas) se você saiu do lugar
     J.rt -= dt;
     const end = J.pts[J.pts.length - 1];
-    if (J.rt <= 0) { J.rt = 3; if (Math.hypot(end[0] - player.x, end[1] - player.y) > 150) { const r = gpsRoute(J.x, J.y, player.x, player.y); if (r) { J.pts = laneShift(r.pts, 20); J.ri = 1; } } }
-    socorroDrive(J, 300, dt);
-    if (J.ri >= J.pts.length) { const dx = player.x - J.x, dy = player.y - J.y, d = Math.hypot(dx, dy); if (d > 40) { const m = Math.min(d - 40, 200 * dt); J.x += dx / d * m; J.y += dy / d * m; J.a = Math.atan2(dy, dx); } }
-    if (Math.hypot(player.x - J.x, player.y - J.y) < 75) { J.state = 'arrived'; J.t = 0; toast('Seu Zé chegou!', 'Fica parado aí que ele já resolve.', 'info'); AudioSys.aiHorn(60, 'caminhao', 0); }
+    if (J.rt <= 0) { J.rt = 3; if (Math.hypot(end[0] - player.x, end[1] - player.y) > 150) { const r = navRota(J.x, J.y, player.x, player.y, { soRua: true }); if (r) { J.pts = [[J.x, J.y], ...r.pts]; J.ri = 1; } } }
+    socorroDrive(J, 260, dt);
+    // acabou a rua: só encosta o último pedacinho se você estiver logo ali (nunca corta casa, rio ou terreno)
+    const fim = J.ri >= J.pts.length;
+    if (fim) { const dx = player.x - J.x, dy = player.y - J.y, d = Math.hypot(dx, dy); if (d > 40 && d < 140 && !areaBlocked(J.x + dx / d * 20 - 6, J.y + dy / d * 20 - 6, J.x + dx / d * 20 + 6, J.y + dy / d * 20 + 6)) { const m = Math.min(d - 40, 120 * dt); J.x += dx / d * m; J.y += dy / d * m; J.a += angDiff(J.a, Math.atan2(dy, dx)) * Math.min(1, dt * 5); } }
+    if (Math.hypot(player.x - J.x, player.y - J.y) < 75 || (fim && Math.hypot(player.x - J.x, player.y - J.y) < 220)) { J.state = 'arrived'; J.t = 0; toast('Seu Zé chegou!', 'Fica parado aí que ele já resolve.', 'info'); AudioSys.aiHorn(60, 'caminhao', 0); }
   } else if (J.state === 'arrived') {
     if (player.speed > 30) { J.t = 0; if (Math.hypot(player.x - J.x, player.y - J.y) > 160) { J.state = 'coming'; J.rt = 0; } return; }
     if (J.t > 0.4 && Math.floor(J.t * 2.5) !== Math.floor((J.t - dt) * 2.5)) AudioSys.wrench();
     if (J.t > 3) {
       // serviço completo; o que faltar de dinheiro o Seu Zé anota no fiado (é amigo)
-      const L = carLife();
-      let cost = 0, what = '';
-      if (J.kind === 'bat') { L.bat = 100; CarLife.stalled = false; cost = J.quote; what = 'Chupeta feita, o motor pegou!'; }
-      else if (J.kind === 'pneu') { L.tires = 100; cost = J.quote; what = 'Pneus novos no lugar!'; }
-      else {
-        const fuelNeed = J.kind !== 'fix' ? Math.max(0, 100 - Profile.fuel) : 0, dmg = J.kind !== 'gas' ? Profile.damage : 0;
-        cost = fuelNeed * 1.8 * 1.15 + dmg * 4 * 1.15;
-        Profile.fuel = Math.min(100, Profile.fuel + fuelNeed);
-        if (dmg > 0) { Profile.damage = 0; if (Profile.zones) { for (const z of ['f', 'r', 'l', 'rt', 'fL', 'fR']) Profile.zones[z] = 0; Profile.zones.seed = (Profile.zones.seed || 0) + 1; } }
-        what = 'Tudo resolvido.';
-      }
+      // faz exatamente os itens pedidos (o preço é o de agora, pode ter mudado no caminho)
+      const itens = socorroItens(J.kind === 'kit' ? 'kit' : J.itens[0]).filter((x) => J.kind !== 'kit' || J.itens.includes(x.k));
+      let cost = 0; for (const it of itens) { cost += it.preco; zeAplica(it.k); }
+      const what = itens.length ? 'Feito: ' + zeLista(itens) + '.' : 'Tudo em dia.';
       const ch = zeCharge(cost, true);
       AudioSys.chime();
       toast('Socorro do Seu Zé', what + ' Pago R$ ' + fmtMoney(ch.paid) + (ch.owed ? ' · fiado R$ ' + fmtMoney(ch.owed) : ''), 'good');
-      const tip = J.kind === 'bat' ? ' Agora não fica parado com o farol aceso não, hein. Bateria não é poste.' : J.kind === 'pneu' ? ' Pneu novo, sapato novo! Para de cantar pneu em toda esquina.' : ' Vai com Deus e devagar.';
+      const tip = J.itens.includes('bat') && J.itens.length === 1 ? ' Agora não fica parado com o farol aceso não, hein. Bateria não é poste.' : J.itens.includes('tires') && J.itens.length === 1 ? ' Pneu novo, sapato novo! Para de cantar pneu em toda esquina.' : ' Vai com Deus e devagar.';
       addMsg(ZE, '', ch.owed ? (ch.paid ? 'Peguei os R$ ' + fmtMoney(ch.paid) + ' que você tinha e ' : 'Tá liso, né? Tranquilo, ') + 'anotei R$ ' + fmtMoney(ch.owed) + ' no fiado. Amanhã, na virada da noite, eu pego sozinho se tiver dinheiro. Se atrasar, entra jurinho, viu?' + tip : 'Prontinho, R$ ' + fmtMoney(ch.paid) + '.' + tip, true);
       J.kind = 'done';
       J.state = 'leaving'; J.t = 0; J.v = 0; saveGame();
@@ -276,9 +280,10 @@ function socorroBar(H) {
     const d = Math.round(Math.hypot(J.x - player.x, J.y - player.y) * 0.09);
     return `<div class="wa-sos"><b>${J.state === 'coming' ? 'Seu Zé está a caminho · ' + (d > 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : d + ' m') : J.state === 'arrived' ? 'Seu Zé chegou! Fique parado.' : 'Serviço concluído'}</b>${J.state === 'coming' ? '<button data-sos="cancel" class="off">Cancelar</button>' : ''}</div>`;
   }
-  const qg = socorroQuote('gas'), qf = socorroQuote('fix');
-  const L = carLife(), qb = socorroQuote('bat'), qp = socorroQuote('pneu');
-  const opts = [['gas', 'Gasolina', qg, qg >= 8], ['fix', 'Conserto', qf, qf >= 8], ['both', 'Os dois', qg + qf, qg >= 8 && qf >= 8], ['bat', 'Chupeta', qb, L.bat < 30], ['pneu', 'Pneus', qp, L.tires < 15]].filter((o) => o[3]);
+  // cada serviço com o nome do que é feito, e o Kit completo (o Seu Zé vê sozinho o que falta)
+  const S = zeServicos(1.15, true).filter((i) => i.precisa && i.preco >= 8);
+  const opts = S.map((i) => [i.k, i.nome, i.preco, true]);
+  if (S.length > 1) opts.push(['kit', 'Kit completo<small>' + zeLista(S) + '</small>', S.reduce((a, i) => a + i.preco, 0), true]);
   const sub = fiadoOpen() ? `<small class="wa-fiado">fiado R$ ${fmtMoney(Math.ceil(Profile.fiado.amount))}</small>` : '<small>+15% · faz fiado</small>';
   return `<div class="wa-sos"><div class="wa-sos-h"><b>Socorro do Seu Zé</b>${sub}</div>` +
     (opts.length ? '<div class="wa-sos-btns">' + opts.map((o) => `<button data-sos="${o[0]}">${o[1]}<small>R$ ${fmtMoney(o[2])}</small></button>`).join('') + '</div>' : '<small class="wa-sos-ok">Carro em dia, nada pra socorrer.</small>') + '</div>';
@@ -619,7 +624,7 @@ const Phone = {
     } else if (this.app === 'fretes') {
       const job = player.car.job, nF = frUnread();
       html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Fretes</div><div class="ph-tabs"><button class="on" data-frtab="job">Fretes</button><button data-frtab="msgs">Mensagens${nF ? ' (' + nF + ')' : ''}</button></div>`;
-      if (!job) html += '<p class="ph-empty">Seu veículo não faz fretes. Compre um veículo de trabalho na garagem: o mais barato é a Salvêro do Peão (R$ 3.500). Também tem caminhão de gás, guincho, caçamba, baú e tanque.</p>';
+      if (!job) html += '<p class="ph-empty">Seu veículo não faz fretes. Compre um veículo de trabalho na garagem: o mais barato é a Saveirão do Peão (R$ 3.500). Também tem caminhão de gás, guincho, caçamba, baú e tanque.</p>';
       else if (Act.delivery) html += `<div class="ph-card"><div class="ph-big">${H(Act.delivery.item)}</div><p>${Act.delivery.stage === 'pickup' ? 'Buscar em ' + H(Act.delivery.pick ? Act.delivery.pick.name : '') : 'Entregar em ' + H(Act.delivery.dest.name)}<br>R$ ${fmtMoney(Act.delivery.reward)}</p></div><button class="ph-btn off" data-act2="job-cancel">Cancelar frete</button>`;
       else {
         if (Game.time - this.fretesT > 60 || !this.fretes.length || this.fretes[0].type !== job) { this.fretes = [genJob(job), genJob(job), genJob(job)]; this.fretesT = Game.time; }

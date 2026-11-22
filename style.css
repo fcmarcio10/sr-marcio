@@ -1568,3 +1568,14 @@ body.cinema #fala-leg { opacity: 0 !important; }
 .ct-tecla.esperando { animation: piscaTecla 1.4s ease-in-out infinite; }
 @keyframes piscaTecla { 50% { opacity: 0.7; } }
 .confete i { animation-timing-function: ease-out; }
+
+/* ---------- painel do carro com ícones (0.2.0): sem nomes escritos, estado do farol e do som em ícone ---------- */
+#hud-dash .bar-row span, #hud-dash .life-row span { min-width: 0; }
+#dash-ic { display: flex; gap: 8px; justify-content: center; margin: 2px 0 6px; }
+#dash-ic i { width: 26px; height: 22px; display: grid; place-items: center; border-radius: 5px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.28); }
+#dash-ic svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+#dash-ic .ic-farol .raio, #dash-ic .ic-farol .raio-alto { display: none; }
+#dash-ic .ic-farol.baixo { color: #7ee08a; } #dash-ic .ic-farol.baixo .raio { display: inline; }
+#dash-ic .ic-farol.alto { color: #6fb6ff; } #dash-ic .ic-farol.alto .raio-alto { display: inline; }
+#dash-ic #ic-som .onda { display: none; } #dash-ic #ic-som.on { color: #ffcc2e; } #dash-ic #ic-som.on .onda { display: inline; }
+#hud-radio-btn, #hud-phone { gap: 6px; }

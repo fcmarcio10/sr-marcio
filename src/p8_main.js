@@ -132,7 +132,7 @@ function handleKeys() {
     switch (ac) {
       case 'interagir': if (Act.prompt) Act.prompt.act(); break;
       case 'celular': Phone.open('home'); break;
-      case 'farol': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); toast(player.lightsOff ? 'Farol desligado' : 'Farol ligado', '', 'info'); break;
+      case 'farol': player.lightsOff = !player.lightsOff; AudioSys.tone(player.lightsOff ? 600 : 900, 0.05, 'square', 0.05, 'ui'); break; // o ícone do farol no painel mostra o estado (sem aviso escrito)
       case 'paredao': Som.toggle(); break;
       case 'radio': Radio.toggle(); break;
       case 'farolAlto': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;

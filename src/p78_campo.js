@@ -37,6 +37,7 @@ function posMontagem() {
   try { lotesEEstradinhas(); bairroDaPonte(); outdoorsNoPasto(); palmeirasNobres(); empenas(); } finally { RNG = sv; }
   World.tall = World.tall.filter((t) => !t.removed);
   Juncao.monta(); // asfalto encontrando a terra (sorteio próprio de cada encontro)
+  Verde.monta(); // moitas, canteiros com flores e capim alto nos gramados (sorteio próprio)
 }
 function bordasRurais() {
   return World.edges.filter((e) => e.T.asphalt && !e.bridge && e.len > 260 && CAMPO_REG[regionKeyAt(e.a.x + e.dx * e.len / 2, e.a.y + e.dy * e.len / 2)]);

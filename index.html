@@ -38,15 +38,16 @@
     <canvas id="minimap" width="440" height="440"></canvas>
   </div>
   <div id="hud-radio" class="glass hidden" title="Rádio (F)"><div class="hr-top"><span class="hr-eq"><i></i><i></i><i></i><i></i></span><b>Rádio Gambiarra FM 171,1</b><em id="hr-who">DJ Biruta</em></div><div class="hr-sub"><span id="hr-tag"></span><span id="hr-txt"></span></div></div>
-  <button id="hud-radio-btn" class="glass" title="Rádio (F)"><span class="hrb-ico"><i></i></span>Rádio <kbd>F</kbd></button>
-  <button id="hud-phone" class="glass" title="Celular (Q)"><span class="hp-ico"></span>Celular <kbd>Q</kbd><i id="hud-phone-badge" class="hidden"></i></button>
+  <button id="hud-radio-btn" class="glass" title="Rádio (F)"><span class="hrb-ico"><i></i></span><kbd>F</kbd></button>
+  <button id="hud-phone" class="glass" title="Celular (Q)"><span class="hp-ico"></span><kbd>Q</kbd><i id="hud-phone-badge" class="hidden"></i></button>
 
   <div id="hud-dash" class="glass">
     <canvas id="speedo" width="440" height="300"></canvas>
     <div id="car-name">Pampeiro 1.0</div>
-    <div class="bar-row"><span><svg class="hi" viewBox="0 0 24 24"><path d="M5 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M4 20h11M7.5 8h4.5M14 10h2a1 1 0 0 1 1 1v5a1.5 1.5 0 0 0 3 0V8l-3-3"/></svg>Combustível</span><div class="bar"><div id="fuel-bar"></div></div></div>
-    <div class="bar-row"><span><svg class="hi" viewBox="0 0 24 24"><path d="M14.5 4.5a4.5 4.5 0 0 0-5 5.6L4 15.6 8.4 20l5.5-5.5a4.5 4.5 0 0 0 5.6-5l-2.8 2.8-2.8-.7-.7-2.8z"/></svg>Lataria</span><div class="bar"><div id="cond-bar"></div></div></div>
-    <div class="life-row"><div><span><svg class="hi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5V9M12 15v5.5M3.5 12H9M15 12h5.5"/></svg>Pneus</span><div class="bar"><div id="tire-bar"></div></div></div><div><span><svg class="hi" viewBox="0 0 24 24"><path d="M3 11h9l2.5 2.5H18l3-3-1.5 6.5H3z"/><path d="M6.5 11V8.5h3V11"/></svg>Óleo</span><div class="bar"><div id="oil-bar"></div></div></div><div><span><svg class="hi" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="1.5"/><path d="M7 7V5h3v2M14 7V5h3v2M6.5 13h3.5M14 13h3.5M15.75 11.25v3.5"/></svg>Bateria</span><div class="bar"><div id="bat-bar"></div></div></div></div>
+    <div id="dash-ic"><i id="ic-farol" class="ic-farol off" title="Farol (J) / alto (L)"><svg viewBox="0 0 24 24"><path d="M10 6a6 6 0 0 0 0 12z" fill="currentColor"/><path class="raio" d="M13 8h6M13 12h7M13 16h6"/><path class="raio-alto" d="M13 6.5l7-2M13 12h8.5M13 17.5l7 2"/></svg></i><i id="ic-som" class="off" title="Paredão (B)"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="onda" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg></i></div>
+    <div class="bar-row"><span><svg class="hi" viewBox="0 0 24 24"><path d="M5 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M4 20h11M7.5 8h4.5M14 10h2a1 1 0 0 1 1 1v5a1.5 1.5 0 0 0 3 0V8l-3-3"/></svg></span><div class="bar"><div id="fuel-bar"></div></div></div>
+    <div class="bar-row"><span><svg class="hi" viewBox="0 0 24 24"><path d="M14.5 4.5a4.5 4.5 0 0 0-5 5.6L4 15.6 8.4 20l5.5-5.5a4.5 4.5 0 0 0 5.6-5l-2.8 2.8-2.8-.7-.7-2.8z"/></svg></span><div class="bar"><div id="cond-bar"></div></div></div>
+    <div class="life-row"><div><span><svg class="hi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5V9M12 15v5.5M3.5 12H9M15 12h5.5"/></svg></span><div class="bar"><div id="tire-bar"></div></div></div><div><span><svg class="hi" viewBox="0 0 24 24"><path d="M3 11h9l2.5 2.5H18l3-3-1.5 6.5H3z"/><path d="M6.5 11V8.5h3V11"/></svg></span><div class="bar"><div id="oil-bar"></div></div></div><div><span><svg class="hi" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="1.5"/><path d="M7 7V5h3v2M14 7V5h3v2M6.5 13h3.5M14 13h3.5M15.75 11.25v3.5"/></svg></span><div class="bar"><div id="bat-bar"></div></div></div></div>
   </div>
 
   <div id="ev-offer" class="hidden">

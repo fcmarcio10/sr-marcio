@@ -458,6 +458,15 @@ function openShopDialog(s) {
       saveGame(); openShopDialog(s);
     }, Profile.damage < 1 || Profile.money < 4);
     lifeButtons(B, s, ['oil', 'tires', 'bat'], true);
+    { // Kit completo: o Seu Zé olha o carro e faz tudo o que está faltando (lataria, óleo, pneus e bateria)
+      const kit = zeServicos(1).filter((i) => i.precisa), tot = kit.reduce((a, i) => a + i.preco, 0), fz = !fiadoOpen();
+      B(kit.length ? `Kit completo (${zeLista(kit)}) — R$ ${fmtMoney(tot)}${Profile.money < tot && fz ? ' (fiado)' : ''}` : 'Kit completo — o carro já está em dia', () => {
+        const ch = zeCharge(tot, fz); if (!ch) return;
+        for (const i of kit) zeAplica(i.k);
+        AudioSys.wrench(); toast('Seu Zé', '"Revisei tudo: ' + zeLista(kit) + '. Tá zerado!"' + (ch.owed ? ' (fiado R$ ' + fmtMoney(ch.owed) + ')' : ''), 'good');
+        saveGame(); openShopDialog(s);
+      }, !kit.length || (Profile.money < tot && !fz));
+    }
     B('Melhorias e pintura', () => { Garage.sel = Profile.current; Screens.replace('screen-garage'); });
   }
   if (s.kind === 'borracharia') { lifeButtons(B, s, ['tires']); B('Calibrar os pneus (grátis)', () => { Profile.damage = Math.max(0, Profile.damage - 3); AudioSys.pump(); toast('Borracharia', 'Pneus calibrados. Valeu, chefe!', 'info'); closeDialog(); }); }
@@ -696,6 +705,11 @@ function updateHUD(dt) {
     if (L > 0) { w.querySelectorAll('.w-stars i').forEach((s, i) => s.classList.toggle('on', i < L)); const lost = Police.lostT / (7 + L * 3), bust = Police.bustT / 2.6;
       w.querySelector('.w-label').textContent = bust > 0.05 ? 'PARE OU SERÁ PRESO' : lost > 0.02 ? 'DESPISTANDO…' : 'PROCURADO';
       $('w-bar').style.width = (Math.max(lost, bust) * 100).toFixed(0) + '%'; $('w-bar').className = bust > 0.05 ? 'bust' : ''; w.classList.toggle('flash', lost < 0.02 && bust < 0.05); } }
+  { // ícones de estado do carro (no lugar de texto): farol desligado / baixo / alto e som (paredão)
+    const f = !player.lightsOff && CarLife.lightsOn() ? (player.highBeam ? 'alto' : 'baixo') : 'off';
+    if (UI.last.farol !== f) { UI.last.farol = f; $('ic-farol').className = 'ic-farol ' + f; }
+    const so = Som.on ? 'on' : 'off'; if (UI.last.som !== so) { UI.last.som = so; $('ic-som').className = so; }
+  }
   UI.set('fuel-bar', Math.round(Profile.fuel) + '%', 'width');
   UI.set('fuel-bar', Profile.fuel < 20 ? 'linear-gradient(90deg,#ff5a5a,#ff8a7a)' : '', 'bg');
   UI.set('cond-bar', Math.round(100 - Profile.damage) + '%', 'width');

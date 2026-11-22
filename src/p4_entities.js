@@ -1,17 +1,17 @@
 /* ============================ VEÍCULOS DO JOGADOR ============================ */
 const CARS = [
   { id: 'pampeiro', name: 'Gou Quadrado 1.6', model: 'quadrado', price: 0, max: 418, acc: 118, brk: 330, steer: 1.0, grip: 1.0, pitch: 1.0, cyl: 4, fuel: 1.0, desc: 'O hatch quadradinho dos anos 80 que todo brasileiro já teve, ou já empurrou. Faróis retangulares, grade de frisos e valentia de sobra.' },
-  { id: 'besouro', name: 'Fuska 1300', model: 'besouro', price: 2800, max: 392, acc: 104, brk: 300, steer: 1.05, grip: 0.96, pitch: 1.22, cyl: 4, fuel: 0.9, desc: 'Motor a ar lá atrás, para-lamas redondos e faróis de sapo. Não corre, mas sobe qualquer ladeira de Vila Véia.' },
-  { id: 'tropeiro', name: 'Kombo Corujinha', model: 'van', price: 4500, max: 352, acc: 92, brk: 285, steer: 0.9, grip: 0.93, pitch: 0.82, cyl: 4, fuel: 1.15, cargo: 1.25, desc: 'Furgão de motor traseiro, frente em V e duas cores. O xodó das feiras e das mudanças: entregas rendem 25% a mais.' },
-  { id: 'escada', name: 'Unho Mile com Escada', model: 'escada', price: 5500, max: 425, acc: 121, brk: 330, steer: 1.08, grip: 1.0, pitch: 1.06, cyl: 4, fuel: 0.85, cargo: 1.1, desc: 'Hatch caixote de teto alto com a famosa escada no teto. Pau pra toda obra: entregas rendem 10% a mais.' },
-  { id: 'sertaneja', name: 'Salvêro do Peão', model: 'pickup', price: 3500, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.9, cyl: 4, fuel: 1.1, offroad: true, job: 'pickup', desc: 'Picape de cabine simples: o veículo de trabalho mais barato. Faz fretes pelo app Fretes e quase não perde velocidade na terra.' },
-  { id: 'cometa', name: 'Santanão 2.0', model: 'santana', price: 12500, max: 508, acc: 146, brk: 370, steer: 1.0, grip: 1.05, pitch: 0.95, cyl: 4, fuel: 1.05, desc: 'Sedã quadradão de quatro portas, o carro do tio no domingo. Firme e confortável na BR-101.' },
-  { id: 'bravo', name: 'Escorte XR3 Turbo', model: 'sport', price: 19000, max: 575, acc: 186, brk: 420, steer: 1.12, grip: 1.13, pitch: 1.12, cyl: 4, fuel: 1.2, desc: 'Hatch esportivo dos anos 90 com faixas, aerofólio e escapamento que acorda a rua inteira.' },
-  { id: 'gas', name: '1113 do Gás', model: 'gas', price: 7000, max: 330, acc: 86, brk: 270, steer: 0.84, grip: 0.92, pitch: 0.62, cyl: 6, fuel: 1.5, job: 'gas', desc: 'Caminhãozinho de gás com a musiquinha clássica. Entrega botijão de casa em casa pelo app Fretes.' },
-  { id: 'guincho', name: 'Cargo Guincho', model: 'guincho', price: 10000, max: 360, acc: 92, brk: 285, steer: 0.82, grip: 0.95, pitch: 0.6, cyl: 6, fuel: 1.6, job: 'guincho', desc: 'Plataforma para rebocar carros quebrados até a oficina do Seu Zé.' },
-  { id: 'cacamba', name: 'Caçambona 113', model: 'cacamba', price: 12000, max: 320, acc: 80, brk: 260, steer: 0.78, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.8, offroad: true, job: 'cacamba', desc: 'Recolhe entulho das obras da cidade e leva para o aterro.' },
-  { id: 'bau', name: 'Acelerô Baú', model: 'bau', price: 16000, max: 350, acc: 84, brk: 270, steer: 0.76, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.9, job: 'bau', desc: 'Caminhão baú que abastece mercados, bares e restaurantes. Fretes longos e bem pagos.' },
-  { id: 'tanker', name: 'Tanquezão R440', model: 'tanker', price: 24000, max: 340, acc: 76, brk: 250, steer: 0.72, grip: 0.95, pitch: 0.5, cyl: 6, fuel: 2.1, job: 'tanker', desc: 'Caminhão-tanque que abastece os postos. O frete que mais paga, e o mais pesado de manobrar.' },
+  { id: 'besouro', name: 'Besourão 1300', model: 'besouro', price: 2800, max: 392, acc: 104, brk: 300, steer: 1.05, grip: 0.96, pitch: 1.22, cyl: 4, fuel: 0.9, desc: 'Motor a ar lá atrás, para-lamas redondos e faróis de sapo. Não corre, mas sobe qualquer ladeira de Vila Véia.' },
+  { id: 'tropeiro', name: 'Kombão Lotação', model: 'van', price: 4500, max: 352, acc: 92, brk: 285, steer: 0.9, grip: 0.93, pitch: 0.82, cyl: 4, fuel: 1.15, cargo: 1.25, desc: 'Furgão de motor traseiro, frente em V e duas cores. O xodó das feiras e das mudanças: entregas rendem 25% a mais.' },
+  { id: 'escada', name: 'Unidade com Escadinha', model: 'escada', price: 5500, max: 425, acc: 121, brk: 330, steer: 1.08, grip: 1.0, pitch: 1.06, cyl: 4, fuel: 0.85, cargo: 1.1, desc: 'Hatch caixote de teto alto com a famosa escada no teto. Pau pra toda obra: entregas rendem 10% a mais.' },
+  { id: 'sertaneja', name: 'Saveirão do Peão', model: 'pickup', price: 3500, max: 446, acc: 128, brk: 320, steer: 0.96, grip: 1.04, pitch: 0.9, cyl: 4, fuel: 1.1, offroad: true, job: 'pickup', desc: 'Picape de cabine simples: o veículo de trabalho mais barato. Faz fretes pelo app Fretes e quase não perde velocidade na terra.' },
+  { id: 'cometa', name: 'Santinha 2.0', model: 'santana', price: 12500, max: 508, acc: 146, brk: 370, steer: 1.0, grip: 1.05, pitch: 0.95, cyl: 4, fuel: 1.05, desc: 'Sedã quadradão de quatro portas, o carro do tio no domingo. Firme e confortável na BR-101.' },
+  { id: 'bravo', name: 'Escoltinha XR3 Turbo', model: 'sport', price: 19000, max: 575, acc: 186, brk: 420, steer: 1.12, grip: 1.13, pitch: 1.12, cyl: 4, fuel: 1.2, desc: 'Hatch esportivo dos anos 90 com faixas, aerofólio e escapamento que acorda a rua inteira.' },
+  { id: 'gas', name: 'Botijão 1113', model: 'gas', price: 7000, max: 330, acc: 86, brk: 270, steer: 0.84, grip: 0.92, pitch: 0.62, cyl: 6, fuel: 1.5, job: 'gas', desc: 'Caminhãozinho de gás com a musiquinha clássica. Entrega botijão de casa em casa pelo app Fretes.' },
+  { id: 'guincho', name: 'Carguinho Guincho', model: 'guincho', price: 10000, max: 360, acc: 92, brk: 285, steer: 0.82, grip: 0.95, pitch: 0.6, cyl: 6, fuel: 1.6, job: 'guincho', desc: 'Plataforma para rebocar carros quebrados até a oficina do Seu Zé.' },
+  { id: 'cacamba', name: 'Caçambão 113', model: 'cacamba', price: 12000, max: 320, acc: 80, brk: 260, steer: 0.78, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.8, offroad: true, job: 'cacamba', desc: 'Recolhe entulho das obras da cidade e leva para o aterro.' },
+  { id: 'bau', name: 'Acelerado Baú', model: 'bau', price: 16000, max: 350, acc: 84, brk: 270, steer: 0.76, grip: 0.95, pitch: 0.55, cyl: 6, fuel: 1.9, job: 'bau', desc: 'Caminhão baú que abastece mercados, bares e restaurantes. Fretes longos e bem pagos.' },
+  { id: 'tanker', name: 'Tancão R440', model: 'tanker', price: 24000, max: 340, acc: 76, brk: 250, steer: 0.72, grip: 0.95, pitch: 0.5, cyl: 6, fuel: 2.1, job: 'tanker', desc: 'Caminhão-tanque que abastece os postos. O frete que mais paga, e o mais pesado de manobrar.' },
   { id: 'brasa', name: 'Opalha 6C', model: 'muscle', price: 35000, max: 632, acc: 196, brk: 385, steer: 0.95, grip: 0.98, pitch: 0.78, cyl: 6, fuel: 1.4, desc: 'O sedã clássico de seis canecos, para-choques cromados e teto de vinil. Ronco grave e força de sobra.' },
 ];
 const PALETTE = ['#c0392b', '#e8e8e8', '#1f2a44', '#2e86de', '#f1c40f', '#27ae60', '#16181d', '#8e9aa6', '#e67e22', '#7d3c98', '#6d4c3a', '#ff6fa5'];
@@ -24,15 +24,15 @@ const UPGRADES = [
 // marcas inventadas, na zoeira (nenhuma marca real)
 // marcas "quase" reais, na zoeira (paródias com trocadilho, sem logotipos)
 const BRANDS = {
-  volks: { name: 'Volks Vagão', color: '#59a8ff', slogan: 'Carro do povo, fiado em 60 vezes.' },
-  fia: { name: 'Fiá', color: '#ff4d4d', slogan: 'Compra fiado e paga quando der.' },
-  fort: { name: 'Fort', color: '#4f8cff', slogan: 'Forte que nem pão dormido.' },
-  chevrole: { name: 'Chevrolé', color: '#ffd23a', slogan: 'Encontre o seu (no ferro-velho).' },
-  toyoda: { name: 'Toyoda', color: '#ff6b6b', slogan: 'Dura mais que a sogra.' },
-  ronda: { name: 'Ronda', color: '#ff3b30', slogan: 'Cabe em qualquer vão do trânsito.' },
-  merces: { name: 'Mercês-Benz', color: '#c9ccd2', slogan: 'Caminhão de fé, abençoado pela Nossa Senhora das Mercês.' },
-  escania: { name: 'Escânia', color: '#ff9f1c', slogan: 'Bruto na subida, manso no posto.' },
-  varmete: { name: 'Varmete', color: '#3cb371', slogan: 'Puxa até mudança de sogra.' },
+  volks: { name: 'Povowagen', color: '#59a8ff', slogan: 'O carro do povo. Parcela do povo também.' },
+  fia: { name: 'Fiapo', color: '#ff4d4d', slogan: 'Pequeno por fora, apertado por dentro.' },
+  fort: { name: 'Fordaço', color: '#4f8cff', slogan: 'Forte que nem pão dormido.' },
+  chevrole: { name: 'Chevrolata', color: '#ffd23a', slogan: 'Encontre o seu (no ferro-velho).' },
+  toyoda: { name: 'Toyoca', color: '#ff6b6b', slogan: 'Dura mais que a sogra.' },
+  ronda: { name: 'Hondura', color: '#ff3b30', slogan: 'Cabe em qualquer vão do trânsito.' },
+  merces: { name: 'Mercadão-Benz', color: '#c9ccd2', slogan: 'Caminhão de fé, abençoado pela Nossa Senhora das Mercês.' },
+  escania: { name: 'Scânio', color: '#ff9f1c', slogan: 'Bruto na subida, manso no posto.' },
+  varmete: { name: 'Valmato', color: '#3cb371', slogan: 'Puxa até mudança de sogra.' },
 };
 const MODEL_BRAND = { quadrado: 'volks', besouro: 'volks', van: 'volks', pickup: 'volks', santana: 'volks', escada: 'fia', hatch: 'chevrole', police: 'chevrole', muscle: 'chevrole', sedan: 'toyoda', taxi: 'toyoda', sport: 'fort', guincho: 'fort', moto: 'ronda', gas: 'merces', bau: 'merces', bus: 'merces', truck: 'escania', tanker: 'escania', cacamba: 'escania', tractor: 'varmete' };
 function brandOf(model) { return BRANDS[MODEL_BRAND[model] || 'volks']; }
@@ -240,6 +240,7 @@ class Player {
       const W2 = this.rodas(), k = chance(0.5) ? 0 : 1, areia = this.surface === SF.SAND;
       Particles.emit(areia ? 'areia' : 'dust', W2[k * 2] - c * 5 + rnd(-3, 3), W2[k * 2 + 1] - s * 5 + rnd(-3, 3), -this.vx * 0.12 + rnd(-12, 12), -this.vy * 0.12 + rnd(-12, 12), rnd(1.1, 2.2) * clamp(sp / 250, 0.7, 1.4), rnd(5, 8));
     }
+    if (this.surface === SF.BRIDGE && sp > 40) { this.tabuaD = (this.tabuaD || 0) + sp * dt; if (this.tabuaD > 26) { this.tabuaD = 0; AudioSys.tabua(clamp(sp / 400, 0.3, 1)); } } // tábuas da ponte batendo
     let onB = false;
     for (const b of World.bumps) if (this.x > b.x0 && this.x < b.x1 && this.y > b.y0 && this.y < b.y1) { onB = true; break; }
     if (onB && !this.onBump && sp > 80) {
@@ -1187,6 +1188,7 @@ class Animal {
       this.olhaT = (this.olhaT || 0) - dt;
       if (this.olhaT <= 0) { this.olhaT = 0.3; for (const c of Traffic.cars) if (c.v > 25 && Math.abs(c.x - this.x) < 26 && Math.abs(c.y - this.y) < 26) { this.scare(c.x, c.y, false); this.acao = null; break; } }
     }
+    if (this.acao === 'conversa' && Game.state === 'playing' && Math.random() < dt * 0.9) { const d = Math.hypot(this.x - Cam.x, this.y - Cam.y); if (d < 230) AudioSys.papo(clamp(1 - d / 230, 0.1, 1)); } // conversa baixinha de quem está batendo papo
     if (this.type === 'person' && this.cruzaPasso(dt)) return;
     if (this.state === 'idle' || this.state === 'graze') {
       if (this.v > 0) { // freia aos poucos (o último passo ainda leva para frente)
@@ -1249,8 +1251,8 @@ Animals.update = function (dt, cx, cy) {
     this.soundT = R.rural > 0.5 ? rnd(5, 10) : rnd(4, 8);
     if (Ambiente.sorteia(rk, R, cx, cy)) return; // som gravado do lugar (bichos, carros, gente); sintetizado enquanto não carrega
     const r = rnd();
-    if (R.rural > 0.6) { if (r < 0.3) AudioSys.owl(); else if (r < 0.55) AudioSys.moo(); else if (r < 0.75) AudioSys.frog(); }
-    else if (rk === 'rio') { if (r < 0.6) AudioSys.frog(); else AudioSys.owl(); }
+    // (0.2.0) sem mugido nem coruja inventados: bicho só faz barulho pelo Ambiente, quando existe um perto; à noite, sapo na beira do rio
+    if ((rk === 'rio' || R.rural > 0.6) && Dia.noite > 0.5 && r < 0.4) AudioSys.frog();
     else { if (r < 0.5) { /* sem sirene */ } else if (r < 0.7) AudioSys.aiHorn(rnd(500, 850), pick(Object.keys(HORNS)), rnd(-0.8, 0.8)); }
   }
 };
@@ -1308,7 +1310,7 @@ function pelada(G, P, dt) {
     const past = side ? G.by > gy - 6 : G.by < gy + 6; if (!past) continue;
     if (Math.abs(G.bx - P.cx) < 20 && G.bz < 14) { // gol!
       G.lastTeam = side ? 0 : 1; G.score[G.lastTeam]++; G.cel = 3.2; G.dono = null; G.festaX = clamp(G.bx, P.x0 + 20, P.x1 - 20); G.festaY = side ? gy - 30 : gy + 30;
-      if (player && Math.hypot(player.x - P.cx, player.y - P.cy) < 600) AudioSys.tone(660, 0.25, 'triangle', 0.05, 'ambient', 880);
+      if (player && Math.hypot(player.x - P.cx, player.y - P.cy) < 600) AudioSys.torcida(clamp(1 - Math.hypot(player.x - P.cx, player.y - P.cy) / 600, 0.2, 1)); // galera gritando gol
     } else { // pra fora / na trave: volta e o time lamenta
       G.by = side ? gy - 6 : gy + 6; G.bvy = -G.bvy * 0.5; G.dono = null;
       if (G.ultimoChute && Game.time - G.ultimoChute.t < 2) for (const p of pl) if (p.team === G.ultimoChute.team && !p.keeper && Math.random() < 0.5) p.reacao = { tipo: 'lamenta', t: Game.time };
@@ -1385,6 +1387,7 @@ function chuta(G, p, tx, ty, forca, aoGol) {
   const a = Math.atan2(ty - G.by, tx - G.bx) + (Math.random() - 0.5) * (aoGol ? 0.22 : 0.12);
   G.bvx = Math.cos(a) * forca; G.bvy = Math.sin(a) * forca; G.bvz = forca > 190 ? (forca - 150) * 1.1 : 0;
   G.cd = 0.45; G.dono = null; p.chute = 0.28; p.a = a; G.ultimoChute = { team: p.team, t: Game.time };
+  const d = Math.hypot(G.bx - Cam.x, G.by - Cam.y); if (d < 520 && Game.state === 'playing') AudioSys.chute(clamp(1 - d / 520, 0.1, 1) * (forca > 190 ? 1 : 0.6)); // som do chute
 }
 function goleiroRepoe(G, k, P) { // goleiro segura e repõe a bola longe, para um companheiro
   const alvo = P.cx + (Math.random() - 0.5) * 120, ty = P.cy + (k.team ? 30 : -30);

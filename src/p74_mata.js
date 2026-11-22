@@ -82,3 +82,38 @@ Mata.chao = function (ctx, view) {
   ctx.restore();
 };
 Mata.dentro = function (x, y) { for (const R of this.rects) if (x > R.x0 - 4 && x < R.x1 + 4 && y > R.y0 - 4 && y < R.y1 + 4) return true; return false; };
+
+/* ---------- mais verde nos gramados (0.2.0) ----------
+   Moitas baixas, canteiros com flores e tufos de capim alto nos gramados livres da cidade e da roça (quintais,
+   praças, beira de terreno). Sorteio próprio (não mexe no mapa), longe da rua e das construções, desenhado uma vez
+   no chão (não pesa nada por quadro) e com limite de quantidade. */
+const Verde = { n: 0 };
+Verde.monta = function () {
+  const R = mulberry32(91007), C = 70, MAX = 1100;
+  const longeDaRua = (x, y) => { for (const [dx, dy] of [[0, 0], [14, 0], [-14, 0], [0, 14], [0, -14]]) { const g = groundAt(x + dx, y + dy); if (g !== SF.GRASS && g !== SF.FIELD) return false; } return true; };
+  for (let y = 260; y < SEA_Y - 200 && this.n < MAX; y += C) for (let x = 260; x < WORLD_W - 260 && this.n < MAX; x += C) {
+    const px = x + R() * C, py = y + R() * C, sorte = R(), tipo = R();
+    const reg = REGIONS[regionKeyAt(px, py)], rural = reg ? reg.rural : 0.5;
+    if (sorte > (rural > 0.6 ? 0.05 : 0.16)) continue; // cidade: mais canteiro e moita; roça: só uma flor do mato aqui e ali
+    if (!longeDaRua(px, py) || areaBlocked(px - 10, py - 10, px + 10, py + 10)) continue;
+    const k = rural > 0.6 ? 'mato' : tipo < 0.42 ? 'moita' : tipo < 0.75 ? 'flores' : 'capim', s = 0.8 + R() * 0.5, sd = (R() * 1e6) | 0;
+    bake(px - 16, py - 16, px + 16, py + 16, 2.7, (g) => Verde.desenha(g, k, px, py, s, sd));
+    this.n++;
+  }
+};
+Verde.desenha = function (g, k, x, y, s, sd) {
+  const R = mulberry32(sd), FL = ['#f2d14a', '#f28ab0', '#ffffff', '#b58cf0', '#ff7a4a'];
+  g.save(); g.translate(x, y); g.scale(s, s);
+  if (k === 'moita' || k === 'flores' || k === 'mato') {
+    const n = k === 'mato' ? 4 : 7, raio = k === 'flores' ? 4.2 : 5.2;
+    g.fillStyle = 'rgba(0,0,0,0.22)'; g.beginPath(); g.ellipse(2, 2.4, raio * 1.6, raio * 1.1, 0, 0, TAU); g.fill();
+    for (let i = 0; i < n; i++) { const a = R() * TAU, d = R() * raio * 0.8, r = raio * (0.45 + R() * 0.4); g.fillStyle = ['#2f5f2a', '#3a7232', '#467e38', '#2a5326'][(R() * 4) | 0]; g.beginPath(); g.arc(Math.cos(a) * d, Math.sin(a) * d, r, 0, TAU); g.fill(); }
+    g.fillStyle = 'rgba(190,230,140,0.28)'; for (let i = 0; i < 4; i++) { g.beginPath(); g.arc(-1.4 + R() * 2, -1.6 + R() * 2, 1 + R(), 0, TAU); g.fill(); } // luz de cima
+    if (k !== 'moita') { const c = FL[(R() * FL.length) | 0], m = k === 'mato' ? 3 : 9; for (let i = 0; i < m; i++) { const a = R() * TAU, d = R() * raio; g.fillStyle = c; g.beginPath(); g.arc(Math.cos(a) * d, Math.sin(a) * d, 0.9, 0, TAU); g.fill(); } }
+  } else { // capim alto: folhas finas saindo do centro
+    g.strokeStyle = '#4f7a36'; g.lineWidth = 0.9; g.lineCap = 'round'; g.beginPath();
+    for (let i = 0; i < 14; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2.4, l = 4 + R() * 6; g.moveTo((R() - 0.5) * 3, (R() - 0.5) * 2); g.quadraticCurveTo(Math.cos(a) * l * 0.5, Math.sin(a) * l * 0.5 - 1, Math.cos(a) * l, Math.sin(a) * l); }
+    g.stroke(); g.strokeStyle = 'rgba(200,210,120,0.5)'; g.lineWidth = 0.6; g.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + (R() - 0.5) * 2, l = 5 + R() * 5; g.moveTo(0, 0); g.lineTo(Math.cos(a) * l, Math.sin(a) * l); } g.stroke();
+  }
+  g.restore();
+};

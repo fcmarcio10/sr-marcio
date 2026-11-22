@@ -668,27 +668,40 @@ function drawProp(g, p) {
   g.save(); g.translate(p.x, p.y); g.rotate(p.a);
   if (p.broken) { drawBrokenProp(g, p); g.restore(); return; }
   switch (p.type) {
-    case 'bench':
-      g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-12, -2, 28, 9);
-      g.fillStyle = '#3a3a3a'; g.fillRect(-12, -4, 2, 8); g.fillRect(10, -4, 2, 8);
-      g.fillStyle = '#8a5a34'; g.fillRect(-13, -4, 26, 3); g.fillRect(-13, 0, 26, 3);
-      g.fillStyle = '#6a4224'; g.fillRect(-13, -1, 26, 1);
+    case 'bench': { // banco de praça: pés de ferro, tábuas com fresta, encosto e brilho de verniz
+      g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(-12, -3, 27, 10);
+      g.fillStyle = '#2c2d30'; for (const x of [-11, 9]) { g.fillRect(x, -5.5, 2.4, 10); g.fillRect(x - 0.6, 3.6, 3.6, 1.2); }
+      const gr = g.createLinearGradient(0, -5, 0, 4); gr.addColorStop(0, '#a87244'); gr.addColorStop(1, '#6f4426');
+      g.fillStyle = gr; for (const y of [-5, -1.6, 1.8]) g.fillRect(-13.5, y, 27, 2.6);
+      g.fillStyle = 'rgba(255,235,200,0.25)'; for (const y of [-5, -1.6, 1.8]) g.fillRect(-13.5, y, 27, 0.6);
+      g.fillStyle = 'rgba(40,24,12,0.5)'; for (let x = -10; x < 13; x += 5.5) g.fillRect(x, -5, 0.5, 9.4); // veio da madeira
       break;
-    case 'bin':
-      g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.arc(2, 3, 5, 0, TAU); g.fill();
-      g.fillStyle = '#2f6a3a'; g.beginPath(); g.arc(0, 0, 4.5, 0, TAU); g.fill();
-      g.fillStyle = '#1c3f22'; g.beginPath(); g.arc(0, 0, 2.5, 0, TAU); g.fill();
+    }
+    case 'bin': { // lixeira de rua: cesto verde com aro de metal, saco preto dentro e brilho de um lado
+      g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.arc(1.4, 2, 4.8, 0, TAU); g.fill();
+      const gr = g.createRadialGradient(-1.4, -1.4, 0.5, 0, 0, 4.8); gr.addColorStop(0, '#4f9a5c'); gr.addColorStop(1, '#22552c');
+      g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 4.6, 0, TAU); g.fill();
+      g.strokeStyle = '#a8adb2'; g.lineWidth = 0.8; g.beginPath(); g.arc(0, 0, 4.2, 0, TAU); g.stroke();
+      g.fillStyle = '#16181b'; g.beginPath(); g.arc(0.2, 0.2, 2.9, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.18)'; g.beginPath(); g.arc(-0.6, -0.7, 1.2, 0, TAU); g.fill(); // saco de lixo brilhando
       break;
-    case 'hydrant':
-      g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.arc(2, 3, 4, 0, TAU); g.fill();
-      g.fillStyle = '#c8302a'; g.beginPath(); g.arc(0, 0, 3.6, 0, TAU); g.fill();
-      g.fillStyle = '#ffd04a'; g.beginPath(); g.arc(0, 0, 1.6, 0, TAU); g.fill();
+    }
+    case 'hydrant': { // hidrante: corpo vermelho com tampa amarela, bocais dos lados e parafusos
+      g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.arc(1.4, 2.2, 4, 0, TAU); g.fill();
+      g.fillStyle = '#9a1f1a'; g.fillRect(-5, -1.4, 10, 2.8); // bocais
+      const gr = g.createRadialGradient(-1.2, -1.2, 0.3, 0, 0, 3.8); gr.addColorStop(0, '#ff5a4a'); gr.addColorStop(1, '#a8231c');
+      g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 3.6, 0, TAU); g.fill();
+      g.fillStyle = '#ffd04a'; g.beginPath(); g.arc(0, 0, 1.8, 0, TAU); g.fill();
+      g.fillStyle = '#8a6a10'; for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; g.fillRect(Math.cos(a) * 2.7 - 0.35, Math.sin(a) * 2.7 - 0.35, 0.7, 0.7); }
       break;
-    case 'bollard':
-      g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.arc(1.5, 2, 3, 0, TAU); g.fill();
-      g.fillStyle = '#5a5a5e'; g.beginPath(); g.arc(0, 0, 2.6, 0, TAU); g.fill();
-      g.fillStyle = '#e0c04a'; g.beginPath(); g.arc(0, 0, 1.2, 0, TAU); g.fill();
+    }
+    case 'bollard': { // frade de concreto com faixa refletiva
+      g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.arc(1.2, 1.8, 3, 0, TAU); g.fill();
+      const gr = g.createRadialGradient(-0.9, -0.9, 0.2, 0, 0, 2.8); gr.addColorStop(0, '#9a9aa0'); gr.addColorStop(1, '#4a4a4e');
+      g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 2.7, 0, TAU); g.fill();
+      g.strokeStyle = '#e0c04a'; g.lineWidth = 0.9; g.beginPath(); g.arc(0, 0, 1.6, 0, TAU); g.stroke();
       break;
+    }
     case 'island': {
       // ilha com meio-fio amarelo e preto, bombas com visor, mangueiras e extintor
       const w = p.w, h = p.h;
