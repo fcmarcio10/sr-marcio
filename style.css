@@ -1608,6 +1608,8 @@ body.cel-aberto #teclas { opacity: 0.35; }
 .hud-bt .hrb-ico, .hud-bt .hp-ico { flex: none; }
 @media (max-height: 640px) { #hud-radio-btn.hud-bt, #hud-phone.hud-bt { bottom: 194px; width: 92px; } #hud-phone.hud-bt { left: 116px; } }
 
-/* (0.3.0) Créditos: botão do Instagram do criador */
-.credits .cred-insta { margin-top: 6px; padding: 7px 14px; border: 1px solid rgba(240, 200, 80, 0.55); border-radius: 999px; background: rgba(240, 200, 80, 0.08); color: #f0c850; font: 700 14px/1.2 var(--f-body); letter-spacing: 0.02em; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
-.credits .cred-insta:hover, .credits .cred-insta:focus-visible { background: rgba(240, 200, 80, 0.18); border-color: #f0c850; outline: none; }
+/* (0.3.0) Créditos: botão CRIADOR com o ícone do Instagram à esquerda (abre o Instagram do criador) */
+.credits .cred-insta { display: inline-flex; align-items: center; gap: 11px; margin-top: 2px; padding: 6px 20px 6px 6px; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 10px; background: rgba(255, 255, 255, 0.06); color: #fff; font: 800 17px/1 var(--f-cond); letter-spacing: 0.12em; cursor: pointer; transition: background 0.2s, border-color 0.2s, transform 0.2s; }
+.credits .cred-insta .ig { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%); color: #fff; }
+.credits .cred-insta .ig svg { width: 21px; height: 21px; display: block; }
+.credits .cred-insta:hover, .credits .cred-insta:focus-visible { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.32); transform: translateY(-1px); outline: none; }
