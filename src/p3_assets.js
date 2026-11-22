@@ -309,8 +309,7 @@ function drawEdgeBase(g, e) {
     g.fillStyle = 'rgba(0,0,0,0.14)'; g.fillRect(s0, -hw + 1.6, s1 - s0, 1.4); g.fillRect(s0, hw - 1.2, s1 - s0, 1.2);
   }
   if (T.shoulder) { // acostamento: para na boca de quem chega de lado (não atravessa a outra pista nem a estrada de terra)
-    g.fillStyle = pat(g, 'gravel');
-    for (const lado of [-1, 1]) { const [p0, p1] = acostamento(e, lado); if (p1 > p0) g.fillRect(p0, lado < 0 ? -hw - T.shoulder : hw, p1 - p0, T.shoulder); }
+    for (const lado of [-1, 1]) { const [p0, p1] = acostamento(e, lado); if (p1 > p0) acostQuebrado(g, e, lado, p0, p1, hw, T.shoulder); }
   }
   if (T.asphalt && edgePave(e) === 'bloquete') {
     g.fillStyle = pat(g, 'bloquete'); g.fillRect(0, -hw, L, hw * 2);
@@ -417,6 +416,64 @@ function acostamento(e, lado) {
   const ponta = (n) => (nodeDirs(n)[ld] ? (e.h ? n.hx : n.hy) : 0);
   return [ponta(e.a), e.len - ponta(e.b)];
 }
+/* ---------- beira da estrada encontrando o mato (asfalto quebrado e capim) ----------
+   Tudo escolhido pela posição (hash2), sem mexer no sorteio do mapa. Na ponte não tem (lá é guarda-corpo). */
+function _bqH(e, s, k) { return hash2((e.id * 7919 + Math.round(s) * 13 + k * 101) | 0, 29 + k); }
+function _bqRoca(e) { if (e._roca === undefined) { const r = REGIONS[regionKeyAt((e.a.x + e.b.x) / 2, (e.a.y + e.b.y) / 2)]; e._roca = !r || (r.city || 0) < 0.5; } return e._roca; } // na cidade grande: sem capim e sem pedaço grande quebrado
+function _naPonte(e, s) { const b = e.bridge; return b && e.h && e.a.x + s > b.x0 - 14 && e.a.x + s < b.x1 + 14; }
+// acostamento de cascalho com a beira de fora irregular (o mato avança e recua), manchas de terra e capim crescendo
+function acostQuebrado(g, e, lado, p0, p1, hw, sh) {
+  const sg = lado, fora = (s) => sh * 0.78 + Math.sin(s * 0.045 + e.id) * 3 + Math.sin(s * 0.13 + e.id * 2.3) * 1.8 + (_bqH(e, s, 1) - 0.5) * 3.4;
+  g.fillStyle = pat(g, 'gravel'); g.beginPath(); g.moveTo(p0, sg * hw);
+  for (let s = p0; s < p1; s += 4) g.lineTo(s, sg * (hw + fora(s)));
+  g.lineTo(p1, sg * (hw + fora(p1))); g.lineTo(p1, sg * hw); g.closePath(); g.fill();
+  // manchas de terra no acostamento
+  for (let s = p0 + 6; s < p1 - 6; s += 23) {
+    if (_bqH(e, s, 2) > 0.45 || _naPonte(e, s)) continue;
+    const x = s + _bqH(e, s, 3) * 14, y = sg * (hw + sh * (0.35 + _bqH(e, s, 4) * 0.5)), rx = 4 + _bqH(e, s, 5) * 9, ry = 1.5 + _bqH(e, s, 6) * 2.5;
+    g.fillStyle = 'rgba(112,86,58,0.32)'; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fill();
+  }
+  if (!_bqRoca(e)) return;
+  // capim: touceiras que entram no acostamento vindas do mato (mais perto da beira de fora)
+  const P1 = new Path2D(), P2 = new Path2D();
+  for (let s = p0 + 3; s < p1 - 3; s += 5) {
+    if (_bqH(e, s, 7) > 0.78 || _naPonte(e, s)) continue;
+    const x = s + (_bqH(e, s, 8) - 0.5) * 4, t = Math.pow(_bqH(e, s, 9), 0.6), y = sg * (hw + sh * (0.1 + t * 0.85)), n = 4 + ((_bqH(e, s, 10) * 5) | 0), P = _bqH(e, s, 11) < 0.5 ? P1 : P2;
+    for (let k = 0; k < n; k++) { const a = -Math.PI / 2 * sg + (_bqH(e, s, 12 + k) - 0.5) * 2.4, l = 2 + _bqH(e, s, 20 + k) * 3; P.moveTo(x, y); P.lineTo(x + Math.cos(a) * l * 0.8, y - Math.sin(a) * l); }
+  }
+  g.lineCap = 'round'; g.lineWidth = 1.1;
+  g.strokeStyle = 'rgba(74,104,44,0.85)'; g.stroke(P1); g.strokeStyle = 'rgba(98,128,58,0.8)'; g.stroke(P2);
+}
+// beira do asfalto esfarelada: mordidas rasas quase sempre e, de vez em quando, um pedaço grande quebrado (come a linha branca),
+// com trinca entrando na pista, pedaços de asfalto soltos no acostamento e capim nascendo na quebra
+function asfaltoQuebrado(g, e, lado, p0, p1, hw) {
+  const sg = lado, mord = [], roca = _bqRoca(e);
+  for (let c = Math.floor(p0 / 46) * 46; c < p1; c += 46) { if (roca && _bqH(e, c, 30) < 0.62) { const x = c + _bqH(e, c, 31) * 34, w = 6 + _bqH(e, c, 32) * 13; if (x - w > p0 && x + w < p1 && !_naPonte(e, x)) mord.push({ x, w, d: 3.6 + _bqH(e, c, 33) * 5 }); } }
+  const prof = (s) => { let d = 0.6 + _bqH(e, s, 34) * 1.5 + Math.max(0, Math.sin(s * 0.09 + e.id) * 1.4); for (const m of mord) { const u = (s - m.x) / m.w; if (u > -1 && u < 1) d = Math.max(d, m.d * (1 - u * u) * (0.75 + _bqH(e, s, 35) * 0.4)); } return _naPonte(e, s) ? 0 : d; };
+  const bd = []; for (let s = p0; s < p1; s += 2.2) bd.push([s, prof(s)]); bd.push([p1, prof(p1)]);
+  g.fillStyle = pat(g, 'gravel'); g.beginPath(); g.moveTo(p0, sg * (hw + 1));
+  for (const [s, d] of bd) g.lineTo(s, sg * (hw - d));
+  g.lineTo(p1, sg * (hw + 1)); g.closePath(); g.fill();
+  g.strokeStyle = 'rgba(16,16,18,0.3)'; g.lineWidth = 0.8; g.lineJoin = 'round'; g.beginPath(); // quina do asfalto
+  bd.forEach(([s, d], i) => { const y = sg * (hw - d - 0.4); if (i) g.lineTo(s, y); else g.moveTo(s, y); }); g.stroke();
+  const tr = new Path2D(), cap = new Path2D();
+  for (const m of mord) {
+    // trinca saindo da quebra para dentro da pista
+    let x = m.x + (_bqH(e, m.x, 40) - 0.5) * m.w, y = sg * (hw - m.d * 0.8); tr.moveTo(x, y);
+    for (let k = 0; k < 3; k++) { x += (_bqH(e, m.x, 41 + k) - 0.5) * 7; y -= sg * (2 + _bqH(e, m.x, 44 + k) * 3.5); tr.lineTo(x, y); }
+    // pedaços de asfalto soltos no acostamento
+    for (let k = 0; k < 2; k++) {
+      const px = m.x + (_bqH(e, m.x, 50 + k) - 0.5) * m.w * 1.6, py = sg * (hw + 2 + _bqH(e, m.x, 52 + k) * 5), r = 0.9 + _bqH(e, m.x, 54 + k) * 1.4, a0 = _bqH(e, m.x, 56 + k) * 6;
+      const pts = []; for (let q = 0; q < 5; q++) { const an = a0 + q * 1.26, rr = r * (0.65 + _bqH(e, m.x, 60 + q + k * 5) * 0.5); pts.push([px + Math.cos(an) * rr, py + Math.sin(an) * rr]); }
+      g.fillStyle = 'rgba(0,0,0,0.3)'; g.beginPath(); pts.forEach(([a, b], i) => (i ? g.lineTo(a + 0.6, b + 0.6) : g.moveTo(a + 0.6, b + 0.6))); g.fill();
+      g.fillStyle = pat(g, 'asphalt'); g.beginPath(); pts.forEach(([a, b], i) => (i ? g.lineTo(a, b) : g.moveTo(a, b))); g.fill();
+    }
+    // capim nascendo na quebra
+    for (let k = 0; k < 4; k++) { const bx = m.x + (_bqH(e, m.x, 70 + k) - 0.5) * m.w, by = sg * (hw - m.d * 0.3), a = -Math.PI / 2 * sg + (_bqH(e, m.x, 75 + k) - 0.5) * 2.2, l = 1.6 + _bqH(e, m.x, 80 + k) * 2; cap.moveTo(bx, by); cap.lineTo(bx + Math.cos(a) * l * 0.8, by - Math.sin(a) * l); }
+  }
+  g.strokeStyle = 'rgba(14,14,16,0.4)'; g.lineWidth = 0.7; g.stroke(tr);
+  g.strokeStyle = 'rgba(86,118,50,0.85)'; g.lineWidth = 1; g.lineCap = 'round'; g.stroke(cap);
+}
 function drawEdgeMarkings(g, e) {
   const T = e.T;
   if (!T.asphalt) return;
@@ -445,6 +502,7 @@ function drawEdgeMarkings(g, e) {
     g.fillStyle = wht;
     for (const lado of [-1, 1]) { const [p0, p1] = beiraLinha(e, lado); if (p1 > p0) g.fillRect(p0, lado < 0 ? -hw + 3 : hw - 5.4, p1 - p0, 2.4); }
   }
+  if (T.shoulder) for (const lado of [-1, 1]) { const [p0, p1] = acostamento(e, lado); if (p1 > p0) asfaltoQuebrado(g, e, lado, p0, p1, hw); } // por cima da linha branca
   if (T.sw && !blq && (T.id === 'street' || T.id === 'avenue')) drawRuaDetalhes(g, e, s0, s1, hw);
   if (T.sw) {
     for (const [atA, perp] of [[true, e.perpA], [false, e.perpB]]) {
