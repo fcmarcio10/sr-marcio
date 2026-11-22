@@ -18,14 +18,13 @@ AutoRes.quadro = function (dtReal, trabalhoMs, cap) {
   if (this.t < 2) return;
   const fracLento = this.lentos / this.n, trabMedio = this.trab / this.n;
   let nk = this.k;
-  if (this.espera <= 0 && fracLento > 0.25 && this.k > 0.55) { nk = Math.max(0.55, this.k - 0.1); this.teto = Math.min(this.teto, this.k); this.espera = 3; } // atrasando: baixa um degrau
+  if (this.espera <= 0 && fracLento > 0.25 && this.k > 0.75) { nk = Math.max(0.75, this.k - 0.1); this.teto = Math.min(this.teto, this.k); this.espera = 3; } // atrasando: baixa um degrau
   else if (this.espera <= 0 && fracLento < 0.03 && trabMedio < 7 && this.k < 1) { nk = Math.min(1, this.k + 0.05); if (nk >= this.teto) nk = this.k; this.espera = 8; } // folga: sobe devagar (sem passar do degrau que já travou)
   this.n = this.lentos = this.trab = this.t = 0;
   if (nk !== this.k && Game.state === 'playing') { this.k = nk; resize(); }
 };
 const Cam = { x: 1000, y: 2700, zoom: 1, shake: 0, quick: 1, view: { x0: 0, y0: 0, x1: 0, y1: 0 }, dark: 0.84, menuTarget: null, menuT: 0 };
 const PAR = 1 / 1700;
-let DESENHO_RS = 0.5; // tamanho do ponto no estilo Desenho (0,5 = cada ponto vira 2x2)
 const SQ = 1;      // visão de cima (sem achatamento vertical)
 const TILT_H = 0;  // sem inclinação extra: só a paralaxe 2.5D a partir do centro da tela (a vista 3/4 foi testada e voltou, nov/2026)
 
@@ -33,17 +32,9 @@ function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
   const dpr = window.devicePixelRatio || 1;
   RS = altaQ() ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.7 : Math.min(dpr, 1.25);
-  if (desenhoQ()) RS = DESENHO_RS; // estilo Desenho: menos pontos e ampliado sem borrar (cada ponto vira um quadradinho nítido)
-  canvas.classList.toggle('pixel', desenhoQ());
   if (AutoRes.q !== Settings.quality) { AutoRes.q = Settings.quality; AutoRes.k = 1; AutoRes.teto = 1; } // trocou o gráfico: começa do zero
-  RS_MAX = RS; if (!desenhoQ()) RS = Math.max(Math.min(RS, 0.75), RS * AutoRes.k); // nitidez automática para segurar 60 FPS
-  if (desenhoQ()) { // Desenho: 1 ponto a mais de cada lado; a tela é deslocada pelo pedaço de ponto que sobra (câmera macia sem tremer)
-    canvas.width = Math.ceil(SCREEN_W * RS) + 2; canvas.height = Math.ceil(SCREEN_H * RS) + 2;
-    const cs = canvas.style; cs.width = (canvas.width / RS) + 'px'; cs.height = (canvas.height / RS) + 'px'; cs.left = (-1 / RS) + 'px'; cs.top = (-1 / RS) + 'px'; cs.right = cs.bottom = 'auto';
-  } else {
-    canvas.width = Math.round(SCREEN_W * RS); canvas.height = Math.round(SCREEN_H * RS);
-    const cs = canvas.style; cs.width = cs.height = cs.left = cs.top = cs.right = cs.bottom = cs.transform = '';
-  }
+  RS_MAX = RS; RS = Math.max(Math.min(RS, 0.75), RS * AutoRes.k); // nitidez automática para segurar 60 FPS
+  canvas.width = Math.round(SCREEN_W * RS); canvas.height = Math.round(SCREEN_H * RS);
   // a camada de luz é toda suave: resolução menor não muda o visual e alivia muito
   LS = altaQ() ? 0.5 : Settings.quality === 'baixa' ? 0.28 : 0.42;
   lightCanvas.width = Math.ceil(SCREEN_W * LS); lightCanvas.height = Math.ceil(SCREEN_H * LS);
@@ -677,7 +668,6 @@ function drawBuilding(ctx, b) {
   if (ox > 0.3) dw(ctx, b, x0, y1, x0, y0, ox, oy, 'W'); else if (ox < -0.3) dw(ctx, b, x1, y0, x1, y1, ox, oy, 'E');
   if (oy > 0.3) dw(ctx, b, x0, y0, x1, y0, ox, oy, 'N'); else if (oy < -0.3) dw(ctx, b, x1, y1, x0, y1, ox, oy, 'S');
   ctx.drawImage(roofSprite(b), x0 + ox, y0 + oy, x1 - x0, y1 - y0);
-  if (desenhoQ()) { ctx.strokeStyle = 'rgba(12,12,18,0.9)'; ctx.lineWidth = 1.6; ctx.strokeRect(x0 + ox, y0 + oy, x1 - x0, y1 - y0); } // contorno de HQ no telhado
   if (b.party) drawParty(ctx, b, x0 + ox, y0 + oy);
   if (alpha < 1) ctx.globalAlpha = 1;
 }
@@ -749,7 +739,7 @@ function drawTall(ctx, o) {
       }
       const [ox0, oy] = offAt(o.x, o.y, o.h);
       const bv = Vento.bal(o.x, o.y, o.x * 0.05 + o.y * 0.03, (o.type === 'bush' ? 1.1 : 1.8) * o.size), ox = ox0 + bv; // balança com o vento (rajadas passando)
-      const spr = desenhoQ() ? treeHQ(o.type, o.v) : treeSprite(o.type, o.v);
+      const spr = treeSprite(o.type, o.v);
       const S = 64 * o.size * (o.type === 'bush' ? 0.55 : 1);
       let a = 1;
       if (player && Game.state !== 'menu') { const d = Math.hypot(player.x - o.x - ox, player.y - o.y - oy); if (d < S * 0.32) a = 0.7; }
@@ -1657,9 +1647,8 @@ function render() {
   const W = canvas.width, Hh = canvas.height;
   const z = Cam.zoom * RS;
   // tremida + tranco da batida + vibração leve que cresce com a velocidade (acima de ~110 km/h; macia, sem sorteio)
-  const vib = Game.mode === 'play' && player && !Apresenta.on && !desenhoQ() ? clamp((player.speed * 0.3 - 110) / 110, 0, 1) * 0.9 : 0, T9 = Game.time;
-  const shk = desenhoQ() ? 0 : Cam.shake * 0.6; // Desenho: sem tremida (fica só o tranco macio da batida)
-  const sx = (Math.random() - 0.5) * shk + (Cam.kx || 0) + vib * (Math.sin(T9 * 31) * 0.6 + Math.sin(T9 * 53 + 1) * 0.4), sy = (Math.random() - 0.5) * shk + (Cam.ky || 0) + vib * (Math.sin(T9 * 37 + 2) * 0.6 + Math.sin(T9 * 47) * 0.4);
+  const vib = Game.mode === 'play' && player && !Apresenta.on ? clamp((player.speed * 0.3 - 110) / 110, 0, 1) * 0.9 : 0, T9 = Game.time;
+  const sx = (Math.random() - 0.5) * Cam.shake * 0.6 + (Cam.kx || 0) + vib * (Math.sin(T9 * 31) * 0.6 + Math.sin(T9 * 53 + 1) * 0.4), sy = (Math.random() - 0.5) * Cam.shake * 0.6 + (Cam.ky || 0) + vib * (Math.sin(T9 * 37 + 2) * 0.6 + Math.sin(T9 * 47) * 0.4);
   const cx = Cam.x + sx, cy = Cam.y + sy;
   const vw = W / z, vh = Hh / (z * SQ);
   const view = Cam.view; view.x0 = cx - vw / 2; view.y0 = cy - vh / 2; view.x1 = cx + vw / 2; view.y1 = cy + vh / 2;
@@ -1667,11 +1656,9 @@ function render() {
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   ctx.fillStyle = '#0a1008'; ctx.fillRect(0, 0, W, Hh);
   pm('clear');
-  const DQ = desenhoQ(), tx0 = W / 2 - cx * z, ty0 = Hh / 2 - cy * z * SQ, TX = DQ ? Math.round(tx0) : tx0, TY = DQ ? Math.round(ty0) : ty0; // Desenho: a câmera anda de ponto em ponto (sem tremer nem costura no chão)
-  ctx.setTransform(z, 0, 0, z * SQ, TX, TY);
-  if (DQ) { const fx = (TX - tx0) / RS, fy = (TY - ty0) / RS, k = fx.toFixed(2) + ',' + fy.toFixed(2); if (k !== render._fk) { render._fk = k; canvas.style.transform = `translate(${-fx.toFixed(2)}px, ${-fy.toFixed(2)}px)`; } }
-  WS_BASE.ctx = ctx; WS_BASE.z = z; WS_BASE.zs = z * SQ; WS_BASE.tx = TX; WS_BASE.ty = TY; wsTrim();
-  ctx.imageSmoothingEnabled = !DQ;
+  ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
+  WS_BASE.ctx = ctx; WS_BASE.z = z; WS_BASE.zs = z * SQ; WS_BASE.tx = W / 2 - cx * z; WS_BASE.ty = Hh / 2 - cy * z * SQ; wsTrim();
+  ctx.imageSmoothingEnabled = true;
   drawGround(view, forceGround); forceGround = false;
   bordaFora(ctx, view); // além da borda: mata e mar continuam (por cima do chão que passa da borda)
   pm('ground');
@@ -1758,7 +1745,6 @@ function render() {
     gctx.globalAlpha = 1; gctx.globalCompositeOperation = 'source-over';
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.imageSmoothingEnabled = true; // a luz e o brilho continuam macios
   ctx.imageSmoothingQuality = 'low';
   ctx.drawImage(lightCanvas, 0, 0, W, Hh);
   pm('compLight');

@@ -175,7 +175,7 @@ function bindSettings() {
       const v = b.dataset.v;
       Settings[k] = v === 'true' ? true : v === 'false' ? false : v;
       AudioSys.click();
-      if (k === 'quality' || k === 'estilo') { _treeHQ.clear(); resize(); clearChunks(); forceGround = true; Particles.list.length = 0; }
+      if (k === 'quality') { resize(); clearChunks(); forceGround = true; Particles.list.length = 0; }
       if (k === 'showFps') $('fps').classList.toggle('hidden', !Settings.showFps);
       saveSettings(); syncSettingsUI();
     });

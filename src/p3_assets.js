@@ -1038,7 +1038,6 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   else if (m.kind === 'tractor') drawTractor(ctx, m, color, o);
   else if (m.kind === 'moto') drawMoto(ctx, m, color, o);
   else drawCar(ctx, m, color, o);
-  if (desenhoQ()) { ctx.strokeStyle = 'rgba(10,10,16,0.92)'; ctx.lineWidth = 1.5; if (m.kind === 'car') ctx.stroke(bodyPath(m)); else { ctx.beginPath(); rrect(ctx, -m.L / 2, -m.W / 2, m.L, m.W, m.kind === 'moto' ? 3 : 4); ctx.stroke(); } } // contorno de HQ
   ctx.restore();
 }
 function drawMoto(ctx, m, color, o) {
@@ -1369,16 +1368,6 @@ function sombraArvore(type, v) {
   const k = type + v; let c = _sombraArv.get(k);
   if (!c) { const spr = treeSprite(type, v); c = makeCanvas(spr.width, spr.height); const g = c.getContext('2d'); g.drawImage(spr, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); _sombraArv.set(k, c); }
   return c;
-}
-// estilo Desenho: o mesmo desenho da árvore com um contorno escuro em volta (feito uma vez por tipo)
-const _treeHQ = new Map();
-function treeHQ(type, v) {
-  const k = type + v; let c = _treeHQ.get(k); if (c) return c;
-  const base = treeSprite(type, v), W = base.width, H = base.height, d = Math.max(1, Math.round(W / 64 * 1.3));
-  const sil = makeCanvas(W, H), sg = sil.getContext('2d'); sg.drawImage(base, 0, 0); sg.globalCompositeOperation = 'source-in'; sg.fillStyle = '#0c1208'; sg.fillRect(0, 0, W, H);
-  c = makeCanvas(W, H); const g = c.getContext('2d');
-  for (const [dx, dy] of [[-d, 0], [d, 0], [0, -d], [0, d], [-d, -d], [d, d], [-d, d], [d, -d]]) g.drawImage(sil, dx, dy);
-  g.drawImage(base, 0, 0); _treeHQ.set(k, c); return c;
 }
 function treeSprite(type, v) {
   const k = type + v;

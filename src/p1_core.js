@@ -96,7 +96,7 @@ const HORNS = {
 };
 // câmera única (0.2.0): sempre a altura de perto (145%); nada passa de 120%, nem correndo
 const CAM_ZOOM = 145, CAM_MIN = 120;
-const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', estilo: 'realista', zoom: CAM_ZOOM, showFps: false, fpsCap: '60', minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4, slot: 1, legendas: true, teclas: {} }; // rádio começa desligada; depois o jogo lembra como você deixou
+const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', zoom: CAM_ZOOM, showFps: false, fpsCap: '60', minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4, slot: 1, legendas: true, teclas: {} }; // rádio começa desligada; depois o jogo lembra como você deixou
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null');

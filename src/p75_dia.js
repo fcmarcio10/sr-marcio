@@ -117,9 +117,9 @@ Dia.sombrasSol = function (ctx, view) {
 };
 // Ultra: cores um pouco mais vivas de dia (filtro da própria tela, quase sem custo); some de noite
 Dia.saturacao = function () {
-  const D = desenhoQ() && Game.mode === 'play', v = (ultraQ() && Game.mode === 'play' ? 1.08 + 0.24 * this.sol : 1) * (D ? 1.28 : 1), key = v.toFixed(2) + (D ? 'd' : ''); // Ultra: cores vivas de dia e um pouco de noite (letreiros e luzes)
+  const jogo = Game.mode === 'play' && Settings.quality !== 'baixa', v = !jogo ? 1 : ultraQ() ? 1.14 + 0.22 * this.sol : 1.1 + 0.1 * this.sol, key = v.toFixed(2); // cores vivas e realistas (Médio/Alto) e ainda mais no Ultra; de noite fica um pouco (letreiros e luzes)
   if (key === this._sat) return; this._sat = key;
-  canvas.style.filter = key === '1.00' ? '' : `saturate(${v.toFixed(2)}) contrast(${(1.03 + 0.05 * this.sol + (D ? 0.1 : 0)).toFixed(3)})`; // Desenho: cores fortes e chapadas
+  canvas.style.filter = key === '1.00' ? '' : `saturate(${key}) contrast(${(1.03 + 0.05 * this.sol).toFixed(3)})`;
 };
 // luz do sol de dia: um toque quente e mais contraste (estilo cinema), por cima de tudo
 Dia.luzSol = function (ctx, W, H) {
