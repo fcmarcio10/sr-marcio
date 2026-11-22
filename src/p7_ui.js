@@ -573,7 +573,7 @@ function closeDialog() { if (Screens.current === 'screen-dialog') Screens.closeA
 
 /* ---------- estatísticas da pausa ---------- */
 // (0.2.0) pausa com o mapa grande atrás, o carro em destaque do lado direito (o menu fica à esquerda)
-let pauseMap = null; const PauseMapSt = { cx: 0, cy: 0, z: 0.1, follow: false, fundo: '#0b1118', nevoaLeve: true };
+let pauseMap = null; const PauseMapSt = { cx: 0, cy: 0, z: 0.1, follow: false, fundo: '#0b1118' }; // névoa normal: só aparece o que já foi explorado
 function pausaMapa() {
   const c = $('pause-map'); if (!c || !player || Screens.current !== 'screen-pause') return;
   if (!pauseMap) pauseMap = new MapView(c, PauseMapSt);

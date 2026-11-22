@@ -1186,7 +1186,10 @@ function forest(x0, y0, x1, y1, noCol) {
 function buildRural() {
   // bordas do mundo
   // mata fechada até a beira do mundo (a borda recortada fica do lado de fora; lá fora a mata continua: bordaFora em p78_campo.js)
-  forest(-60, -60, WORLD_W + 60, 230); forest(-60, 230, 230, SEA_Y); forest(8790, 230, WORLD_W + 60, SEA_Y);
+  // (0.2.0) a mata de cima abre no Rio Jururu: o rio corre até a beira do mundo (antes a mata ficava por cima da água)
+  { let rx0 = 1e9, rx1 = -1e9; for (let y = -60; y <= 240; y += 10) { rx0 = Math.min(rx0, riverCX(y) - riverHW(y) - 30); rx1 = Math.max(rx1, riverCX(y) + riverHW(y) + 30); }
+    World.rioBorda = [rx0, rx1]; forest(-60, -60, rx0, 230); forest(rx1, -60, WORLD_W + 60, 230); }
+  forest(-60, 230, 230, SEA_Y); forest(8790, 230, WORLD_W + 60, SEA_Y);
   addRectCol(-200, -200, WORLD_W + 200, 20, 'world'); addRectCol(-200, WORLD_H - 20, WORLD_W + 200, WORLD_H + 200, 'world');
   addRectCol(-200, 0, 20, WORLD_H, 'world'); addRectCol(WORLD_W - 20, 0, WORLD_W + 200, WORLD_H, 'world');
   // faixa norte da cidade (entre a mata e a primeira rua)
