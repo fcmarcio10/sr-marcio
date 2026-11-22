@@ -19,7 +19,7 @@ const { chromium } = require('playwright');
   const nev = await p.evaluate(() => ({ pct: Nevoa.pct(), aqui: Nevoa.aberto(player.x, player.y), longe: Nevoa.aberto(8000, 8800) }));
   await p.keyboard.press('KeyQ'); await p.waitForTimeout(300);
   // câmera de cinema (para as missões novas)
-  await p.evaluate(() => { const of = oficinaZe(); Apresenta.comeca([{ x: of.x, y: of.y, nome: 'Oficina do Seu Zé', sub: 'teste', tag: 'Teste' }], () => {}); });
+  await p.evaluate(() => { const of = World.shops.find((x) => x.kind === 'oficina'); Apresenta.comeca([{ x: of.x, y: of.y, nome: 'Oficina do Seu Zé', sub: 'teste', tag: 'Teste' }], () => {}); });
   await p.waitForTimeout(2500);
   const cine = await p.evaluate(() => ({ on: Apresenta.on, barras: document.body.classList.contains('cinema'), lugar: (document.getElementById('ms-lugar') || {}).textContent || '' }));
   await p.keyboard.press('Enter'); await p.waitForTimeout(1500);
