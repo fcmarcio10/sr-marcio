@@ -1415,13 +1415,26 @@ function glowPass(view, cx, cy) {
     gctx.globalAlpha = a;
     gctx.drawImage(glowSprite(lightHex(L.col)), L.x - L.r * 0.85, L.y - L.r * 0.85, L.r * 1.7, L.r * 1.7);
   }
-  // pista molhada: cada luz da rua reflete num risco comprido no asfalto
-  if (Weather.wet > 0.05) {
+  // pista molhada (0.2.0, mais forte): cada luz da rua reflete num risco comprido e tremido no asfalto,
+  // e os faróis e lanternas de todos os carros refletem no chão molhado (branco na frente, vermelho atrás)
+  if (Weather.wet > 0.05 && Settings.quality !== 'baixa') {
+    const W = Weather.wet;
     for (const L of _lq) {
-      if (L.refl || L.canopy || (L.dieAt && T > L.dieAt) || L.x < view.x0 - 40 || L.x > view.x1 + 40 || L.y < view.y0 - 120 || L.y > view.y1) continue;
-      gctx.globalAlpha = 0.22 * Weather.wet * L.i;
-      gctx.drawImage(glowSprite(lightHex(L.col)), L.x - 9 + Math.sin(T * 1.7 + L.seed * 9) * 1.5, L.y + 4, 18, 90);
+      if (L.refl || L.canopy || (L.dieAt && T > L.dieAt) || L.x < view.x0 - 40 || L.x > view.x1 + 40 || L.y < view.y0 - 140 || L.y > view.y1) continue;
+      if (Dia.apaga && (L.lamp ? Dia.posteApagado(L.x * 7 + L.y * 13) : Dia.desligada(L.x * 7 + L.y * 13))) continue;
+      const spr = glowSprite(lightHex(L.col)), tr = Math.sin(T * 1.7 + L.seed * 9) * 1.5;
+      gctx.globalAlpha = 0.36 * W * L.i; gctx.drawImage(spr, L.x - 10 + tr, L.y + 4, 20, 120);
+      gctx.globalAlpha = 0.2 * W * L.i; gctx.drawImage(spr, L.x - 4 - tr, L.y + 30, 8, 80); // miolo mais forte, quebrado pela água
     }
+    const reflete = (c, frente, tras) => {
+      const ca = Math.cos(c.a), sa = Math.sin(c.a), L2 = c.m.L / 2;
+      gctx.save(); gctx.translate(c.x, c.y); gctx.rotate(c.a);
+      if (frente > 0) { gctx.globalAlpha = 0.3 * W * frente; gctx.drawImage(glowSprite('#fff1cf'), L2, -12, 90, 24); }
+      if (tras > 0) { gctx.globalAlpha = 0.32 * W * tras; gctx.drawImage(glowSprite('#ff2a1e'), -L2 - 46, -9, 46, 18); }
+      gctx.restore();
+    };
+    for (const c of Traffic.cars) if (inView(view, c.x, c.y, 160)) reflete(c, 1, c.braking || c.v < 3 ? 1.3 : 0.7);
+    if (player && Game.state !== 'menu') { const kf = Math.max(playerLamp(1), playerLamp(-1)); reflete(player, kf * (player.highBeam ? 1.3 : 1), player.braking ? 1.3 : 0.7); }
   }
   // reflexos das luzes na água
   for (const L of _lq) {
@@ -1913,7 +1926,7 @@ class MapView {
     if (this.st.follow && player) { this.st.cx = player.x; this.st.cy = player.y; }
     const z = this.st.z, s = z * dpr, k = 1 / z; // k: unidades do mundo por px de tela
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.fillStyle = '#36546e'; g.fillRect(0, 0, Wp, Hp);
+    g.fillStyle = this.st.fundo || '#36546e'; g.fillRect(0, 0, Wp, Hp);
     g.setTransform(s, 0, 0, s, Wp / 2 - this.st.cx * s, Hp / 2 - this.st.cy * s);
     g.imageSmoothingEnabled = true;
     g.drawImage(MAPIMG, 0, 0, WORLD_W, WORLD_H);
@@ -1944,7 +1957,7 @@ class MapView {
       }
     }
     // parte da cidade ainda não explorada fica escura (abre por onde o carro passa)
-    Nevoa.desenha(g);
+    if (this.st.nevoaLeve) { g.globalAlpha = 0.45; Nevoa.desenha(g); g.globalAlpha = 1; } else Nevoa.desenha(g); // na pausa a névoa fica mais clara (é só o fundo)
     // bairros
     g.textAlign = 'center'; g.textBaseline = 'middle';
     const ls = clamp(11 * k, 34, 160); // nomes de bairro menores (nov/2026)

@@ -82,8 +82,10 @@ function startRacha(r) {
 function finishRacha(R) {
   const r = R.r;
   Act.race = null;
-  if (R.t < r.rivalTime) { AudioSys.chime(); Profile.rachaWins = (Profile.rachaWins || 0) + 1; Desafios.conta('racha'); pay(r.bet * 2, 'Ganhou o racha de ' + r.rival + '! (' + fmtTime(R.t) + ')'); }
-  else toast('Perdeu o racha', r.rival + ' chegou antes (' + fmtTime(r.rivalTime) + ' contra ' + fmtTime(R.t) + '). Já era a aposta.', 'bad');
+  const pos = Recordes.posicao(r, R.t), antes = Recordes.meu(r); Recordes.racha(r, R.t);
+  const placar = pos + 'º lugar no placar' + (!antes || R.t < antes ? ' · novo recorde seu' : '');
+  if (R.t < r.rivalTime) { AudioSys.chime(); Profile.rachaWins = (Profile.rachaWins || 0) + 1; Desafios.conta('racha'); pay(r.bet * 2, 'Ganhou o racha de ' + r.rival + '! (' + fmtTime(R.t) + ' · ' + placar + ')'); }
+  else toast('Perdeu o racha', r.rival + ' chegou antes (' + fmtTime(r.rivalTime) + ' contra ' + fmtTime(R.t) + '). ' + placar + '.', 'bad');
   saveGame();
 }
 function rachaGhostPos(R) {
@@ -447,9 +449,10 @@ const PH_ICONS = {
   camera: ['#3c4049', _ln('<path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/>')],
   // panela de barro vista de lado: barriga redonda, tampa com pegador e as duas alças
   colecao: ['#b8643a', _ln('<path d="M4.5 11.5h15c0 4.6-3.2 7.8-7.5 7.8s-7.5-3.2-7.5-7.8z"/><path d="M6 11.5c.6-2.4 3-3.8 6-3.8s5.4 1.4 6 3.8"/><path d="M12 7.7V6.2"/><path d="M4.5 12.5H2.8M19.5 12.5h1.7"/>')],
+  recordes: ['#0f8b8d', _ln('<path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M10.2 8.4 12 6.6v5"/>')],
   ajustes: ['#7b808a', _ln('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>')],
 };
-const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', desafios: 'Desafios', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
+const PH_APPS = { recordes: 'Recordes', mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', desafios: 'Desafios', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
   const tr = false;
@@ -585,7 +588,7 @@ const Phone = {
       const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
       // tela inicial simples (nov/2026): hora grande, uma grade com os apps e a barra de baixo; sem caixinhas nem textos
       html = `<div class="ph-lock simples"><div class="ph-time">${clockStr()}</div><div class="ph-date">${wl ? H(wl) + ' · ' : ''}${temp}° · R$ ${fmtMoney(Profile.money)}</div></div>` +
-        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'desafios', 'camera', 'colecao'].concat(CHEATS_ENABLED && modoDono() ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
+        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'desafios', 'recordes', 'camera', 'colecao'].concat(CHEATS_ENABLED && modoDono() ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
         '<div class="ph-dock">' + ['mapa', 'msgs', 'conquistas', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
@@ -702,7 +705,7 @@ const Phone = {
       html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div>` + walletHTML(this.wtab);
     }
     if (this.app === 'desafios') html = desafiosHTML();
-    if (this.app === 'camera') html = cameraHTML(); else if (this.app === 'colecao') html = colecaoHTML();
+    if (this.app === 'camera') html = cameraHTML(); else if (this.app === 'colecao') html = colecaoHTML(); else if (this.app === 'recordes') html = Recordes.html();
     // (sem a linha explicando cada app: celular mais limpo)
     body.innerHTML = html;
     if (this.app === 'mapa') { phoneMap = new MapView($('phonemap'), MapState.phone); renderMapDests(); requestAnimationFrame(() => phoneMap && phoneMap.draw()); } else phoneMap = null;

@@ -215,7 +215,8 @@ function finishDelivery() {
 }
 function startRace(r) {
   Act.race = { r, idx: 0, t: 0, count: 3.4, lastBeep: 4 };
-  toast('Percurso: ' + r.name, 'Ouro ' + fmtTime(r.gold) + ' · Prata ' + fmtTime(r.silver) + ' · Bronze ' + fmtTime(r.bronze), 'info');
+  const top = Recordes.base(r)[0];
+  toast('Percurso: ' + r.name, 'Recorde da cidade: ' + top.nome + ' ' + fmtTime(top.t) + ' · Ouro ' + fmtTime(r.gold), 'info');
 }
 function distToSeg(x, y, a, b) {
   const dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy || 1;
@@ -234,12 +235,12 @@ function finishRace() {
   if (medal > prev.medal) v = rewards[medal] - (prev.medal > 0 ? rewards[prev.medal] : 0);
   else v = Math.round(rewards[medal] * 0.15);
   v = Math.max(v, 40);
-  const record = t < prev.best;
+  const record = t < prev.best, pos = Recordes.posicao(r, t);
   Profile.races[r.id] = { best: Math.min(prev.best, t), medal: Math.max(prev.medal, medal) };
   Act.race = null;
   AudioSys.chime();
   pay(v);
-  Resultado.mostra({ titulo: r.name, sub: 'Tempo ' + fmtTime(t) + (record ? ' · NOVO RECORDE' : ''), medalha: names[medal], medalhaN: medal, estrelas: null, linhas: [['Prêmio do percurso', v]], total: v });
+  Resultado.mostra({ titulo: r.name, sub: 'Tempo ' + fmtTime(t) + ' · ' + pos + 'º no placar' + (record ? ' · NOVO RECORDE' : ''), medalha: names[medal], medalhaN: medal, estrelas: null, linhas: [['Prêmio do percurso', v]], total: v });
   saveGame();
 }
 function abandonActivity() {

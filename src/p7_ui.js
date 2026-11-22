@@ -66,7 +66,7 @@ const Screens = {
     if (id === 'screen-phone' && typeof Phone !== 'undefined') { Phone.render(); requestAnimationFrame(ajustaCelular); }
     if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
     if (id === 'screen-pause') renderPauseStats();
-    if (id === 'screen-pause') { const b = $('btn-abandon'); b.disabled = !(Act.race || Act.delivery || Act.ride || Act.waypoint); b.classList.toggle('hidden', b.disabled); }
+    if (id === 'screen-pause') { requestAnimationFrame(pausaMapa); const b = $('btn-abandon'); b.disabled = !(Act.race || Act.delivery || Act.ride || Act.waypoint); b.classList.toggle('hidden', b.disabled); }
   },
 };
 // tela livre para o jogo: nada aberto ou só o celular (o celular não pausa o jogo)
@@ -581,6 +581,18 @@ function showDialog(o) {
 function closeDialog() { if (Screens.current === 'screen-dialog') Screens.closeAll(); }
 
 /* ---------- estatísticas da pausa ---------- */
+// (0.2.0) pausa com o mapa grande atrás, o carro em destaque do lado direito (o menu fica à esquerda)
+let pauseMap = null; const PauseMapSt = { cx: 0, cy: 0, z: 0.1, follow: false, fundo: '#0b1118', nevoaLeve: true };
+function pausaMapa() {
+  const c = $('pause-map'); if (!c || !player || Screens.current !== 'screen-pause') return;
+  if (!pauseMap) pauseMap = new MapView(c, PauseMapSt);
+  const r = c.getBoundingClientRect(), z = clamp(r.width / 9000, 0.07, 0.14), dir = r.width > 760 ? 0.22 : 0; // carro a 72% da largura (no celular em pé, no meio)
+  PauseMapSt.z = z; PauseMapSt.cx = player.x - r.width * dir / z; PauseMapSt.cy = player.y; PauseMapSt.follow = false;
+  pauseMap.draw();
+  const pc = $('pause-carro'); pc.style.left = (50 + dir * 100) + '%';
+  $('pause-carro-nome').textContent = carFullName(player.car);
+  const reg = REGIONS[regionKeyAt(player.x, player.y)]; $('pause-carro-onde').textContent = (reg && reg.name ? reg.name + ' · ' : '') + clockStr();
+}
 function renderPauseStats() {
   const medals = Object.values(Profile.races).filter((r) => r.medal === 3).length;
   const rows = [

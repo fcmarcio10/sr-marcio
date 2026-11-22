@@ -6320,7 +6320,8 @@ function finishDelivery() {
 }
 function startRace(r) {
   Act.race = { r, idx: 0, t: 0, count: 3.4, lastBeep: 4 };
-  toast('Percurso: ' + r.name, 'Ouro ' + fmtTime(r.gold) + ' · Prata ' + fmtTime(r.silver) + ' · Bronze ' + fmtTime(r.bronze), 'info');
+  const top = Recordes.base(r)[0];
+  toast('Percurso: ' + r.name, 'Recorde da cidade: ' + top.nome + ' ' + fmtTime(top.t) + ' · Ouro ' + fmtTime(r.gold), 'info');
 }
 function distToSeg(x, y, a, b) {
   const dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy || 1;
@@ -6339,12 +6340,12 @@ function finishRace() {
   if (medal > prev.medal) v = rewards[medal] - (prev.medal > 0 ? rewards[prev.medal] : 0);
   else v = Math.round(rewards[medal] * 0.15);
   v = Math.max(v, 40);
-  const record = t < prev.best;
+  const record = t < prev.best, pos = Recordes.posicao(r, t);
   Profile.races[r.id] = { best: Math.min(prev.best, t), medal: Math.max(prev.medal, medal) };
   Act.race = null;
   AudioSys.chime();
   pay(v);
-  Resultado.mostra({ titulo: r.name, sub: 'Tempo ' + fmtTime(t) + (record ? ' · NOVO RECORDE' : ''), medalha: names[medal], medalhaN: medal, estrelas: null, linhas: [['Prêmio do percurso', v]], total: v });
+  Resultado.mostra({ titulo: r.name, sub: 'Tempo ' + fmtTime(t) + ' · ' + pos + 'º no placar' + (record ? ' · NOVO RECORDE' : ''), medalha: names[medal], medalhaN: medal, estrelas: null, linhas: [['Prêmio do percurso', v]], total: v });
   saveGame();
 }
 function abandonActivity() {
@@ -6927,8 +6928,10 @@ function startRacha(r) {
 function finishRacha(R) {
   const r = R.r;
   Act.race = null;
-  if (R.t < r.rivalTime) { AudioSys.chime(); Profile.rachaWins = (Profile.rachaWins || 0) + 1; Desafios.conta('racha'); pay(r.bet * 2, 'Ganhou o racha de ' + r.rival + '! (' + fmtTime(R.t) + ')'); }
-  else toast('Perdeu o racha', r.rival + ' chegou antes (' + fmtTime(r.rivalTime) + ' contra ' + fmtTime(R.t) + '). Já era a aposta.', 'bad');
+  const pos = Recordes.posicao(r, R.t), antes = Recordes.meu(r); Recordes.racha(r, R.t);
+  const placar = pos + 'º lugar no placar' + (!antes || R.t < antes ? ' · novo recorde seu' : '');
+  if (R.t < r.rivalTime) { AudioSys.chime(); Profile.rachaWins = (Profile.rachaWins || 0) + 1; Desafios.conta('racha'); pay(r.bet * 2, 'Ganhou o racha de ' + r.rival + '! (' + fmtTime(R.t) + ' · ' + placar + ')'); }
+  else toast('Perdeu o racha', r.rival + ' chegou antes (' + fmtTime(r.rivalTime) + ' contra ' + fmtTime(R.t) + '). ' + placar + '.', 'bad');
   saveGame();
 }
 function rachaGhostPos(R) {
@@ -7292,9 +7295,10 @@ const PH_ICONS = {
   camera: ['#3c4049', _ln('<path d="M4 8h3l1.6-2.4h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/>')],
   // panela de barro vista de lado: barriga redonda, tampa com pegador e as duas alças
   colecao: ['#b8643a', _ln('<path d="M4.5 11.5h15c0 4.6-3.2 7.8-7.5 7.8s-7.5-3.2-7.5-7.8z"/><path d="M6 11.5c.6-2.4 3-3.8 6-3.8s5.4 1.4 6 3.8"/><path d="M12 7.7V6.2"/><path d="M4.5 12.5H2.8M19.5 12.5h1.7"/>')],
+  recordes: ['#0f8b8d', _ln('<path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M10.2 8.4 12 6.6v5"/>')],
   ajustes: ['#7b808a', _ln('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8"/>')],
 };
-const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', desafios: 'Desafios', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
+const PH_APPS = { recordes: 'Recordes', mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', desafios: 'Desafios', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
   const tr = false;
@@ -7430,7 +7434,7 @@ const Phone = {
       const dest = Act.waypoint ? Act.waypoint.label : null, job = Act.delivery ? Act.delivery.item : Act.ride ? 'Corrida: ' + Act.ride.name : null;
       // tela inicial simples (nov/2026): hora grande, uma grade com os apps e a barra de baixo; sem caixinhas nem textos
       html = `<div class="ph-lock simples"><div class="ph-time">${clockStr()}</div><div class="ph-date">${wl ? H(wl) + ' · ' : ''}${temp}° · R$ ${fmtMoney(Profile.money)}</div></div>` +
-        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'desafios', 'camera', 'colecao'].concat(CHEATS_ENABLED && modoDono() ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
+        '<div class="ph-grid simples">' + ['pegaai', 'fretes', 'racha', 'carteira', 'desafios', 'recordes', 'camera', 'colecao'].concat(CHEATS_ENABLED && modoDono() ? ['trapaca'] : []).map((id) => phIcon(id, id === 'fretes' ? frUnread() : id === 'pegaai' ? pgUnread() : 0)).join('') + '</div>' +
         '<div class="ph-dock">' + ['mapa', 'msgs', 'conquistas', 'ajustes'].map((id) => phIcon(id, id === 'msgs' ? unread : 0)).join('') + '</div>';
     } else if (this.app === 'ajustes') {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Ajustes</div>' +
@@ -7547,7 +7551,7 @@ const Phone = {
       html = `<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Carteira</div>` + walletHTML(this.wtab);
     }
     if (this.app === 'desafios') html = desafiosHTML();
-    if (this.app === 'camera') html = cameraHTML(); else if (this.app === 'colecao') html = colecaoHTML();
+    if (this.app === 'camera') html = cameraHTML(); else if (this.app === 'colecao') html = colecaoHTML(); else if (this.app === 'recordes') html = Recordes.html();
     // (sem a linha explicando cada app: celular mais limpo)
     body.innerHTML = html;
     if (this.app === 'mapa') { phoneMap = new MapView($('phonemap'), MapState.phone); renderMapDests(); requestAnimationFrame(() => phoneMap && phoneMap.draw()); } else phoneMap = null;
@@ -10226,13 +10230,26 @@ function glowPass(view, cx, cy) {
     gctx.globalAlpha = a;
     gctx.drawImage(glowSprite(lightHex(L.col)), L.x - L.r * 0.85, L.y - L.r * 0.85, L.r * 1.7, L.r * 1.7);
   }
-  // pista molhada: cada luz da rua reflete num risco comprido no asfalto
-  if (Weather.wet > 0.05) {
+  // pista molhada (0.2.0, mais forte): cada luz da rua reflete num risco comprido e tremido no asfalto,
+  // e os faróis e lanternas de todos os carros refletem no chão molhado (branco na frente, vermelho atrás)
+  if (Weather.wet > 0.05 && Settings.quality !== 'baixa') {
+    const W = Weather.wet;
     for (const L of _lq) {
-      if (L.refl || L.canopy || (L.dieAt && T > L.dieAt) || L.x < view.x0 - 40 || L.x > view.x1 + 40 || L.y < view.y0 - 120 || L.y > view.y1) continue;
-      gctx.globalAlpha = 0.22 * Weather.wet * L.i;
-      gctx.drawImage(glowSprite(lightHex(L.col)), L.x - 9 + Math.sin(T * 1.7 + L.seed * 9) * 1.5, L.y + 4, 18, 90);
+      if (L.refl || L.canopy || (L.dieAt && T > L.dieAt) || L.x < view.x0 - 40 || L.x > view.x1 + 40 || L.y < view.y0 - 140 || L.y > view.y1) continue;
+      if (Dia.apaga && (L.lamp ? Dia.posteApagado(L.x * 7 + L.y * 13) : Dia.desligada(L.x * 7 + L.y * 13))) continue;
+      const spr = glowSprite(lightHex(L.col)), tr = Math.sin(T * 1.7 + L.seed * 9) * 1.5;
+      gctx.globalAlpha = 0.36 * W * L.i; gctx.drawImage(spr, L.x - 10 + tr, L.y + 4, 20, 120);
+      gctx.globalAlpha = 0.2 * W * L.i; gctx.drawImage(spr, L.x - 4 - tr, L.y + 30, 8, 80); // miolo mais forte, quebrado pela água
     }
+    const reflete = (c, frente, tras) => {
+      const ca = Math.cos(c.a), sa = Math.sin(c.a), L2 = c.m.L / 2;
+      gctx.save(); gctx.translate(c.x, c.y); gctx.rotate(c.a);
+      if (frente > 0) { gctx.globalAlpha = 0.3 * W * frente; gctx.drawImage(glowSprite('#fff1cf'), L2, -12, 90, 24); }
+      if (tras > 0) { gctx.globalAlpha = 0.32 * W * tras; gctx.drawImage(glowSprite('#ff2a1e'), -L2 - 46, -9, 46, 18); }
+      gctx.restore();
+    };
+    for (const c of Traffic.cars) if (inView(view, c.x, c.y, 160)) reflete(c, 1, c.braking || c.v < 3 ? 1.3 : 0.7);
+    if (player && Game.state !== 'menu') { const kf = Math.max(playerLamp(1), playerLamp(-1)); reflete(player, kf * (player.highBeam ? 1.3 : 1), player.braking ? 1.3 : 0.7); }
   }
   // reflexos das luzes na água
   for (const L of _lq) {
@@ -10724,7 +10741,7 @@ class MapView {
     if (this.st.follow && player) { this.st.cx = player.x; this.st.cy = player.y; }
     const z = this.st.z, s = z * dpr, k = 1 / z; // k: unidades do mundo por px de tela
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.fillStyle = '#36546e'; g.fillRect(0, 0, Wp, Hp);
+    g.fillStyle = this.st.fundo || '#36546e'; g.fillRect(0, 0, Wp, Hp);
     g.setTransform(s, 0, 0, s, Wp / 2 - this.st.cx * s, Hp / 2 - this.st.cy * s);
     g.imageSmoothingEnabled = true;
     g.drawImage(MAPIMG, 0, 0, WORLD_W, WORLD_H);
@@ -10755,7 +10772,7 @@ class MapView {
       }
     }
     // parte da cidade ainda não explorada fica escura (abre por onde o carro passa)
-    Nevoa.desenha(g);
+    if (this.st.nevoaLeve) { g.globalAlpha = 0.45; Nevoa.desenha(g); g.globalAlpha = 1; } else Nevoa.desenha(g); // na pausa a névoa fica mais clara (é só o fundo)
     // bairros
     g.textAlign = 'center'; g.textBaseline = 'middle';
     const ls = clamp(11 * k, 34, 160); // nomes de bairro menores (nov/2026)
@@ -12171,7 +12188,7 @@ const Screens = {
     if (id === 'screen-phone' && typeof Phone !== 'undefined') { Phone.render(); requestAnimationFrame(ajustaCelular); }
     if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
     if (id === 'screen-pause') renderPauseStats();
-    if (id === 'screen-pause') { const b = $('btn-abandon'); b.disabled = !(Act.race || Act.delivery || Act.ride || Act.waypoint); b.classList.toggle('hidden', b.disabled); }
+    if (id === 'screen-pause') { requestAnimationFrame(pausaMapa); const b = $('btn-abandon'); b.disabled = !(Act.race || Act.delivery || Act.ride || Act.waypoint); b.classList.toggle('hidden', b.disabled); }
   },
 };
 // tela livre para o jogo: nada aberto ou só o celular (o celular não pausa o jogo)
@@ -12686,6 +12703,18 @@ function showDialog(o) {
 function closeDialog() { if (Screens.current === 'screen-dialog') Screens.closeAll(); }
 
 /* ---------- estatísticas da pausa ---------- */
+// (0.2.0) pausa com o mapa grande atrás, o carro em destaque do lado direito (o menu fica à esquerda)
+let pauseMap = null; const PauseMapSt = { cx: 0, cy: 0, z: 0.1, follow: false, fundo: '#0b1118', nevoaLeve: true };
+function pausaMapa() {
+  const c = $('pause-map'); if (!c || !player || Screens.current !== 'screen-pause') return;
+  if (!pauseMap) pauseMap = new MapView(c, PauseMapSt);
+  const r = c.getBoundingClientRect(), z = clamp(r.width / 9000, 0.07, 0.14), dir = r.width > 760 ? 0.22 : 0; // carro a 72% da largura (no celular em pé, no meio)
+  PauseMapSt.z = z; PauseMapSt.cx = player.x - r.width * dir / z; PauseMapSt.cy = player.y; PauseMapSt.follow = false;
+  pauseMap.draw();
+  const pc = $('pause-carro'); pc.style.left = (50 + dir * 100) + '%';
+  $('pause-carro-nome').textContent = carFullName(player.car);
+  const reg = REGIONS[regionKeyAt(player.x, player.y)]; $('pause-carro-onde').textContent = (reg && reg.name ? reg.name + ' · ' : '') + clockStr();
+}
 function renderPauseStats() {
   const medals = Object.values(Profile.races).filter((r) => r.medal === 3).length;
   const rows = [
@@ -15190,6 +15219,53 @@ Ultra.gotasPerto = function (ctx, drops, cx, cy, wx) {
   }
   ctx.strokeStyle = 'rgba(225,235,250,0.3)'; ctx.lineWidth = 2; ctx.stroke(P);
   ctx.fillStyle = 'rgba(240,246,255,0.5)'; ctx.fill(cab);
+};
+/* ============================ PLACAR DE RECORDES (0.2.0) ============================
+   Cada percurso e cada racha tem um placar com motoristas inventados da cidade (tempos fixos, escolhidos pelo id do
+   percurso: sempre os mesmos) e o seu melhor tempo no meio deles. Aparece:
+   - no app Recordes do celular (todos os percursos e rachas, o seu tempo destacado);
+   - no fim do percurso/racha (a posição que você ficou: "3º lugar no placar");
+   - ao começar (o recorde da cidade que você precisa bater). */
+const REC_PILOTOS = ['Bia Turbo', 'Rafa Drift', 'Lucão Escapamento', 'Dona Neide do Fusca', 'Wesley Grau', 'Cris Motoca', 'Tio Barbosa', 'Kelvin Rebaixado', 'Duda Nitro', 'Seu Valdir', 'Thaís Pé de Chumbo', 'Marquinho Retífica', 'Jéssica Arrancada', 'Gordinho do Kart'];
+const Recordes = {};
+// lista de motoristas e tempos de um percurso ou racha (sem você), do mais rápido ao mais lento
+Recordes.base = function (r) {
+  if (r._rec) return r._rec;
+  const R = mulberry32([...r.id].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0), nomes = REC_PILOTOS.slice(), out = [];
+  const ref = r.racha ? r.rivalTime : r.gold, n = 6;
+  if (r.racha) out.push({ nome: r.rival, t: r.rivalTime }); // o rival do racha está no placar com o tempo dele
+  for (let i = out.length; i < n; i++) {
+    const nome = nomes.splice(Math.floor(R() * nomes.length), 1)[0];
+    out.push({ nome, t: ref * (0.9 + i * 0.07 + R() * 0.05) }); // o 1º é um pouco melhor que o ouro (ou que o rival)
+  }
+  out.sort((a, b) => a.t - b.t);
+  return (r._rec = out);
+};
+Recordes.meu = function (r) {
+  const v = r.racha ? (Profile.rachaBest || {})[r.id] : (Profile.races[r.id] || {}).best;
+  return isFinite(v) ? v : null;
+};
+// placar completo com você no meio (se já correu)
+Recordes.tabela = function (r) {
+  const L = this.base(r).map((x) => Object.assign({}, x)), m = this.meu(r);
+  if (m) L.push({ nome: 'Você', t: m, eu: true });
+  return L.sort((a, b) => a.t - b.t);
+};
+Recordes.posicao = function (r, t) { return this.base(r).filter((x) => x.t < t).length + 1; };
+// guarda o melhor tempo do racha (o do percurso já fica em Profile.races)
+Recordes.racha = function (r, t) { Profile.rachaBest = Profile.rachaBest || {}; if (!(Profile.rachaBest[r.id] <= t)) Profile.rachaBest[r.id] = t; };
+// app Recordes do celular
+Recordes.html = function () {
+  const sec = (r) => {
+    const T = this.tabela(r), meu = T.findIndex((x) => x.eu);
+    const linhas = T.slice(0, 5).map((x, i) => `<div class="rc-l${x.eu ? ' eu' : ''}"><i>${i + 1}</i><span>${escapeHtml(x.nome)}</span><em>${fmtTime(x.t)}</em></div>`).join('') +
+      (meu >= 5 ? `<div class="rc-l eu"><i>${meu + 1}</i><span>Você</span><em>${fmtTime(T[meu].t)}</em></div>` : '') +
+      (meu < 0 ? '<div class="rc-vazio">Você ainda não correu aqui</div>' : '');
+    return `<div class="rc-card"><div class="rc-tit"><b>${escapeHtml(r.name)}</b><small>${r.racha ? 'Racha · das 22h às 4h30' : 'Percurso'}</small></div>${linhas}</div>`;
+  };
+  return '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Recordes</div>' +
+    '<div class="rc-sub">Percursos</div>' + World.races.map(sec).join('') +
+    '<div class="rc-sub">Rachas</div>' + (World.rachas || []).map(sec).join('');
 };
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {

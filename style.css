@@ -1580,3 +1580,30 @@ body.cinema #fala-leg { opacity: 0 !important; }
 #teclas .tc-x { position: absolute; right: 6px; top: 4px; width: 26px; height: 26px; border: 0; border-radius: 50%; background: transparent; color: rgba(255, 255, 255, 0.7); font: 400 22px/26px sans-serif; cursor: pointer; }
 #teclas .tc-x:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
 body.cel-aberto #teclas { opacity: 0.35; }
+/* ---------- app Recordes (0.2.0): um cartão por percurso/racha, o seu tempo destacado ---------- */
+.rc-sub { font: 700 11px -apple-system, "Segoe UI", sans-serif; color: #98989f; text-transform: uppercase; letter-spacing: 0.08em; margin: 12px 4px 6px; }
+.rc-card { background: #141416; border: 1px solid #26262b; border-radius: 14px; padding: 9px 10px; margin-bottom: 8px; }
+.rc-tit { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 6px; }
+.rc-tit b { font: 700 13px -apple-system, "Segoe UI", sans-serif; color: #fff; }
+.rc-tit small { font: 500 10px -apple-system, "Segoe UI", sans-serif; color: #8e8e93; white-space: nowrap; }
+.rc-l { display: flex; align-items: center; gap: 8px; padding: 4px 2px; font: 500 12px -apple-system, "Segoe UI", sans-serif; color: #d6d6db; border-top: 1px solid #1f1f24; }
+.rc-l i { width: 18px; font-style: normal; font-weight: 700; color: #8e8e93; text-align: center; }
+.rc-l:nth-of-type(2) i { color: #ffd23f; }
+.rc-l span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-l em { font-style: normal; font-variant-numeric: tabular-nums; color: #fff; }
+.rc-l.eu { background: rgba(15, 139, 141, 0.25); border-radius: 6px; color: #fff; font-weight: 700; }
+.rc-l.eu em { color: #5ee6c9; }
+.rc-vazio { font: 500 11px -apple-system, "Segoe UI", sans-serif; color: #8e8e93; padding: 5px 2px 1px; border-top: 1px solid #1f1f24; }
+/* ---------- pausa com o mapa grande atrás e o carro em destaque (0.2.0) ---------- */
+#screen-pause { background: #0b1118; justify-content: flex-start; padding-left: max(3vw, 16px); }
+#pause-map { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: saturate(0.9) brightness(0.85); }
+#pause-sombra { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(3, 5, 10, 0.92) 0%, rgba(3, 5, 10, 0.75) 38%, rgba(3, 5, 10, 0.15) 70%, rgba(3, 5, 10, 0.35) 100%); }
+#screen-pause .panel-card.pausa { position: relative; z-index: 1; background: rgba(10, 13, 20, 0.72); }
+#pause-carro { position: absolute; top: 50%; left: 72%; transform: translate(-50%, -50%); pointer-events: none; z-index: 1; }
+#pause-carro i { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; border: 2px solid #ffd23f; box-shadow: 0 0 18px rgba(255, 210, 63, 0.55); animation: pausaPulso 1.8s ease-out infinite; }
+#pause-carro span { position: absolute; left: 44px; top: -22px; display: flex; flex-direction: column; gap: 1px; padding: 7px 11px; white-space: nowrap; background: rgba(8, 10, 14, 0.85); border-left: 3px solid #ffd23f; border-radius: 3px; }
+#pause-carro small { font: 700 10px/1 var(--f-cond); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); }
+#pause-carro b { font: 400 19px/1.15 var(--f-display, 'Anton'), sans-serif; color: #fff; letter-spacing: 0.02em; }
+#pause-carro em { font: 600 12px/1.2 var(--f-body); font-style: normal; color: #ffd23f; }
+@keyframes pausaPulso { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+@media (max-width: 760px) { #pause-carro span { display: none; } #screen-pause { justify-content: center; padding-left: 0; } }
