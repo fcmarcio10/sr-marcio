@@ -3,7 +3,7 @@
    Jogo de exploração noturna top-down 2.5D — HTML5 Canvas + JS puro
    ===================================================================== */
 'use strict';
-const GAME_VERSION = '0.02.0'; // primeira versão oficial (a 1.x era de testes)
+const GAME_VERSION = '0.2.0'; // versão em desenvolvimento (a mesma do app do Windows)
 try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
 // dica na tela de carregamento
 const LOAD_TIPS = ['Parado com o farol aceso por muito tempo, a bateria arria. Aperte H.', 'Sem dinheiro? O Seu Zé faz fiado. Só não some, que ele cobra.', 'De ré na vaga azul vale mais dinheiro.', 'Casca de banana na pista escorrega de verdade.', 'Na blitz da Lei Seca, pare ao lado do guarda de colete.', 'Depois das 22h tem racha. Cuidado com a viatura.', 'Pneus gastam mais quando você derrapa.', 'O Banestresse empresta, mas desconta toda virada de noite.', 'Q abre o celular. O mapa fica no app Mapa.', 'Óleo vencido faz o motor soltar fumaça e perder força.', 'Carona na BR rende gorjeta se você não bater.', 'Na chuva o carro escorrega mais, e no barro mais ainda.', 'F11 deixa o jogo em tela cheia.'];
@@ -94,9 +94,9 @@ const HORNS = {
   musical: { f: [523], wave: 'square', band: 1300, len: 0.2, pat: [[0, 0.12, 1], [0.14, 0.12, 1.25], [0.28, 0.12, 1.5], [0.42, 0.28, 2], [0.74, 0.12, 1.5], [0.88, 0.32, 2]] },
   trator: { f: [180], wave: 'square', band: 700, len: 0.5, pat: [[0, 0.5]] },
 };
-// altura da câmera em 3 níveis (nov/2026): 1 = 145% (mais perto, padrão), 2 = 130%, 3 = 120% (o mais alto que dá)
-const CAM_LEVELS = { 1: 145, 2: 130, 3: 120 }, CAM_MIN = 120;
-const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', cam: '1', zoom: 140, showFps: false, fpsCap: '60', minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4, slot: 1, legendas: true, teclas: {} }; // rádio começa desligada; depois o jogo lembra como você deixou
+// câmera única (0.2.0): sempre a altura de perto (145%); nada passa de 120%, nem correndo
+const CAM_ZOOM = 145, CAM_MIN = 120;
+const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', zoom: CAM_ZOOM, showFps: false, fpsCap: '60', minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4, slot: 1, legendas: true, teclas: {} }; // rádio começa desligada; depois o jogo lembra como você deixou
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null');
@@ -110,8 +110,7 @@ function loadSettings() {
       Object.assign(Settings, s);
     }
   } catch (e) { /* sem storage */ }
-  if (!CAM_LEVELS[Settings.cam]) Settings.cam = '1';
-  Settings.zoom = CAM_LEVELS[Settings.cam];
+  delete Settings.cam; Settings.zoom = CAM_ZOOM;
 }
 function saveSettings() { try { localStorage.setItem('brnd_settings', JSON.stringify(Settings)); } catch (e) { /* sem storage */ } }
 

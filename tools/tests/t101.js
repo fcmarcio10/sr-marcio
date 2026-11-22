@@ -37,10 +37,10 @@ const { chromium } = require('playwright');
     Ambiente.toca = _t; const cont = {}; for (const c of out) cont[c] = (cont[c] || 0) + 1; return cont;
   });
   console.log('roça:', JSON.stringify(roca), 'sorteio:', JSON.stringify(sorteio));
-  ok.push(roca.roca > 0.05 && roca.cidade < roca.roca, (sorteio.sfx_vaca || 0) + (sorteio.sfx_cavalo || 0) + (sorteio.sfx_galinha || 0) > 5, !sorteio.sfx_onibus && !sorteio.sfx_alarme);
+  ok.push(roca.roca > 0.05 && roca.cidade < roca.roca, (sorteio.sfx_vaca || 0) + (sorteio.sfx_cavalo || 0) + (sorteio.sfx_galinha || 0) > 5, !sorteio.sfx_onibus);
   // ---------- cidade: sorteio de rua ----------
   const rua = await p.evaluate(() => {
-    for (const c of ['sfx_carro', 'sfx_moto', 'sfx_onibus', 'sfx_risada', 'sfx_alarme', 'sfx_sirene', 'sfx_fogos']) Ambiente.pronto(c);
+    for (const c of ['sfx_carro', 'sfx_moto', 'sfx_onibus', 'sfx_risada']) Ambiente.pronto(c);
     return true;
   });
   await p.waitForTimeout(800);

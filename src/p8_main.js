@@ -136,10 +136,6 @@ function handleKeys() {
       case 'paredao': Som.toggle(); break;
       case 'radio': Radio.toggle(); break;
       case 'farolAlto': player.highBeam = !player.highBeam; AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); break;
-      case 'camera': { // troca a altura da câmera: 1 → 2 → 3 → 1
-        Settings.cam = String(Settings.cam % 3 + 1); Settings.zoom = CAM_LEVELS[Settings.cam]; saveSettings(); syncSettingsUI();
-        AudioSys.tone(900, 0.04, 'square', 0.05, 'ui'); toast('Câmera: nível ' + Settings.cam, Settings.cam === '1' ? 'Mais perto do carro.' : Settings.cam === '3' ? 'Mais alto, vê mais a cidade.' : 'Altura do meio.', 'info'); break;
-      }
       case 'reposicionar': if (player.speed < 120) resetVehicle(); break;
     }
   }
@@ -231,7 +227,6 @@ function frame(now) {
   render();
   updateHUD(dt);
   Tutorial.update(dt);
-  CamPrev.update(dt);
   if (Screens.current === 'screen-garage') drawGaragePreview(dt);
   if (Screens.current === 'screen-map' && bigMap) bigMap.draw();
   else if (Screens.current === 'screen-phone' && phoneMap && Phone.app === 'mapa') phoneMap.draw();
@@ -276,7 +271,6 @@ async function boot() {
   $('garage-main-btn').addEventListener('click', () => Garage.main());
   document.querySelector('#screen-garage .garage-side').addEventListener('click', (e) => Garage.click(e));
   $('phone-body').addEventListener('click', (e) => Phone.click(e));
-  $('phone-close').addEventListener('click', () => { AudioSys.back(); Screens.back(); });
   // botões de baixo do celular: bolinha volta para o início, seta volta para a tela de antes
   $('phone-nav-home').addEventListener('click', () => { if (Phone.app !== 'home') { phoneTone(1000, 0.04, 0.04); Phone.go('home'); } });
   $('phone-nav-back').addEventListener('click', () => {

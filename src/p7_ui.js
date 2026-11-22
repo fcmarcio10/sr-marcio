@@ -59,7 +59,7 @@ const Screens = {
   },
   closeAll() { if (this.current) this.hide(this.current); for (const s of this.stack) this.hide(s); this.stack.length = 0; this.current = null; updateHudVisibility(); },
   onOpen(id) {
-    if (id === 'screen-settings') { syncSettingsUI(); const v = document.querySelector('.set-pane[data-pane="video"]'); if (v && !v.classList.contains('hidden')) setTimeout(() => CamPrev.show(String(Settings.cam)), 0); }
+    if (id === 'screen-settings') { syncSettingsUI(); }
     if (id === 'screen-garage') Garage.render();
     if (id === 'screen-slots') renderSlots();
     if (id === 'screen-settings') { renderTeclas(); renderControle(); }
@@ -82,7 +82,7 @@ window.addEventListener('resize', () => { if (Screens.current === 'screen-phone'
 function updateHudVisibility() {
   const show = Game.mode === 'play' && (!Screens.current || Screens.current === 'screen-dialog' || Screens.current === 'screen-phone');
   $('hud').classList.toggle('hidden', !show);
-  document.body.classList.toggle('cel-aberto', Game.mode === 'play' && Screens.current === 'screen-phone' && !document.body.classList.contains('tr-bigphone'));
+  document.body.classList.toggle('cel-aberto', Game.mode === 'play' && Screens.current === 'screen-phone');
 }
 
 /* ---------- botões e menus ---------- */
@@ -108,7 +108,6 @@ function bindMenus() {
         else Screens.open('screen-slots');
         break;
       case 'continue': continueGame(); break;
-      case 'criador': abreCriador(); break;
       case 'quit': confirmBox('Sair do jogo', 'Fechar o BR Night Drive? Seu progresso fica salvo.', () => { if (player && Game.mode === 'play') saveGame(); setTimeout(() => window.brnd && window.brnd.quit(), 120); }); break;
       case 'garage': Garage.sel = Profile.current; Screens.open('screen-garage'); break;
       case 'settings': Screens.open('screen-settings'); break;
@@ -150,7 +149,6 @@ function bindSettings() {
   const abaSet = (t) => {
     document.querySelectorAll('.set-tabs [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
     document.querySelectorAll('.set-pane').forEach((p) => p.classList.toggle('hidden', p.dataset.pane !== t));
-    if (typeof CamPrev !== 'undefined') { if (t === 'video') CamPrev.show(String(Settings.cam)); else CamPrev.hide(); } // a prévia fica sempre no lugar dela na aba Vídeo (sem pular nada)
   };
   document.querySelectorAll('.set-tabs [data-tab]').forEach((b) => b.addEventListener('click', () => { AudioSys.click(); abaSet(b.dataset.tab); }));
   document.querySelectorAll('.ct-tipos [data-ct]').forEach((b) => b.addEventListener('click', () => {
@@ -178,39 +176,10 @@ function bindSettings() {
       AudioSys.click();
       if (k === 'quality') { resize(); clearChunks(); forceGround = true; Particles.list.length = 0; }
       if (k === 'showFps') $('fps').classList.toggle('hidden', !Settings.showFps);
-      if (k === 'cam') { Settings.zoom = CAM_LEVELS[v]; CamPrev.show(v); }
       saveSettings(); syncSettingsUI();
     });
   });
 }
-
-/* ---------- prévia da altura da câmera ---------- */
-// desenha a cena atual na altura escolhida (como fica dirigindo parado) numa janelinha
-const CamPrev = { lvl: null, t: 0, hideT: null };
-CamPrev.show = function (lvl) {
-  this.lvl = lvl; this.t = 0;
-  const box = $('cam-prev'); box.classList.remove('hidden');
-  box.querySelector('.cp-cap').innerHTML = '<b>Nível ' + lvl + ' · ' + CAM_LEVELS[lvl] + '%</b>' + (lvl === '1' ? 'Mais perto do carro (padrão)' : lvl === '3' ? 'Mais alto, vê mais a cidade' : 'Altura do meio');
-  this.snap();
-};
-CamPrev.hide = function () { this.lvl = null; $('cam-prev').classList.add('hidden'); };
-CamPrev.snap = function () {
-  if (!this.lvl) return;
-  const z0 = Cam.zoom, cv = $('cam-prev').querySelector('canvas'), g = cv.getContext('2d');
-  Cam.zoom = screenZoomBase() * CAM_LEVELS[this.lvl] / 100;
-  render();
-  // recorta o meio da tela no formato da janelinha
-  const W = canvas.width, H = canvas.height, r = cv.width / cv.height;
-  let sw = W, sh = W / r; if (sh > H) { sh = H; sw = H * r; }
-  g.drawImage(canvas, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
-  Cam.zoom = z0; render(); // devolve a tela de trás como estava
-};
-// atualiza a janelinha algumas vezes por segundo enquanto está aberta
-CamPrev.update = function (dt) {
-  if (!this.lvl) return;
-  if (Screens.current !== 'screen-settings') return this.hide();
-  this.t += dt; if (this.t > 0.25) { this.t = 0; this.snap(); }
-};
 
 /* ---------- garagem ---------- */
 const CAR_KIND_TXT = { gas: 'Caminhão de gás', guincho: 'Guincho', cacamba: 'Caçamba', bau: 'Caminhão baú', tanker: 'Caminhão-tanque', quadrado: 'Hatch quadrado', besouro: 'Clássico a ar', escada: 'Hatch caixote', hatch: 'Hatch', van: 'Furgão', pickup: 'Picape', sedan: 'Sedã', santana: 'Sedã quadrado', sport: 'Esportivo', muscle: 'Clássico V6' };

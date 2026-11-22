@@ -39,7 +39,7 @@ const { chromium } = require('playwright');
   await p.click('[data-ct="controle"]'); await p.waitForTimeout(200);
   const est = await p.evaluate(() => document.querySelector('.ct-estado').textContent);
   console.log(vazios, JSON.stringify(s1), JSON.stringify(tk), Math.round(v1), JSON.stringify(pad), cel, leg, nt, est);
-  const ok = vazios === 3 && s1.slot === 2 && s1.tem2 && !s1.tem1 && s1.money2 === 4321 && tk.acel === 'KeyI' && tk.farol !== tk.buzina && v1 > 20 && pad.ativo && pad.vel > 20 && pad.steer > 0.1 && cel === 'screen-phone' && /Devagar/.test(leg) && nt === 14 && /conectado/.test(est);
+  const ok = vazios === 3 && s1.slot === 2 && s1.tem2 && !s1.tem1 && s1.money2 === 4321 && tk.acel === 'KeyI' && tk.farol !== tk.buzina && v1 > 20 && pad.ativo && pad.vel > 20 && pad.steer > 0.1 && cel === 'screen-phone' && /Devagar/.test(leg) && nt === 13 && /conectado/.test(est);
   console.log(ok ? 'OK: salvamentos, teclas, controle e legendas' : 'FALHOU');
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();

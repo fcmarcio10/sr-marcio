@@ -14,19 +14,9 @@ fn toggle_fullscreen(window: tauri::WebviewWindow) {
     let _ = window.set_fullscreen(!full);
 }
 
-#[tauri::command]
-fn open_link(url: String) {
-    if !url.starts_with("https://") { return; }
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        let _ = std::process::Command::new("cmd").args(["/C", "start", "", &url]).creation_flags(0x08000000).spawn();
-    }
-}
-
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![quit_game, toggle_fullscreen, open_link])
+        .invoke_handler(tauri::generate_handler![quit_game, toggle_fullscreen])
         .setup(|app| {
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.set_focus();

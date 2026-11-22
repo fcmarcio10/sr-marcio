@@ -5,9 +5,9 @@
    - Legendas de todas as falas (Settings.legendas): zap, passageiros, pedestres e Juninho/Seu Zé. */
 
 // ---------- teclas ----------
-const TECLAS_PADRAO = { acelerar: 'KeyW', frear: 'KeyS', esquerda: 'KeyA', direita: 'KeyD', freioMao: 'Space', buzina: 'KeyH', farol: 'KeyJ', farolAlto: 'KeyL', interagir: 'KeyE', celular: 'KeyQ', radio: 'KeyF', paredao: 'KeyB', camera: 'KeyC', reposicionar: 'KeyR' };
-const TECLAS_NOME = { acelerar: 'Acelerar', frear: 'Frear / ré', esquerda: 'Virar à esquerda', direita: 'Virar à direita', freioMao: 'Freio de mão', buzina: 'Buzina', farol: 'Farol (liga/desliga)', farolAlto: 'Farol alto', interagir: 'Interagir', celular: 'Celular e mapa', radio: 'Rádio', paredao: 'Paredão', camera: 'Altura da câmera', reposicionar: 'Reposicionar o carro' };
-const TECLAS_GRUPOS = [['Dirigir', ['acelerar', 'frear', 'esquerda', 'direita', 'freioMao']], ['Carro', ['buzina', 'farol', 'farolAlto', 'paredao', 'reposicionar', 'camera']], ['Celular e menus', ['interagir', 'celular', 'radio']]];
+const TECLAS_PADRAO = { acelerar: 'KeyW', frear: 'KeyS', esquerda: 'KeyA', direita: 'KeyD', freioMao: 'Space', buzina: 'KeyH', farol: 'KeyJ', farolAlto: 'KeyL', interagir: 'KeyE', celular: 'KeyQ', radio: 'KeyF', paredao: 'KeyB', reposicionar: 'KeyR' };
+const TECLAS_NOME = { acelerar: 'Acelerar', frear: 'Frear / ré', esquerda: 'Virar à esquerda', direita: 'Virar à direita', freioMao: 'Freio de mão', buzina: 'Buzina', farol: 'Farol (liga/desliga)', farolAlto: 'Farol alto', interagir: 'Interagir', celular: 'Celular e mapa', radio: 'Rádio', paredao: 'Paredão', reposicionar: 'Reposicionar o carro' };
+const TECLAS_GRUPOS = [['Dirigir', ['acelerar', 'frear', 'esquerda', 'direita', 'freioMao']], ['Carro', ['buzina', 'farol', 'farolAlto', 'paredao', 'reposicionar']], ['Celular e menus', ['interagir', 'celular', 'radio']]];
 const SETA = { acelerar: 'ArrowUp', frear: 'ArrowDown', esquerda: 'ArrowLeft', direita: 'ArrowRight' };
 function tecla(a) { return (Settings.teclas && Settings.teclas[a]) || TECLAS_PADRAO[a]; }
 function acaoDaTecla(code) { for (const a in TECLAS_PADRAO) if (tecla(a) === code) return a; for (const a in SETA) if (SETA[a] === code) return a; return null; }
@@ -46,7 +46,7 @@ document.addEventListener('click', (e) => {
 
 // ---------- controle de videogame ----------
 // A: freio de mão · X: interagir · Y: celular · B: buzina · LB: câmera · RB: farol alto · ↑: paredão · ←: farol · ↓: reposicionar · Back: rádio · Start: pausa
-const PAD_BOTOES = { 2: 'interagir', 3: 'celular', 4: 'camera', 5: 'farolAlto', 8: 'radio', 12: 'paredao', 13: 'reposicionar', 14: 'farol' };
+const PAD_BOTOES = { 2: 'interagir', 3: 'celular', 5: 'farolAlto', 8: 'radio', 12: 'paredao', 13: 'reposicionar', 14: 'farol' };
 Pad.poll = function () {
   const gs = navigator.getGamepads ? navigator.getGamepads() : [];
   let g = null; for (const x of gs || []) if (x && x.connected) { g = x; break; }
@@ -141,10 +141,4 @@ function tiraFotoSlot() {
     g.drawImage(canvas, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, 192, 108);
     localStorage.setItem(slotFoto(Settings.slot), c.toDataURL('image/jpeg', 0.72));
   } catch (e) {}
-}
-// aba Criador: abre o Instagram do criador (no app do Windows, no navegador do computador)
-const CRIADOR_URL = 'https://www.instagram.com/criattogames/';
-function abreCriador() {
-  try { if (window.brnd && window.brnd.abrir) { window.brnd.abrir(CRIADOR_URL); return; } } catch (e) {}
-  try { window.open(CRIADOR_URL, '_blank', 'noopener'); } catch (e) {}
 }

@@ -1,30 +1,26 @@
-// câmera em 3 níveis, prévia, gráfico Alto padrão, GPS sem carros, trânsito perto da tela
+// câmera única (0.2.0): sem opção de altura, sem tecla C; gráfico Alto padrão; nada passa de 120% correndo
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1280, height: 760 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message + e.stack));
-  // configuração antiga salva (zoom 100, gráfico médio) deve virar nível 1 + Alto
-  await p.addInitScript(() => { if (!sessionStorage.getItem('x')) { sessionStorage.setItem('x', 1); localStorage.setItem('brnd_settings', JSON.stringify({ quality: 'media', zoom: 100, master: 50 })); } });
+  // configuração antiga salva (nível 3 da câmera) deve voltar para a câmera única
+  await p.addInitScript(() => { if (!sessionStorage.getItem('x')) { sessionStorage.setItem('x', 1); localStorage.setItem('brnd_settings', JSON.stringify({ quality: 'media', cam: '3', zoom: 120, master: 50, sv: 4 })); } });
   await p.goto('file://' + process.cwd() + '/wrapped.html');
   await p.waitForFunction(() => !document.getElementById('loading'), null, { timeout: 40000 });
-  console.log('migrado:', await p.evaluate(() => [Settings.quality, Settings.cam, Settings.zoom, Settings.master]));
+  const mig = await p.evaluate(() => [Settings.cam, Settings.zoom]);
   await p.click('[data-act="settings"]'); await p.waitForTimeout(400);
   await p.click('[data-tab="video"]'); await p.waitForTimeout(150);
-  await p.click('[data-seg="cam"] [data-v="3"]'); await p.waitForTimeout(700);
-  await p.screenshot({ path: 'cam_prev.png' });
-  console.log('nível 3:', await p.evaluate(() => [Settings.cam, Settings.zoom, !document.getElementById('cam-prev').classList.contains('hidden'), document.querySelector('#cam-prev .cp-cap').textContent]));
-  await p.click('[data-seg="cam"] [data-v="1"]'); await p.waitForTimeout(400);
+  const semOpcao = await p.evaluate(() => !document.querySelector('[data-seg="cam"]') && !/câmera/i.test(document.querySelector('.set-pane[data-pane="video"]').textContent));
   await p.keyboard.press('Escape'); await p.waitForTimeout(300);
-  console.log('prévia some ao sair:', await p.evaluate(() => document.getElementById('cam-prev').classList.contains('hidden') || CamPrev.lvl === null));
-  await p.click('[data-act="play"]'); await p.waitForTimeout(7600);
+  await p.click('[data-act="play"]'); await p.waitForFunction(() => Game.carregando === false, null, { timeout: 30000 });
   await p.evaluate(() => { Profile.tut = 99; Events.spawnT = 1e9; });
   const z = () => p.evaluate(() => +(Cam.zoom / screenZoomBase() * 100).toFixed(1));
-  await p.waitForTimeout(1500); console.log('zoom parado (nível 1):', await z());
+  await p.waitForTimeout(1500); const parado = await z();
+  await p.keyboard.press('KeyC'); await p.waitForTimeout(300); const depoisC = await z();
   await p.evaluate(() => { const top = CARS.slice().sort((a, b) => b.max - a.max)[0]; carCfg(top.id).up = { motor: 3, cambio: 3, freio: 3, pneu: 3 }; player.setCar(top.id); });
-  console.log('antes:', await p.evaluate(() => [Game.state, Screens.current, player.car.id, Profile.fuel, Profile.damage])); await p.keyboard.down('KeyW'); await p.waitForTimeout(6000); console.log('zoom correndo:', await z(), 'km/h', await p.evaluate(() => Math.round(player.speed * 0.3)));
-  await p.keyboard.up('KeyW');
-  await p.keyboard.press('KeyC'); await p.waitForTimeout(100); await p.keyboard.press('KeyC'); await p.waitForTimeout(100);
-  console.log('C duas vezes:', await p.evaluate(() => Settings.cam));
-  await p.keyboard.press('KeyC');
+  await p.keyboard.down('KeyW'); await p.waitForTimeout(6000); const correndo = await z(); await p.keyboard.up('KeyW');
+  console.log({ mig, semOpcao, parado, depoisC, correndo });
+  const ok = mig[0] === undefined && mig[1] === 145 && semOpcao && Math.abs(parado - 145) < 3 && Math.abs(depoisC - parado) < 2 && correndo >= 119.5;
+  console.log(ok ? 'OK: câmera única' : 'FALHOU');
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();
