@@ -1594,3 +1594,12 @@ body.cinema #fala-leg { opacity: 0 !important; }
 .wa-sos .wa-sos-kit b { color: #fff; font-size: 12.5px; }
 .wa-sos .wa-sos-kit small { font-size: 10px; opacity: 0.9; font-weight: 500; }
 .wa-sos .wa-sos-kit em { color: #fff; }
+/* ---------- painel do carro (0.2.0): cada ícone colado na barrinha dele, tudo na mesma linha ---------- */
+#hud-dash .bar-row { gap: 6px; margin-top: 6px; }
+#hud-dash .bar-row span { width: 16px; flex: none; justify-content: center; }
+#hud-dash .bar-row .bar { flex: 1; }
+#hud-dash .life-row { gap: 10px; margin-top: 7px; }
+#hud-dash .life-row > div { flex-direction: row; align-items: center; gap: 5px; }
+#hud-dash .life-row > div > span { width: 14px; flex: none; justify-content: center; }
+#hud-dash .life-row .bar { flex: 1; height: 5px; }
+#hud-dash .bar-row .hi, #hud-dash .life-row .hi { width: 14px; height: 14px; }
