@@ -7,7 +7,10 @@
    Todas as sombras do chão de um quadro vão num caminho só e são pintadas de uma vez: onde duas se cruzam
    não fica mais escuro (como na vida real). */
 const Sol = { a: 0, dx: 0, dy: 0 };
-const SOMBRA_COR = (a) => `rgba(16,20,40,${a.toFixed(3)})`; // sombra azulada (o céu clareia a sombra)
+const SOMBRA_COR = (a) => `rgba(16,20,40,${Math.min(0.85, a).toFixed(3)})`; // sombra azulada (o céu clareia a sombra)
+// Ultra: sombra 45% mais forte e com borda macia (meia-sombra em volta, como sombra de sol de verdade)
+const SOMBRA_K = () => (ultraQ() ? 1.45 : 1);
+function sombraFill(ctx, P, a) { if (ultraQ()) { ctx.lineJoin = 'round'; ctx.lineWidth = 3.2; ctx.strokeStyle = SOMBRA_COR(a * 0.32); ctx.stroke(P); } ctx.fillStyle = SOMBRA_COR(a); ctx.fill(P); }
 Sol.calc = function () {
   if (typeof Dia === 'undefined' || Settings.quality === 'baixa') { this.a = 0; return; }
   const h = Dia.hora(), th = clamp(Math.PI * (h - 6) / 12, 0.08, Math.PI - 0.08);
@@ -86,7 +89,7 @@ Sombras.chao = function (ctx, view) {
     if (q.c) { for (const t of [0, 0.5, 1]) sbCirc(P, q.c[0] + sx * q.H * t, q.c[1] + sy * q.H * t, q.c[2]); }
     else sbArrasta(P, q.pts, sx * q.H, sy * q.H);
   }
-  ctx.save(); ctx.fillStyle = SOMBRA_COR(0.34 * Sol.a); ctx.fill(P); ctx.restore();
+  ctx.save(); sombraFill(ctx, P, 0.34 * Sol.a * SOMBRA_K()); ctx.restore();
 };
 // sombras dos objetos altos (árvores, postes, semáforos, outdoors...): pintadas por cima do chão e dos carros
 // (um carro embaixo de uma árvore fica na sombra dela); o próprio objeto é desenhado depois, por cima
@@ -94,7 +97,7 @@ Sombras.altos = function (ctx, view) {
   if (!Sol.a) return;
   const P = new Path2D(), sx = Sol.dx, sy = Sol.dy, q = [];
   rendGrid.query(view.x0 - 220, view.y0 - 220, view.x1 + 220, view.y1 + 220, q);
-  ctx.save(); ctx.globalAlpha = 0.36 * Sol.a;
+  ctx.save(); ctx.globalAlpha = Math.min(0.85, 0.36 * Sol.a * SOMBRA_K());
   for (const o of q) {
     if (o.down !== undefined || o.removed) continue; // derrubado ou arrancado: sem sombra
     switch (o.kind) {
@@ -125,14 +128,14 @@ Sombras.altos = function (ctx, view) {
       case 'watertower': case 'silo': { const H = o.h || 60, r = o.r || 14; sbSeg(P, o.x, o.y, o.x + sx * H, o.y + sy * H, r * 1.6); sbCirc(P, o.x + sx * H, o.y + sy * H, r); break; }
     }
   }
-  ctx.globalAlpha = 1; ctx.fillStyle = SOMBRA_COR(0.36 * Sol.a); ctx.fill(P);
+  ctx.globalAlpha = 1; sombraFill(ctx, P, 0.36 * Sol.a * SOMBRA_K());
   ctx.restore();
 };
 // sombra do carro pelo sol: contorno fiel da carroceria, deslocada pela altura do carro (chamada em drawVehicle)
 function sombraCarroSol(ctx, m, x, y, as, sq) {
   if (!Sol.a || Settings.quality === 'baixa') return;
   const H = m.kind === 'bus' ? 16 : m.kind === 'truck' ? 13 : m.kind === 'moto' ? 6 : 7;
-  ctx.save(); ctx.fillStyle = SOMBRA_COR(0.34 * Sol.a);
+  ctx.save(); ctx.fillStyle = SOMBRA_COR(0.34 * Sol.a * SOMBRA_K());
   for (const t of [0.45, 1]) { ctx.save(); ctx.translate(x + Sol.dx * H * t, y + Sol.dy * H * t); ctx.scale(1, 1 / sq); ctx.rotate(as); ctx.globalAlpha = t === 1 ? 1 : 0.55; if (m.kind === 'car') ctx.fill(bodyPath(m)); else { ctx.beginPath(); rrect(ctx, -m.L / 2, -m.W / 2, m.L, m.W, m.kind === 'moto' ? 3 : 5); ctx.fill(); } ctx.restore(); }
   ctx.restore();
 }

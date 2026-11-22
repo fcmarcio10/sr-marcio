@@ -403,6 +403,7 @@ function drawEdgeMarkings(g, e) {
   const s0 = e.perpA ? e.perpA + pad : 0, s1 = e.perpB ? L - e.perpB - pad : L;
   if (s1 <= s0) return;
   edgeLocal(g, e);
+  if (!blq) asfaltoDesgaste(g, e, s0, s1, hw);
   const yel = '#e3bf3f', wht = 'rgba(236,236,230,0.92)';
   if (blq) { /* rua de bloquete: sem faixa no meio */ }
   else if (T.center === 'dash') {
@@ -428,6 +429,27 @@ function drawEdgeMarkings(g, e) {
     }
   }
   g.restore();
+}
+// asfalto gasto como de verdade (0.2.0; escolhido pela posição, sem sorteio do mapa): trilhas mais escuras onde as rodas
+// passam (borracha e óleo), faixa de óleo no meio da pista e rachaduras finas com a borda um pouco mais clara
+function asfaltoDesgaste(g, e, s0, s1, hw) {
+  const H = (k) => hash2(e.id * 53 + k, e.b.x + e.b.y * 3), lanes = e.T.lanes || [24], comp = s1 - s0;
+  for (const sd of [-1, 1]) for (const l of lanes) {
+    for (const w of [-8, 8]) { const y = sd * (l + w); g.fillStyle = 'rgba(8,8,10,0.07)'; g.fillRect(s0, y - 4.5, comp, 9); g.fillStyle = 'rgba(8,8,10,0.08)'; g.fillRect(s0, y - 2, comp, 4); }
+    g.fillStyle = 'rgba(20,18,14,0.07)'; g.fillRect(s0, sd * l - 2.5, comp, 5); // pinga óleo no meio da faixa
+  }
+  const n = Math.floor(comp / 90);
+  g.lineCap = 'round';
+  for (let i = 0; i < n; i++) {
+    if (H(i) > 0.45) continue;
+    let x = s0 + H(i + 300) * comp, y = (H(i + 600) - 0.5) * hw * 1.7;
+    const P = []; P.push([x, y]);
+    const seg = 3 + Math.floor(H(i + 900) * 4), dir = H(i + 1200) < 0.5 ? 0 : 1; // racha ao longo da rua ou atravessando
+    for (let k = 0; k < seg; k++) { const st = 5 + H(i * 7 + k) * 9; if (dir) { y += st * (H(i + k + 40) < 0.5 ? -1 : 1) * 0.9; x += (H(i + k + 80) - 0.5) * 7; } else { x += st; y += (H(i + k + 120) - 0.5) * 6; } P.push([x, y]); }
+    if (Math.abs(y) > hw - 4) continue;
+    g.strokeStyle = 'rgba(170,170,170,0.07)'; g.lineWidth = 1.6; g.beginPath(); P.forEach((p, j) => (j ? g.lineTo(p[0] + 0.5, p[1] + 0.5) : g.moveTo(p[0] + 0.5, p[1] + 0.5))); g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,0.42)'; g.lineWidth = 0.7; g.beginPath(); P.forEach((p, j) => (j ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.stroke();
+  }
 }
 // detalhes de rua da cidade (sem sorteio do mapa: tudo escolhido pela posição): vagas pintadas na beira da calçada,
 // carga e descarga, bueiros, tampas de bueiro, remendos de asfalto e manchas de óleo nas vagas
@@ -777,13 +799,35 @@ function drawProp(g, p) {
       g.fillStyle = '#1d4f9c'; g.fillRect(1, -2, 3, 4); g.fillStyle = '#c8c8c0'; g.fillRect(1.6, -1.3, 1.6, 1);
       break;
     }
-    case 'bump': {
-      const w = p.w, h = p.h;
-      g.fillStyle = '#1c1c1e'; g.fillRect(-w / 2, -h / 2, w, h);
-      g.fillStyle = '#e8c23a';
-      const long = w > h, L = long ? w : h;
-      for (let t = -L / 2; t < L / 2; t += 10) { if (long) g.fillRect(t, -h / 2, 5, h); else g.fillRect(-w / 2, t, w, 5); }
-      g.fillStyle = 'rgba(255,255,255,0.12)'; if (long) g.fillRect(-w / 2, -h / 2, w, 2); else g.fillRect(-w / 2, -h / 2, 2, h);
+    case 'bump': { // quebra-molas de asfalto: lombada redonda, pintura zebrada amarela gasta onde as rodas passam e marca de borracha
+      const long = p.w > p.h, L = long ? p.w : p.h, T = long ? p.h : p.w, hl = L / 2, ht = T / 2;
+      if (!long) g.rotate(Math.PI / 2);
+      // sombra de contato dos dois lados (a lombada é mais alta que a rua)
+      g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(-hl, -ht - 2.5, L, T + 5);
+      g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(-hl, ht, L, 3);
+      // corpo arredondado: escuro na beira, claro no alto
+      const gr = g.createLinearGradient(0, -ht, 0, ht);
+      gr.addColorStop(0, '#26262a'); gr.addColorStop(0.3, '#46464b'); gr.addColorStop(0.5, '#56565b'); gr.addColorStop(0.75, '#3a3a3f'); gr.addColorStop(1, '#1f1f22');
+      g.fillStyle = gr; g.fillRect(-hl, -ht, L, T);
+      // trilhas das rodas (onde a tinta gasta e fica borracha)
+      const trilhas = [-32, -16, 16, 32], gasto = (x) => { let m = 1; for (const t of trilhas) { const d = Math.abs(x - t); if (d < 6) m = Math.min(m, 0.25 + d / 8); } return m; };
+      // zebrado amarelo em diagonal, com falhas e desbotado
+      const R = mulberry32((p.seed * 1e6) | 0);
+      g.save(); g.beginPath(); g.rect(-hl + 1, -ht + 1, L - 2, T - 2); g.clip();
+      for (let x = -hl - T; x < hl + T; x += 9) {
+        const m = gasto(x + 2) * (0.75 + R() * 0.25);
+        g.fillStyle = `rgba(232,190,52,${(0.92 * m).toFixed(3)})`;
+        g.beginPath(); g.moveTo(x, ht); g.lineTo(x + 4.5, ht); g.lineTo(x + 4.5 + T * 0.6, -ht); g.lineTo(x + T * 0.6, -ht); g.closePath(); g.fill();
+      }
+      // marca de borracha e sujeira nas trilhas
+      for (const t of trilhas) { if (Math.abs(t) > hl - 4) continue; g.fillStyle = 'rgba(14,12,12,0.38)'; g.fillRect(t - 3.5, -ht, 7, T); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(t - 2.5, -ht - 3, 5, 3); }
+      // raspão de fundo de carro rebaixado no alto da lombada
+      g.strokeStyle = 'rgba(210,210,215,0.18)'; g.lineWidth = 0.6;
+      for (let i = 0; i < 4; i++) { const x0 = -hl + R() * L, l = 6 + R() * 14; g.beginPath(); g.moveTo(x0, -0.6 + R() * 1.2); g.lineTo(x0 + l, -0.6 + R() * 1.2); g.stroke(); }
+      g.restore();
+      // brilho no alto e beira da subida
+      g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(-hl, -ht * 0.35, L, 1.2);
+      g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-hl, ht - 1.2, L, 1.2);
       break;
     }
     case 'flag':
@@ -959,7 +1003,7 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   if (!o.noSq && typeof sombraCarroSol === 'function') sombraCarroSol(ctx, m, x, y, as, sq); // sombra pelo sol com o contorno da carroceria
   ctx.save();
   ctx.translate(x + 2.5, y + 3.5 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as);
-  if (typeof SHSPR !== 'undefined' && SHSPR && Settings.quality === 'alta') { const ga = ctx.globalAlpha; ctx.translate(-1, -1); ctx.globalAlpha = ga * 0.78; softCarShadow(ctx, m.L + 4, m.W + 3); ctx.globalAlpha = ga; } // sombra de contato macia
+  if (typeof SHSPR !== 'undefined' && SHSPR && altaQ()) { const ga = ctx.globalAlpha; ctx.translate(-1, -1); ctx.globalAlpha = ga * 0.78; softCarShadow(ctx, m.L + 4, m.W + 3); ctx.globalAlpha = ga; } // sombra de contato macia
   if (m.kind === 'car' && Settings.quality !== 'baixa') { ctx.save(); ctx.translate(x + 1.6, y + 2.4 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as); ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fill(bodyPath(m)); ctx.restore(); } // contorno fiel da carroceria por cima da sombra macia
   else { ctx.fillStyle = 'rgba(0,0,0,0.42)'; ctx.beginPath(); rrect(ctx, -m.L / 2 - 1, -m.W / 2 - 0.5, m.L + 2, m.W + 1, m.kind === 'moto' ? 4 : 6); ctx.fill(); }
   ctx.restore();

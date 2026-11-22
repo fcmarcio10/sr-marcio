@@ -3276,6 +3276,7 @@ function drawEdgeMarkings(g, e) {
   const s0 = e.perpA ? e.perpA + pad : 0, s1 = e.perpB ? L - e.perpB - pad : L;
   if (s1 <= s0) return;
   edgeLocal(g, e);
+  if (!blq) asfaltoDesgaste(g, e, s0, s1, hw);
   const yel = '#e3bf3f', wht = 'rgba(236,236,230,0.92)';
   if (blq) { /* rua de bloquete: sem faixa no meio */ }
   else if (T.center === 'dash') {
@@ -3301,6 +3302,27 @@ function drawEdgeMarkings(g, e) {
     }
   }
   g.restore();
+}
+// asfalto gasto como de verdade (0.2.0; escolhido pela posição, sem sorteio do mapa): trilhas mais escuras onde as rodas
+// passam (borracha e óleo), faixa de óleo no meio da pista e rachaduras finas com a borda um pouco mais clara
+function asfaltoDesgaste(g, e, s0, s1, hw) {
+  const H = (k) => hash2(e.id * 53 + k, e.b.x + e.b.y * 3), lanes = e.T.lanes || [24], comp = s1 - s0;
+  for (const sd of [-1, 1]) for (const l of lanes) {
+    for (const w of [-8, 8]) { const y = sd * (l + w); g.fillStyle = 'rgba(8,8,10,0.07)'; g.fillRect(s0, y - 4.5, comp, 9); g.fillStyle = 'rgba(8,8,10,0.08)'; g.fillRect(s0, y - 2, comp, 4); }
+    g.fillStyle = 'rgba(20,18,14,0.07)'; g.fillRect(s0, sd * l - 2.5, comp, 5); // pinga óleo no meio da faixa
+  }
+  const n = Math.floor(comp / 90);
+  g.lineCap = 'round';
+  for (let i = 0; i < n; i++) {
+    if (H(i) > 0.45) continue;
+    let x = s0 + H(i + 300) * comp, y = (H(i + 600) - 0.5) * hw * 1.7;
+    const P = []; P.push([x, y]);
+    const seg = 3 + Math.floor(H(i + 900) * 4), dir = H(i + 1200) < 0.5 ? 0 : 1; // racha ao longo da rua ou atravessando
+    for (let k = 0; k < seg; k++) { const st = 5 + H(i * 7 + k) * 9; if (dir) { y += st * (H(i + k + 40) < 0.5 ? -1 : 1) * 0.9; x += (H(i + k + 80) - 0.5) * 7; } else { x += st; y += (H(i + k + 120) - 0.5) * 6; } P.push([x, y]); }
+    if (Math.abs(y) > hw - 4) continue;
+    g.strokeStyle = 'rgba(170,170,170,0.07)'; g.lineWidth = 1.6; g.beginPath(); P.forEach((p, j) => (j ? g.lineTo(p[0] + 0.5, p[1] + 0.5) : g.moveTo(p[0] + 0.5, p[1] + 0.5))); g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,0.42)'; g.lineWidth = 0.7; g.beginPath(); P.forEach((p, j) => (j ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.stroke();
+  }
 }
 // detalhes de rua da cidade (sem sorteio do mapa: tudo escolhido pela posição): vagas pintadas na beira da calçada,
 // carga e descarga, bueiros, tampas de bueiro, remendos de asfalto e manchas de óleo nas vagas
@@ -3650,13 +3672,35 @@ function drawProp(g, p) {
       g.fillStyle = '#1d4f9c'; g.fillRect(1, -2, 3, 4); g.fillStyle = '#c8c8c0'; g.fillRect(1.6, -1.3, 1.6, 1);
       break;
     }
-    case 'bump': {
-      const w = p.w, h = p.h;
-      g.fillStyle = '#1c1c1e'; g.fillRect(-w / 2, -h / 2, w, h);
-      g.fillStyle = '#e8c23a';
-      const long = w > h, L = long ? w : h;
-      for (let t = -L / 2; t < L / 2; t += 10) { if (long) g.fillRect(t, -h / 2, 5, h); else g.fillRect(-w / 2, t, w, 5); }
-      g.fillStyle = 'rgba(255,255,255,0.12)'; if (long) g.fillRect(-w / 2, -h / 2, w, 2); else g.fillRect(-w / 2, -h / 2, 2, h);
+    case 'bump': { // quebra-molas de asfalto: lombada redonda, pintura zebrada amarela gasta onde as rodas passam e marca de borracha
+      const long = p.w > p.h, L = long ? p.w : p.h, T = long ? p.h : p.w, hl = L / 2, ht = T / 2;
+      if (!long) g.rotate(Math.PI / 2);
+      // sombra de contato dos dois lados (a lombada é mais alta que a rua)
+      g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(-hl, -ht - 2.5, L, T + 5);
+      g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(-hl, ht, L, 3);
+      // corpo arredondado: escuro na beira, claro no alto
+      const gr = g.createLinearGradient(0, -ht, 0, ht);
+      gr.addColorStop(0, '#26262a'); gr.addColorStop(0.3, '#46464b'); gr.addColorStop(0.5, '#56565b'); gr.addColorStop(0.75, '#3a3a3f'); gr.addColorStop(1, '#1f1f22');
+      g.fillStyle = gr; g.fillRect(-hl, -ht, L, T);
+      // trilhas das rodas (onde a tinta gasta e fica borracha)
+      const trilhas = [-32, -16, 16, 32], gasto = (x) => { let m = 1; for (const t of trilhas) { const d = Math.abs(x - t); if (d < 6) m = Math.min(m, 0.25 + d / 8); } return m; };
+      // zebrado amarelo em diagonal, com falhas e desbotado
+      const R = mulberry32((p.seed * 1e6) | 0);
+      g.save(); g.beginPath(); g.rect(-hl + 1, -ht + 1, L - 2, T - 2); g.clip();
+      for (let x = -hl - T; x < hl + T; x += 9) {
+        const m = gasto(x + 2) * (0.75 + R() * 0.25);
+        g.fillStyle = `rgba(232,190,52,${(0.92 * m).toFixed(3)})`;
+        g.beginPath(); g.moveTo(x, ht); g.lineTo(x + 4.5, ht); g.lineTo(x + 4.5 + T * 0.6, -ht); g.lineTo(x + T * 0.6, -ht); g.closePath(); g.fill();
+      }
+      // marca de borracha e sujeira nas trilhas
+      for (const t of trilhas) { if (Math.abs(t) > hl - 4) continue; g.fillStyle = 'rgba(14,12,12,0.38)'; g.fillRect(t - 3.5, -ht, 7, T); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(t - 2.5, -ht - 3, 5, 3); }
+      // raspão de fundo de carro rebaixado no alto da lombada
+      g.strokeStyle = 'rgba(210,210,215,0.18)'; g.lineWidth = 0.6;
+      for (let i = 0; i < 4; i++) { const x0 = -hl + R() * L, l = 6 + R() * 14; g.beginPath(); g.moveTo(x0, -0.6 + R() * 1.2); g.lineTo(x0 + l, -0.6 + R() * 1.2); g.stroke(); }
+      g.restore();
+      // brilho no alto e beira da subida
+      g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(-hl, -ht * 0.35, L, 1.2);
+      g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-hl, ht - 1.2, L, 1.2);
       break;
     }
     case 'flag':
@@ -3832,7 +3876,7 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   if (!o.noSq && typeof sombraCarroSol === 'function') sombraCarroSol(ctx, m, x, y, as, sq); // sombra pelo sol com o contorno da carroceria
   ctx.save();
   ctx.translate(x + 2.5, y + 3.5 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as);
-  if (typeof SHSPR !== 'undefined' && SHSPR && Settings.quality === 'alta') { const ga = ctx.globalAlpha; ctx.translate(-1, -1); ctx.globalAlpha = ga * 0.78; softCarShadow(ctx, m.L + 4, m.W + 3); ctx.globalAlpha = ga; } // sombra de contato macia
+  if (typeof SHSPR !== 'undefined' && SHSPR && altaQ()) { const ga = ctx.globalAlpha; ctx.translate(-1, -1); ctx.globalAlpha = ga * 0.78; softCarShadow(ctx, m.L + 4, m.W + 3); ctx.globalAlpha = ga; } // sombra de contato macia
   if (m.kind === 'car' && Settings.quality !== 'baixa') { ctx.save(); ctx.translate(x + 1.6, y + 2.4 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as); ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fill(bodyPath(m)); ctx.restore(); } // contorno fiel da carroceria por cima da sombra macia
   else { ctx.fillStyle = 'rgba(0,0,0,0.42)'; ctx.beginPath(); rrect(ctx, -m.L / 2 - 1, -m.W / 2 - 0.5, m.L + 2, m.W + 1, m.kind === 'moto' ? 4 : 6); ctx.fill(); }
   ctx.restore();
@@ -4418,7 +4462,7 @@ class Player {
       else { const k = clamp(vf / maxS, 0, 1); vf += acc * (1.08 - k * k) * (this.launchT > 0 ? 0.82 : 1) * dt; }
     } else if (inp.brk) {
       if (vf > 8) { vf -= st.brk * brkW * dt; this.braking = true; if (vf < 0) vf = 0; }
-      else { vf -= acc * 0.75 * dt; if (vf < -st.rev) vf = -st.rev; }
+      else { const revMax = st.rev * Math.min(1, maxS / st.max); vf -= acc * 0.75 * dt; if (vf < -revMax) vf = -revMax; } // ré também fica fraca com o carro fraco (sem gasolina, batido, pneu, óleo, bateria)
     } else {
       const eb = (38 + Math.abs(vf) * 0.22) * dt;
       vf = Math.abs(vf) <= eb ? 0 : vf - Math.sign(vf) * eb;
@@ -4526,7 +4570,10 @@ class Player {
       } else tr[0] = tr[1] = null;
       if (solo && this.thr > 0.6 && (sp < 260 || this.slip > 0.4) && chance(0.55 + (this.launchT > 0 ? 0.4 : 0))) {
         const k = chance(0.5) ? 0 : 1, areia = this.surface === SF.SAND;
-        Particles.emit(areia ? 'areia' : 'dust', Wr[k * 2] + rnd(-3, 3), Wr[k * 2 + 1] + rnd(-3, 3), -c * rnd(40, 90) + rnd(-25, 25), -s * rnd(40, 90) + rnd(-25, 25), rnd(0.5, 1.1), areia ? rnd(2, 3.5) : rnd(3, 5));
+        Particles.emit(areia ? 'areia' : 'dust', Wr[k * 2] + rnd(-3, 3), Wr[k * 2 + 1] + rnd(-3, 3), -c * rnd(40, 90) + rnd(-25, 25), -s * rnd(40, 90) + rnd(-25, 25), rnd(0.6, 1.2), areia ? rnd(2.5, 4) : rnd(3, 5));
+        // grãos (areia e terra) jogados para trás pela roda que patina
+        const ng = areia ? 3 : Weather.wet > 0.3 ? 0 : 1;
+        for (let i = 0; i < ng; i++) { const P = Particles.emitir('grao', Wr[k * 2], Wr[k * 2 + 1], -c * rnd(70, 150) + rnd(-40, 40), -s * rnd(70, 150) + rnd(-40, 40), rnd(0.25, 0.5), rnd(0.9, 1.6)); if (P) P.c = areia ? '#d9c58f' : '#7d5f3e'; }
       }
     }
     // pneu junta barro na estrada de terra (muito mais na chuva) e larga o rastro no começo do asfalto
@@ -4547,8 +4594,10 @@ class Player {
     if (muddy && Weather.wet > 0.3) Profile.dirt = clamp(Profile.dirt + dt * 0.02 * Weather.wet * clamp(sp / 150, 0, 1.5), 0, 1);
     // spray de água atrás das rodas na pista molhada
     if (Weather.wet > 0.25 && sp > 140 && paved && chance(0.35 * Weather.wet)) Particles.emit('water', this.x - c * this.m.L * 0.45 + rnd(-6, 6), this.y - s * this.m.L * 0.45 + rnd(-6, 6), -this.vx * 0.12 + rnd(-20, 20), -this.vy * 0.12 + rnd(-20, 20), rnd(0.3, 0.6), 3);
-    if (sp > 120 && (this.surface === SF.DIRT || this.surface === SF.EARTH || this.surface === SF.FIELD || this.surface === SF.SAND) && chance(0.45)) {
-      Particles.emit('dust', this.x - c * this.m.L * 0.5 + rnd(-6, 6), this.y - s * this.m.L * 0.5 + rnd(-6, 6), -this.vx * 0.15, -this.vy * 0.15, rnd(0.8, 1.6), 8);
+    if (sp > 70 && (this.surface === SF.DIRT || this.surface === SF.EARTH || this.surface === SF.FIELD || this.surface === SF.SAND) && chance(clamp((sp - 70) / 260, 0.15, 0.8))) {
+      // nuvem que sai das duas rodas de trás, fica no ar e vai abrindo atrás do carro (mais alta e mais comprida quanto mais rápido)
+      const W2 = this.rodas(), k = chance(0.5) ? 0 : 1, areia = this.surface === SF.SAND;
+      Particles.emit(areia ? 'areia' : 'dust', W2[k * 2] - c * 5 + rnd(-3, 3), W2[k * 2 + 1] - s * 5 + rnd(-3, 3), -this.vx * 0.12 + rnd(-12, 12), -this.vy * 0.12 + rnd(-12, 12), rnd(1.1, 2.2) * clamp(sp / 250, 0.7, 1.4), rnd(5, 8));
     }
     let onB = false;
     for (const b of World.bumps) if (this.x > b.x0 && this.x < b.x1 && this.y > b.y0 && this.y < b.y1) { onB = true; break; }
@@ -5155,7 +5204,7 @@ const TR_FICA = 950;      // longe disso da tela o carro some de qualquer jeito
 const TR_SLOW = 1 / 30;   // passo do cálculo fora da tela (30 vezes por segundo, em vez de 120)
 // quantos carros cabem na faixa (mesma sensação de rua movimentada na tela)
 function trafficTarget(view) {
-  const dens = Settings.quality === 'alta' ? 2.4 : Settings.quality === 'baixa' ? 1.6 : 2; // carros por milhão de unidades²
+  const dens = altaQ() ? 2.4 : Settings.quality === 'baixa' ? 1.6 : 2; // carros por milhão de unidades²
   const area = (view.x1 - view.x0 + TR_RING * 2) * (view.y1 - view.y0 + TR_RING * 2) / 1e6;
   const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
   const mov = trafficRush().k; // de dia e no pico cabem mais carros; de madrugada, poucos
@@ -5252,7 +5301,7 @@ Traffic.update = function (dt, now, cx, cy, view) {
     const mx = trafficTarget(v);
     // poucos na tela de cada vez: com a tela já movimentada, não manda mais
     let vis = 0; for (const c of this.cars) if (trInView(c, v, 0)) vis++;
-    const visMax = Settings.quality === 'baixa' ? 3 : Settings.quality === 'alta' ? 5 : 4;
+    const visMax = Settings.quality === 'baixa' ? 3 : altaQ() ? 5 : 4;
     let n = 0;
     let naFaixa = 0; for (const c of this.cars) if (trInView(c, v, TR_RING + 30)) naFaixa++; // quem já saiu para longe não ocupa lugar
     while (naFaixa < mx && this.cars.length < mx + 4 && vis < visMax && n++ < 2) if (this.spawnRing(v, false)) naFaixa++; else break;
@@ -5609,15 +5658,33 @@ function drawAnimal(ctx, an) {
 }
 
 /* ============================ PARTÍCULAS E MARCAS ============================ */
+function altaQ() { return Settings.quality === 'alta' || Settings.quality === 'ultra'; } // Ultra = Alta + sol e sombras mais fortes
+function ultraQ() { return Settings.quality === 'ultra'; }
+// cor da poeira conforme o chão: terra batida, terra vermelha, pasto seco e areia
+function corPoeira(g) { return g === SF.EARTH ? '#93633f' : g === SF.SAND ? '#e3cf9a' : g === SF.FIELD || g === SF.GRASS ? '#a99c72' : '#a0805a'; }
+// nuvem de poeira pronta (degradê redondo, sem borda): uma imagem por cor
+const _puff = new Map();
+function puffSprite(col) {
+  let c = _puff.get(col);
+  if (!c) {
+    c = makeCanvas(48, 48); const g = c.getContext('2d'), gr = g.createRadialGradient(24, 24, 0, 24, 24, 24);
+    gr.addColorStop(0, col); gr.addColorStop(0.45, col + 'b0'); gr.addColorStop(0.75, col + '40'); gr.addColorStop(1, col + '00');
+    g.fillStyle = gr; g.fillRect(0, 0, 48, 48); _puff.set(col, c);
+  }
+  return c;
+}
 const Particles = {
   list: [],
   emit(type, x, y, vx, vy, life, size) {
     if (Settings.quality === 'baixa') return; // gráfico baixo: sem partículas
     if (type === 'dust' && Weather.wet > 0.3) { type = 'mud'; size = Math.min(size, 3.5); life *= 0.55; } // na chuva não levanta poeira: espirra barro
-    const max = Settings.quality === 'alta' ? 560 : 320;
+    const max = altaQ() ? 560 : 320;
     if (this.list.length >= max) this.list.shift();
-    this.list.push({ type, x, y, vx, vy, life, max: life, size });
+    const P = { type, x, y, vx, vy, life, max: life, size };
+    if (type === 'dust') P.c = corPoeira(groundAt(x, y)); // poeira com a cor do chão de onde saiu
+    this.list.push(P);
   },
+  emitir(type, x, y, vx, vy, life, size) { const n = this.list.length; this.emit(type, x, y, vx, vy, life, size); return this.list.length > n || (n && this.list[this.list.length - 1].type === type) ? this.list[this.list.length - 1] : null; },
   update(dt) {
     for (let i = this.list.length - 1; i >= 0; i--) {
       const p = this.list[i];
@@ -5627,7 +5694,9 @@ const Particles = {
       const k = p.type === 'spark' ? 2.5 : p.type === 'leaf' ? 1.4 : p.type === 'hubcap' ? 0.9 : p.type === 'water' ? 1.2 : 1.8;
       if (p.type === 'hubcap') p.rot = (p.rot || 0) + dt * 12;
       p.vx *= Math.exp(-k * dt); p.vy *= Math.exp(-k * dt);
-      if (p.type !== 'spark') p.size += dt * (p.type === 'dust' ? 14 : p.type === 'mud' ? 1.5 : p.type === 'water' ? 6 : 10);
+      if (p.type === 'grao') { p.size = Math.max(0.6, p.size - dt * 0.6); continue; } // grão de areia: voa e cai, não cresce
+      if (p.type !== 'spark') p.size += dt * (p.type === 'dust' ? 11 + 10 * (p.life / p.max) : p.type === 'areia' ? 7 : p.type === 'mud' ? 1.5 : p.type === 'water' ? 6 : 10);
+      if (p.type === 'dust' || p.type === 'areia') { p.x += dt * 7; p.y += dt * 2.5; } // a nuvem vai devagar com o vento
     }
   },
   draw(ctx) {
@@ -5637,7 +5706,13 @@ const Particles = {
       if (p.type === 'hubcap') { ctx.globalAlpha = Math.min(1, t * 3); ctx.fillStyle = '#c9ccd2'; ctx.beginPath(); ctx.arc(p.x, p.y, 3.4, 0, TAU); ctx.fill(); ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.x + Math.cos(p.rot) * 3, p.y + Math.sin(p.rot) * 3); ctx.lineTo(p.x - Math.cos(p.rot) * 3, p.y - Math.sin(p.rot) * 3); ctx.stroke(); continue; }
       if (p.type === 'leaf') { ctx.globalAlpha = t; ctx.fillStyle = '#3f7a2e'; ctx.fillRect(p.x, p.y, 2.4, 1.6); continue; }
       if (p.type === 'steam' || p.type === 'exhaust') { ctx.globalAlpha = t * (p.type === 'steam' ? 0.35 : 0.18); ctx.fillStyle = p.type === 'steam' ? '#f0f4f8' : '#9a9a9a'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); continue; }
-      ctx.globalAlpha = t * (p.type === 'dust' ? 0.35 : p.type === 'areia' ? 0.6 : p.type === 'mud' ? 0.75 : p.type === 'water' ? 0.45 : 0.28);
+      if (p.type === 'dust' || p.type === 'areia') { // nuvem macia (sem borda dura): aparece rápido e some devagar
+        const a = Math.min(1, (1 - t) * 6) * t * t * (p.type === 'dust' ? 0.7 : 0.55), sp = puffSprite(p.type === 'areia' ? '#e6d3a0' : p.c || '#9a7e5a');
+        if (a > 0.01) { ctx.globalAlpha = a; ctx.drawImage(sp, p.x - p.size * 1.4, p.y - p.size * 1.4, p.size * 2.8, p.size * 2.8); }
+        continue;
+      }
+      if (p.type === 'grao') { ctx.globalAlpha = Math.min(1, t * 2) * 0.9; ctx.fillStyle = p.c || '#d8c48e'; ctx.fillRect(p.x, p.y, p.size, p.size); continue; }
+      ctx.globalAlpha = t * (p.type === 'mud' ? 0.75 : p.type === 'water' ? 0.45 : 0.28);
       ctx.fillStyle = p.type === 'dust' ? '#9a7e5a' : p.type === 'areia' ? '#e3cf9a' : p.type === 'mud' ? '#4e3220' : p.type === 'water' ? '#b9d6e6' : '#c8c8c8';
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); // (uma por uma: a fumaça fica mais densa onde se sobrepõe)
     }
@@ -8310,12 +8385,12 @@ const TILT_H = 0;  // sem inclinação extra: só a paralaxe 2.5D a partir do ce
 function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
   const dpr = window.devicePixelRatio || 1;
-  RS = Settings.quality === 'alta' ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.7 : Math.min(dpr, 1.25);
+  RS = altaQ() ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.7 : Math.min(dpr, 1.25);
   if (AutoRes.q !== Settings.quality) { AutoRes.q = Settings.quality; AutoRes.k = 1; AutoRes.teto = 1; } // trocou o gráfico: começa do zero
   RS_MAX = RS; RS = Math.max(Math.min(RS, 0.75), RS * AutoRes.k); // nitidez automática para segurar 60 FPS
   canvas.width = Math.round(SCREEN_W * RS); canvas.height = Math.round(SCREEN_H * RS);
   // a camada de luz é toda suave: resolução menor não muda o visual e alivia muito
-  LS = Settings.quality === 'alta' ? 0.5 : Settings.quality === 'baixa' ? 0.28 : 0.42;
+  LS = altaQ() ? 0.5 : Settings.quality === 'baixa' ? 0.28 : 0.42;
   lightCanvas.width = Math.ceil(SCREEN_W * LS); lightCanvas.height = Math.ceil(SCREEN_H * LS);
   glowCanvas.width = lightCanvas.width; glowCanvas.height = lightCanvas.height;
   if (typeof wsClear === 'function') wsClear();
@@ -8381,7 +8456,7 @@ const _bq = [];
 // guarda pelo menos os blocos da tela + um anel em volta (senão fica refazendo chão o tempo todo)
 function maxChunks() {
   const v = Cam.view, need = v && v.x1 > v.x0 ? (Math.ceil((v.x1 - v.x0) / CHUNK) + 3) * (Math.ceil((v.y1 - v.y0) / CHUNK) + 3) + 6 : 30;
-  return Math.max(need, Settings.quality === 'baixa' ? 24 : Settings.quality === 'alta' ? 64 : 46);
+  return Math.max(need, Settings.quality === 'baixa' ? 24 : altaQ() ? 64 : 46);
 }
 function renderChunk(cx, cy) {
   const cv = makeCanvas(CHUNK, CHUNK), g = cv.getContext('2d');
@@ -9436,7 +9511,7 @@ Weather.update = function (dt) {
   // relâmpago e trovão no temporal
   if (this.rain > 0.6) { this.thunderT -= dt; if (this.thunderT <= 0) { this.thunderT = rnd(14, 32); Cam.flash = Math.max(Cam.flash, 0.55); const d = rnd(0.4, 2); setTimeout(() => AudioSys.thunder(d), d * 1000); } }
   // gotas na tela (espaço da tela)
-  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 81 : Settings.quality === 'alta' ? 378 : 216)); // 10% menos gotas
+  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 81 : altaQ() ? 378 : 216)); // 10% menos gotas
   // câmera olhando de cima: a gota cai na direção do chão, então na tela ela "afunda" em direção ao centro,
   // encolhendo e ficando mais fina até bater no chão (onde vira respingo)
   const newDrop = (d, z) => { const R = Math.hypot(SCREEN_W, SCREEN_H) * 0.62; d.a = Math.random() * TAU; d.r = Math.sqrt(Math.random()) * R; d.z = z; d.life = rnd(0.3, 0.55); d.l = rnd(0.025, 0.055); return d; };
@@ -9446,7 +9521,7 @@ Weather.update = function (dt) {
   for (const d of this.drops) { d.z -= dt / d.life; if (d.z <= 0) newDrop(d, 1); }
   // respingos no chão (espaço do mundo)
   if (Settings.quality !== 'baixa' && this.rain > 0.05) {
-    const v = Cam.view, n = this.rain * (Settings.quality === 'alta' ? 95 : 60) * dt;
+    const v = Cam.view, n = this.rain * (altaQ() ? 95 : 60) * dt;
     for (let i = 0; i < n || (Math.random() < n - Math.floor(n) && i < n + 1); i++) {
       const x = rnd(v.x0, v.x1), y = rnd(v.y0, v.y1), g = groundAt(x, y);
       if (g === SF.WATER) this.ripples.push({ x, y, t: 0, a: Math.random() * TAU }); // gota só faz anel na água (rio e mar); no chão, nada
@@ -9564,7 +9639,7 @@ Weather.drawDrops = function (ctx) {
 const Fireflies = { list: [] };
 function updateFireflies(dt) {
   const R = REGIONS[regionKeyAt(Cam.x, Cam.y)];
-  const want = R.rural > 0.5 && Settings.quality !== 'baixa' ? (Settings.quality === 'alta' ? 85 : 45) : 0;
+  const want = R.rural > 0.5 && Settings.quality !== 'baixa' ? (altaQ() ? 85 : 45) : 0;
   // vagalumes só na área da tela (antes ficavam espalhados bem além dela)
   const v = Cam.view, hw = v && v.x1 > v.x0 ? (v.x1 - v.x0) / 2 + 40 : 900, hh = v && v.x1 > v.x0 ? (v.y1 - v.y0) / 2 + 40 : 600;
   const wantN = Math.round(want * Math.min(1, (hw * hh) / (900 * 600))); // mesma quantidade por pedaço de tela
@@ -9924,6 +9999,7 @@ function render() {
   bordaFora(ctx, view); // além da borda: mata e mar continuam (por cima do chão que passa da borda)
   pm('ground');
   Agua.desenhaChao(ctx, view); // rio correndo, ondas do mar e chão molhado
+  Juncao.molhado(ctx, view); // encontro do asfalto com a terra na chuva: barro e poça
   Mata.chao(ctx, view); // vento nas copas da mata, plantação balançando e tufos de mato nos campos
   Weather.drawPuddles(ctx, view);
   Skids.draw(ctx, view);
@@ -9985,7 +10061,7 @@ function render() {
   const lowQ = Settings.quality === 'baixa';
   if (!lowQ) glowPass(view, cx, cy); // na baixa: sem a camada de brilho colorido
   pm('glowPass');
-  if (Settings.quality === 'alta') {
+  if (altaQ()) {
     // bloom: espalha o brilho na própria camada de baixa resolução (barato) antes de ir para a tela
     const gw = glowCanvas.width, gh = glowCanvas.height;
     if (!window._bloomC) { window._bloomC = document.createElement('canvas'); window._bloomX = window._bloomC.getContext('2d'); }
@@ -10015,6 +10091,7 @@ function render() {
   pm('drops');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   Dia.luzSol(ctx, W, Hh); // luz quente do sol de dia
+  Dia.saturacao();
   Dia.desenhaNeblina(ctx, W, Hh); // neblina na roça de madrugada
   Praia.desenha(ctx, W, Hh); // carro voltando do mar para a areia
   if (Cam.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${(Cam.flash * 0.6).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
@@ -10355,7 +10432,7 @@ function drawSpeedo() {
    1) Cada poste projeta no chão a sombra das construções e árvores em volta (assada uma vez no chão).
    2) Carros e pedestres projetam sombra macia para longe de cada poste perto (muda enquanto andam).
    3) Sombra de contato macia embaixo dos carros e escurecimento no pé das construções. */
-function hqShadows() { return Settings.quality === 'alta'; }
+function hqShadows() { return altaQ(); }
 let SHSPR = null, SHDOT = null;
 function buildShadowSprites() {
   // retângulo borrado (sombra de carro) e mancha redonda (pessoas)
@@ -13593,12 +13670,19 @@ Dia.sombrasSol = function (ctx, view) {
     const H = hull([[b.x0, b.y0], [b.x1, b.y0], [b.x1, b.y1], [b.x0, b.y1], [b.x0 + ox, b.y0 + oy], [b.x1 + ox, b.y0 + oy], [b.x1 + ox, b.y1 + oy], [b.x0 + ox, b.y1 + oy]]);
     H.forEach((p, i) => (i ? P.lineTo(p[0], p[1]) : P.moveTo(p[0], p[1]))); P.closePath();
   }
-  ctx.save(); ctx.fillStyle = `rgba(18,22,44,${(0.36 * this.sol).toFixed(3)})`; ctx.fill(P); ctx.restore();
+  ctx.save(); if (ultraQ()) { ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = `rgba(18,22,44,${(0.16 * this.sol).toFixed(3)})`; ctx.stroke(P); } // Ultra: meia-sombra macia na beira
+  ctx.fillStyle = `rgba(18,22,44,${(0.36 * this.sol * (ultraQ() ? 1.4 : 1)).toFixed(3)})`; ctx.fill(P); ctx.restore();
+};
+// Ultra: cores um pouco mais vivas de dia (filtro da própria tela, quase sem custo); some de noite
+Dia.saturacao = function () {
+  const v = ultraQ() && Game.mode === 'play' ? 1 + 0.2 * this.sol : 1, key = v.toFixed(2);
+  if (key === this._sat) return; this._sat = key;
+  canvas.style.filter = key === '1.00' ? '' : `saturate(${key}) contrast(${(1 + 0.04 * this.sol).toFixed(3)})`;
 };
 // luz do sol de dia: um toque quente e mais contraste (estilo cinema), por cima de tudo
 Dia.luzSol = function (ctx, W, H) {
   if (this.sol < 0.04 || Settings.quality === 'baixa') return;
-  const k = this.sol, sx = -(typeof Sol !== 'undefined' ? Sol.dx : 0), sy = -(typeof Sol !== 'undefined' ? Sol.dy : 0.5), l = Math.hypot(sx, sy) || 1;
+  const U = ultraQ(), k = this.sol * (U ? 1.45 : 1), sx = -(typeof Sol !== 'undefined' ? Sol.dx : 0), sy = -(typeof Sol !== 'undefined' ? Sol.dy : 0.5), l = Math.hypot(sx, sy) || 1;
   // lado de onde vem o sol (oposto às sombras): mais claro e quente; o outro lado fica um pouco mais frio
   const cx = W / 2 + sx / l * W * 0.6, cy = H / 2 + sy / l * H * 0.6, fx = W / 2 - sx / l * W * 0.6, fy = H / 2 - sy / l * H * 0.6;
   const ar = this.aurora || 0; // manhãzinha e fim de tarde: luz mais dourada
@@ -13609,7 +13693,7 @@ Dia.luzSol = function (ctx, W, H) {
   // brilho do sol "estourando" de leve do lado dele (como numa foto de dia claro)
   ctx.globalCompositeOperation = 'screen';
   const r = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.75);
-  r.addColorStop(0, `rgba(255,236,200,${(0.16 * k * (1 + ar * 0.6)).toFixed(3)})`); r.addColorStop(1, 'rgba(255,236,200,0)');
+  r.addColorStop(0, `rgba(255,236,200,${Math.min(0.5, 0.16 * k * (1 + ar * 0.6) * (U ? 1.3 : 1)).toFixed(3)})`); r.addColorStop(1, 'rgba(255,236,200,0)');
   ctx.fillStyle = r; ctx.fillRect(0, 0, W, H);
   ctx.restore();
 };
@@ -14092,6 +14176,7 @@ function posMontagem() {
   const sv = RNG; RNG = mulberry32(78078);
   try { lotesEEstradinhas(); bairroDaPonte(); outdoorsNoPasto(); palmeirasNobres(); empenas(); } finally { RNG = sv; }
   World.tall = World.tall.filter((t) => !t.removed);
+  Juncao.monta(); // asfalto encontrando a terra (sorteio próprio de cada encontro)
 }
 function bordasRurais() {
   return World.edges.filter((e) => e.T.asphalt && !e.bridge && e.len > 260 && CAMPO_REG[regionKeyAt(e.a.x + e.dx * e.len / 2, e.a.y + e.dy * e.len / 2)]);
@@ -14206,7 +14291,8 @@ function plaquinhaQuebra(placa) {
 // estradinha de terra apertada, com mato e moitas fechando dos dois lados
 function estradinha(e, s, lw, beira, L, sd) {
   const r = ruaRet(e, s, s + lw, beira, beira + L, sd);
-  (World.estradinhas || (World.estradinhas = [])).push({ x: (r[0] + r[2]) / 2, y: (r[1] + r[3]) / 2 });
+  const nx = -e.dy * sd, ny = e.dx * sd, sm = s + lw / 2; // boca da estradinha na beira do asfalto (para a ligação com o asfalto)
+  (World.estradinhas || (World.estradinhas = [])).push({ x: (r[0] + r[2]) / 2, y: (r[1] + r[3]) / 2, boca: [e.a.x + e.dx * sm + nx * beira, e.a.y + e.dy * sm + ny * beira, nx, ny, lw / 2] });
   decal(r[0], r[1], r[2], r[3], 'earth', { z: 2.2 });
   const vert = (r[3] - r[1]) > (r[2] - r[0]), R = mulberry32((r[0] * 3 + r[1]) | 0);
   bake(r[0] - 16, r[1] - 16, r[2] + 16, r[3] + 16, 6.3, (g) => trilhaTerra(g, r, vert, R));
@@ -14520,7 +14606,10 @@ function vaosTijolo(ctx, b, ax, ay, bx, by, ox, oy, side) {
    Todas as sombras do chão de um quadro vão num caminho só e são pintadas de uma vez: onde duas se cruzam
    não fica mais escuro (como na vida real). */
 const Sol = { a: 0, dx: 0, dy: 0 };
-const SOMBRA_COR = (a) => `rgba(16,20,40,${a.toFixed(3)})`; // sombra azulada (o céu clareia a sombra)
+const SOMBRA_COR = (a) => `rgba(16,20,40,${Math.min(0.85, a).toFixed(3)})`; // sombra azulada (o céu clareia a sombra)
+// Ultra: sombra 45% mais forte e com borda macia (meia-sombra em volta, como sombra de sol de verdade)
+const SOMBRA_K = () => (ultraQ() ? 1.45 : 1);
+function sombraFill(ctx, P, a) { if (ultraQ()) { ctx.lineJoin = 'round'; ctx.lineWidth = 3.2; ctx.strokeStyle = SOMBRA_COR(a * 0.32); ctx.stroke(P); } ctx.fillStyle = SOMBRA_COR(a); ctx.fill(P); }
 Sol.calc = function () {
   if (typeof Dia === 'undefined' || Settings.quality === 'baixa') { this.a = 0; return; }
   const h = Dia.hora(), th = clamp(Math.PI * (h - 6) / 12, 0.08, Math.PI - 0.08);
@@ -14599,7 +14688,7 @@ Sombras.chao = function (ctx, view) {
     if (q.c) { for (const t of [0, 0.5, 1]) sbCirc(P, q.c[0] + sx * q.H * t, q.c[1] + sy * q.H * t, q.c[2]); }
     else sbArrasta(P, q.pts, sx * q.H, sy * q.H);
   }
-  ctx.save(); ctx.fillStyle = SOMBRA_COR(0.34 * Sol.a); ctx.fill(P); ctx.restore();
+  ctx.save(); sombraFill(ctx, P, 0.34 * Sol.a * SOMBRA_K()); ctx.restore();
 };
 // sombras dos objetos altos (árvores, postes, semáforos, outdoors...): pintadas por cima do chão e dos carros
 // (um carro embaixo de uma árvore fica na sombra dela); o próprio objeto é desenhado depois, por cima
@@ -14607,7 +14696,7 @@ Sombras.altos = function (ctx, view) {
   if (!Sol.a) return;
   const P = new Path2D(), sx = Sol.dx, sy = Sol.dy, q = [];
   rendGrid.query(view.x0 - 220, view.y0 - 220, view.x1 + 220, view.y1 + 220, q);
-  ctx.save(); ctx.globalAlpha = 0.36 * Sol.a;
+  ctx.save(); ctx.globalAlpha = Math.min(0.85, 0.36 * Sol.a * SOMBRA_K());
   for (const o of q) {
     if (o.down !== undefined || o.removed) continue; // derrubado ou arrancado: sem sombra
     switch (o.kind) {
@@ -14638,14 +14727,14 @@ Sombras.altos = function (ctx, view) {
       case 'watertower': case 'silo': { const H = o.h || 60, r = o.r || 14; sbSeg(P, o.x, o.y, o.x + sx * H, o.y + sy * H, r * 1.6); sbCirc(P, o.x + sx * H, o.y + sy * H, r); break; }
     }
   }
-  ctx.globalAlpha = 1; ctx.fillStyle = SOMBRA_COR(0.36 * Sol.a); ctx.fill(P);
+  ctx.globalAlpha = 1; sombraFill(ctx, P, 0.36 * Sol.a * SOMBRA_K());
   ctx.restore();
 };
 // sombra do carro pelo sol: contorno fiel da carroceria, deslocada pela altura do carro (chamada em drawVehicle)
 function sombraCarroSol(ctx, m, x, y, as, sq) {
   if (!Sol.a || Settings.quality === 'baixa') return;
   const H = m.kind === 'bus' ? 16 : m.kind === 'truck' ? 13 : m.kind === 'moto' ? 6 : 7;
-  ctx.save(); ctx.fillStyle = SOMBRA_COR(0.34 * Sol.a);
+  ctx.save(); ctx.fillStyle = SOMBRA_COR(0.34 * Sol.a * SOMBRA_K());
   for (const t of [0.45, 1]) { ctx.save(); ctx.translate(x + Sol.dx * H * t, y + Sol.dy * H * t); ctx.scale(1, 1 / sq); ctx.rotate(as); ctx.globalAlpha = t === 1 ? 1 : 0.55; if (m.kind === 'car') ctx.fill(bodyPath(m)); else { ctx.beginPath(); rrect(ctx, -m.L / 2, -m.W / 2, m.L, m.W, m.kind === 'moto' ? 3 : 5); ctx.fill(); } ctx.restore(); }
   ctx.restore();
 }
@@ -14654,6 +14743,101 @@ function sombraPessoaLuz(ctx, an, dx, dy, len, alpha) {
   const P = new Path2D(); sbPessoa(P, an, dx * len, dy * len);
   ctx.save(); ctx.fillStyle = `rgba(0,0,0,${alpha.toFixed(3)})`; ctx.fill(P); ctx.restore();
 }
+/* ============================ ASFALTO ENCONTRANDO A TERRA (0.2.0) ============================
+   Onde uma estrada de terra (ou estradinha) chega no asfalto, o encontro deixa de ser um corte reto:
+   - beira do asfalto quebrada, com pedaços soltos na terra e um buraco na boca da estrada;
+   - terra espalhada por cima do asfalto (tapa a faixa branca da beira) e pedrinhas;
+   - rastro de pneu sujo de terra saindo da estrada e entrando no asfalto (reto e fazendo a curva);
+   - com chuva (desenhado por cima na hora, conforme o tanto de chuva): barro escuro brilhando nos rastros e poça na boca.
+   Tudo escolhido por sorteio próprio de cada encontro (não mexe no sorteio do mapa). */
+const Juncao = { lista: [] };
+Juncao.monta = function () {
+  const L = this.lista; L.length = 0;
+  // cruzamentos onde chega asfalto e terra
+  for (const n of World.nodes) {
+    if (!n.edges.some((e) => e.T.asphalt)) continue;
+    for (const d of n.edges) {
+      if (d.T.asphalt) continue;
+      const o = d.a === n ? d.b : d.a, l = Math.hypot(o.x - n.x, o.y - n.y) || 1, ux = (o.x - n.x) / l, uy = (o.y - n.y) / l;
+      const ext = Math.abs(ux) > Math.abs(uy) ? n.hx : n.hy;
+      this.add(n.x + ux * ext, n.y + uy * ext, ux, uy, d.hw);
+    }
+  }
+  // estradinhas dos lotes que saem da beira do asfalto
+  for (const s of World.estradinhas || []) if (s.boca) this.add(s.boca[0], s.boca[1], s.boca[2], s.boca[3], s.boca[4], true);
+  for (const J of L) bake(J.x - 170, J.y - 170, J.x + 170, J.y + 170, 5.6, (g) => this.desenha(g, J));
+};
+Juncao.add = function (x, y, ux, uy, dw, estreita) {
+  const R = mulberry32(((x * 7.31) | 0) * 131 + ((y * 3.17) | 0)), J = { x, y, ux, uy, dw, R, estreita: !!estreita };
+  // rastros (calculados uma vez: o desenho seco e o molhado usam os mesmos)
+  J.rastros = [];
+  const pistas = estreita ? [0] : [-dw * 0.42, dw * 0.42];
+  for (const py of pistas) for (const w of [-7, 7]) {
+    const comp = 60 + R() * 90, curva = R() < 0.55 ? (R() < 0.5 ? -1 : 1) * (25 + R() * 50) : 0;
+    J.rastros.push({ y0: py + w + (R() - 0.5) * 2, comp, curva, a: 0.35 + R() * 0.3 });
+  }
+  J.poca = { x: 10 + R() * 14, y: (R() - 0.5) * dw, rx: 9 + R() * 8, ry: 5 + R() * 4 };
+  this.lista.push(J);
+};
+// caminho de um rastro: começa dentro da terra e vai entrando no asfalto (x < 0), podendo virar para um lado
+Juncao.rastro = function (P, r) {
+  P.moveTo(34, r.y0); P.lineTo(0, r.y0);
+  P.quadraticCurveTo(-r.comp * 0.55, r.y0, -r.comp, r.y0 + r.curva);
+};
+Juncao.desenha = function (g, J) {
+  const R = mulberry32(((J.x * 5.1) | 0) + ((J.y * 9.7) | 0) * 7), dw = J.dw;
+  g.save(); g.translate(J.x, J.y); g.rotate(Math.atan2(J.uy, J.ux)); // +x = para dentro da terra
+  // 1) terra espalhada por cima do asfalto (manchas macias, mais forte perto da beira)
+  for (let i = 0; i < (J.estreita ? 9 : 16); i++) {
+    const cx = -Math.pow(R(), 1.6) * (J.estreita ? 30 : 50), cy = (R() - 0.5) * 2 * (dw + 6), r = 6 + R() * 14, a = 0.5 * (1 + cx / 60);
+    const gr = g.createRadialGradient(cx, cy, 0, cx, cy, r); gr.addColorStop(0, `rgba(128,98,66,${a.toFixed(3)})`); gr.addColorStop(1, 'rgba(128,98,66,0)');
+    g.fillStyle = gr; g.fillRect(cx - r, cy - r, r * 2, r * 2);
+  }
+  g.fillStyle = 'rgba(122,94,64,0.62)'; g.beginPath(); g.moveTo(0, -dw - 5);
+  for (let y = -dw - 5; y <= dw + 5; y += 4) g.lineTo(-3 - R() * 7, y);
+  g.lineTo(0, dw + 5); g.closePath(); g.fill(); // faixa de terra que tapa a linha branca da beira
+  // 2) beira do asfalto quebrada, avançando um pouco na terra, com pedaços soltos (estradinha começa depois da calçada: sem isso)
+  if (!J.estreita) {
+  g.fillStyle = '#3a3a3d'; g.strokeStyle = 'rgba(0,0,0,0.45)'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(-1, -dw - 2);
+  for (let y = -dw - 2; y <= dw + 2; y += 3 + R() * 3) g.lineTo(R() < 0.3 ? 1 : 1 + R() * 6, y);
+  g.lineTo(-1, dw + 2); g.closePath(); g.fill(); g.stroke();
+  for (let i = 0; i < 7; i++) { const x = 6 + R() * 16, y = (R() - 0.5) * 2 * dw, s = 1.5 + R() * 2.5; g.fillStyle = '#3d3d40'; g.beginPath(); g.moveTo(x, y - s); g.lineTo(x + s, y); g.lineTo(x + s * 0.3, y + s); g.lineTo(x - s * 0.8, y + s * 0.2); g.closePath(); g.fill(); g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(x - s * 0.8, y + s * 0.2, s * 1.4, 0.8); }
+  }
+  // 3) terra batida e afundada onde os carros passam (logo depois da beira)
+  for (const r of J.rastros) { g.fillStyle = 'rgba(70,50,32,0.22)'; g.fillRect(3, r.y0 - 2.5, 40, 5); }
+  // 4) rastros de pneu sujos de terra entrando no asfalto (somem aos poucos)
+  for (const r of J.rastros) {
+    const P = new Path2D(); this.rastro(P, r);
+    const gr = g.createLinearGradient(30, 0, -r.comp, 0); gr.addColorStop(0, `rgba(96,70,44,${(r.a + 0.15).toFixed(3)})`); gr.addColorStop(0.35, `rgba(96,70,44,${r.a.toFixed(3)})`); gr.addColorStop(1, 'rgba(96,70,44,0)');
+    g.strokeStyle = gr; g.lineWidth = 3.2; g.lineCap = 'round'; g.stroke(P);
+    // desenho do pneu (gomos) no começo do rastro
+    g.fillStyle = 'rgba(70,50,30,0.35)'; for (let x = -2; x > -r.comp * 0.35; x -= 3.5) g.fillRect(x, r.y0 + (x / -r.comp) * (x / -r.comp) * r.curva - 1.5, 1.2, 3);
+  }
+  // 5) pedrinhas e cascalho espalhados
+  for (let i = 0; i < 46; i++) { const x = -R() * R() * 45 + 12 - R() * 4, y = (R() - 0.5) * 2 * (dw + 10), s = 0.7 + R() * 1.1; g.fillStyle = R() < 0.5 ? 'rgba(150,140,128,0.85)' : 'rgba(110,86,60,0.85)'; g.fillRect(x, y, s, s); }
+  // 6) buraco na boca da estrada de terra (borda clara e fundo escuro)
+  const p = J.poca; g.fillStyle = 'rgba(40,28,18,0.55)'; g.beginPath(); g.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, TAU); g.fill();
+  g.strokeStyle = 'rgba(170,140,100,0.35)'; g.lineWidth = 1.2; g.beginPath(); g.ellipse(p.x + 0.6, p.y + 0.6, p.rx, p.ry, 0, 0.2, Math.PI - 0.2); g.stroke();
+  g.restore();
+};
+// chuva: barro escuro e brilhando nos rastros, terra virando lama no asfalto e poça no buraco (por cima, na hora)
+Juncao.molhado = function (ctx, view) {
+  const w = Weather.wet; if (w < 0.05 || Settings.quality === 'baixa') return;
+  for (const J of this.lista) {
+    if (J.x < view.x0 - 170 || J.x > view.x1 + 170 || J.y < view.y0 - 170 || J.y > view.y1 + 170) continue;
+    ctx.save(); ctx.translate(J.x, J.y); ctx.rotate(Math.atan2(J.uy, J.ux));
+    const gr = ctx.createLinearGradient(20, 0, -55, 0); gr.addColorStop(0, `rgba(52,36,22,${(0.45 * w).toFixed(3)})`); gr.addColorStop(1, 'rgba(52,36,22,0)');
+    ctx.fillStyle = gr; ctx.fillRect(-55, -J.dw - 8, 75, J.dw * 2 + 16);
+    const P = new Path2D(); for (const r of J.rastros) this.rastro(P, r);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = `rgba(48,32,20,${(0.5 * w).toFixed(3)})`; ctx.lineWidth = 3.8; ctx.stroke(P);
+    ctx.strokeStyle = `rgba(200,210,228,${(0.14 * w).toFixed(3)})`; ctx.lineWidth = 1; ctx.stroke(P); // brilho da água no barro
+    const p = J.poca; // poça no buraco com o céu refletido
+    ctx.fillStyle = `rgba(62,74,92,${(0.75 * w).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(p.x, p.y, p.rx * 1.15, p.ry * 1.15, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = `rgba(180,195,215,${(0.22 * w).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(p.x - p.rx * 0.3, p.y - p.ry * 0.3, p.rx * 0.45, p.ry * 0.3, 0, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+};
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {
   mode: 'menu', time: 0, autosaveT: 30, fpsT: 0, fpsN: 0,

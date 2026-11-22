@@ -36,6 +36,7 @@ function posMontagem() {
   const sv = RNG; RNG = mulberry32(78078);
   try { lotesEEstradinhas(); bairroDaPonte(); outdoorsNoPasto(); palmeirasNobres(); empenas(); } finally { RNG = sv; }
   World.tall = World.tall.filter((t) => !t.removed);
+  Juncao.monta(); // asfalto encontrando a terra (sorteio próprio de cada encontro)
 }
 function bordasRurais() {
   return World.edges.filter((e) => e.T.asphalt && !e.bridge && e.len > 260 && CAMPO_REG[regionKeyAt(e.a.x + e.dx * e.len / 2, e.a.y + e.dy * e.len / 2)]);
@@ -150,7 +151,8 @@ function plaquinhaQuebra(placa) {
 // estradinha de terra apertada, com mato e moitas fechando dos dois lados
 function estradinha(e, s, lw, beira, L, sd) {
   const r = ruaRet(e, s, s + lw, beira, beira + L, sd);
-  (World.estradinhas || (World.estradinhas = [])).push({ x: (r[0] + r[2]) / 2, y: (r[1] + r[3]) / 2 });
+  const nx = -e.dy * sd, ny = e.dx * sd, sm = s + lw / 2; // boca da estradinha na beira do asfalto (para a ligação com o asfalto)
+  (World.estradinhas || (World.estradinhas = [])).push({ x: (r[0] + r[2]) / 2, y: (r[1] + r[3]) / 2, boca: [e.a.x + e.dx * sm + nx * beira, e.a.y + e.dy * sm + ny * beira, nx, ny, lw / 2] });
   decal(r[0], r[1], r[2], r[3], 'earth', { z: 2.2 });
   const vert = (r[3] - r[1]) > (r[2] - r[0]), R = mulberry32((r[0] * 3 + r[1]) | 0);
   bake(r[0] - 16, r[1] - 16, r[2] + 16, r[3] + 16, 6.3, (g) => trilhaTerra(g, r, vert, R));

@@ -103,7 +103,7 @@ class Player {
       else { const k = clamp(vf / maxS, 0, 1); vf += acc * (1.08 - k * k) * (this.launchT > 0 ? 0.82 : 1) * dt; }
     } else if (inp.brk) {
       if (vf > 8) { vf -= st.brk * brkW * dt; this.braking = true; if (vf < 0) vf = 0; }
-      else { vf -= acc * 0.75 * dt; if (vf < -st.rev) vf = -st.rev; }
+      else { const revMax = st.rev * Math.min(1, maxS / st.max); vf -= acc * 0.75 * dt; if (vf < -revMax) vf = -revMax; } // ré também fica fraca com o carro fraco (sem gasolina, batido, pneu, óleo, bateria)
     } else {
       const eb = (38 + Math.abs(vf) * 0.22) * dt;
       vf = Math.abs(vf) <= eb ? 0 : vf - Math.sign(vf) * eb;
@@ -211,7 +211,10 @@ class Player {
       } else tr[0] = tr[1] = null;
       if (solo && this.thr > 0.6 && (sp < 260 || this.slip > 0.4) && chance(0.55 + (this.launchT > 0 ? 0.4 : 0))) {
         const k = chance(0.5) ? 0 : 1, areia = this.surface === SF.SAND;
-        Particles.emit(areia ? 'areia' : 'dust', Wr[k * 2] + rnd(-3, 3), Wr[k * 2 + 1] + rnd(-3, 3), -c * rnd(40, 90) + rnd(-25, 25), -s * rnd(40, 90) + rnd(-25, 25), rnd(0.5, 1.1), areia ? rnd(2, 3.5) : rnd(3, 5));
+        Particles.emit(areia ? 'areia' : 'dust', Wr[k * 2] + rnd(-3, 3), Wr[k * 2 + 1] + rnd(-3, 3), -c * rnd(40, 90) + rnd(-25, 25), -s * rnd(40, 90) + rnd(-25, 25), rnd(0.6, 1.2), areia ? rnd(2.5, 4) : rnd(3, 5));
+        // grãos (areia e terra) jogados para trás pela roda que patina
+        const ng = areia ? 3 : Weather.wet > 0.3 ? 0 : 1;
+        for (let i = 0; i < ng; i++) { const P = Particles.emitir('grao', Wr[k * 2], Wr[k * 2 + 1], -c * rnd(70, 150) + rnd(-40, 40), -s * rnd(70, 150) + rnd(-40, 40), rnd(0.25, 0.5), rnd(0.9, 1.6)); if (P) P.c = areia ? '#d9c58f' : '#7d5f3e'; }
       }
     }
     // pneu junta barro na estrada de terra (muito mais na chuva) e larga o rastro no começo do asfalto
@@ -232,8 +235,10 @@ class Player {
     if (muddy && Weather.wet > 0.3) Profile.dirt = clamp(Profile.dirt + dt * 0.02 * Weather.wet * clamp(sp / 150, 0, 1.5), 0, 1);
     // spray de água atrás das rodas na pista molhada
     if (Weather.wet > 0.25 && sp > 140 && paved && chance(0.35 * Weather.wet)) Particles.emit('water', this.x - c * this.m.L * 0.45 + rnd(-6, 6), this.y - s * this.m.L * 0.45 + rnd(-6, 6), -this.vx * 0.12 + rnd(-20, 20), -this.vy * 0.12 + rnd(-20, 20), rnd(0.3, 0.6), 3);
-    if (sp > 120 && (this.surface === SF.DIRT || this.surface === SF.EARTH || this.surface === SF.FIELD || this.surface === SF.SAND) && chance(0.45)) {
-      Particles.emit('dust', this.x - c * this.m.L * 0.5 + rnd(-6, 6), this.y - s * this.m.L * 0.5 + rnd(-6, 6), -this.vx * 0.15, -this.vy * 0.15, rnd(0.8, 1.6), 8);
+    if (sp > 70 && (this.surface === SF.DIRT || this.surface === SF.EARTH || this.surface === SF.FIELD || this.surface === SF.SAND) && chance(clamp((sp - 70) / 260, 0.15, 0.8))) {
+      // nuvem que sai das duas rodas de trás, fica no ar e vai abrindo atrás do carro (mais alta e mais comprida quanto mais rápido)
+      const W2 = this.rodas(), k = chance(0.5) ? 0 : 1, areia = this.surface === SF.SAND;
+      Particles.emit(areia ? 'areia' : 'dust', W2[k * 2] - c * 5 + rnd(-3, 3), W2[k * 2 + 1] - s * 5 + rnd(-3, 3), -this.vx * 0.12 + rnd(-12, 12), -this.vy * 0.12 + rnd(-12, 12), rnd(1.1, 2.2) * clamp(sp / 250, 0.7, 1.4), rnd(5, 8));
     }
     let onB = false;
     for (const b of World.bumps) if (this.x > b.x0 && this.x < b.x1 && this.y > b.y0 && this.y < b.y1) { onB = true; break; }
@@ -840,7 +845,7 @@ const TR_FICA = 950;      // longe disso da tela o carro some de qualquer jeito
 const TR_SLOW = 1 / 30;   // passo do cálculo fora da tela (30 vezes por segundo, em vez de 120)
 // quantos carros cabem na faixa (mesma sensação de rua movimentada na tela)
 function trafficTarget(view) {
-  const dens = Settings.quality === 'alta' ? 2.4 : Settings.quality === 'baixa' ? 1.6 : 2; // carros por milhão de unidades²
+  const dens = altaQ() ? 2.4 : Settings.quality === 'baixa' ? 1.6 : 2; // carros por milhão de unidades²
   const area = (view.x1 - view.x0 + TR_RING * 2) * (view.y1 - view.y0 + TR_RING * 2) / 1e6;
   const k = Cam && Cam.x !== undefined ? ruralFactor(Cam.x, Cam.y) : 1;
   const mov = trafficRush().k; // de dia e no pico cabem mais carros; de madrugada, poucos
@@ -937,7 +942,7 @@ Traffic.update = function (dt, now, cx, cy, view) {
     const mx = trafficTarget(v);
     // poucos na tela de cada vez: com a tela já movimentada, não manda mais
     let vis = 0; for (const c of this.cars) if (trInView(c, v, 0)) vis++;
-    const visMax = Settings.quality === 'baixa' ? 3 : Settings.quality === 'alta' ? 5 : 4;
+    const visMax = Settings.quality === 'baixa' ? 3 : altaQ() ? 5 : 4;
     let n = 0;
     let naFaixa = 0; for (const c of this.cars) if (trInView(c, v, TR_RING + 30)) naFaixa++; // quem já saiu para longe não ocupa lugar
     while (naFaixa < mx && this.cars.length < mx + 4 && vis < visMax && n++ < 2) if (this.spawnRing(v, false)) naFaixa++; else break;
@@ -1294,15 +1299,33 @@ function drawAnimal(ctx, an) {
 }
 
 /* ============================ PARTÍCULAS E MARCAS ============================ */
+function altaQ() { return Settings.quality === 'alta' || Settings.quality === 'ultra'; } // Ultra = Alta + sol e sombras mais fortes
+function ultraQ() { return Settings.quality === 'ultra'; }
+// cor da poeira conforme o chão: terra batida, terra vermelha, pasto seco e areia
+function corPoeira(g) { return g === SF.EARTH ? '#93633f' : g === SF.SAND ? '#e3cf9a' : g === SF.FIELD || g === SF.GRASS ? '#a99c72' : '#a0805a'; }
+// nuvem de poeira pronta (degradê redondo, sem borda): uma imagem por cor
+const _puff = new Map();
+function puffSprite(col) {
+  let c = _puff.get(col);
+  if (!c) {
+    c = makeCanvas(48, 48); const g = c.getContext('2d'), gr = g.createRadialGradient(24, 24, 0, 24, 24, 24);
+    gr.addColorStop(0, col); gr.addColorStop(0.45, col + 'b0'); gr.addColorStop(0.75, col + '40'); gr.addColorStop(1, col + '00');
+    g.fillStyle = gr; g.fillRect(0, 0, 48, 48); _puff.set(col, c);
+  }
+  return c;
+}
 const Particles = {
   list: [],
   emit(type, x, y, vx, vy, life, size) {
     if (Settings.quality === 'baixa') return; // gráfico baixo: sem partículas
     if (type === 'dust' && Weather.wet > 0.3) { type = 'mud'; size = Math.min(size, 3.5); life *= 0.55; } // na chuva não levanta poeira: espirra barro
-    const max = Settings.quality === 'alta' ? 560 : 320;
+    const max = altaQ() ? 560 : 320;
     if (this.list.length >= max) this.list.shift();
-    this.list.push({ type, x, y, vx, vy, life, max: life, size });
+    const P = { type, x, y, vx, vy, life, max: life, size };
+    if (type === 'dust') P.c = corPoeira(groundAt(x, y)); // poeira com a cor do chão de onde saiu
+    this.list.push(P);
   },
+  emitir(type, x, y, vx, vy, life, size) { const n = this.list.length; this.emit(type, x, y, vx, vy, life, size); return this.list.length > n || (n && this.list[this.list.length - 1].type === type) ? this.list[this.list.length - 1] : null; },
   update(dt) {
     for (let i = this.list.length - 1; i >= 0; i--) {
       const p = this.list[i];
@@ -1312,7 +1335,9 @@ const Particles = {
       const k = p.type === 'spark' ? 2.5 : p.type === 'leaf' ? 1.4 : p.type === 'hubcap' ? 0.9 : p.type === 'water' ? 1.2 : 1.8;
       if (p.type === 'hubcap') p.rot = (p.rot || 0) + dt * 12;
       p.vx *= Math.exp(-k * dt); p.vy *= Math.exp(-k * dt);
-      if (p.type !== 'spark') p.size += dt * (p.type === 'dust' ? 14 : p.type === 'mud' ? 1.5 : p.type === 'water' ? 6 : 10);
+      if (p.type === 'grao') { p.size = Math.max(0.6, p.size - dt * 0.6); continue; } // grão de areia: voa e cai, não cresce
+      if (p.type !== 'spark') p.size += dt * (p.type === 'dust' ? 11 + 10 * (p.life / p.max) : p.type === 'areia' ? 7 : p.type === 'mud' ? 1.5 : p.type === 'water' ? 6 : 10);
+      if (p.type === 'dust' || p.type === 'areia') { p.x += dt * 7; p.y += dt * 2.5; } // a nuvem vai devagar com o vento
     }
   },
   draw(ctx) {
@@ -1322,7 +1347,13 @@ const Particles = {
       if (p.type === 'hubcap') { ctx.globalAlpha = Math.min(1, t * 3); ctx.fillStyle = '#c9ccd2'; ctx.beginPath(); ctx.arc(p.x, p.y, 3.4, 0, TAU); ctx.fill(); ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.x + Math.cos(p.rot) * 3, p.y + Math.sin(p.rot) * 3); ctx.lineTo(p.x - Math.cos(p.rot) * 3, p.y - Math.sin(p.rot) * 3); ctx.stroke(); continue; }
       if (p.type === 'leaf') { ctx.globalAlpha = t; ctx.fillStyle = '#3f7a2e'; ctx.fillRect(p.x, p.y, 2.4, 1.6); continue; }
       if (p.type === 'steam' || p.type === 'exhaust') { ctx.globalAlpha = t * (p.type === 'steam' ? 0.35 : 0.18); ctx.fillStyle = p.type === 'steam' ? '#f0f4f8' : '#9a9a9a'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); continue; }
-      ctx.globalAlpha = t * (p.type === 'dust' ? 0.35 : p.type === 'areia' ? 0.6 : p.type === 'mud' ? 0.75 : p.type === 'water' ? 0.45 : 0.28);
+      if (p.type === 'dust' || p.type === 'areia') { // nuvem macia (sem borda dura): aparece rápido e some devagar
+        const a = Math.min(1, (1 - t) * 6) * t * t * (p.type === 'dust' ? 0.7 : 0.55), sp = puffSprite(p.type === 'areia' ? '#e6d3a0' : p.c || '#9a7e5a');
+        if (a > 0.01) { ctx.globalAlpha = a; ctx.drawImage(sp, p.x - p.size * 1.4, p.y - p.size * 1.4, p.size * 2.8, p.size * 2.8); }
+        continue;
+      }
+      if (p.type === 'grao') { ctx.globalAlpha = Math.min(1, t * 2) * 0.9; ctx.fillStyle = p.c || '#d8c48e'; ctx.fillRect(p.x, p.y, p.size, p.size); continue; }
+      ctx.globalAlpha = t * (p.type === 'mud' ? 0.75 : p.type === 'water' ? 0.45 : 0.28);
       ctx.fillStyle = p.type === 'dust' ? '#9a7e5a' : p.type === 'areia' ? '#e3cf9a' : p.type === 'mud' ? '#4e3220' : p.type === 'water' ? '#b9d6e6' : '#c8c8c8';
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); // (uma por uma: a fumaça fica mais densa onde se sobrepõe)
     }

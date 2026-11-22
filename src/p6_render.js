@@ -31,12 +31,12 @@ const TILT_H = 0;  // sem inclinação extra: só a paralaxe 2.5D a partir do ce
 function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
   const dpr = window.devicePixelRatio || 1;
-  RS = Settings.quality === 'alta' ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.7 : Math.min(dpr, 1.25);
+  RS = altaQ() ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.7 : Math.min(dpr, 1.25);
   if (AutoRes.q !== Settings.quality) { AutoRes.q = Settings.quality; AutoRes.k = 1; AutoRes.teto = 1; } // trocou o gráfico: começa do zero
   RS_MAX = RS; RS = Math.max(Math.min(RS, 0.75), RS * AutoRes.k); // nitidez automática para segurar 60 FPS
   canvas.width = Math.round(SCREEN_W * RS); canvas.height = Math.round(SCREEN_H * RS);
   // a camada de luz é toda suave: resolução menor não muda o visual e alivia muito
-  LS = Settings.quality === 'alta' ? 0.5 : Settings.quality === 'baixa' ? 0.28 : 0.42;
+  LS = altaQ() ? 0.5 : Settings.quality === 'baixa' ? 0.28 : 0.42;
   lightCanvas.width = Math.ceil(SCREEN_W * LS); lightCanvas.height = Math.ceil(SCREEN_H * LS);
   glowCanvas.width = lightCanvas.width; glowCanvas.height = lightCanvas.height;
   if (typeof wsClear === 'function') wsClear();
@@ -102,7 +102,7 @@ const _bq = [];
 // guarda pelo menos os blocos da tela + um anel em volta (senão fica refazendo chão o tempo todo)
 function maxChunks() {
   const v = Cam.view, need = v && v.x1 > v.x0 ? (Math.ceil((v.x1 - v.x0) / CHUNK) + 3) * (Math.ceil((v.y1 - v.y0) / CHUNK) + 3) + 6 : 30;
-  return Math.max(need, Settings.quality === 'baixa' ? 24 : Settings.quality === 'alta' ? 64 : 46);
+  return Math.max(need, Settings.quality === 'baixa' ? 24 : altaQ() ? 64 : 46);
 }
 function renderChunk(cx, cy) {
   const cv = makeCanvas(CHUNK, CHUNK), g = cv.getContext('2d');
@@ -1157,7 +1157,7 @@ Weather.update = function (dt) {
   // relâmpago e trovão no temporal
   if (this.rain > 0.6) { this.thunderT -= dt; if (this.thunderT <= 0) { this.thunderT = rnd(14, 32); Cam.flash = Math.max(Cam.flash, 0.55); const d = rnd(0.4, 2); setTimeout(() => AudioSys.thunder(d), d * 1000); } }
   // gotas na tela (espaço da tela)
-  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 81 : Settings.quality === 'alta' ? 378 : 216)); // 10% menos gotas
+  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 81 : altaQ() ? 378 : 216)); // 10% menos gotas
   // câmera olhando de cima: a gota cai na direção do chão, então na tela ela "afunda" em direção ao centro,
   // encolhendo e ficando mais fina até bater no chão (onde vira respingo)
   const newDrop = (d, z) => { const R = Math.hypot(SCREEN_W, SCREEN_H) * 0.62; d.a = Math.random() * TAU; d.r = Math.sqrt(Math.random()) * R; d.z = z; d.life = rnd(0.3, 0.55); d.l = rnd(0.025, 0.055); return d; };
@@ -1167,7 +1167,7 @@ Weather.update = function (dt) {
   for (const d of this.drops) { d.z -= dt / d.life; if (d.z <= 0) newDrop(d, 1); }
   // respingos no chão (espaço do mundo)
   if (Settings.quality !== 'baixa' && this.rain > 0.05) {
-    const v = Cam.view, n = this.rain * (Settings.quality === 'alta' ? 95 : 60) * dt;
+    const v = Cam.view, n = this.rain * (altaQ() ? 95 : 60) * dt;
     for (let i = 0; i < n || (Math.random() < n - Math.floor(n) && i < n + 1); i++) {
       const x = rnd(v.x0, v.x1), y = rnd(v.y0, v.y1), g = groundAt(x, y);
       if (g === SF.WATER) this.ripples.push({ x, y, t: 0, a: Math.random() * TAU }); // gota só faz anel na água (rio e mar); no chão, nada
@@ -1285,7 +1285,7 @@ Weather.drawDrops = function (ctx) {
 const Fireflies = { list: [] };
 function updateFireflies(dt) {
   const R = REGIONS[regionKeyAt(Cam.x, Cam.y)];
-  const want = R.rural > 0.5 && Settings.quality !== 'baixa' ? (Settings.quality === 'alta' ? 85 : 45) : 0;
+  const want = R.rural > 0.5 && Settings.quality !== 'baixa' ? (altaQ() ? 85 : 45) : 0;
   // vagalumes só na área da tela (antes ficavam espalhados bem além dela)
   const v = Cam.view, hw = v && v.x1 > v.x0 ? (v.x1 - v.x0) / 2 + 40 : 900, hh = v && v.x1 > v.x0 ? (v.y1 - v.y0) / 2 + 40 : 600;
   const wantN = Math.round(want * Math.min(1, (hw * hh) / (900 * 600))); // mesma quantidade por pedaço de tela
@@ -1645,6 +1645,7 @@ function render() {
   bordaFora(ctx, view); // além da borda: mata e mar continuam (por cima do chão que passa da borda)
   pm('ground');
   Agua.desenhaChao(ctx, view); // rio correndo, ondas do mar e chão molhado
+  Juncao.molhado(ctx, view); // encontro do asfalto com a terra na chuva: barro e poça
   Mata.chao(ctx, view); // vento nas copas da mata, plantação balançando e tufos de mato nos campos
   Weather.drawPuddles(ctx, view);
   Skids.draw(ctx, view);
@@ -1706,7 +1707,7 @@ function render() {
   const lowQ = Settings.quality === 'baixa';
   if (!lowQ) glowPass(view, cx, cy); // na baixa: sem a camada de brilho colorido
   pm('glowPass');
-  if (Settings.quality === 'alta') {
+  if (altaQ()) {
     // bloom: espalha o brilho na própria camada de baixa resolução (barato) antes de ir para a tela
     const gw = glowCanvas.width, gh = glowCanvas.height;
     if (!window._bloomC) { window._bloomC = document.createElement('canvas'); window._bloomX = window._bloomC.getContext('2d'); }
@@ -1736,6 +1737,7 @@ function render() {
   pm('drops');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   Dia.luzSol(ctx, W, Hh); // luz quente do sol de dia
+  Dia.saturacao();
   Dia.desenhaNeblina(ctx, W, Hh); // neblina na roça de madrugada
   Praia.desenha(ctx, W, Hh); // carro voltando do mar para a areia
   if (Cam.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${(Cam.flash * 0.6).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }

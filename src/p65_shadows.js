@@ -3,7 +3,7 @@
    1) Cada poste projeta no chão a sombra das construções e árvores em volta (assada uma vez no chão).
    2) Carros e pedestres projetam sombra macia para longe de cada poste perto (muda enquanto andam).
    3) Sombra de contato macia embaixo dos carros e escurecimento no pé das construções. */
-function hqShadows() { return Settings.quality === 'alta'; }
+function hqShadows() { return altaQ(); }
 let SHSPR = null, SHDOT = null;
 function buildShadowSprites() {
   // retângulo borrado (sombra de carro) e mancha redonda (pessoas)
