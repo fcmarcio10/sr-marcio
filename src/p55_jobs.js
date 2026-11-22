@@ -130,6 +130,7 @@ function updateJobs(dt) {
     const R = Act.ride;
     R.t += dt;
     if (R.stage === 'pickup' && Math.hypot(R.pick.x - p.x, R.pick.y - p.y) < 82 && sp < 35) {
+      Embarque.entra(Embarque.esperando(R), R.pick.x, R.pick.y); // anda até a porta e entra (não some do nada)
       R.stage = 'drive'; R.t = 0; Act.gpsT = 0; AudioSys.thud();
       toast(R.name + ' entrou', rideOnBoard(R), 'info');
     } else if (R.stage === 'drive' && Math.hypot(R.dest.x - p.x, R.dest.y - p.y) < 70 && sp < 35) {

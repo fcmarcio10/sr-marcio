@@ -119,6 +119,7 @@ function rideHit(R) {
   else vozBatida(R.name); // sem aviso escrito: o passageiro fala
 }
 function rideFinish(R) {
+  if (R.pick && player) Embarque.sai(Embarque.esperando(R), R.dest.x, R.dest.y); // sai pela porta e anda para a calçada
   const late = R.tmax ? R.t > R.tmax : R.t > R.len / 120 + 40;
   let s = 5;
   if (R.type === 'aero') s -= R.hits + (late ? 3 : 0);
@@ -314,7 +315,8 @@ Atropelo.update = function (dt) {
   }
   for (let i = this.mortos.length - 1; i >= 0; i--) {
     const an = this.mortos[i]; an.mortoT += dt;
-    if (an.mortoT <= 6 && an.morreuX !== undefined) { an.x = an.morreuX; an.y = an.morreuY; an.v = 0; } // fica estático onde caiu
+    if (an.voo && an.mortoT < an.voo.t) { const k = 1 - Math.pow(1 - an.mortoT / an.voo.t, 2.4); an.x = lerp(an.voo.x0, an.morreuX, k); an.y = lerp(an.voo.y0, an.morreuY, k); an.v = 0; }
+    else if (an.mortoT <= 6 && an.morreuX !== undefined) { an.x = an.morreuX; an.y = an.morreuY; an.v = 0; } // fica estático onde caiu
     // corpo sumiu: a pessoa volta em outro ponto da calçada dela, longe da câmera (a cidade não fica vazia)
     if (an.mortoT > 6 && Math.hypot(an.x - Cam.x, an.y - Cam.y) > 1500) {
       an.morto = false; an.morreuX = undefined; an.cruza = null; an.state = 'idle'; an.t = rnd(1, 4); an.v = 0;
@@ -351,9 +353,11 @@ Atropelo.atropela = function (an, sp) {
   an.morto = true; an.mortoT = 0; an.v = 0; an.danceUntil = 0;
   const f = clamp(sp / 400, 0.3, 1);
   // é jogado um pouco para frente, mas nunca para dentro de casa ou muro (para antes)
+  const x0 = an.x, y0 = an.y, a0 = an.a;
   for (let k = 8 + 16 * f; k > 0; k -= 4) { const nx = an.x + Math.cos(player.a) * k, ny = an.y + Math.sin(player.a) * k; if (!areaBlocked(nx - 4, ny - 4, nx + 4, ny + 4)) { an.x = nx; an.y = ny; break; } }
   an.morreuX = an.x; an.morreuY = an.y;
   an.ca = player.a + rnd(-1.2, 1.2); // de que jeito ficou caído
+  an.voo = { x0, y0, a0, t: 0.32 + 0.12 * f }; an.x = x0; an.y = y0; // é jogado até lá (rápido no começo, freando no chão), girando um pouco
   this.mortos.push(an); this.n++;
   this.sangue.push({ x: an.x, y: an.y, s: Math.random() * 1000, r: rnd(6.2, 8.2), a: player.a, t: 0, rastro: (10 + 14 * f) * 0.6 }); // metade do sangue de antes
   if (this.sangue.length > 24) this.sangue.splice(0, this.sangue.length - 24);
@@ -381,7 +385,8 @@ Atropelo.desenhaCorpos = function (ctx, view) {
   for (const an of this.mortos) {
     if (an.mortoT > 5.6 || !inView(view, an.x, an.y, 30)) continue;
     const al = an.mortoT < 4 ? 1 : clamp(1 - (an.mortoT - 4) / 1.6, 0, 1);
-    ctx.save(); ctx.globalAlpha = al; ctx.translate(an.x, an.y); ctx.rotate(an.ca);
+    const vk = an.voo && an.mortoT < an.voo.t ? 1 - an.mortoT / an.voo.t : 0, giro = an.voo ? an.voo.a0 + angDiff(an.voo.a0, an.ca) * (1 - vk) : an.ca;
+    ctx.save(); ctx.globalAlpha = al; ctx.translate(an.x, an.y); ctx.rotate(vk ? giro : an.ca); if (vk) ctx.scale(1 + vk * 0.12, 1 + vk * 0.12); // no ar fica um pouquinho maior (mais perto da câmera)
     ctx.fillStyle = an.pants; ctx.fillRect(-6.5, -2.2, 4.6, 1.6); ctx.fillRect(-6.2, 0.6, 4.4, 1.6); // pernas
     ctx.fillStyle = an.col; ctx.beginPath(); ctx.ellipse(-0.6, 0, 3.4, 2.5, 0, 0, TAU); ctx.fill(); // tronco
     ctx.fillStyle = an.skin; ctx.fillRect(-1, -4.1, 3.2, 1.2); ctx.fillRect(0.4, 2.9, 3, 1.2); // braços abertos

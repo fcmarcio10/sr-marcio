@@ -788,6 +788,14 @@ class AICar {
       }
     }
     this.pose();
+    // carroceria como a do jogador: a roda vira aos poucos, o bico abaixa na freada e sobe na arrancada, inclina na curva
+    if (dt > 0) {
+      this.svS = lerp(this.svS || 0, this.steerVis || 0, 1 - Math.exp(-6 * dt));
+      const ac = (this.v - (this.vAnt === undefined ? this.v : this.vAnt)) / dt; this.vAnt = this.v;
+      this.pitch = lerp(this.pitch || 0, clamp(ac / 700, -1, 1), 1 - Math.exp(-6 * dt));
+      const giro = angDiff(this.aAnt === undefined ? this.a : this.aAnt, this.a) / dt; this.aAnt = this.a;
+      this.lean = lerp(this.lean || 0, clamp(-giro * this.v / 1500, -1, 1), 1 - Math.exp(-7 * dt));
+    }
   }
   pose() {
     if (this.state === 'edge') {
@@ -956,6 +964,10 @@ Traffic.update = function (dt, now, cx, cy, view) {
 };
 
 /* ============================ ANIMAIS ============================ */
+// aproxima um valor do alvo com limite de subida e de descida (aceleração e freada suaves)
+function aproxima(v, alvo, sobe, desce) { return v < alvo ? Math.min(alvo, v + sobe) : Math.max(alvo, v - desce); }
+// quanto a pessoa/bicho está andando (0 parado, 1 no passo normal, mais que 1 correndo): mexe pernas, braços e a sombra igual
+function passoK(an) { return an.v > 0.3 ? clamp(an.v / ((an.P && an.P.walk) || 20), 0, 1.15) : 0; }
 const _qp = [];
 function emParede(x, y, r) {
   colGrid.query(x - r, y - r, x + r, y + r, _qp);
@@ -1026,11 +1038,11 @@ class Animal {
   }
   cruzaPasso(dt) {
     const C = this.cruza; if (!C) return false;
-    const vai = (tx, ty, spd) => { const dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy); if (d < 2) return true; this.a += clamp(angDiff(this.a, Math.atan2(dy, dx)), -6 * dt, 6 * dt); const k = Math.min(d, spd * dt) / d; this.x += dx * k; this.y += dy * k; this.v = spd; return false; };
+    const vai = (tx, ty, spd) => { const dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy); if (d < 2) { this.v = Math.max(0, this.v - spd * 6 * dt); return true; } this.a += clamp(angDiff(this.a, Math.atan2(dy, dx)), -6 * dt, 6 * dt); this.v = aproxima(this.v, Math.min(spd, d * 3 + 6), spd * 4 * dt, spd * 6 * dt); const k = Math.min(d, this.v * dt) / d; this.x += dx * k; this.y += dy * k; return false; };
     if (C.fase === 0) { if (vai(C.bx, C.by, this.P.walk)) { C.fase = 1; C.olhaT = 0; } }
     else if (C.fase === 1) {
       // olha para um lado e para o outro; só vai quando não vem carro perto
-      this.v = 0; C.olhaT += dt; C.espera += dt;
+      this.v = Math.max(0, this.v - this.P.walk * 6 * dt); C.olhaT += dt; C.espera += dt;
       const ang = (C.h ? 0 : Math.PI / 2) + (Math.floor(C.olhaT / 0.7) % 2 ? Math.PI : 0); this.a += clamp(angDiff(this.a, ang), -5 * dt, 5 * dt);
       const vem = (o, v) => { const dl = C.h ? Math.abs(o.x - this.x) : Math.abs(o.y - this.y), dc = C.h ? Math.abs(o.y - C.by) : Math.abs(o.x - C.bx); return dc < C.e.hw + 20 && dl < 70 + v * 1.6; };
       let livre = !(player && vem(player, player.speed));
@@ -1045,7 +1057,7 @@ class Animal {
   }
   update(dt) {
     if (this.morto) return; // atropelado: o corpo fica parado (Atropelo cuida)
-    this.phase += dt * (this.state === 'idle' ? 2 : 8 + this.v * 0.1);
+    this.phase += dt * (this.v > 0.5 ? 6 + this.v * 0.12 : 1.5); // o passo acompanha a velocidade (acelerando, as pernas vão mais rápido)
     if (this.type === 'owl') { this.blinkT -= dt; if (this.blinkT < -0.15) this.blinkT = rnd(2, 6); return; }
     if (player && Game.state === 'playing') {
       const d = Math.hypot(player.x - this.x, player.y - this.y);
@@ -1057,7 +1069,11 @@ class Animal {
     this.t -= dt;
     if (this.type === 'person' && this.cruzaPasso(dt)) return;
     if (this.state === 'idle' || this.state === 'graze') {
-      this.v = 0;
+      if (this.v > 0) { // freia aos poucos (o último passo ainda leva para frente)
+        this.v = Math.max(0, this.v - this.P.walk * 5 * dt);
+        const ox = this.x, oy = this.y; this.x = clamp(this.x + Math.cos(this.a) * this.v * dt, this.rect[0], this.rect[2]); this.y = clamp(this.y + Math.sin(this.a) * this.v * dt, this.rect[1], this.rect[3]);
+        if (emParede(this.x, this.y, this.r) && !emParede(ox, oy, this.r)) { this.x = ox; this.y = oy; this.v = 0; }
+      }
       // parado: acompanha com o olhar o carro que passa perto
       if (this.type === 'person' && player && player.speed > 25 && Math.abs(player.x - this.x) < 140 && Math.abs(player.y - this.y) < 140) this.a += clamp(angDiff(this.a, Math.atan2(player.y - this.y, player.x - this.x)), -3 * dt, 3 * dt);
       if (this.t <= 0 && this.type === 'person' && !this.dance && chance(0.14) && this.vaiCruzar()) return;
@@ -1068,13 +1084,15 @@ class Animal {
     } else {
       const spd = this.state === 'flee' ? this.P.flee : this.P.walk;
       const dx = this.tx - this.x, dy = this.ty - this.y, d = Math.hypot(dx, dy);
-      if (d < 4 || this.t <= 0) { this.state = 'idle'; this.t = rnd(1, 4); this.v = 0; }
+      if (d < 4 || this.t <= 0) { this.state = 'idle'; this.t = rnd(1, 4); }
       else {
-        const ta = Math.atan2(dy, dx);
-        this.a += clamp(angDiff(this.a, ta), -4 * dt, 4 * dt);
-        this.v = spd;
+        const ta = Math.atan2(dy, dx), err = angDiff(this.a, ta), fuga = this.state === 'flee';
+        this.a += clamp(err, -(fuga ? 7 : 4) * dt, (fuga ? 7 : 4) * dt);
+        // ganha velocidade aos poucos (no susto, arranca rápido), diminui chegando e anda mais devagar enquanto vira
+        const alvo = Math.min(spd, d * 2.2 + 5) * (0.5 + 0.5 * Math.max(0, Math.cos(err)));
+        this.v = aproxima(this.v, alvo, (fuga ? this.P.flee * 4 : this.P.walk * 3) * dt, this.P.flee * 5 * dt);
         const ox = this.x, oy = this.y;
-        this.x += Math.cos(this.a) * spd * dt; this.y += Math.sin(this.a) * spd * dt;
+        this.x += Math.cos(this.a) * this.v * dt; this.y += Math.sin(this.a) * this.v * dt;
         this.x = clamp(this.x, this.rect[0], this.rect[2]); this.y = clamp(this.y, this.rect[1], this.rect[3]);
         // ninguém atravessa parede de casa, quiosque ou muro (quem já nasceu dentro consegue sair)
         if (emParede(this.x, this.y, this.r) && !emParede(ox, oy, this.r)) { this.x = ox; this.y = oy; this.state = 'idle'; this.t = rnd(0.5, 2); this.v = 0; }
@@ -1136,15 +1154,17 @@ Peladas.update = function (dt, cx, cy) {
   for (const G of this.list) {
     const P = G.P;
     if (!nearView(P.cx, P.cy, 300 + Math.max(P.x1 - P.x0, P.y1 - P.y0) / 2)) continue;
-    G.cd -= dt;
+    G.cd -= dt; if (G.volta > 0) G.volta -= dt;
     if (G.cel > 0) {
       G.cel -= dt;
-      for (const p of G.pl) { p.v = 0; p.dance = p.team === G.lastTeam; p.phase += dt * 2; }
-      if (G.cel <= 0) { G.bx = P.cx; G.by = P.cy; G.bvx = G.bvy = 0; for (const p of G.pl) { p.x = p.hx; p.y = p.hy; p.dance = false; } }
+      for (const p of G.pl) { p.v = Math.max(0, p.v - 120 * dt); p.x += (p.pvx || 0) * dt * (p.v / 60); p.y += (p.pvy || 0) * dt * (p.v / 60); p.dance = p.team === G.lastTeam; p.phase += dt * 2; }
+      if (G.cel <= 0) { G.bx = P.cx; G.by = P.cy; G.bvx = G.bvy = 0; G.bz = 0; G.bvz = 0; G.volta = 2.6; for (const p of G.pl) p.dance = false; } // bola no meio e todo mundo volta andando para o lugar
       continue;
     }
     // bola
     G.bx += G.bvx * dt; G.by += G.bvy * dt;
+    if (G.bz > 0 || G.bvz > 0) { G.bvz -= 420 * dt; G.bz = (G.bz || 0) + G.bvz * dt; if (G.bz < 0) { G.bz = 0; G.bvz = Math.abs(G.bvz) > 40 ? -G.bvz * 0.42 : 0; } } // chute forte sobe e quica
+    G.giro = (G.giro || 0) + Math.hypot(G.bvx, G.bvy) * dt / 2.3; // a bola rola (gira pela distância)
     const fr = Math.exp(-1.1 * dt); G.bvx *= fr; G.bvy *= fr;
     if (G.bx < P.x0) { G.bx = P.x0; G.bvx = Math.abs(G.bvx) * 0.6; } else if (G.bx > P.x1) { G.bx = P.x1; G.bvx = -Math.abs(G.bvx) * 0.6; }
     for (const [gy, side] of [[P.gy0, 0], [P.gy1, 1]]) {
@@ -1156,7 +1176,7 @@ Peladas.update = function (dt, cx, cy) {
     // carro do jogador chuta a bola e espanta a galera
     if (player) {
       const d = Math.hypot(player.x - G.bx, player.y - G.by);
-      if (d < 16 && player.speed > 10) { const a = Math.atan2(G.by - player.y, G.bx - player.x); const s = 120 + player.speed * 0.8; G.bvx = Math.cos(a) * s; G.bvy = Math.sin(a) * s; }
+      if (d < 16 && player.speed > 10 && !(G.bz > 6)) { const a = Math.atan2(G.by - player.y, G.bx - player.x); const s = 120 + player.speed * 0.8; G.bvx = Math.cos(a) * s; G.bvy = Math.sin(a) * s; G.bvz = Math.min(160, s * 0.35); }
     }
     // jogadores: o mais perto de cada time vai na bola, o resto se posiciona
     const near = [null, null], nd = [1e9, 1e9];
@@ -1167,19 +1187,26 @@ Peladas.update = function (dt, cx, cy) {
       else if (p.keeper) { tx = clamp(G.bx, P.cx - 18, P.cx + 18); ty = p.hy; spd = 40; }
       else { tx = p.hx + (G.bx - P.cx) * 0.45; ty = p.hy + (G.by - P.cy) * 0.35; spd = 30; }
       if (player) { const dx = p.x - player.x, dy = p.y - player.y, d = Math.hypot(dx, dy); if (d < 70) { tx = p.x + dx / d * 60; ty = p.y + dy / d * 60; spd = 85; } }
+      if (G.volta > 0) { tx = p.hx; ty = p.hy; spd = 45; } // depois do gol: volta trotando para a posição
       tx = clamp(tx, P.x0, P.x1); ty = clamp(ty, P.y0 - 6, P.y1 + 6);
       const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
-      if (d > 3) { const ta = Math.atan2(dy, dx); p.a += clamp(angDiff(p.a, ta), -7 * dt, 7 * dt); const s = Math.min(spd, d * 3); p.x += Math.cos(ta) * s * dt; p.y += Math.sin(ta) * s * dt; p.v = s; p.phase += dt * (8 + s * 0.1); }
+      if (d > 3 || Math.hypot(p.pvx || 0, p.pvy || 0) > 2) { // corre com inércia: acelera, freia e faz a curva, não muda de direção na hora
+        const s = Math.min(spd, d * 2.6), wx = d > 0.1 ? dx / d * s : 0, wy = d > 0.1 ? dy / d * s : 0, ac = 230 * dt;
+        p.pvx = p.pvx || 0; p.pvy = p.pvy || 0;
+        const ex = wx - p.pvx, ey = wy - p.pvy, el = Math.hypot(ex, ey); if (el > ac) { p.pvx += ex / el * ac; p.pvy += ey / el * ac; } else { p.pvx = wx; p.pvy = wy; }
+        p.x += p.pvx * dt; p.y += p.pvy * dt; p.v = Math.hypot(p.pvx, p.pvy);
+        if (p.v > 4) p.a += clamp(angDiff(p.a, Math.atan2(p.pvy, p.pvx)), -8 * dt, 8 * dt); else p.a += clamp(angDiff(p.a, Math.atan2(G.by - p.y, G.bx - p.x)), -5 * dt, 5 * dt);
+        p.phase += dt * (p.v > 0.5 ? 6 + p.v * 0.12 : 1.5); }
       else { p.v = 0; p.a += clamp(angDiff(p.a, Math.atan2(G.by - p.y, G.bx - p.x)), -5 * dt, 5 * dt); }
-      // chute / passe
-      if (G.cd <= 0 && Math.hypot(p.x - G.bx, p.y - G.by) < 7) {
+      // chute / passe (não chuta a bola no ar nem antes de todo mundo voltar do gol)
+      if (G.cd <= 0 && !(G.volta > 0) && !(G.bz > 4) && Math.hypot(p.x - G.bx, p.y - G.by) < 7) {
         const goalY = p.team ? P.gy0 : P.gy1;
         let tX = P.cx + rnd(-26, 26), tY = goalY, pw = rnd(150, 230);
         const dGoal = Math.abs(goalY - G.by);
         if (dGoal > 160 && chance(0.6)) { const mates = G.pl.filter((m) => m.team === p.team && m !== p && !m.keeper); const m = pick(mates); tX = m.x; tY = m.y + (p.team ? -20 : 20); pw = rnd(110, 160); }
         if (p.keeper) { tX = P.cx + rnd(-80, 80); tY = P.cy; pw = 230; }
         const a = Math.atan2(tY - G.by, tX - G.bx) + rnd(-0.18, 0.18);
-        G.bvx = Math.cos(a) * pw; G.bvy = Math.sin(a) * pw; G.cd = 0.4;
+        G.bvx = Math.cos(a) * pw; G.bvy = Math.sin(a) * pw; G.cd = 0.4; if (pw > 190) G.bvz = (pw - 150) * 1.1; p.chute = 0.25; // chute forte sai do chão
       }
     }
   }
@@ -1188,20 +1215,22 @@ Peladas.draw = function (ctx, view) {
   for (const G of this.list) {
     if (!inView(view, G.P.cx, G.P.cy, 400)) continue;
     for (const p of G.pl) drawAnimal(ctx, p);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(G.bx + 1.2, G.by + 1.5, 2.4, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#f8f8f4'; ctx.beginPath(); ctx.arc(G.bx, G.by, 2.3, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#222'; ctx.fillRect(G.bx - 0.7, G.by - 0.7, 1.4, 1.4);
+    const bz = G.bz || 0, by = G.by - bz * 0.55, rr = 2.3 * (1 + bz * 0.004);
+    ctx.fillStyle = `rgba(0,0,0,${(0.35 * (1 - Math.min(0.6, bz / 80))).toFixed(3)})`; ctx.beginPath(); ctx.arc(G.bx + 1.2 + bz * 0.25, G.by + 1.5 + bz * 0.12, 2.4, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#f8f8f4'; ctx.beginPath(); ctx.arc(G.bx, by, rr, 0, TAU); ctx.fill();
+    const gr = G.giro || 0, ga = Math.atan2(G.bvy || 0.001, G.bvx || 0.001), off = Math.cos(gr) * 1.2; // gomo preto girando no sentido da bola
+    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(G.bx + Math.cos(ga) * off, by + Math.sin(ga) * off, 0.85, 0, TAU); ctx.fill();
   }
 };
 function drawAnimal(ctx, an) {
   const aas = Math.atan2(Math.sin(an.a) * SQ, Math.cos(an.a));
   ctx.save(); ctx.translate(an.x, an.y); ctx.scale(1, 1 / SQ); ctx.rotate(aas);
-  const walk = an.v > 0 ? Math.sin(an.phase) : 0;
+  const pk = passoK(an), walk = pk ? Math.sin(an.phase) * Math.min(1, pk) : 0;
   const graze = an.state === 'graze';
   switch (an.type) {
     case 'person': {
-      const dancing = (an.dance && an.v === 0) || an.danceUntil > Game.time;
-      const sw = an.v > 0 ? Math.sin(an.phase) * 2.4 : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
+      const dancing = (an.dance && an.v < 1) || an.danceUntil > Game.time;
+      const sw = pk > 0.04 ? Math.sin(an.phase) * 2.4 * pk : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
       if (dancing) ctx.rotate(Math.sin(Game.time * 4.5 + an.seed * 9) * 0.35);
       // reação quando fala (PedVoz): susto dá um pulinho; calçada, sacode o braço; buzina e paredão, mão no ouvido
       const re = an.reacao && Game.time - an.reacao.t < 1.8 ? an.reacao : null, rk2 = re ? Game.time - re.t : 0;

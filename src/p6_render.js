@@ -1658,14 +1658,21 @@ function render() {
   drawDynShadows(ctx, view);
   pm('decals');
   // veículos e animais
-  if (World.caidos) for (const o of World.caidos) if (inView(view, o.x, o.y, 90)) drawTall(ctx, o); // derrubados ficam no chão, embaixo dos carros
+  if (World.caidos) for (const o of World.caidos) if (inView(view, o.x, o.y, 90)) { // derrubados ficam no chão, embaixo dos carros
+    const tq = o.caiT !== undefined ? (Game.time - o.caiT) / 0.6 : 9;
+    if (tq < 1.6) { // tombando: cai acelerando (como coisa pesada) e dá um quiquinho no chão
+      const q = Math.min(1, tq), f = Math.sin(q * q * Math.PI / 2) * (tq > 1 ? 1 - 0.05 * Math.sin((tq - 1) * 16) * (1.6 - tq) / 0.6 : 1);
+      ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.down); ctx.scale(Math.max(0.05, f), 1); ctx.rotate(-o.down); ctx.translate(-o.x, -o.y); drawTall(ctx, o); ctx.restore();
+    } else drawTall(ctx, o);
+  }
   for (const an of Animals.list) if (an.type !== 'owl' && !an.morto && !an.oculto && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
   Atropelo.desenhaCorpos(ctx, view);
   if (Settings.quality !== 'baixa') Peladas.draw(ctx, view);
+  Embarque.draw(ctx, view); // passageiro entrando ou saindo do carro
   pm('animals');
   for (const c of Traffic.cars) {
     if (!inView(view, c.x, c.y, 80)) continue;
-    drawVehicle(ctx, c.m, c.color, c.x, c.y, c.a, { steer: c.steerVis, roll: c.roll, brake: c.braking || c.v < 3, box: c.box, zones: c.zones });
+    drawVehicle(ctx, c.m, c.color, c.x, c.y, c.a, { steer: c.svS !== undefined ? c.svS : c.steerVis, roll: c.roll, pitch: c.pitch, lean: c.lean, brake: c.braking || c.v < 3, box: c.box, zones: c.zones });
   }
   Events.draw(ctx, view);
   for (const u of Police.units) if (inView(view, u.x, u.y, 80)) drawVehicle(ctx, VMODELS.police, '#f2f2ee', u.x, u.y, u.a, { roll: 0, brake: u.v < 30 });
@@ -1677,7 +1684,7 @@ function render() {
   if (player && Game.state !== 'menu') {
     const D = Act.delivery;
     if (D && D.type === 'guincho' && D.stage === 'pickup' && inView(view, D.pick.x, D.pick.y, 60)) drawVehicle(ctx, VMODELS.quadrado, D.color, D.pick.x, D.pick.y, 0.4, { parked: true, zones: { f: 0.9, r: 0, l: 0.3, rt: 0 } });
-    if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 40)) drawAnimal(ctx, { type: 'person', x: Act.ride.pick.x, y: Act.ride.pick.y, a: Math.PI / 2, v: 0, phase: 0, seed: Act.ride.seed, col: '#ffd24a', skin: '#c68642', hair: '#1a1410', pants: '#2b3a55', dance: true, state: 'idle' });
+    if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 40)) drawAnimal(ctx, Embarque.esperando(Act.ride)); // vira para o carro que chega
     if (Act.race && Act.race.racha && Act.race.count <= 0) {
       const g = rachaGhostPos(Act.race);
       ctx.globalAlpha = 0.85; drawVehicle(ctx, VMODELS.muscle, '#e63946', g[0] - Math.sin(g[2]) * 30, g[1] + Math.cos(g[2]) * 30, g[2], { roll: Game.time * 40 }); ctx.globalAlpha = 1;

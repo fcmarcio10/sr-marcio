@@ -5147,6 +5147,14 @@ class AICar {
       }
     }
     this.pose();
+    // carroceria como a do jogador: a roda vira aos poucos, o bico abaixa na freada e sobe na arrancada, inclina na curva
+    if (dt > 0) {
+      this.svS = lerp(this.svS || 0, this.steerVis || 0, 1 - Math.exp(-6 * dt));
+      const ac = (this.v - (this.vAnt === undefined ? this.v : this.vAnt)) / dt; this.vAnt = this.v;
+      this.pitch = lerp(this.pitch || 0, clamp(ac / 700, -1, 1), 1 - Math.exp(-6 * dt));
+      const giro = angDiff(this.aAnt === undefined ? this.a : this.aAnt, this.a) / dt; this.aAnt = this.a;
+      this.lean = lerp(this.lean || 0, clamp(-giro * this.v / 1500, -1, 1), 1 - Math.exp(-7 * dt));
+    }
   }
   pose() {
     if (this.state === 'edge') {
@@ -5315,6 +5323,10 @@ Traffic.update = function (dt, now, cx, cy, view) {
 };
 
 /* ============================ ANIMAIS ============================ */
+// aproxima um valor do alvo com limite de subida e de descida (aceleração e freada suaves)
+function aproxima(v, alvo, sobe, desce) { return v < alvo ? Math.min(alvo, v + sobe) : Math.max(alvo, v - desce); }
+// quanto a pessoa/bicho está andando (0 parado, 1 no passo normal, mais que 1 correndo): mexe pernas, braços e a sombra igual
+function passoK(an) { return an.v > 0.3 ? clamp(an.v / ((an.P && an.P.walk) || 20), 0, 1.15) : 0; }
 const _qp = [];
 function emParede(x, y, r) {
   colGrid.query(x - r, y - r, x + r, y + r, _qp);
@@ -5385,11 +5397,11 @@ class Animal {
   }
   cruzaPasso(dt) {
     const C = this.cruza; if (!C) return false;
-    const vai = (tx, ty, spd) => { const dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy); if (d < 2) return true; this.a += clamp(angDiff(this.a, Math.atan2(dy, dx)), -6 * dt, 6 * dt); const k = Math.min(d, spd * dt) / d; this.x += dx * k; this.y += dy * k; this.v = spd; return false; };
+    const vai = (tx, ty, spd) => { const dx = tx - this.x, dy = ty - this.y, d = Math.hypot(dx, dy); if (d < 2) { this.v = Math.max(0, this.v - spd * 6 * dt); return true; } this.a += clamp(angDiff(this.a, Math.atan2(dy, dx)), -6 * dt, 6 * dt); this.v = aproxima(this.v, Math.min(spd, d * 3 + 6), spd * 4 * dt, spd * 6 * dt); const k = Math.min(d, this.v * dt) / d; this.x += dx * k; this.y += dy * k; return false; };
     if (C.fase === 0) { if (vai(C.bx, C.by, this.P.walk)) { C.fase = 1; C.olhaT = 0; } }
     else if (C.fase === 1) {
       // olha para um lado e para o outro; só vai quando não vem carro perto
-      this.v = 0; C.olhaT += dt; C.espera += dt;
+      this.v = Math.max(0, this.v - this.P.walk * 6 * dt); C.olhaT += dt; C.espera += dt;
       const ang = (C.h ? 0 : Math.PI / 2) + (Math.floor(C.olhaT / 0.7) % 2 ? Math.PI : 0); this.a += clamp(angDiff(this.a, ang), -5 * dt, 5 * dt);
       const vem = (o, v) => { const dl = C.h ? Math.abs(o.x - this.x) : Math.abs(o.y - this.y), dc = C.h ? Math.abs(o.y - C.by) : Math.abs(o.x - C.bx); return dc < C.e.hw + 20 && dl < 70 + v * 1.6; };
       let livre = !(player && vem(player, player.speed));
@@ -5404,7 +5416,7 @@ class Animal {
   }
   update(dt) {
     if (this.morto) return; // atropelado: o corpo fica parado (Atropelo cuida)
-    this.phase += dt * (this.state === 'idle' ? 2 : 8 + this.v * 0.1);
+    this.phase += dt * (this.v > 0.5 ? 6 + this.v * 0.12 : 1.5); // o passo acompanha a velocidade (acelerando, as pernas vão mais rápido)
     if (this.type === 'owl') { this.blinkT -= dt; if (this.blinkT < -0.15) this.blinkT = rnd(2, 6); return; }
     if (player && Game.state === 'playing') {
       const d = Math.hypot(player.x - this.x, player.y - this.y);
@@ -5416,7 +5428,11 @@ class Animal {
     this.t -= dt;
     if (this.type === 'person' && this.cruzaPasso(dt)) return;
     if (this.state === 'idle' || this.state === 'graze') {
-      this.v = 0;
+      if (this.v > 0) { // freia aos poucos (o último passo ainda leva para frente)
+        this.v = Math.max(0, this.v - this.P.walk * 5 * dt);
+        const ox = this.x, oy = this.y; this.x = clamp(this.x + Math.cos(this.a) * this.v * dt, this.rect[0], this.rect[2]); this.y = clamp(this.y + Math.sin(this.a) * this.v * dt, this.rect[1], this.rect[3]);
+        if (emParede(this.x, this.y, this.r) && !emParede(ox, oy, this.r)) { this.x = ox; this.y = oy; this.v = 0; }
+      }
       // parado: acompanha com o olhar o carro que passa perto
       if (this.type === 'person' && player && player.speed > 25 && Math.abs(player.x - this.x) < 140 && Math.abs(player.y - this.y) < 140) this.a += clamp(angDiff(this.a, Math.atan2(player.y - this.y, player.x - this.x)), -3 * dt, 3 * dt);
       if (this.t <= 0 && this.type === 'person' && !this.dance && chance(0.14) && this.vaiCruzar()) return;
@@ -5427,13 +5443,15 @@ class Animal {
     } else {
       const spd = this.state === 'flee' ? this.P.flee : this.P.walk;
       const dx = this.tx - this.x, dy = this.ty - this.y, d = Math.hypot(dx, dy);
-      if (d < 4 || this.t <= 0) { this.state = 'idle'; this.t = rnd(1, 4); this.v = 0; }
+      if (d < 4 || this.t <= 0) { this.state = 'idle'; this.t = rnd(1, 4); }
       else {
-        const ta = Math.atan2(dy, dx);
-        this.a += clamp(angDiff(this.a, ta), -4 * dt, 4 * dt);
-        this.v = spd;
+        const ta = Math.atan2(dy, dx), err = angDiff(this.a, ta), fuga = this.state === 'flee';
+        this.a += clamp(err, -(fuga ? 7 : 4) * dt, (fuga ? 7 : 4) * dt);
+        // ganha velocidade aos poucos (no susto, arranca rápido), diminui chegando e anda mais devagar enquanto vira
+        const alvo = Math.min(spd, d * 2.2 + 5) * (0.5 + 0.5 * Math.max(0, Math.cos(err)));
+        this.v = aproxima(this.v, alvo, (fuga ? this.P.flee * 4 : this.P.walk * 3) * dt, this.P.flee * 5 * dt);
         const ox = this.x, oy = this.y;
-        this.x += Math.cos(this.a) * spd * dt; this.y += Math.sin(this.a) * spd * dt;
+        this.x += Math.cos(this.a) * this.v * dt; this.y += Math.sin(this.a) * this.v * dt;
         this.x = clamp(this.x, this.rect[0], this.rect[2]); this.y = clamp(this.y, this.rect[1], this.rect[3]);
         // ninguém atravessa parede de casa, quiosque ou muro (quem já nasceu dentro consegue sair)
         if (emParede(this.x, this.y, this.r) && !emParede(ox, oy, this.r)) { this.x = ox; this.y = oy; this.state = 'idle'; this.t = rnd(0.5, 2); this.v = 0; }
@@ -5495,15 +5513,17 @@ Peladas.update = function (dt, cx, cy) {
   for (const G of this.list) {
     const P = G.P;
     if (!nearView(P.cx, P.cy, 300 + Math.max(P.x1 - P.x0, P.y1 - P.y0) / 2)) continue;
-    G.cd -= dt;
+    G.cd -= dt; if (G.volta > 0) G.volta -= dt;
     if (G.cel > 0) {
       G.cel -= dt;
-      for (const p of G.pl) { p.v = 0; p.dance = p.team === G.lastTeam; p.phase += dt * 2; }
-      if (G.cel <= 0) { G.bx = P.cx; G.by = P.cy; G.bvx = G.bvy = 0; for (const p of G.pl) { p.x = p.hx; p.y = p.hy; p.dance = false; } }
+      for (const p of G.pl) { p.v = Math.max(0, p.v - 120 * dt); p.x += (p.pvx || 0) * dt * (p.v / 60); p.y += (p.pvy || 0) * dt * (p.v / 60); p.dance = p.team === G.lastTeam; p.phase += dt * 2; }
+      if (G.cel <= 0) { G.bx = P.cx; G.by = P.cy; G.bvx = G.bvy = 0; G.bz = 0; G.bvz = 0; G.volta = 2.6; for (const p of G.pl) p.dance = false; } // bola no meio e todo mundo volta andando para o lugar
       continue;
     }
     // bola
     G.bx += G.bvx * dt; G.by += G.bvy * dt;
+    if (G.bz > 0 || G.bvz > 0) { G.bvz -= 420 * dt; G.bz = (G.bz || 0) + G.bvz * dt; if (G.bz < 0) { G.bz = 0; G.bvz = Math.abs(G.bvz) > 40 ? -G.bvz * 0.42 : 0; } } // chute forte sobe e quica
+    G.giro = (G.giro || 0) + Math.hypot(G.bvx, G.bvy) * dt / 2.3; // a bola rola (gira pela distância)
     const fr = Math.exp(-1.1 * dt); G.bvx *= fr; G.bvy *= fr;
     if (G.bx < P.x0) { G.bx = P.x0; G.bvx = Math.abs(G.bvx) * 0.6; } else if (G.bx > P.x1) { G.bx = P.x1; G.bvx = -Math.abs(G.bvx) * 0.6; }
     for (const [gy, side] of [[P.gy0, 0], [P.gy1, 1]]) {
@@ -5515,7 +5535,7 @@ Peladas.update = function (dt, cx, cy) {
     // carro do jogador chuta a bola e espanta a galera
     if (player) {
       const d = Math.hypot(player.x - G.bx, player.y - G.by);
-      if (d < 16 && player.speed > 10) { const a = Math.atan2(G.by - player.y, G.bx - player.x); const s = 120 + player.speed * 0.8; G.bvx = Math.cos(a) * s; G.bvy = Math.sin(a) * s; }
+      if (d < 16 && player.speed > 10 && !(G.bz > 6)) { const a = Math.atan2(G.by - player.y, G.bx - player.x); const s = 120 + player.speed * 0.8; G.bvx = Math.cos(a) * s; G.bvy = Math.sin(a) * s; G.bvz = Math.min(160, s * 0.35); }
     }
     // jogadores: o mais perto de cada time vai na bola, o resto se posiciona
     const near = [null, null], nd = [1e9, 1e9];
@@ -5526,19 +5546,26 @@ Peladas.update = function (dt, cx, cy) {
       else if (p.keeper) { tx = clamp(G.bx, P.cx - 18, P.cx + 18); ty = p.hy; spd = 40; }
       else { tx = p.hx + (G.bx - P.cx) * 0.45; ty = p.hy + (G.by - P.cy) * 0.35; spd = 30; }
       if (player) { const dx = p.x - player.x, dy = p.y - player.y, d = Math.hypot(dx, dy); if (d < 70) { tx = p.x + dx / d * 60; ty = p.y + dy / d * 60; spd = 85; } }
+      if (G.volta > 0) { tx = p.hx; ty = p.hy; spd = 45; } // depois do gol: volta trotando para a posição
       tx = clamp(tx, P.x0, P.x1); ty = clamp(ty, P.y0 - 6, P.y1 + 6);
       const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
-      if (d > 3) { const ta = Math.atan2(dy, dx); p.a += clamp(angDiff(p.a, ta), -7 * dt, 7 * dt); const s = Math.min(spd, d * 3); p.x += Math.cos(ta) * s * dt; p.y += Math.sin(ta) * s * dt; p.v = s; p.phase += dt * (8 + s * 0.1); }
+      if (d > 3 || Math.hypot(p.pvx || 0, p.pvy || 0) > 2) { // corre com inércia: acelera, freia e faz a curva, não muda de direção na hora
+        const s = Math.min(spd, d * 2.6), wx = d > 0.1 ? dx / d * s : 0, wy = d > 0.1 ? dy / d * s : 0, ac = 230 * dt;
+        p.pvx = p.pvx || 0; p.pvy = p.pvy || 0;
+        const ex = wx - p.pvx, ey = wy - p.pvy, el = Math.hypot(ex, ey); if (el > ac) { p.pvx += ex / el * ac; p.pvy += ey / el * ac; } else { p.pvx = wx; p.pvy = wy; }
+        p.x += p.pvx * dt; p.y += p.pvy * dt; p.v = Math.hypot(p.pvx, p.pvy);
+        if (p.v > 4) p.a += clamp(angDiff(p.a, Math.atan2(p.pvy, p.pvx)), -8 * dt, 8 * dt); else p.a += clamp(angDiff(p.a, Math.atan2(G.by - p.y, G.bx - p.x)), -5 * dt, 5 * dt);
+        p.phase += dt * (p.v > 0.5 ? 6 + p.v * 0.12 : 1.5); }
       else { p.v = 0; p.a += clamp(angDiff(p.a, Math.atan2(G.by - p.y, G.bx - p.x)), -5 * dt, 5 * dt); }
-      // chute / passe
-      if (G.cd <= 0 && Math.hypot(p.x - G.bx, p.y - G.by) < 7) {
+      // chute / passe (não chuta a bola no ar nem antes de todo mundo voltar do gol)
+      if (G.cd <= 0 && !(G.volta > 0) && !(G.bz > 4) && Math.hypot(p.x - G.bx, p.y - G.by) < 7) {
         const goalY = p.team ? P.gy0 : P.gy1;
         let tX = P.cx + rnd(-26, 26), tY = goalY, pw = rnd(150, 230);
         const dGoal = Math.abs(goalY - G.by);
         if (dGoal > 160 && chance(0.6)) { const mates = G.pl.filter((m) => m.team === p.team && m !== p && !m.keeper); const m = pick(mates); tX = m.x; tY = m.y + (p.team ? -20 : 20); pw = rnd(110, 160); }
         if (p.keeper) { tX = P.cx + rnd(-80, 80); tY = P.cy; pw = 230; }
         const a = Math.atan2(tY - G.by, tX - G.bx) + rnd(-0.18, 0.18);
-        G.bvx = Math.cos(a) * pw; G.bvy = Math.sin(a) * pw; G.cd = 0.4;
+        G.bvx = Math.cos(a) * pw; G.bvy = Math.sin(a) * pw; G.cd = 0.4; if (pw > 190) G.bvz = (pw - 150) * 1.1; p.chute = 0.25; // chute forte sai do chão
       }
     }
   }
@@ -5547,20 +5574,22 @@ Peladas.draw = function (ctx, view) {
   for (const G of this.list) {
     if (!inView(view, G.P.cx, G.P.cy, 400)) continue;
     for (const p of G.pl) drawAnimal(ctx, p);
-    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(G.bx + 1.2, G.by + 1.5, 2.4, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#f8f8f4'; ctx.beginPath(); ctx.arc(G.bx, G.by, 2.3, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#222'; ctx.fillRect(G.bx - 0.7, G.by - 0.7, 1.4, 1.4);
+    const bz = G.bz || 0, by = G.by - bz * 0.55, rr = 2.3 * (1 + bz * 0.004);
+    ctx.fillStyle = `rgba(0,0,0,${(0.35 * (1 - Math.min(0.6, bz / 80))).toFixed(3)})`; ctx.beginPath(); ctx.arc(G.bx + 1.2 + bz * 0.25, G.by + 1.5 + bz * 0.12, 2.4, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#f8f8f4'; ctx.beginPath(); ctx.arc(G.bx, by, rr, 0, TAU); ctx.fill();
+    const gr = G.giro || 0, ga = Math.atan2(G.bvy || 0.001, G.bvx || 0.001), off = Math.cos(gr) * 1.2; // gomo preto girando no sentido da bola
+    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(G.bx + Math.cos(ga) * off, by + Math.sin(ga) * off, 0.85, 0, TAU); ctx.fill();
   }
 };
 function drawAnimal(ctx, an) {
   const aas = Math.atan2(Math.sin(an.a) * SQ, Math.cos(an.a));
   ctx.save(); ctx.translate(an.x, an.y); ctx.scale(1, 1 / SQ); ctx.rotate(aas);
-  const walk = an.v > 0 ? Math.sin(an.phase) : 0;
+  const pk = passoK(an), walk = pk ? Math.sin(an.phase) * Math.min(1, pk) : 0;
   const graze = an.state === 'graze';
   switch (an.type) {
     case 'person': {
-      const dancing = (an.dance && an.v === 0) || an.danceUntil > Game.time;
-      const sw = an.v > 0 ? Math.sin(an.phase) * 2.4 : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
+      const dancing = (an.dance && an.v < 1) || an.danceUntil > Game.time;
+      const sw = pk > 0.04 ? Math.sin(an.phase) * 2.4 * pk : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
       if (dancing) ctx.rotate(Math.sin(Game.time * 4.5 + an.seed * 9) * 0.35);
       // reação quando fala (PedVoz): susto dá um pulinho; calçada, sacode o braço; buzina e paredão, mão no ouvido
       const re = an.reacao && Game.time - an.reacao.t < 1.8 ? an.reacao : null, rk2 = re ? Game.time - re.t : 0;
@@ -5943,7 +5972,7 @@ function breakObject(col, vx, vy, sp, hx, hy) {
     return;
   }
   if (b.kind === 'tree') {
-    o.down = ang; (World.caidos || (World.caidos = [])).push(o); AudioSys.breakSnd('wood', 0.8);
+    o.down = ang; o.caiT = Game.time; (World.caidos || (World.caidos = [])).push(o); AudioSys.breakSnd('wood', 0.8);
     refreshGroundArea(o.x - 190, o.y - 190, o.x + 190, o.y + 190); // tira a sombra que a luz dos postes fazia dela
     for (let i = 0; i < 14; i++) Particles.emit('leaf', o.x + rnd(-14, 14), o.y + rnd(-14, 14), rnd(-60, 60) + Math.cos(ang) * 60, rnd(-60, 60) + Math.sin(ang) * 60, rnd(0.8, 1.6), 2);
     Cam.shake = Math.max(Cam.shake, 5);
@@ -5960,7 +5989,7 @@ function breakObject(col, vx, vy, sp, hx, hy) {
     for (let i = 0; i < 6 + k * 8; i++) Debris.list.push({ x: o.x + rnd(-6, 6) + Math.cos(ang) * rnd(4, 26), y: o.y + rnd(-6, 6) + Math.sin(ang) * rnd(4, 26), a: rnd(TAU), s: rnd(1.4, 3), type: 'paint', c: pick(cols), t: Game.time });
     if (o.type === 'hydrant') { World.geysers.push({ x: o.x, y: o.y, until: Game.time + 45 }); toast('Hidrante estourado!', 'Molhou a rua inteira.', 'bad'); }
   } else if (b.kind === 'lamp') {
-    o.broken = true; o.down = ang; (World.caidos || (World.caidos = [])).push(o);
+    o.broken = true; o.down = ang; o.caiT = Game.time; (World.caidos || (World.caidos = [])).push(o);
     if (o.light) o.light.dieAt = Game.time + 1.1;
     refreshGroundArea(o.x - 190, o.y - 190, o.x + 190, o.y + 190); // a sombra de luz deste poste some do chão
     World.sparkers.push({ x: o.hx, y: o.hy, until: Game.time + 1.5 });
@@ -5968,7 +5997,7 @@ function breakObject(col, vx, vy, sp, hx, hy) {
     if (chance(0.5)) toast('Derrubou o poste!', 'A rua ficou no escuro. A prefeitura agradece…', 'bad');
     Debris.spill(o.hx, o.hy, 0.4, '#d8d8d2', 'f');
   } else {
-    o.down = ang; (World.caidos || (World.caidos = [])).push(o);
+    o.down = ang; o.caiT = Game.time; (World.caidos || (World.caidos = [])).push(o);
     AudioSys.breakSnd('metal', k);
     if (o.kind === 'tlight') toast('Semáforo no chão!', 'Agora é cada um por si nesse cruzamento.', 'bad');
   }
@@ -6614,6 +6643,7 @@ function updateJobs(dt) {
     const R = Act.ride;
     R.t += dt;
     if (R.stage === 'pickup' && Math.hypot(R.pick.x - p.x, R.pick.y - p.y) < 82 && sp < 35) {
+      Embarque.entra(Embarque.esperando(R), R.pick.x, R.pick.y); // anda até a porta e entra (não some do nada)
       R.stage = 'drive'; R.t = 0; Act.gpsT = 0; AudioSys.thud();
       toast(R.name + ' entrou', rideOnBoard(R), 'info');
     } else if (R.stage === 'drive' && Math.hypot(R.dest.x - p.x, R.dest.y - p.y) < 70 && sp < 35) {
@@ -7668,7 +7698,7 @@ function evNoivo(E, dt, prompt, busy, busyMsg) {
       if (busy) return busyMsg();
       const len = routeLen(E.pick, E.dest);
       E.stage = 'drive'; E.tmax = len / 215 + 22; E.left = E.tmax; E.target = E.dest; E.len = len; Act.gpsT = 0;
-      E.npc = null; AudioSys.thud();
+      Embarque.entra(E.npc, E.npc.x, E.npc.y); E.npc = null; AudioSys.thud();
       evSay(E.nome, '"Me leva na ' + E.dest.name + '! A ' + E.noiva + ' já tá no altar, rápido!"');
     });
   } else if (E.stage === 'drive') {
@@ -7789,7 +7819,7 @@ function evCarona(E, dt, prompt, busy, busyMsg) {
       if (busy) return busyMsg();
       E.len = routeLen(E.pick, E.dest);
       E.stage = 'drive'; E.target = E.dest; E.fare = Math.round((45 + E.len * 0.055) / 5) * 5; Act.gpsT = 0;
-      E.npc = null; AudioSys.thud();
+      Embarque.entra(E.npc, E.npc.x, E.npc.y); E.npc = null; AudioSys.thud();
       evSay(E.C.name, '"Opa, valeu! Tô indo pra ' + E.dest.name + '."');
     });
   } else if (E.stage === 'drive') {
@@ -7865,6 +7895,14 @@ function evDrawFlags(ctx, a, b, seed) {
     ctx.fillStyle = COL[(i + seed) % COL.length]; ctx.beginPath(); ctx.moveTo(q[0] - 3.5, q[1]); ctx.lineTo(q[0] + 3.5, q[1]); ctx.lineTo(q[0] + sw, q[1] + 7); ctx.closePath(); ctx.fill();
   }
 }
+// gente do evento que está desenhada agora (para a sombra acompanhar)
+Events.pessoas = function () {
+  const E = this.cur, L = []; if (!E) return L;
+  if (E.npc && !(E.leave && E.endT > 1.2)) L.push(E.npc);
+  for (const o of [E.ofc, E.ofc2, E.org]) if (o) L.push(o);
+  if (E.dancers) for (const d of E.dancers) L.push(d);
+  return L;
+};
 Events.draw = function (ctx, view) {
   const E = this.cur; if (!E || !inView(view, E.x, E.y, 420)) return;
   if (E.type === 'quebrado') {
@@ -10012,14 +10050,21 @@ function render() {
   drawDynShadows(ctx, view);
   pm('decals');
   // veículos e animais
-  if (World.caidos) for (const o of World.caidos) if (inView(view, o.x, o.y, 90)) drawTall(ctx, o); // derrubados ficam no chão, embaixo dos carros
+  if (World.caidos) for (const o of World.caidos) if (inView(view, o.x, o.y, 90)) { // derrubados ficam no chão, embaixo dos carros
+    const tq = o.caiT !== undefined ? (Game.time - o.caiT) / 0.6 : 9;
+    if (tq < 1.6) { // tombando: cai acelerando (como coisa pesada) e dá um quiquinho no chão
+      const q = Math.min(1, tq), f = Math.sin(q * q * Math.PI / 2) * (tq > 1 ? 1 - 0.05 * Math.sin((tq - 1) * 16) * (1.6 - tq) / 0.6 : 1);
+      ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.down); ctx.scale(Math.max(0.05, f), 1); ctx.rotate(-o.down); ctx.translate(-o.x, -o.y); drawTall(ctx, o); ctx.restore();
+    } else drawTall(ctx, o);
+  }
   for (const an of Animals.list) if (an.type !== 'owl' && !an.morto && !an.oculto && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
   Atropelo.desenhaCorpos(ctx, view);
   if (Settings.quality !== 'baixa') Peladas.draw(ctx, view);
+  Embarque.draw(ctx, view); // passageiro entrando ou saindo do carro
   pm('animals');
   for (const c of Traffic.cars) {
     if (!inView(view, c.x, c.y, 80)) continue;
-    drawVehicle(ctx, c.m, c.color, c.x, c.y, c.a, { steer: c.steerVis, roll: c.roll, brake: c.braking || c.v < 3, box: c.box, zones: c.zones });
+    drawVehicle(ctx, c.m, c.color, c.x, c.y, c.a, { steer: c.svS !== undefined ? c.svS : c.steerVis, roll: c.roll, pitch: c.pitch, lean: c.lean, brake: c.braking || c.v < 3, box: c.box, zones: c.zones });
   }
   Events.draw(ctx, view);
   for (const u of Police.units) if (inView(view, u.x, u.y, 80)) drawVehicle(ctx, VMODELS.police, '#f2f2ee', u.x, u.y, u.a, { roll: 0, brake: u.v < 30 });
@@ -10031,7 +10076,7 @@ function render() {
   if (player && Game.state !== 'menu') {
     const D = Act.delivery;
     if (D && D.type === 'guincho' && D.stage === 'pickup' && inView(view, D.pick.x, D.pick.y, 60)) drawVehicle(ctx, VMODELS.quadrado, D.color, D.pick.x, D.pick.y, 0.4, { parked: true, zones: { f: 0.9, r: 0, l: 0.3, rt: 0 } });
-    if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 40)) drawAnimal(ctx, { type: 'person', x: Act.ride.pick.x, y: Act.ride.pick.y, a: Math.PI / 2, v: 0, phase: 0, seed: Act.ride.seed, col: '#ffd24a', skin: '#c68642', hair: '#1a1410', pants: '#2b3a55', dance: true, state: 'idle' });
+    if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 40)) drawAnimal(ctx, Embarque.esperando(Act.ride)); // vira para o carro que chega
     if (Act.race && Act.race.racha && Act.race.count <= 0) {
       const g = rachaGhostPos(Act.race);
       ctx.globalAlpha = 0.85; drawVehicle(ctx, VMODELS.muscle, '#e63946', g[0] - Math.sin(g[2]) * 30, g[1] + Math.cos(g[2]) * 30, g[2], { roll: Game.time * 40 }); ctx.globalAlpha = 1;
@@ -10677,6 +10722,7 @@ function rideHit(R) {
   else vozBatida(R.name); // sem aviso escrito: o passageiro fala
 }
 function rideFinish(R) {
+  if (R.pick && player) Embarque.sai(Embarque.esperando(R), R.dest.x, R.dest.y); // sai pela porta e anda para a calçada
   const late = R.tmax ? R.t > R.tmax : R.t > R.len / 120 + 40;
   let s = 5;
   if (R.type === 'aero') s -= R.hits + (late ? 3 : 0);
@@ -10872,7 +10918,8 @@ Atropelo.update = function (dt) {
   }
   for (let i = this.mortos.length - 1; i >= 0; i--) {
     const an = this.mortos[i]; an.mortoT += dt;
-    if (an.mortoT <= 6 && an.morreuX !== undefined) { an.x = an.morreuX; an.y = an.morreuY; an.v = 0; } // fica estático onde caiu
+    if (an.voo && an.mortoT < an.voo.t) { const k = 1 - Math.pow(1 - an.mortoT / an.voo.t, 2.4); an.x = lerp(an.voo.x0, an.morreuX, k); an.y = lerp(an.voo.y0, an.morreuY, k); an.v = 0; }
+    else if (an.mortoT <= 6 && an.morreuX !== undefined) { an.x = an.morreuX; an.y = an.morreuY; an.v = 0; } // fica estático onde caiu
     // corpo sumiu: a pessoa volta em outro ponto da calçada dela, longe da câmera (a cidade não fica vazia)
     if (an.mortoT > 6 && Math.hypot(an.x - Cam.x, an.y - Cam.y) > 1500) {
       an.morto = false; an.morreuX = undefined; an.cruza = null; an.state = 'idle'; an.t = rnd(1, 4); an.v = 0;
@@ -10909,9 +10956,11 @@ Atropelo.atropela = function (an, sp) {
   an.morto = true; an.mortoT = 0; an.v = 0; an.danceUntil = 0;
   const f = clamp(sp / 400, 0.3, 1);
   // é jogado um pouco para frente, mas nunca para dentro de casa ou muro (para antes)
+  const x0 = an.x, y0 = an.y, a0 = an.a;
   for (let k = 8 + 16 * f; k > 0; k -= 4) { const nx = an.x + Math.cos(player.a) * k, ny = an.y + Math.sin(player.a) * k; if (!areaBlocked(nx - 4, ny - 4, nx + 4, ny + 4)) { an.x = nx; an.y = ny; break; } }
   an.morreuX = an.x; an.morreuY = an.y;
   an.ca = player.a + rnd(-1.2, 1.2); // de que jeito ficou caído
+  an.voo = { x0, y0, a0, t: 0.32 + 0.12 * f }; an.x = x0; an.y = y0; // é jogado até lá (rápido no começo, freando no chão), girando um pouco
   this.mortos.push(an); this.n++;
   this.sangue.push({ x: an.x, y: an.y, s: Math.random() * 1000, r: rnd(6.2, 8.2), a: player.a, t: 0, rastro: (10 + 14 * f) * 0.6 }); // metade do sangue de antes
   if (this.sangue.length > 24) this.sangue.splice(0, this.sangue.length - 24);
@@ -10939,7 +10988,8 @@ Atropelo.desenhaCorpos = function (ctx, view) {
   for (const an of this.mortos) {
     if (an.mortoT > 5.6 || !inView(view, an.x, an.y, 30)) continue;
     const al = an.mortoT < 4 ? 1 : clamp(1 - (an.mortoT - 4) / 1.6, 0, 1);
-    ctx.save(); ctx.globalAlpha = al; ctx.translate(an.x, an.y); ctx.rotate(an.ca);
+    const vk = an.voo && an.mortoT < an.voo.t ? 1 - an.mortoT / an.voo.t : 0, giro = an.voo ? an.voo.a0 + angDiff(an.voo.a0, an.ca) * (1 - vk) : an.ca;
+    ctx.save(); ctx.globalAlpha = al; ctx.translate(an.x, an.y); ctx.rotate(vk ? giro : an.ca); if (vk) ctx.scale(1 + vk * 0.12, 1 + vk * 0.12); // no ar fica um pouquinho maior (mais perto da câmera)
     ctx.fillStyle = an.pants; ctx.fillRect(-6.5, -2.2, 4.6, 1.6); ctx.fillRect(-6.2, 0.6, 4.4, 1.6); // pernas
     ctx.fillStyle = an.col; ctx.beginPath(); ctx.ellipse(-0.6, 0, 3.4, 2.5, 0, 0, TAU); ctx.fill(); // tronco
     ctx.fillStyle = an.skin; ctx.fillRect(-1, -4.1, 3.2, 1.2); ctx.fillRect(0.4, 2.9, 3, 1.2); // braços abertos
@@ -14632,7 +14682,8 @@ function sbRet(cx, cy, L, W, a) { const c = Math.cos(a), s = Math.sin(a); return
 // pessoa: pernas (andando), quadril, tronco, braços balançando e cabeça, esticada na direção da sombra
 function sbPessoa(P, an, sx, sy) {
   const x = an.x, y = an.y, L = Math.hypot(sx, sy) || 0.001, ux = sx / L, uy = sy / L, nx = -uy, ny = ux;
-  const hx = Math.cos(an.a), hy = Math.sin(an.a), sw = an.v > 0 ? Math.sin(an.phase) : 0;
+  const hx = Math.cos(an.a), hy = Math.sin(an.a), pk = passoK(an), danca = !pk && ((an.dance && an.v < 1) || an.danceUntil > Game.time);
+  const sw = pk ? Math.sin(an.phase) * Math.min(1.15, pk) : danca ? Math.sin(Game.time * 9 + (an.seed || 0) * 20) * 1.1 : 0; // mesmo passo (e mesma dança) do desenho
   const at = (t, w) => [x + sx * t + nx * w, y + sy * t + ny * w];
   // pés (um para frente e outro para trás quando anda) e pernas até o quadril
   const q = at(0.46, 0);
@@ -14651,7 +14702,7 @@ const SB_BICHO = { cow: [11, 13, 7.5, 6], horse: [13, 13, 5.5, 6.5], dog: [6, 6,
 function sbBicho(P, an, sx, sy, Hk) {
   const D = SB_BICHO[an.type]; if (!D) return;
   const [H, L, W, cab] = D, x = an.x, y = an.y, hx = Math.cos(an.a), hy = Math.sin(an.a), px = -hy, py = hx;
-  const bx = x + sx * H * Hk * 0.62, by = y + sy * H * Hk * 0.62, sw = an.v > 0 ? Math.sin(an.phase) * 0.35 : 0;
+  const bx = x + sx * H * Hk * 0.62, by = y + sy * H * Hk * 0.62, sw = passoK(an) ? Math.sin(an.phase) * 0.35 * Math.min(1, passoK(an)) : 0;
   sbElip(P, bx, by, L * 0.55, W * 0.55, an.a); // corpo
   if (an.type !== 'chicken') for (const [u, v] of [[0.38, 1], [0.38, -1], [-0.38, 1], [-0.38, -1]]) {
     const fx = x + hx * L * (u + sw * Math.sign(u * v)) * 0.55 + px * v * W * 0.4, fy = y + hy * L * (u + sw * Math.sign(u * v)) * 0.55 + py * v * W * 0.4;
@@ -14674,7 +14725,17 @@ Sombras.chao = function (ctx, view) {
     if (an.morto || an.oculto || an.type === 'owl' || !inView(view, an.x, an.y, 60)) continue;
     if (an.type === 'person') sbPessoa(P, an, sx * 14, sy * 14); else sbBicho(P, an, sx, sy, 1);
   }
-  if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 60)) sbPessoa(P, { x: Act.ride.pick.x, y: Act.ride.pick.y, a: Math.PI / 2, v: 0, phase: 0 }, sx * 14, sy * 14);
+  if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 60)) sbPessoa(P, Embarque.esperando(Act.ride), sx * 14, sy * 14);
+  // quem não está na lista de pedestres: boleiros da pelada, gente dos eventos e passageiro entrando ou saindo do carro
+  const outros = (o) => { if (o && o.x !== undefined && inView(view, o.x, o.y, 60)) sbPessoa(P, o, sx * 14, sy * 14); };
+  if (Settings.quality !== 'baixa') for (const G of Peladas.list) if (inView(view, G.P.cx, G.P.cy, 400)) {
+    for (const p of G.pl) outros(p);
+    const bz = G.bz || 0; sbCirc(P, G.bx + sx * (2 + bz * 0.9), G.by + sy * (2 + bz * 0.9), 2.3); // a bola no ar joga a sombra mais longe
+  }
+  if (Events.cur) for (const o of Events.pessoas()) outros(o);
+  for (const w of Embarque.lista) if (w.alpha > 0.5) outros(w);
+  // corpo caído: sombra deitada, curtinha (rente ao chão)
+  for (const an of Atropelo.mortos) if (an.mortoT < 4 && inView(view, an.x, an.y, 40)) sbElip(P, an.x + sx * 1.2, an.y + sy * 1.2, 7, 3, an.ca);
   for (const p of World.props || []) {
     const D = SB_PROP[p.type]; if (!D || p.broken || !inView(view, p.x, p.y, 50)) continue;
     const [L, W, H, redondo] = D;
@@ -14837,6 +14898,75 @@ Juncao.molhado = function (ctx, view) {
     ctx.fillStyle = `rgba(180,195,215,${(0.22 * w).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(p.x - p.rx * 0.3, p.y - p.ry * 0.3, p.rx * 0.45, p.ry * 0.3, 0, 0, TAU); ctx.fill();
     ctx.restore();
   }
+};
+/* ============================ ANIMAÇÕES DE ENTRAR E SAIR DO CARRO (0.2.0) ============================
+   O passageiro não some nem aparece do nada: na hora de embarcar ele anda até a porta do carro (do lado da calçada),
+   abaixa e entra (some aos poucos); na chegada ele sai pela porta, dá uns passos para a calçada, olha em volta e vai embora.
+   Enquanto espera, vira o corpo devagar para o carro que chega. Vale para o PegaAí e para a carona dos eventos.
+   A sombra de cada um acompanha (Sombras.chao lê Embarque.lista). */
+const Embarque = { lista: [] };
+// porta do carro do lado de quem está (+1 direita, -1 esquerda do carro)
+Embarque.porta = function (lado) {
+  const c = Math.cos(player.a), s = Math.sin(player.a), d = player.m.W / 2 + 3;
+  return [player.x - s * d * lado + c * 2, player.y + c * d * lado + s * 2];
+};
+Embarque.ladoDe = function (x, y) { return Math.sign((x - player.x) * -Math.sin(player.a) + (y - player.y) * Math.cos(player.a)) || 1; };
+Embarque.novo = function (look, x, y, a, modo) {
+  const w = Object.assign({ type: 'person', x, y, a, v: 0, phase: Math.random() * TAU, seed: Math.random(), col: '#ffd24a', skin: '#c68642', hair: '#1a1410', pants: '#2b3a55' }, look || {}, { x, y, a, v: 0, dance: false, danceUntil: 0, state: 'walk' });
+  w.modo = modo; w.t = 0; w.alpha = modo === 'sai' ? 0 : 1; w.P = ANIMAL.person;
+  this.lista.push(w); return w;
+};
+// embarcar: anda da calçada até a porta e entra
+Embarque.entra = function (look, x, y) {
+  if (!player) return;
+  const w = this.novo(look, x, y, Math.atan2(player.y - y, player.x - x), 'entra'); w.lado = this.ladoDe(x, y);
+};
+// desembarcar: sai pela porta do lado da calçada e anda alguns passos para fora da rua
+Embarque.sai = function (look, destX, destY) {
+  if (!player) return;
+  const lado = this.ladoDe(destX, destY), [px, py] = this.porta(lado);
+  const w = this.novo(look, px, py, player.a + lado * Math.PI / 2, 'sai');
+  const d = Math.hypot(destX - px, destY - py) || 1, k = Math.min(1, 30 / d);
+  w.tx = px + (destX - px) * k; w.ty = py + (destY - py) * k;
+};
+// passageiro esperando: vira devagar para o carro quando ele chega perto (o mesmo para o desenho e a sombra)
+Embarque.esperando = function (R) {
+  const o = R._esp || (R._esp = { type: 'person', x: R.pick.x, y: R.pick.y, a: Math.PI / 2, v: 0, phase: 0, seed: R.seed, col: '#ffd24a', skin: '#c68642', hair: '#1a1410', pants: '#2b3a55', dance: true, state: 'idle' });
+  o.x = R.pick.x; o.y = R.pick.y;
+  return o;
+};
+Embarque.update = function (dt) {
+  const R = Act.ride;
+  if (R && R.stage === 'pickup' && player) {
+    const o = this.esperando(R), d = Math.hypot(player.x - o.x, player.y - o.y);
+    if (d < 260) { o.dance = false; o.a += clamp(angDiff(o.a, Math.atan2(player.y - o.y, player.x - o.x)), -2.5 * dt, 2.5 * dt); } else o.dance = true;
+  }
+  for (let i = this.lista.length - 1; i >= 0; i--) {
+    const w = this.lista[i]; w.t += dt;
+    let tx, ty;
+    if (w.modo === 'entra') { [tx, ty] = player ? this.porta(w.lado) : [w.x, w.y]; }
+    else { tx = w.tx; ty = w.ty; w.alpha = Math.min(1, w.t * 4); }
+    const dx = tx - w.x, dy = ty - w.y, d = Math.hypot(dx, dy);
+    if (w.modo === 'entra' && (w.t > 1.7 || (player && player.speed > 45))) w.alpha -= dt * 4; // o carro já saiu ou demorou: entra de vez
+    if (d > 1.5) {
+      const err = angDiff(w.a, Math.atan2(dy, dx)); w.a += clamp(err, -6 * dt, 6 * dt);
+      w.v = aproxima(w.v, Math.min(w.modo === 'entra' ? 58 : 34, d * 3 + 8) * (0.45 + 0.55 * Math.max(0, Math.cos(err))), 120 * dt, 160 * dt);
+      const k = Math.min(d, w.v * dt) / d; w.x += dx * k; w.y += dy * k;
+    } else {
+      w.v = Math.max(0, w.v - 160 * dt);
+      if (w.modo === 'entra') { w.alpha -= dt * 3.2; w.a += clamp(angDiff(w.a, player ? player.a : w.a), -6 * dt, 6 * dt); } // vira de costas para o carro e entra
+      else if (w.t > 1.6) { w.alpha -= dt * 0.8; if (!w.olhou) { w.olhou = true; w.a += 0.9; } } // olha em volta e some andando devagar
+    }
+    w.phase += dt * (w.v > 0.5 ? 6 + w.v * 0.12 : 1.5);
+    if (w.alpha <= 0 || w.t > (w.modo === 'entra' ? 3 : 4.5)) this.lista.splice(i, 1);
+  }
+};
+Embarque.draw = function (ctx, view) {
+  for (const w of this.lista) {
+    if (!inView(view, w.x, w.y, 30)) continue;
+    ctx.globalAlpha = clamp(w.alpha, 0, 1); drawAnimal(ctx, w);
+  }
+  ctx.globalAlpha = 1;
 };
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {
@@ -15062,7 +15192,7 @@ function frame(now) {
   AposCarga.update(dt);
   Radio.update(dt);
   if (!Game.carregando) { Ambiente.update(dt); PedVoz.update(); } // sons de ambiente por região; voz do pedestre
-  Atropelo.update(dt); Colecao.update(dt); // voz do pedestre abaixando com a distância; atropelamento
+  Atropelo.update(dt); Embarque.update(dt); Colecao.update(dt); // voz do pedestre abaixando com a distância; atropelamento
   AudioSys.hornOn = Game.state === 'playing' && !!key.horn();
   render();
   updateHUD(dt);

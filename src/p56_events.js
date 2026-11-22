@@ -466,7 +466,7 @@ function evNoivo(E, dt, prompt, busy, busyMsg) {
       if (busy) return busyMsg();
       const len = routeLen(E.pick, E.dest);
       E.stage = 'drive'; E.tmax = len / 215 + 22; E.left = E.tmax; E.target = E.dest; E.len = len; Act.gpsT = 0;
-      E.npc = null; AudioSys.thud();
+      Embarque.entra(E.npc, E.npc.x, E.npc.y); E.npc = null; AudioSys.thud();
       evSay(E.nome, '"Me leva na ' + E.dest.name + '! A ' + E.noiva + ' já tá no altar, rápido!"');
     });
   } else if (E.stage === 'drive') {
@@ -587,7 +587,7 @@ function evCarona(E, dt, prompt, busy, busyMsg) {
       if (busy) return busyMsg();
       E.len = routeLen(E.pick, E.dest);
       E.stage = 'drive'; E.target = E.dest; E.fare = Math.round((45 + E.len * 0.055) / 5) * 5; Act.gpsT = 0;
-      E.npc = null; AudioSys.thud();
+      Embarque.entra(E.npc, E.npc.x, E.npc.y); E.npc = null; AudioSys.thud();
       evSay(E.C.name, '"Opa, valeu! Tô indo pra ' + E.dest.name + '."');
     });
   } else if (E.stage === 'drive') {
@@ -663,6 +663,14 @@ function evDrawFlags(ctx, a, b, seed) {
     ctx.fillStyle = COL[(i + seed) % COL.length]; ctx.beginPath(); ctx.moveTo(q[0] - 3.5, q[1]); ctx.lineTo(q[0] + 3.5, q[1]); ctx.lineTo(q[0] + sw, q[1] + 7); ctx.closePath(); ctx.fill();
   }
 }
+// gente do evento que está desenhada agora (para a sombra acompanhar)
+Events.pessoas = function () {
+  const E = this.cur, L = []; if (!E) return L;
+  if (E.npc && !(E.leave && E.endT > 1.2)) L.push(E.npc);
+  for (const o of [E.ofc, E.ofc2, E.org]) if (o) L.push(o);
+  if (E.dancers) for (const d of E.dancers) L.push(d);
+  return L;
+};
 Events.draw = function (ctx, view) {
   const E = this.cur; if (!E || !inView(view, E.x, E.y, 420)) return;
   if (E.type === 'quebrado') {

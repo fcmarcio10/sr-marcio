@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
     const an = Animals.list.find((a) => a.type === 'person' && !a.morto && Math.abs(a.x - 2100) < 1500);
     Cam.x = an.x; Cam.y = an.y; render();
     player.place(an.x - 20, an.y, 0); player.vx = 300; player.vy = 0; player.speed = 300; Atropelo.update(0.016);
-    const x0 = an.x, y0 = an.y, morto = an.morto;
+    const morto = an.morto, x0 = an.morreuX, y0 = an.morreuY; // onde o corpo cai (ele voa até lá em 0,3 s)
     // passa o carro devagar por cima várias vezes
     player.vx = 60; player.speed = 60;
     for (let i = 0; i < 120; i++) { player.place(an.x - 40 + (i % 40) * 2, an.y + ((i / 40) | 0) * 4 - 4, 0); player.vx = 60; player.update(1 / 60, { thr: 0.3, brk: 0, steer: 0, hb: false }); Atropelo.update(1 / 60); an.update && an.update(1 / 60); }

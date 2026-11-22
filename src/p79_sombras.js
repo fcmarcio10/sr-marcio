@@ -33,7 +33,8 @@ function sbRet(cx, cy, L, W, a) { const c = Math.cos(a), s = Math.sin(a); return
 // pessoa: pernas (andando), quadril, tronco, braços balançando e cabeça, esticada na direção da sombra
 function sbPessoa(P, an, sx, sy) {
   const x = an.x, y = an.y, L = Math.hypot(sx, sy) || 0.001, ux = sx / L, uy = sy / L, nx = -uy, ny = ux;
-  const hx = Math.cos(an.a), hy = Math.sin(an.a), sw = an.v > 0 ? Math.sin(an.phase) : 0;
+  const hx = Math.cos(an.a), hy = Math.sin(an.a), pk = passoK(an), danca = !pk && ((an.dance && an.v < 1) || an.danceUntil > Game.time);
+  const sw = pk ? Math.sin(an.phase) * Math.min(1.15, pk) : danca ? Math.sin(Game.time * 9 + (an.seed || 0) * 20) * 1.1 : 0; // mesmo passo (e mesma dança) do desenho
   const at = (t, w) => [x + sx * t + nx * w, y + sy * t + ny * w];
   // pés (um para frente e outro para trás quando anda) e pernas até o quadril
   const q = at(0.46, 0);
@@ -52,7 +53,7 @@ const SB_BICHO = { cow: [11, 13, 7.5, 6], horse: [13, 13, 5.5, 6.5], dog: [6, 6,
 function sbBicho(P, an, sx, sy, Hk) {
   const D = SB_BICHO[an.type]; if (!D) return;
   const [H, L, W, cab] = D, x = an.x, y = an.y, hx = Math.cos(an.a), hy = Math.sin(an.a), px = -hy, py = hx;
-  const bx = x + sx * H * Hk * 0.62, by = y + sy * H * Hk * 0.62, sw = an.v > 0 ? Math.sin(an.phase) * 0.35 : 0;
+  const bx = x + sx * H * Hk * 0.62, by = y + sy * H * Hk * 0.62, sw = passoK(an) ? Math.sin(an.phase) * 0.35 * Math.min(1, passoK(an)) : 0;
   sbElip(P, bx, by, L * 0.55, W * 0.55, an.a); // corpo
   if (an.type !== 'chicken') for (const [u, v] of [[0.38, 1], [0.38, -1], [-0.38, 1], [-0.38, -1]]) {
     const fx = x + hx * L * (u + sw * Math.sign(u * v)) * 0.55 + px * v * W * 0.4, fy = y + hy * L * (u + sw * Math.sign(u * v)) * 0.55 + py * v * W * 0.4;
@@ -75,7 +76,17 @@ Sombras.chao = function (ctx, view) {
     if (an.morto || an.oculto || an.type === 'owl' || !inView(view, an.x, an.y, 60)) continue;
     if (an.type === 'person') sbPessoa(P, an, sx * 14, sy * 14); else sbBicho(P, an, sx, sy, 1);
   }
-  if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 60)) sbPessoa(P, { x: Act.ride.pick.x, y: Act.ride.pick.y, a: Math.PI / 2, v: 0, phase: 0 }, sx * 14, sy * 14);
+  if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 60)) sbPessoa(P, Embarque.esperando(Act.ride), sx * 14, sy * 14);
+  // quem não está na lista de pedestres: boleiros da pelada, gente dos eventos e passageiro entrando ou saindo do carro
+  const outros = (o) => { if (o && o.x !== undefined && inView(view, o.x, o.y, 60)) sbPessoa(P, o, sx * 14, sy * 14); };
+  if (Settings.quality !== 'baixa') for (const G of Peladas.list) if (inView(view, G.P.cx, G.P.cy, 400)) {
+    for (const p of G.pl) outros(p);
+    const bz = G.bz || 0; sbCirc(P, G.bx + sx * (2 + bz * 0.9), G.by + sy * (2 + bz * 0.9), 2.3); // a bola no ar joga a sombra mais longe
+  }
+  if (Events.cur) for (const o of Events.pessoas()) outros(o);
+  for (const w of Embarque.lista) if (w.alpha > 0.5) outros(w);
+  // corpo caído: sombra deitada, curtinha (rente ao chão)
+  for (const an of Atropelo.mortos) if (an.mortoT < 4 && inView(view, an.x, an.y, 40)) sbElip(P, an.x + sx * 1.2, an.y + sy * 1.2, 7, 3, an.ca);
   for (const p of World.props || []) {
     const D = SB_PROP[p.type]; if (!D || p.broken || !inView(view, p.x, p.y, 50)) continue;
     const [L, W, H, redondo] = D;

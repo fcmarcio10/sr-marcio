@@ -222,7 +222,7 @@ function frame(now) {
   AposCarga.update(dt);
   Radio.update(dt);
   if (!Game.carregando) { Ambiente.update(dt); PedVoz.update(); } // sons de ambiente por região; voz do pedestre
-  Atropelo.update(dt); Colecao.update(dt); // voz do pedestre abaixando com a distância; atropelamento
+  Atropelo.update(dt); Embarque.update(dt); Colecao.update(dt); // voz do pedestre abaixando com a distância; atropelamento
   AudioSys.hornOn = Game.state === 'playing' && !!key.horn();
   render();
   updateHUD(dt);

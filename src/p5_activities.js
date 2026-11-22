@@ -130,7 +130,7 @@ function breakObject(col, vx, vy, sp, hx, hy) {
     return;
   }
   if (b.kind === 'tree') {
-    o.down = ang; (World.caidos || (World.caidos = [])).push(o); AudioSys.breakSnd('wood', 0.8);
+    o.down = ang; o.caiT = Game.time; (World.caidos || (World.caidos = [])).push(o); AudioSys.breakSnd('wood', 0.8);
     refreshGroundArea(o.x - 190, o.y - 190, o.x + 190, o.y + 190); // tira a sombra que a luz dos postes fazia dela
     for (let i = 0; i < 14; i++) Particles.emit('leaf', o.x + rnd(-14, 14), o.y + rnd(-14, 14), rnd(-60, 60) + Math.cos(ang) * 60, rnd(-60, 60) + Math.sin(ang) * 60, rnd(0.8, 1.6), 2);
     Cam.shake = Math.max(Cam.shake, 5);
@@ -147,7 +147,7 @@ function breakObject(col, vx, vy, sp, hx, hy) {
     for (let i = 0; i < 6 + k * 8; i++) Debris.list.push({ x: o.x + rnd(-6, 6) + Math.cos(ang) * rnd(4, 26), y: o.y + rnd(-6, 6) + Math.sin(ang) * rnd(4, 26), a: rnd(TAU), s: rnd(1.4, 3), type: 'paint', c: pick(cols), t: Game.time });
     if (o.type === 'hydrant') { World.geysers.push({ x: o.x, y: o.y, until: Game.time + 45 }); toast('Hidrante estourado!', 'Molhou a rua inteira.', 'bad'); }
   } else if (b.kind === 'lamp') {
-    o.broken = true; o.down = ang; (World.caidos || (World.caidos = [])).push(o);
+    o.broken = true; o.down = ang; o.caiT = Game.time; (World.caidos || (World.caidos = [])).push(o);
     if (o.light) o.light.dieAt = Game.time + 1.1;
     refreshGroundArea(o.x - 190, o.y - 190, o.x + 190, o.y + 190); // a sombra de luz deste poste some do chão
     World.sparkers.push({ x: o.hx, y: o.hy, until: Game.time + 1.5 });
@@ -155,7 +155,7 @@ function breakObject(col, vx, vy, sp, hx, hy) {
     if (chance(0.5)) toast('Derrubou o poste!', 'A rua ficou no escuro. A prefeitura agradece…', 'bad');
     Debris.spill(o.hx, o.hy, 0.4, '#d8d8d2', 'f');
   } else {
-    o.down = ang; (World.caidos || (World.caidos = [])).push(o);
+    o.down = ang; o.caiT = Game.time; (World.caidos || (World.caidos = [])).push(o);
     AudioSys.breakSnd('metal', k);
     if (o.kind === 'tlight') toast('Semáforo no chão!', 'Agora é cada um por si nesse cruzamento.', 'bad');
   }
