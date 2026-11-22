@@ -2,9 +2,11 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "BR Night Drive",
   "mainBinaryName": "BR Night Drive",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "identifier": "com.brnightdrive.game",
-  "build": { "frontendDist": "../dist" },
+  "build": {
+    "frontendDist": "../dist"
+  },
   "app": {
     "withGlobalTauri": true,
     "windows": [
@@ -21,26 +23,42 @@
         "backgroundColor": "#05070f"
       }
     ],
-    "security": { "csp": null }
+    "security": {
+      "csp": null
+    }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "publisher": "BR Night Drive",
     "copyright": "© 2026 BR Night Drive",
     "category": "Game",
     "shortDescription": "BR Night Drive",
     "longDescription": "Jogo de direção em mundo aberto em São Gambiarra (em desenvolvimento).",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico", "icons/icon.png"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
     "windows": {
-      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["PortugueseBR"],
+        "languages": [
+          "PortugueseBR"
+        ],
         "displayLanguageSelector": false,
         "installerIcon": "icons/icon.ico",
         "headerImage": "installer/header.bmp",
-        "sidebarImage": "installer/sidebar.bmp"
+        "sidebarImage": "installer/sidebar.bmp",
+        "installerHooks": "installer/hooks.nsh"
       }
     }
   }

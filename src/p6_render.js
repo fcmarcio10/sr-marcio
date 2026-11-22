@@ -1312,7 +1312,7 @@ function headlightK() {
 // farol de cada lado (s = -1 esquerdo, 1 direito): lado muito amassado apaga aquele farol
 // nunca apagam os dois: no máximo um farol para, o outro fica fraquinho
 function playerLamp(s) {
-  const LK = CarLife.lampK(); if (LK <= 0) return 0; // farol desligado (H) ou bateria arriada
+  const LK = CarLife.lampK(); if (LK <= 0) return 0; // farol desligado (J) ou bateria arriada
   return playerLampBase(s) * LK;
 }
 function playerLampBase(s) {

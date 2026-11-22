@@ -3,13 +3,13 @@
    Jogo de exploração noturna top-down 2.5D — HTML5 Canvas + JS puro
    ===================================================================== */
 'use strict';
-const GAME_VERSION = '0.2.0'; // versão em desenvolvimento (a mesma do app do Windows)
+const GAME_VERSION = '0.3.0'; // versão em desenvolvimento (a mesma do app do Windows)
 try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
 // dica na tela de carregamento
-const LOAD_TIPS = ['Parado com o farol aceso por muito tempo, a bateria arria. Aperte H.', 'Sem dinheiro? O Seu Zé faz fiado. Só não some, que ele cobra.', 'De ré na vaga azul vale mais dinheiro.', 'Casca de banana na pista escorrega de verdade.', 'Na blitz da Lei Seca, pare ao lado do guarda de colete.', 'Depois das 22h tem racha. Cuidado com a viatura.', 'Pneus gastam mais quando você derrapa.', 'O Banestresse empresta, mas desconta toda virada de noite.', 'Q abre o celular. O mapa fica no app Mapa.', 'Óleo vencido faz o motor soltar fumaça e perder força.', 'Carona na BR rende gorjeta se você não bater.', 'Na chuva o carro escorrega mais, e no barro mais ainda.', 'F11 deixa o jogo em tela cheia.'];
+const LOAD_TIPS = ['Parado com o farol aceso por muito tempo, a bateria arria. O J apaga o farol.', 'Sem dinheiro? O Seu Zé faz fiado. Só não some, que ele cobra.', 'De ré na vaga azul vale mais dinheiro.', 'Casca de banana na pista escorrega de verdade.', 'Na blitz da Lei Seca, pare ao lado do guarda de colete.', 'Das 22h às 4h30 tem racha. Abra o app Racha no celular.', 'Pneus gastam mais quando você derrapa.', 'O Banestresse empresta, mas desconta toda virada de noite.', 'Q abre o celular. O mapa fica no app Mapa.', 'Óleo vencido faz o motor soltar fumaça e perder força.', 'Carona na BR rende gorjeta se você não bater.', 'Na chuva o carro escorrega mais, e no barro mais ainda.', 'F11 deixa o jogo em tela cheia.'];
 function loadTipHTML() { return '<b>DICA</b>' + LOAD_TIPS[Math.floor(Math.random() * LOAD_TIPS.length)]; }
 try { const el = document.getElementById('load-tip'); if (el) el.innerHTML = loadTipHTML(); } catch (e) {}
-// no app do computador (Windows) aparece o botão SAIR DO JOGO
+// no app do computador (Windows) aparece o botão SAIR
 try { if (window.brnd && window.brnd.desktop) document.querySelectorAll('.desk-only').forEach((e) => e.classList.remove('hidden')); } catch (e) {}
 
 /* ============================ UTILIDADES ============================ */
@@ -2522,6 +2522,12 @@ function buildRoadSurface() {
     bake(box[0] - (e.h ? 80 : 0), box[1] - (e.h ? 0 : 80), box[2] + (e.h ? 80 : 0), box[3] + (e.h ? 0 : 80), 5, (g) => drawEdgeMarkings(g, e)); // linha da beira pode fechar a esquina além do centro
     if (e.bridge) bake(e.bridge.x0 - 10, box[1] - 30, e.bridge.x1 + 10, box[3] + 40, 5.2, (g) => drawBridge(g, e));
   }
+  // a calçada e o acostamento de quem chega no cruzamento não podem tomar a pista da outra rua (só no chão de física: os cantos
+  // dos cruzamentos viravam "calçada" no meio da pista)
+  for (const e of World.edges) {
+    if (e.bridge) continue;
+    if (e.h) gFill(e.a.x - 2, e.a.y - e.hw, e.b.x + 2, e.a.y + e.hw, e.T.asphalt ? SF.ROAD : SF.DIRT); else gFill(e.a.x - e.hw, e.a.y - 2, e.a.x + e.hw, e.b.y + 2, e.T.asphalt ? SF.ROAD : SF.DIRT);
+  }
   for (const n of World.nodes) {
     let hv = 0, hh = 0, sw = 0, asph = false;
     for (const e of n.edges) { if (e.h) hh = Math.max(hh, e.hw); else hv = Math.max(hv, e.hw); sw = Math.max(sw, e.T.sw || 0); if (e.T.asphalt) asph = true; }
@@ -2894,6 +2900,23 @@ function aoPredios() {
       lado(b.x1, b.y0, b.x1 + m, b.y1, b.x1, 0, b.x1 + m, 0);
     });
   }
+}
+
+// (0.3.0) depois de montar tudo: a pista ganha de qualquer calçada, acostamento ou quintal que tenha sido marcado por cima dela
+// no chão de física (só a marcação de onde é rua; o desenho não muda). Ponte fica como está (tabuleiro e água por baixo).
+function pistaPorCima() {
+  // marca pelo centro de cada casinha da grade (beira de rua alargada não cai na divisa: senão a calçada vizinha virava pista)
+  const marca = (x0, y0, x1, y1, t) => {
+    const a = clamp(Math.ceil(x0 / GC - 0.5), 0, GW - 1), b = clamp(Math.floor(x1 / GC - 0.5), 0, GW - 1);
+    const c = clamp(Math.ceil(y0 / GC - 0.5), 0, GH - 1), d = clamp(Math.floor(y1 / GC - 0.5), 0, GH - 1);
+    for (let y = c; y <= d; y++) { const row = y * GW; for (let x = a; x <= b; x++) { const g = ground[row + x]; if (g === SF.SIDEWALK || g === SF.EARTH || g === SF.PAVED) ground[row + x] = t; } }
+  };
+  for (const e of World.edges) {
+    const t = e.T.asphalt ? SF.ROAD : SF.DIRT;
+    if (e.bridge) { const b = e.bridge; marca(e.a.x - 2, e.a.y - e.hw, b.x0 - 12, e.a.y + e.hw, t); marca(b.x1 + 12, e.a.y - e.hw, e.b.x + 2, e.a.y + e.hw, t); continue; } // fora do tabuleiro
+    if (e.h) marca(e.a.x - 2, e.a.y - e.hw, e.b.x + 2, e.a.y + e.hw, t); else marca(e.a.x - e.hw, e.a.y - 2, e.a.x + e.hw, e.b.y + 2, t);
+  }
+  for (const n of World.nodes) marca(n.x - n.hx, n.y - n.hy, n.x + n.hx, n.y + n.hy, n.edges.some((e) => e.T.asphalt) ? SF.ROAD : SF.DIRT);
 }
 /* ============================ TEXTURAS ============================ */
 const PSRC = {};
@@ -4017,10 +4040,6 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   if (m.kind === 'car' && Settings.quality !== 'baixa') { ctx.save(); ctx.translate(x + 1.6, y + 2.4 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as); ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fill(bodyPath(m)); ctx.restore(); } // contorno fiel da carroceria por cima da sombra macia
   else { ctx.fillStyle = 'rgba(0,0,0,0.42)'; ctx.beginPath(); rrect(ctx, -m.L / 2 - 1, -m.W / 2 - 0.5, m.L + 2, m.W + 1, m.kind === 'moto' ? 4 : 6); ctx.fill(); }
   ctx.restore();
-  if (lift && m.kind !== 'moto') {
-    const bp = bodyPath(m), base = m.kind === 'car' ? color : m.kind === 'bus' ? '#d8d6ce' : m.kind === 'truck' ? (o.box || '#d9d6cc') : color;
-    drawCarSides(ctx, m, base, x, y, as, lift, sq, o);
-  }
   ctx.save();
   ctx.translate(x, y - lift / sq); ctx.scale(1, 1 / sq); ctx.rotate(as);
   if (o.bump) ctx.translate(o.bump, 0);
@@ -4042,46 +4061,6 @@ function drawMoto(ctx, m, color, o) {
   ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8'; ctx.fillRect(9.4, -1, 1, 2);
   ctx.fillStyle = o.brake ? '#ff3a30' : '#a01818'; ctx.fillRect(-10.6, -1, 0.8, 2);
 }
-// faces do carro que viram para a câmera (vista 3/4): lateral com lataria, vidros, rodas e soleira; frente com grade e
-// faróis; traseira com lanternas. Só as faces de baixo da tela aparecem; o teto (desenho normal) vem por cima, subido.
-function drawCarSides(ctx, m, base, x, y, as, lift, sq, o) {
-  const ca = Math.cos(as), sa = Math.sin(as), hl = m.L / 2 - 0.6, hw = m.W / 2 - 0.4;
-  const P = (u, v, h) => [x + ca * u - sa * v, (y + (sa * u + ca * v)) - h / sq];
-  const big = m.kind === 'truck' || m.kind === 'bus';
-  // faces: [u0,v0,u1,v1, normal local (nu,nv), tipo]
-  const F = [[-hl, hw, hl, hw, 0, 1, 'lado'], [hl, -hw, -hl, -hw, 0, -1, 'lado'], [hl, hw, hl, -hw, 1, 0, 'frente'], [-hl, -hw, -hl, hw, -1, 0, 'tras']];
-  const quad = (a0, a1, b1, b0) => { ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.lineTo(b1[0], b1[1]); ctx.lineTo(b0[0], b0[1]); ctx.closePath(); ctx.fill(); };
-  for (const [u0, v0, u1, v1, nu, nv, tipo] of F) {
-    const ny = sa * nu + ca * nv; // normal na tela: > 0 aponta para baixo (para a câmera)
-    if (ny < 0.08) continue;
-    const luz = 0.62 + 0.25 * ny; // de frente para a câmera fica mais claro
-    const at = (k, h) => P(u0 + (u1 - u0) * k, v0 + (v1 - v0) * k, h);
-    // lataria inteira da face
-    ctx.fillStyle = shade(base, -(1 - luz) * 0.9 - 0.08);
-    quad(at(0, 0), at(1, 0), at(1, lift), at(0, lift));
-    if (tipo === 'lado') {
-      // faixa dos vidros na parte de cima, só na cabine (o baú do caminhão não tem)
-      const c0 = big ? (m.kind === 'bus' ? 0.06 : (nv > 0 ? 0.72 : 0.06)) : 0.24, c1 = big ? (m.kind === 'bus' ? 0.94 : (nv > 0 ? 0.94 : 0.28)) : 0.78;
-      ctx.fillStyle = 'rgba(18,24,34,0.88)';
-      quad(at(c0, lift * 0.55), at(c1, lift * 0.55), at(c1, lift * 0.95), at(c0, lift * 0.95));
-      // soleira escura embaixo
-      ctx.fillStyle = 'rgba(10,10,12,0.55)';
-      quad(at(0.02, 0), at(0.98, 0), at(0.98, lift * 0.22), at(0.02, lift * 0.22));
-      // rodas (meia roda aparecendo embaixo da lataria)
-      ctx.fillStyle = '#121214';
-      const rodas = big ? [0.14, 0.32, 0.84] : [0.2, 0.8];
-      for (const k of rodas) { const c = at(k, 0), r = Math.min(m.L * 0.085, 4.2); ctx.beginPath(); ctx.ellipse(c[0], c[1] - lift * 0.18, r, Math.max(1.2, lift * 0.42), 0, Math.PI, TAU); ctx.fill(); }
-    } else if (tipo === 'frente') {
-      ctx.fillStyle = 'rgba(12,12,14,0.8)'; quad(at(0.25, lift * 0.25), at(0.75, lift * 0.25), at(0.75, lift * 0.6), at(0.25, lift * 0.6));
-      ctx.fillStyle = o.parked ? '#a8a698' : '#fff3c8';
-      for (const k of [0.1, 0.9]) { const c = at(k, lift * 0.5); ctx.fillRect(c[0] - 1, c[1] - 0.7, 2, 1.4); }
-    } else {
-      ctx.fillStyle = o.brake ? '#ff3a30' : '#9c1a16';
-      for (const k of [0.1, 0.9]) { const c = at(k, lift * 0.55); ctx.fillRect(c[0] - 1.1, c[1] - 0.7, 2.2, 1.4); }
-    }
-  }
-}
-// carro com altura: com a câmera um pouco inclinada aparece a lateral de baixo (3 camadas mais escuras)
 function vehLift(m) { return 0; } // lateral dos carros desligada (voltou para a vista de cima)
 function drawLightsFR(ctx, hl, hw, o, m) {
   if (m && m.boxy) {
@@ -6758,7 +6737,7 @@ function freeRoamHint() {
     ['Exploração livre', 'Cuidado com o pardal: radares nas avenidas (80 km/h) e na BR-101 (110 km/h) multam na hora.'],
     ['Exploração livre', 'Tem churrasquinho na esquina do boteco e forró tocando. São Gambiarra nunca dorme.'],
     ['Cuide do carro', 'Pneus, óleo e bateria gastam. Troque na oficina, no posto (óleo) ou na borracharia (pneus).'],
-    ['Farol (H)', 'Parado por muito tempo com o farol aceso, a bateria arria. Aperte H para desligar.'],
+    ['Farol (' + nomeTecla(tecla('farol')) + ')', 'Parado por muito tempo com o farol aceso, a bateria arria. Aperte ' + nomeTecla(tecla('farol')) + ' para desligar.'],
   ];
   if (cheapest && Profile.money >= cheapest.price) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
   // sem dica de coisa que a história ainda não liberou
@@ -6980,7 +6959,6 @@ Police.bust = function () {
 /* ============================ CELULAR, PROFISSÕES, APP DE MOTORISTA E RACHA ============================ */
 const PASSAGEIROS = ['Dona Cida', 'Seu Jorge', 'Thaís', 'Juninho', 'Pastor Elias', 'Dona Penha', 'Marcão', 'Bia da Farmácia', 'Tio Zezinho', 'Kelly', 'Rafa do Bloco', 'Vó Lurdes', 'Diego Entregador', 'Professora Solange', 'Painho Raimundo', 'Guri Matheus', 'Tonho Mineiro', 'Chicó do Sertão', 'Dona Socorro', 'Mano Wellington'];
 const FALAS_EMBARQUE = ['"Boa noite, moço! Pode ir pela avenida que é mais rápido."', '"Liga o ar aí, por favor?"', '"Tô atrasada pro plantão, vai com fé!"', '"Nossa, esse carro é raiz, hein?"', '"Me deixa na porta, que tá escuro."', '"Pode botar um pagodinho no rádio?"', '"Uai, sô, esse trem é rebaixado demais da conta!"', '"Bah, tchê, que frio! Liga o ar quente aí, guri."', '"Oxente, motorista! Tu é ligeiro, hein? Gostei, visse?"', '"Égua, mano, que carro massa!"', '"Ô, meu, vai pela avenida que é mais rápido. Confia."', '"Caraca, mermão, esse som é sinistro!"', '"Pode ir pelo caminho que você achar melhor."', '"Cuidado que eu tô com bolo no colo!"', '"Moço, liga o pisca, pelo amor de Deus."', '"Tô com fome, passa no drive-thru? Brincadeira."', '"Esse carro é seu ou é alugado?"', '"Corre não, que eu enjoo fácil."', '"Boa! Achei que ia demorar mais."', '"Me conta: muito passageiro doido hoje?"'];
-const FALAS_BATIDA = ['"Ô motorista, devagar!"', '"Jesus amado, quase morri!"', '"Vou dar uma estrela pra você, viu?"', '"Eita! Cuidado aí!"', '"Oxe! Tá querendo me matar, é?"', '"Bah, que barbaridade, tchê!"', '"Uai! Cê tá doido, sô?"', '"Égua, quase que eu vou pro céu antes da hora!"', '"Caraca, mermão, pegou de jeito!"', '"Meu, que rolê tenso!"'];
 const JOB_TYPES = {
   pickup: { name: 'Frete de picape', items: ['Sacos de cimento', 'Mudança pequena', 'Tijolos baianos', 'Geladeira usada', 'Móveis da vó'], mult: 1.35 },
   bau: { name: 'Carga de baú', items: ['Carga de bebidas', 'Caixas de mercadoria', 'Eletrodomésticos', 'Engradados de refrigerante'], mult: 2.2 },
@@ -7899,6 +7877,7 @@ Offer.show = function (E) {
   el.querySelector('.evo-meta').textContent = t[1] + ' · ' + (d > 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : d + ' m') + ' daqui';
   el.querySelector('.evo-bar i').style.width = '100%';
   el.classList.remove('hidden', 'out');
+  Teclas.fecha(); // o convite fica no mesmo canto que o quadro de teclas: fecha o quadro para o botão de aceitar não ficar tapado
 };
 Offer.hide = function () { this.E = null; if (this.el) { this.el.classList.add('out'); const el = this.el; setTimeout(() => { if (!Offer.E) el.classList.add('hidden'); }, 260); } };
 Offer.tick = function (E) { if (this.el && this.E === E) this.el.querySelector('.evo-bar i').style.width = Math.max(0, E.offerT / EV_OFFER_T * 100).toFixed(1) + '%'; };
@@ -8597,7 +8576,7 @@ CarLife.update = function (dt) {
   if (sp < 5 && lit) {
     this.idleT += dt;
     if (this.idleT > LIFE_IDLE_GRACE) {
-      if (!this.warned.idle) lifeWarn('idle', 'Farol ligado com o carro parado', 'Isso descarrega a bateria. Aperte H para desligar o farol.', 'info');
+      if (!this.warned.idle) lifeWarn('idle', 'Farol ligado com o carro parado', 'Isso descarrega a bateria. Aperte ' + nomeTecla(tecla('farol')) + ' para desligar o farol.', 'info');
       L.bat = Math.max(0, L.bat - dt * 100 / LIFE_BAT_DRAIN * (p.highBeam ? 2 : 1));
     }
   } else {
@@ -8620,7 +8599,7 @@ CarLife.update = function (dt) {
   }
   if (L.oil < 25) lifeWarn('o25', 'Luz do óleo acendeu', 'Hora de trocar o óleo: oficina ou posto.', 'info');
   if (L.oil < 8) lifeWarn('o8', 'Óleo no fim!', 'O motor vai esquentar e perder força. Troque logo.');
-  if (L.bat < 30 && !this.warned.b30) lifeWarn('b30', 'Bateria fraca', 'Os faróis ficaram mais fracos. Rode um pouco pra carregar ou desligue o farol (H) quando parar.');
+  if (L.bat < 30 && !this.warned.b30) lifeWarn('b30', 'Bateria fraca', 'Os faróis ficaram mais fracos. Rode um pouco pra carregar ou desligue o farol (' + nomeTecla(tecla('farol')) + ') quando parar.');
   // motor sem óleo: fumaça e estrago
   if (L.oil <= 0 && sp > 20) {
     Profile.damage = Math.min(100, Profile.damage + dt * 0.35);
@@ -10260,7 +10239,7 @@ function headlightK() {
 // farol de cada lado (s = -1 esquerdo, 1 direito): lado muito amassado apaga aquele farol
 // nunca apagam os dois: no máximo um farol para, o outro fica fraquinho
 function playerLamp(s) {
-  const LK = CarLife.lampK(); if (LK <= 0) return 0; // farol desligado (H) ou bateria arriada
+  const LK = CarLife.lampK(); if (LK <= 0) return 0; // farol desligado (J) ou bateria arriada
   return playerLampBase(s) * LK;
 }
 function playerLampBase(s) {
@@ -12831,7 +12810,6 @@ function renderMapDests() {
     if (Act.waypoint) { const b = document.createElement('button'); b.className = 'off'; b.textContent = 'Remover destino'; b.addEventListener('click', () => { Act.waypoint = null; Act.gps = null; AudioSys.back(); renderMapDests(); drawBigMap(); }); box.appendChild(b); }
   }
 }
-const oficinaZe = () => World.shops.find((x) => x.kind === 'oficina');
 /* ---------- quadro de teclas do começo (0.2.0, no lugar do passo a passo do Seu Zé) ----------
    Só na primeira vez que a pessoa joga (neste navegador/computador): um quadro escuro no canto de cima com as
    teclas principais, por 1 minuto, com um X para fechar. Mostra as teclas que a pessoa configurou. */
@@ -13070,6 +13048,7 @@ Missao.legenda = function (html, seg, quem) {
 };
 // caixa de ajuda no canto de cima
 Missao.ajuda = function (html, seg) {
+  Teclas.fecha(); // mesmo canto da tela que o quadro de teclas
   this.mostra('ms-ajuda', html, seg || 8);
   try { AudioSys.tone(880, 0.12, 'sine', 0.05, 'ui'); AudioSys.tone(1320, 0.16, 'sine', 0.04, 'ui', null, 0.08); } catch (e) {}
 };
@@ -14201,8 +14180,8 @@ function tiraFotoSlot() {
   } catch (e) {}
 }
 
-// botão CRIADOR do menu: abre o Instagram do criador (no app do Windows abre no navegador do computador)
-const CRIADOR_URL = 'https://www.instagram.com/criattogames/';
+// botão do criador nos Créditos: abre o Instagram do criador (no app do Windows abre no navegador do computador)
+const CRIADOR_URL = 'https://www.instagram.com/marciomotta.777/';
 function abreCriador() {
   try { if (window.brnd && window.brnd.abrir) { window.brnd.abrir(CRIADOR_URL); return; } } catch (e) {}
   try { window.open(CRIADOR_URL, '_blank', 'noopener'); } catch (e) {}
@@ -15738,7 +15717,7 @@ async function boot() {
   for (let i = 0; i < steps.length; i++) { prog(0.08 + i / steps.length * 0.72, steps[i][1]); await tick(); steps[i][0](); }
   NOBRE_EXT = true; // margem leste do rio passa a ser Jardim Camburiso (depois de montar: o sorteio do mapa não muda)
   alargaRuas(); empurraDaPista(); marcaVagas(); elevaPredios(); aoPredios(); // ruas 10% mais largas (depois de montar tudo: a cidade não muda)
-  pruneRoadTrees(); thinTrees(); addBuracos(); Colecao.monta(); posMontagem(); // outdoors no pasto, lotes à venda, estradinhas, palmeiras e empenas
+  pruneRoadTrees(); thinTrees(); addBuracos(); Colecao.monta(); posMontagem(); pistaPorCima(); // outdoors no pasto, lotes à venda, estradinhas, palmeiras e empenas; a pista ganha no chão de física
   buildShadowSprites(); bakeLampShadows();
   prog(0.84, 'Desenhando o mapa…'); await tick();
   buildMapImage();

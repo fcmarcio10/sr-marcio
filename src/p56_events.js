@@ -152,6 +152,7 @@ Offer.show = function (E) {
   el.querySelector('.evo-meta').textContent = t[1] + ' · ' + (d > 1000 ? (d / 1000).toFixed(1).replace('.', ',') + ' km' : d + ' m') + ' daqui';
   el.querySelector('.evo-bar i').style.width = '100%';
   el.classList.remove('hidden', 'out');
+  Teclas.fecha(); // o convite fica no mesmo canto que o quadro de teclas: fecha o quadro para o botão de aceitar não ficar tapado
 };
 Offer.hide = function () { this.E = null; if (this.el) { this.el.classList.add('out'); const el = this.el; setTimeout(() => { if (!Offer.E) el.classList.add('hidden'); }, 260); } };
 Offer.tick = function (E) { if (this.el && this.E === E) this.el.querySelector('.evo-bar i').style.width = Math.max(0, E.offerT / EV_OFFER_T * 100).toFixed(1) + '%'; };

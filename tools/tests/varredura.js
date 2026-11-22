@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
     const conta = (k, txt) => { out.total[k] = (out.total[k] || 0) + 1; (out.ex = out.ex || {})[k] = (out.ex[k] || []); if (out.ex[k].length < 4) out.ex[k].push(txt); };
     const dentroCasa = (x, y) => { colGrid.query(x - 1, y - 1, x + 1, y + 1, _q); return _q.some((c) => c.t === 0 && c.tag === 'bld' && x > c.x0 + 2 && x < c.x1 - 2 && y > c.y0 + 2 && y < c.y1 - 2); };
     for (const [nome, x, y] of lugares) {
-      const ne = nearestEdge(x, y), e = ne.e; const px = e.a.x + e.dx * ne.s, py = e.a.y + e.dy * ne.s;
+      const ne = nearestEdge(x, y), e = ne.e, sv = clamp(ne.s, Math.min(160, e.len / 2), Math.max(e.len - 160, e.len / 2)); const px = e.a.x + e.dx * sv, py = e.a.y + e.dy * sv; // longe do cruzamento: o trânsito espera quem está parado no meio dele
       player.place(px, py, Math.atan2(e.dy, e.dx)); player.vx = player.vy = 0; Cam.x = px; Cam.y = py; render();
       const parado = new Map(); const antes = JSON.stringify(out.total);
       for (let i = 0; i < 60 * 40; i++) {

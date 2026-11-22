@@ -1817,6 +1817,12 @@ function buildRoadSurface() {
     bake(box[0] - (e.h ? 80 : 0), box[1] - (e.h ? 0 : 80), box[2] + (e.h ? 80 : 0), box[3] + (e.h ? 0 : 80), 5, (g) => drawEdgeMarkings(g, e)); // linha da beira pode fechar a esquina além do centro
     if (e.bridge) bake(e.bridge.x0 - 10, box[1] - 30, e.bridge.x1 + 10, box[3] + 40, 5.2, (g) => drawBridge(g, e));
   }
+  // a calçada e o acostamento de quem chega no cruzamento não podem tomar a pista da outra rua (só no chão de física: os cantos
+  // dos cruzamentos viravam "calçada" no meio da pista)
+  for (const e of World.edges) {
+    if (e.bridge) continue;
+    if (e.h) gFill(e.a.x - 2, e.a.y - e.hw, e.b.x + 2, e.a.y + e.hw, e.T.asphalt ? SF.ROAD : SF.DIRT); else gFill(e.a.x - e.hw, e.a.y - 2, e.a.x + e.hw, e.b.y + 2, e.T.asphalt ? SF.ROAD : SF.DIRT);
+  }
   for (const n of World.nodes) {
     let hv = 0, hh = 0, sw = 0, asph = false;
     for (const e of n.edges) { if (e.h) hh = Math.max(hh, e.hw); else hv = Math.max(hv, e.hw); sw = Math.max(sw, e.T.sw || 0); if (e.T.asphalt) asph = true; }
@@ -2189,4 +2195,21 @@ function aoPredios() {
       lado(b.x1, b.y0, b.x1 + m, b.y1, b.x1, 0, b.x1 + m, 0);
     });
   }
+}
+
+// (0.3.0) depois de montar tudo: a pista ganha de qualquer calçada, acostamento ou quintal que tenha sido marcado por cima dela
+// no chão de física (só a marcação de onde é rua; o desenho não muda). Ponte fica como está (tabuleiro e água por baixo).
+function pistaPorCima() {
+  // marca pelo centro de cada casinha da grade (beira de rua alargada não cai na divisa: senão a calçada vizinha virava pista)
+  const marca = (x0, y0, x1, y1, t) => {
+    const a = clamp(Math.ceil(x0 / GC - 0.5), 0, GW - 1), b = clamp(Math.floor(x1 / GC - 0.5), 0, GW - 1);
+    const c = clamp(Math.ceil(y0 / GC - 0.5), 0, GH - 1), d = clamp(Math.floor(y1 / GC - 0.5), 0, GH - 1);
+    for (let y = c; y <= d; y++) { const row = y * GW; for (let x = a; x <= b; x++) { const g = ground[row + x]; if (g === SF.SIDEWALK || g === SF.EARTH || g === SF.PAVED) ground[row + x] = t; } }
+  };
+  for (const e of World.edges) {
+    const t = e.T.asphalt ? SF.ROAD : SF.DIRT;
+    if (e.bridge) { const b = e.bridge; marca(e.a.x - 2, e.a.y - e.hw, b.x0 - 12, e.a.y + e.hw, t); marca(b.x1 + 12, e.a.y - e.hw, e.b.x + 2, e.a.y + e.hw, t); continue; } // fora do tabuleiro
+    if (e.h) marca(e.a.x - 2, e.a.y - e.hw, e.b.x + 2, e.a.y + e.hw, t); else marca(e.a.x - e.hw, e.a.y - 2, e.a.x + e.hw, e.b.y + 2, t);
+  }
+  for (const n of World.nodes) marca(n.x - n.hx, n.y - n.hy, n.x + n.hx, n.y + n.hy, n.edges.some((e) => e.T.asphalt) ? SF.ROAD : SF.DIRT);
 }

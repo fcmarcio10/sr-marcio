@@ -539,7 +539,6 @@ function renderMapDests() {
     if (Act.waypoint) { const b = document.createElement('button'); b.className = 'off'; b.textContent = 'Remover destino'; b.addEventListener('click', () => { Act.waypoint = null; Act.gps = null; AudioSys.back(); renderMapDests(); drawBigMap(); }); box.appendChild(b); }
   }
 }
-const oficinaZe = () => World.shops.find((x) => x.kind === 'oficina');
 /* ---------- quadro de teclas do começo (0.2.0, no lugar do passo a passo do Seu Zé) ----------
    Só na primeira vez que a pessoa joga (neste navegador/computador): um quadro escuro no canto de cima com as
    teclas principais, por 1 minuto, com um X para fechar. Mostra as teclas que a pessoa configurou. */

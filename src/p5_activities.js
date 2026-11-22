@@ -520,7 +520,7 @@ function freeRoamHint() {
     ['Exploração livre', 'Cuidado com o pardal: radares nas avenidas (80 km/h) e na BR-101 (110 km/h) multam na hora.'],
     ['Exploração livre', 'Tem churrasquinho na esquina do boteco e forró tocando. São Gambiarra nunca dorme.'],
     ['Cuide do carro', 'Pneus, óleo e bateria gastam. Troque na oficina, no posto (óleo) ou na borracharia (pneus).'],
-    ['Farol (H)', 'Parado por muito tempo com o farol aceso, a bateria arria. Aperte H para desligar.'],
+    ['Farol (' + nomeTecla(tecla('farol')) + ')', 'Parado por muito tempo com o farol aceso, a bateria arria. Aperte ' + nomeTecla(tecla('farol')) + ' para desligar.'],
   ];
   if (cheapest && Profile.money >= cheapest.price) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
   // sem dica de coisa que a história ainda não liberou

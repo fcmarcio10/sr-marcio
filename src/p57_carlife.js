@@ -62,7 +62,7 @@ CarLife.update = function (dt) {
   if (sp < 5 && lit) {
     this.idleT += dt;
     if (this.idleT > LIFE_IDLE_GRACE) {
-      if (!this.warned.idle) lifeWarn('idle', 'Farol ligado com o carro parado', 'Isso descarrega a bateria. Aperte H para desligar o farol.', 'info');
+      if (!this.warned.idle) lifeWarn('idle', 'Farol ligado com o carro parado', 'Isso descarrega a bateria. Aperte ' + nomeTecla(tecla('farol')) + ' para desligar o farol.', 'info');
       L.bat = Math.max(0, L.bat - dt * 100 / LIFE_BAT_DRAIN * (p.highBeam ? 2 : 1));
     }
   } else {
@@ -85,7 +85,7 @@ CarLife.update = function (dt) {
   }
   if (L.oil < 25) lifeWarn('o25', 'Luz do óleo acendeu', 'Hora de trocar o óleo: oficina ou posto.', 'info');
   if (L.oil < 8) lifeWarn('o8', 'Óleo no fim!', 'O motor vai esquentar e perder força. Troque logo.');
-  if (L.bat < 30 && !this.warned.b30) lifeWarn('b30', 'Bateria fraca', 'Os faróis ficaram mais fracos. Rode um pouco pra carregar ou desligue o farol (H) quando parar.');
+  if (L.bat < 30 && !this.warned.b30) lifeWarn('b30', 'Bateria fraca', 'Os faróis ficaram mais fracos. Rode um pouco pra carregar ou desligue o farol (' + nomeTecla(tecla('farol')) + ') quando parar.');
   // motor sem óleo: fumaça e estrago
   if (L.oil <= 0 && sp > 20) {
     Profile.damage = Math.min(100, Profile.damage + dt * 0.35);

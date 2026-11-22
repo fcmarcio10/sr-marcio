@@ -1,0 +1,3 @@
+# o programa não guarda o caminho das pastas do computador onde foi montado
+[build]
+rustflags = ["--remap-path-prefix=/root/.cargo/registry/src=deps", "--remap-path-prefix=/root/.cargo/git=deps", "--remap-path-prefix=/root/.rustup=rust", "--remap-path-prefix=/home/user/sr-marcio=brnd", "--remap-path-prefix=/root=~"]

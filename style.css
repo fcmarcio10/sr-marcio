@@ -680,7 +680,6 @@ body.cel-aberto #toasts { right: calc(var(--dash-w, 240px) + 32px + 306px * var(
 .wa-sos-h { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
 .wa-sos-h small { color: #8696a0; font-size: 10.5px; }
 .wa-sos-h .wa-fiado { color: #ffb547; margin: 0; }
-.wa-sos-btns { display: flex; flex-wrap: wrap; gap: 5px; }
 .wa-sos button { pointer-events: auto; cursor: pointer; border: 0; border-radius: 14px; padding: 5px 10px; background: #005c4b; color: #fff; font: 600 11.5px -apple-system, "Segoe UI", sans-serif; display: inline-flex; align-items: baseline; gap: 5px; }
 .wa-sos button small { font-size: 10px; font-weight: 500; opacity: 0.8; }
 .wa-sos button:hover { background: #00745e; }
@@ -1223,7 +1222,6 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 @keyframes tpIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 @keyframes tpOut { from { opacity: 1; transform: translate(-50%, -50%) scale(1); } to { opacity: 0; transform: translate(-50%, -80%) scale(0.95); visibility: hidden; } }
 /* história: cartaz de capítulo, painel e lista na pausa */
-#pause-hist { margin: 4px 0 12px; }
 /* ===== avisos de missão (título do capítulo, legenda, ajuda e "concluído") ===== */
 .ms-oculto { display: none !important; }
 #ms-titulo, #ms-legenda, #ms-ajuda, #ms-passou { position: fixed; pointer-events: none; z-index: 47; }
@@ -1235,10 +1233,10 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 #ms-titulo.ms-on .ms-nome { animation: msNome 4.5s ease-out both; }
 @keyframes msNome { from { letter-spacing: 0.14em; } to { letter-spacing: 0.02em; } }
 #ms-legenda { left: 50%; bottom: 92px; transform: translateX(-50%); width: min(820px, calc(100vw - 32px)); text-align: center; font: 600 21px/1.35 var(--f-body); color: #fff; text-shadow: 0 2px 2px #000, 0 0 10px rgba(0, 0, 0, 0.95); }
-#ms-legenda b, #ms-ajuda b, #tutorial b { color: #f0c850; font-weight: 700; }
+#ms-legenda b, #ms-ajuda b { color: #f0c850; font-weight: 700; }
 #ms-legenda .ms-quem { color: #6cb6ff; font-weight: 700; }
 #ms-ajuda { left: 18px; top: 112px; max-width: 330px; padding: 12px 14px; background: rgba(0, 0, 0, 0.82); color: #fff; font: 500 15px/1.45 var(--f-body); }
-#ms-ajuda kbd, #tutorial kbd { display: inline-block; min-width: 20px; padding: 0 5px; margin: 0 1px; text-align: center; background: #fff; color: #111; border-radius: 3px; font: 800 13px/20px var(--f-cond); box-shadow: none; border: 0; }
+#ms-ajuda kbd { display: inline-block; min-width: 20px; padding: 0 5px; margin: 0 1px; text-align: center; background: #fff; color: #111; border-radius: 3px; font: 800 13px/20px var(--f-cond); box-shadow: none; border: 0; }
 #ms-passou { left: 0; right: 0; top: 36%; }
 #ms-passou .ms-faixa { padding: 18px 0 20px; text-align: center; background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.72) 22%, rgba(0, 0, 0, 0.72) 78%, transparent); }
 #ms-passou .ms-ok { font: 400 58px/1 var(--f-display); color: #f0c850; letter-spacing: 0.03em; text-shadow: 0 3px 0 #000; text-transform: uppercase; }
@@ -1247,8 +1245,7 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 #ms-passou .ms-sub { font: 600 19px/1.2 var(--f-body); color: #fff; margin-top: 8px; text-shadow: 0 2px 3px #000; }
 #ms-passou .ms-val { font: 700 22px/1 var(--f-cond); color: #7dde6a; margin-top: 8px; letter-spacing: 0.05em; text-shadow: 0 2px 3px #000; }
 /* caixa do Seu Zé no tutorial vira legenda: sem caixa, texto branco com sombra */
-@media (max-width: 900px) { #tutorial .tut-skip { position: static; } #ms-titulo .ms-nome { font-size: 42px; } #ms-passou .ms-ok { font-size: 38px; } }
-#ms-ajuda .ms-ajuda-tit { font: 700 12px/1 var(--f-cond); letter-spacing: 0.14em; text-transform: uppercase; color: #f0c850; margin-bottom: 6px; }
+@media (max-width: 900px) { #ms-titulo .ms-nome { font-size: 42px; } #ms-passou .ms-ok { font-size: 38px; } }
 /* ===== apresentação dos lugares: faixas de cinema, nome do lugar e HUD escondido ===== */
 #cine { position: fixed; inset: 0; pointer-events: none; z-index: 46; display: none; }
 #cine.on { display: block; }
@@ -1261,7 +1258,7 @@ kbd, #prompt kbd { font-family: var(--f-cond); font-weight: 800; font-size: 14px
 #cine-pular { position: absolute; right: 22px; bottom: calc(11vh + 14px); pointer-events: auto; background: rgba(0, 0, 0, 0.55); color: #ddd; border: 0; padding: 6px 12px; font: 700 13px var(--f-cond); letter-spacing: 0.08em; cursor: pointer; text-transform: uppercase; }
 #cine-pular kbd { background: #fff; color: #111; border-radius: 3px; padding: 0 5px; margin-left: 6px; font: 800 11px/18px var(--f-cond); }
 body.cinema #hud-money, body.cinema #hud-level, body.cinema #hud-objective, body.cinema #hud-minimap, body.cinema #hud-radio, body.cinema #hud-phone,
-body.cinema #hud-dash, body.cinema #prompt, body.cinema #region-banner, body.cinema #tutorial, body.cinema #fps, body.cinema #ms-ajuda, body.cinema #ev-offer { opacity: 0 !important; pointer-events: none !important; transition: opacity 0.4s; }
+body.cinema #hud-dash, body.cinema #prompt, body.cinema #region-banner, body.cinema #fps, body.cinema #ms-ajuda, body.cinema #ev-offer { opacity: 0 !important; pointer-events: none !important; transition: opacity 0.4s; }
 #ms-lugar { position: fixed; left: 48px; bottom: calc(11vh + 34px); pointer-events: none; z-index: 47; max-width: min(620px, calc(100vw - 64px)); }
 #ms-lugar .ml-tag { display: inline-block; font: 700 13px/1 var(--f-cond); letter-spacing: 0.22em; text-transform: uppercase; color: #111; background: #f0c850; padding: 4px 8px; margin-bottom: 8px; }
 #ms-lugar .ml-nome { font: 400 54px/1 var(--f-display); color: #fff; text-transform: uppercase; letter-spacing: 0.02em; text-shadow: 0 3px 0 #000, 0 0 22px rgba(0, 0, 0, 0.9); }
@@ -1280,8 +1277,6 @@ body.cel-aberto #toasts { top: 150px; }
 /* tela limpa: sem o quadro de objetivo no topo (o objetivo vem como legenda embaixo) */
 #hud-objective { display: none !important; }
 /* celular aberto: legenda do tutorial (qualquer passo) à esquerda do celular e o "Pular" junto do texto, sem tapar os apps */
-body.cel-aberto #tutorial { top: auto; bottom: 92px; left: calc((100vw - var(--dash-w, 240px) - 306px * var(--ph-s, 0.78) - 46px) / 2); max-width: calc(100vw - var(--dash-w, 240px) - 306px * var(--ph-s, 0.78) - 90px); }
-body.cel-aberto #tutorial .tut-skip { position: static; margin-left: 10px; }
 /* ===== celular simples (nov/2026): hora grande, uma grade só, barra de baixo com 3 apps; abre deslizando ===== */
 .ph-lock.simples { padding: 26px 0 26px; }
 .ph-lock.simples .ph-time { font-size: 72px; font-weight: 300; }
@@ -1307,8 +1302,6 @@ body.cel-aberto #tutorial .tut-skip { position: static; margin-left: 10px; }
 #phone-body.home .ph-grid.simples .ph-lbl { font-size: 11px; margin-top: 5px; }
 #phone-body.home .ph-dock { margin-top: auto; grid-template-columns: repeat(3, 1fr); padding: 10px 14px; }
 /* celular aberto: a legenda do tutorial vai para o alto, no meio (não tapa o GPS nem o celular) */
-body.cel-aberto #tutorial { top: 112px; bottom: auto; left: 50%; transform: translateX(-50%); max-width: min(620px, calc(100vw - 32px)); }
-body.cel-aberto #tutorial .tut-skip { position: static; margin-left: 10px; }
 /* rastreador da missão (embaixo do nome do bairro) e "missão fracassada" */
 #ms-passou .ms-ok.ms-falhou { color: #ff4d4d; }
 #ms-titulo .ms-hist { max-width: min(640px, 86vw); margin: 10px auto 0; font: 500 17px/1.4 var(--f-body); color: rgba(255, 255, 255, 0.92); text-shadow: 0 2px 3px #000, 0 0 12px rgba(0, 0, 0, 0.9); }
@@ -1349,7 +1342,6 @@ body.cinema #hud-objective { display: none !important; }
 #screen-pause .mbtn.hidden { display: none; }
 .pausa-info { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .pausa-tit { font: 700 11px/1 var(--f-cond); letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255, 255, 255, 0.5); margin-bottom: 8px; }
-#pause-hist { margin: 0; }
 #screen-pause .stats-grid { margin-top: 0; gap: 7px 22px; }
 @media (max-width: 720px) { .pausa-cols { grid-template-columns: 1fr; gap: 18px; } }
 #screen-pause, #screen-settings, #screen-confirm { z-index: 60; } /* pausa por cima dos avisos de missão */
@@ -1615,3 +1607,7 @@ body.cel-aberto #teclas { opacity: 0.35; }
 .hud-bt kbd { margin: 0; font-size: 10px; padding: 0 5px; flex: none; }
 .hud-bt .hrb-ico, .hud-bt .hp-ico { flex: none; }
 @media (max-height: 640px) { #hud-radio-btn.hud-bt, #hud-phone.hud-bt { bottom: 194px; width: 92px; } #hud-phone.hud-bt { left: 116px; } }
+
+/* (0.3.0) Créditos: botão do Instagram do criador */
+.credits .cred-insta { margin-top: 6px; padding: 7px 14px; border: 1px solid rgba(240, 200, 80, 0.55); border-radius: 999px; background: rgba(240, 200, 80, 0.08); color: #f0c850; font: 700 14px/1.2 var(--f-body); letter-spacing: 0.02em; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+.credits .cred-insta:hover, .credits .cred-insta:focus-visible { background: rgba(240, 200, 80, 0.18); border-color: #f0c850; outline: none; }

@@ -1120,10 +1120,6 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   if (m.kind === 'car' && Settings.quality !== 'baixa') { ctx.save(); ctx.translate(x + 1.6, y + 2.4 / sq); ctx.scale(1, 1 / sq); ctx.rotate(as); ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fill(bodyPath(m)); ctx.restore(); } // contorno fiel da carroceria por cima da sombra macia
   else { ctx.fillStyle = 'rgba(0,0,0,0.42)'; ctx.beginPath(); rrect(ctx, -m.L / 2 - 1, -m.W / 2 - 0.5, m.L + 2, m.W + 1, m.kind === 'moto' ? 4 : 6); ctx.fill(); }
   ctx.restore();
-  if (lift && m.kind !== 'moto') {
-    const bp = bodyPath(m), base = m.kind === 'car' ? color : m.kind === 'bus' ? '#d8d6ce' : m.kind === 'truck' ? (o.box || '#d9d6cc') : color;
-    drawCarSides(ctx, m, base, x, y, as, lift, sq, o);
-  }
   ctx.save();
   ctx.translate(x, y - lift / sq); ctx.scale(1, 1 / sq); ctx.rotate(as);
   if (o.bump) ctx.translate(o.bump, 0);
@@ -1145,46 +1141,6 @@ function drawMoto(ctx, m, color, o) {
   ctx.fillStyle = o.parked ? '#a8a698' : '#fff6d8'; ctx.fillRect(9.4, -1, 1, 2);
   ctx.fillStyle = o.brake ? '#ff3a30' : '#a01818'; ctx.fillRect(-10.6, -1, 0.8, 2);
 }
-// faces do carro que viram para a câmera (vista 3/4): lateral com lataria, vidros, rodas e soleira; frente com grade e
-// faróis; traseira com lanternas. Só as faces de baixo da tela aparecem; o teto (desenho normal) vem por cima, subido.
-function drawCarSides(ctx, m, base, x, y, as, lift, sq, o) {
-  const ca = Math.cos(as), sa = Math.sin(as), hl = m.L / 2 - 0.6, hw = m.W / 2 - 0.4;
-  const P = (u, v, h) => [x + ca * u - sa * v, (y + (sa * u + ca * v)) - h / sq];
-  const big = m.kind === 'truck' || m.kind === 'bus';
-  // faces: [u0,v0,u1,v1, normal local (nu,nv), tipo]
-  const F = [[-hl, hw, hl, hw, 0, 1, 'lado'], [hl, -hw, -hl, -hw, 0, -1, 'lado'], [hl, hw, hl, -hw, 1, 0, 'frente'], [-hl, -hw, -hl, hw, -1, 0, 'tras']];
-  const quad = (a0, a1, b1, b0) => { ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.lineTo(b1[0], b1[1]); ctx.lineTo(b0[0], b0[1]); ctx.closePath(); ctx.fill(); };
-  for (const [u0, v0, u1, v1, nu, nv, tipo] of F) {
-    const ny = sa * nu + ca * nv; // normal na tela: > 0 aponta para baixo (para a câmera)
-    if (ny < 0.08) continue;
-    const luz = 0.62 + 0.25 * ny; // de frente para a câmera fica mais claro
-    const at = (k, h) => P(u0 + (u1 - u0) * k, v0 + (v1 - v0) * k, h);
-    // lataria inteira da face
-    ctx.fillStyle = shade(base, -(1 - luz) * 0.9 - 0.08);
-    quad(at(0, 0), at(1, 0), at(1, lift), at(0, lift));
-    if (tipo === 'lado') {
-      // faixa dos vidros na parte de cima, só na cabine (o baú do caminhão não tem)
-      const c0 = big ? (m.kind === 'bus' ? 0.06 : (nv > 0 ? 0.72 : 0.06)) : 0.24, c1 = big ? (m.kind === 'bus' ? 0.94 : (nv > 0 ? 0.94 : 0.28)) : 0.78;
-      ctx.fillStyle = 'rgba(18,24,34,0.88)';
-      quad(at(c0, lift * 0.55), at(c1, lift * 0.55), at(c1, lift * 0.95), at(c0, lift * 0.95));
-      // soleira escura embaixo
-      ctx.fillStyle = 'rgba(10,10,12,0.55)';
-      quad(at(0.02, 0), at(0.98, 0), at(0.98, lift * 0.22), at(0.02, lift * 0.22));
-      // rodas (meia roda aparecendo embaixo da lataria)
-      ctx.fillStyle = '#121214';
-      const rodas = big ? [0.14, 0.32, 0.84] : [0.2, 0.8];
-      for (const k of rodas) { const c = at(k, 0), r = Math.min(m.L * 0.085, 4.2); ctx.beginPath(); ctx.ellipse(c[0], c[1] - lift * 0.18, r, Math.max(1.2, lift * 0.42), 0, Math.PI, TAU); ctx.fill(); }
-    } else if (tipo === 'frente') {
-      ctx.fillStyle = 'rgba(12,12,14,0.8)'; quad(at(0.25, lift * 0.25), at(0.75, lift * 0.25), at(0.75, lift * 0.6), at(0.25, lift * 0.6));
-      ctx.fillStyle = o.parked ? '#a8a698' : '#fff3c8';
-      for (const k of [0.1, 0.9]) { const c = at(k, lift * 0.5); ctx.fillRect(c[0] - 1, c[1] - 0.7, 2, 1.4); }
-    } else {
-      ctx.fillStyle = o.brake ? '#ff3a30' : '#9c1a16';
-      for (const k of [0.1, 0.9]) { const c = at(k, lift * 0.55); ctx.fillRect(c[0] - 1.1, c[1] - 0.7, 2.2, 1.4); }
-    }
-  }
-}
-// carro com altura: com a câmera um pouco inclinada aparece a lateral de baixo (3 camadas mais escuras)
 function vehLift(m) { return 0; } // lateral dos carros desligada (voltou para a vista de cima)
 function drawLightsFR(ctx, hl, hw, o, m) {
   if (m && m.boxy) {

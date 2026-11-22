@@ -3,13 +3,13 @@
    Jogo de exploração noturna top-down 2.5D — HTML5 Canvas + JS puro
    ===================================================================== */
 'use strict';
-const GAME_VERSION = '0.2.0'; // versão em desenvolvimento (a mesma do app do Windows)
+const GAME_VERSION = '0.3.0'; // versão em desenvolvimento (a mesma do app do Windows)
 try { document.querySelectorAll('.game-ver').forEach(e => { e.textContent = GAME_VERSION; }); } catch (e) {}
 // dica na tela de carregamento
-const LOAD_TIPS = ['Parado com o farol aceso por muito tempo, a bateria arria. Aperte H.', 'Sem dinheiro? O Seu Zé faz fiado. Só não some, que ele cobra.', 'De ré na vaga azul vale mais dinheiro.', 'Casca de banana na pista escorrega de verdade.', 'Na blitz da Lei Seca, pare ao lado do guarda de colete.', 'Depois das 22h tem racha. Cuidado com a viatura.', 'Pneus gastam mais quando você derrapa.', 'O Banestresse empresta, mas desconta toda virada de noite.', 'Q abre o celular. O mapa fica no app Mapa.', 'Óleo vencido faz o motor soltar fumaça e perder força.', 'Carona na BR rende gorjeta se você não bater.', 'Na chuva o carro escorrega mais, e no barro mais ainda.', 'F11 deixa o jogo em tela cheia.'];
+const LOAD_TIPS = ['Parado com o farol aceso por muito tempo, a bateria arria. O J apaga o farol.', 'Sem dinheiro? O Seu Zé faz fiado. Só não some, que ele cobra.', 'De ré na vaga azul vale mais dinheiro.', 'Casca de banana na pista escorrega de verdade.', 'Na blitz da Lei Seca, pare ao lado do guarda de colete.', 'Das 22h às 4h30 tem racha. Abra o app Racha no celular.', 'Pneus gastam mais quando você derrapa.', 'O Banestresse empresta, mas desconta toda virada de noite.', 'Q abre o celular. O mapa fica no app Mapa.', 'Óleo vencido faz o motor soltar fumaça e perder força.', 'Carona na BR rende gorjeta se você não bater.', 'Na chuva o carro escorrega mais, e no barro mais ainda.', 'F11 deixa o jogo em tela cheia.'];
 function loadTipHTML() { return '<b>DICA</b>' + LOAD_TIPS[Math.floor(Math.random() * LOAD_TIPS.length)]; }
 try { const el = document.getElementById('load-tip'); if (el) el.innerHTML = loadTipHTML(); } catch (e) {}
-// no app do computador (Windows) aparece o botão SAIR DO JOGO
+// no app do computador (Windows) aparece o botão SAIR
 try { if (window.brnd && window.brnd.desktop) document.querySelectorAll('.desk-only').forEach((e) => e.classList.remove('hidden')); } catch (e) {}
 
 /* ============================ UTILIDADES ============================ */

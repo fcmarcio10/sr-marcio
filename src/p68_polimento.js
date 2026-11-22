@@ -86,6 +86,7 @@ Missao.legenda = function (html, seg, quem) {
 };
 // caixa de ajuda no canto de cima
 Missao.ajuda = function (html, seg) {
+  Teclas.fecha(); // mesmo canto da tela que o quadro de teclas
   this.mostra('ms-ajuda', html, seg || 8);
   try { AudioSys.tone(880, 0.12, 'sine', 0.05, 'ui'); AudioSys.tone(1320, 0.16, 'sine', 0.04, 'ui', null, 0.08); } catch (e) {}
 };
