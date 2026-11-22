@@ -398,7 +398,7 @@ class Player {
         const dx = an.x - cx, dy = an.y - cy, d2 = dx * dx + dy * dy, R = r + an.r;
         if (d2 >= R * R) continue;
         const d = Math.sqrt(d2) || 0.001, nx = dx / d, ny = dy / d, pen = R - d;
-        const heavy = an.r > 8;
+        const heavy = an.type === 'cow' || an.type === 'horse'; // boi e cavalo seguram o carro
         an.x += nx * pen * (heavy ? 0.4 : 1); an.y += ny * pen * (heavy ? 0.4 : 1);
         if (heavy) { this.x -= nx * pen * 0.6; this.y -= ny * pen * 0.6; this.vx *= 0.97; this.vy *= 0.97; }
         an.scare(this.x, this.y, true);
@@ -976,12 +976,12 @@ function emParede(x, y, r) {
 }
 const Animals = { list: [], soundT: 3 };
 const ANIMAL = {
-  cow: { r: 11, walk: 12, flee: 55, scare: 110 },
-  horse: { r: 10, walk: 22, flee: 95, scare: 130 },
-  chicken: { r: 3, walk: 16, flee: 70, scare: 90 },
-  dog: { r: 6, walk: 38, flee: 120, scare: 120 },
-  capybara: { r: 7, walk: 9, flee: 40, scare: 70 },
-  owl: { r: 3, walk: 0, flee: 0, scare: 0 },
+  cow: { r: 9, walk: 12, flee: 55, scare: 110 },
+  horse: { r: 8, walk: 22, flee: 95, scare: 130 },
+  chicken: { r: 2.5, walk: 16, flee: 70, scare: 90 },
+  dog: { r: 4.5, walk: 38, flee: 120, scare: 120 },
+  capybara: { r: 5, walk: 9, flee: 40, scare: 70 },
+  owl: { r: 2.5, walk: 0, flee: 0, scare: 0 },
   person: { r: 4, walk: 20, flee: 85, scare: 95 },
 };
 class Animal {
@@ -1222,9 +1222,13 @@ Peladas.draw = function (ctx, view) {
     ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(G.bx + Math.cos(ga) * off, by + Math.sin(ga) * off, 0.85, 0, TAU); ctx.fill();
   }
 };
+// escala de cada bicho no desenho (comprimento, largura), para ficar no tamanho certo perto das pessoas e dos carros
+// (carro ~4 m; vaca e cavalo ~2,4 m de comprido, vaca mais larga que o cavalo; capivara ~1,2 m; cachorro médio; galinha e coruja pequenas)
+const ESCALA_BICHO = { cow: [1, 0.6], horse: [1, 0.68], chicken: [0.72, 0.72], dog: [0.8, 0.68], capybara: [0.8, 0.68], owl: [0.75, 0.75] };
 function drawAnimal(ctx, an) {
   const aas = Math.atan2(Math.sin(an.a) * SQ, Math.cos(an.a));
   ctx.save(); ctx.translate(an.x, an.y); ctx.scale(1, 1 / SQ); ctx.rotate(aas);
+  { const E = ESCALA_BICHO[an.type]; if (E) ctx.scale(E[0], E[1]); } // tamanho de verdade perto da gente e dos carros
   const pk = passoK(an), walk = pk ? Math.sin(an.phase) * Math.min(1, pk) : 0;
   const graze = an.state === 'graze';
   switch (an.type) {

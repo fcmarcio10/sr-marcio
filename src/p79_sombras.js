@@ -49,7 +49,7 @@ function sbPessoa(P, an, sx, sy) {
   sbElip(P, x, y, 2.6, 1.6, an.a); // pé no chão (contato)
 }
 // bichos: corpo, patas, pescoço e cabeça
-const SB_BICHO = { cow: [11, 13, 7.5, 6], horse: [13, 13, 5.5, 6.5], dog: [6, 6, 2.6, 3], capybara: [5, 7, 3.6, 2.5], chicken: [4, 3.2, 2.6, 1.6] };
+const SB_BICHO = { cow: [11, 13, 4.5, 5], horse: [13, 13, 3.75, 5.5], dog: [4.5, 4.8, 1.8, 2.2], capybara: [4, 5.6, 2.45, 2], chicken: [3, 2.3, 1.9, 1.15] }; // altura, comprimento, largura e cabeça no mesmo tamanho do desenho (ESCALA_BICHO)
 function sbBicho(P, an, sx, sy, Hk) {
   const D = SB_BICHO[an.type]; if (!D) return;
   const [H, L, W, cab] = D, x = an.x, y = an.y, hx = Math.cos(an.a), hy = Math.sin(an.a), px = -hy, py = hx;
