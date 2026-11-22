@@ -1603,3 +1603,21 @@ body.cinema #fala-leg { opacity: 0 !important; }
 #hud-dash .life-row > div > span { width: 14px; flex: none; justify-content: center; }
 #hud-dash .life-row .bar { flex: 1; height: 5px; }
 #hud-dash .bar-row .hi, #hud-dash .life-row .hi { width: 14px; height: 14px; }
+/* ---------- app de trapaças (0.2.0): abas, cartões e chaves de liga/desliga ---------- */
+.ch-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 3px; margin: 2px 0 8px; border-radius: 11px; background: #1c1c1e; }
+.ch-tabs button, .ch-seg button { pointer-events: auto; cursor: pointer; border: 0; border-radius: 8px; padding: 7px 2px; background: transparent; color: #a1a1aa; font: 600 11.5px -apple-system, "Segoe UI", sans-serif; }
+.ch-tabs button.on, .ch-seg button.on { background: #7d3cff; color: #fff; }
+.ch-card { background: #141416; border: 1px solid #26262b; border-radius: 14px; padding: 9px; margin-bottom: 8px; }
+.ch-card .ch-sec { margin: 0 2px 7px; }
+.ch-card .ch-btn { background: #232327; padding: 9px 6px; line-height: 1.15; }
+.ch-card .ch-btn:hover { background: #2f2f35; }
+.ch-card .ch-btn:active { background: #7d3cff; }
+.ch-seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 3px; border-radius: 10px; background: #232327; }
+.ch-sw { pointer-events: auto; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 0; background: transparent; padding: 7px 2px; color: #fff; text-align: left; border-top: 1px solid #232327; }
+.ch-card .ch-sec + .ch-sw { border-top: 0; }
+.ch-sw span { display: flex; flex-direction: column; gap: 1px; }
+.ch-sw b { font: 600 12.5px -apple-system, "Segoe UI", sans-serif; }
+.ch-sw small { font: 500 10.5px -apple-system, "Segoe UI", sans-serif; color: #8e8e93; }
+.ch-sw i { flex: none; width: 38px; height: 22px; border-radius: 11px; background: #3a3a3f; position: relative; transition: background 0.2s; }
+.ch-sw i::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+.ch-sw.on i { background: #30d158; } .ch-sw.on i::after { transform: translateX(16px); }

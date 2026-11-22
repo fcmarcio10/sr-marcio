@@ -5345,7 +5345,7 @@ Traffic.fill = function (cx, cy) {
   const v = Cam.view && Cam.view.x1 > Cam.view.x0 ? Cam.view : { x0: cx - 700, y0: cy - 400, x1: cx + 700, y1: cy + 400 };
   const w = (v.x1 - v.x0) / 2, h = (v.y1 - v.y0) / 2, vv = { x0: cx - w, y0: cy - h, x1: cx + w, y1: cy + h };
   this.scanEdges(vv);
-  const mx = trafficTarget(vv);
+  const mx = typeof Cheats !== 'undefined' && Cheats.semCarros ? 0 : trafficTarget(vv); // trapaça Ruas vazias
   for (let i = 0; i < mx * 3 && this.cars.length < mx; i++) this.spawnRing(vv, true);
   this.timer = 0;
 };
@@ -5383,7 +5383,7 @@ Traffic.update = function (dt, now, cx, cy, view) {
     const visMax = Settings.quality === 'baixa' ? 3 : altaQ() ? 5 : 4;
     let n = 0;
     let naFaixa = 0; for (const c of this.cars) if (!c.ze && trInView(c, v, TR_RING + 30)) naFaixa++; // quem já saiu para longe não ocupa lugar
-    while (naFaixa < mx && this.cars.length < mx + 4 && vis < visMax && n++ < 2) if (this.spawnRing(v, false)) naFaixa++; else break;
+    while (!(typeof Cheats !== 'undefined' && Cheats.semCarros) && naFaixa < mx && this.cars.length < mx + 4 && vis < visMax && n++ < 2) if (this.spawnRing(v, false)) naFaixa++; else break;
     // menos carros fora do pico: tira um por vez, dos que estão fora da tela
     if (this.cars.length > mx + 4 || (naFaixa > mx && this.cars.length > mx)) {
       let far = -1, fd = 0;
@@ -7171,8 +7171,8 @@ function socorroBar(H) {
 /* ---------- APP TEMPORÁRIO DE TRAPAÇAS (para testes) ----------
    Para remover: troque CHEATS_ENABLED para false (o ícone some e nada disso roda). */
 const CHEATS_ENABLED = true;
-// as trapaças só aparecem para o dono: digite GAMBIARRA no jogo (liga e desliga). Em navegador de teste ficam ligadas.
-function modoDono() { try { return !!navigator.webdriver || localStorage.getItem('brnd_dono') === '1'; } catch (e) { return false; } }
+// trapaças: no navegador (o jogo publicado no link) aparecem direto; no app do Windows só depois de digitar GAMBIARRA
+function modoDono() { try { return !!navigator.webdriver || !(window.brnd && window.brnd.desktop) || localStorage.getItem('brnd_dono') === '1'; } catch (e) { return false; } }
 const Segredo = { buf: '' };
 Segredo.tecla = function (code) {
   if (!/^Key[A-Z]$/.test(code)) return;
@@ -7184,7 +7184,7 @@ Segredo.tecla = function (code) {
     if (Screens.current === 'screen-phone') Phone.render();
   }
 };
-const Cheats = { god: false, turbo: false };
+const Cheats = { god: false, turbo: false, semCarros: false };
 const CHEAT_PLACES = [
   ['Garagem', () => World.home], ['Oficina do Seu Zé', () => World.shops.find((s) => s.kind === 'oficina')], ['Batalhão da PM', () => World.shops.find((s) => s.kind === 'batalhao')],
   ['Centrão', () => ({ x: 1600, y: 1150 })], ['Feio Rosa', () => ({ x: 1150, y: 7350 })], ['Jardim Cara-Pintada', () => ({ x: 3300, y: 7350 })],
@@ -7213,6 +7213,8 @@ function cheatDo(k, v) {
   if (k === 'deszera') { const D = Desafios.d(); D.prog = {}; D.feito = {}; D.bonus = false; D.ganho0 = Profile.earned || 0; ok('Progresso dos desafios zerado'); }
   if (k === 'missao') { if (Historia.pula()) { Screens.closeAll(); ok('Missão cumprida (trapaça)'); } else ok('A história já terminou'); return; }
   if (k === 'god') { Cheats.god = !Cheats.god; ok('Modo indestrutível ' + (Cheats.god ? 'ligado' : 'desligado')); }
+  if (k === 'tab') { Phone.chTab = v; Phone.render(); return; }
+  if (k === 'semCarros') { Cheats.semCarros = !Cheats.semCarros; if (Cheats.semCarros) { for (const c of Traffic.cars) if (!c.ze) c.release(); Traffic.cars = Traffic.cars.filter((c) => c.ze); } ok(Cheats.semCarros ? 'Ruas vazias: sem carros do trânsito' : 'O trânsito voltou'); }
   if (k === 'turbo') { Cheats.turbo = !Cheats.turbo; player.recalc(); ok('Turbo ' + (Cheats.turbo ? 'ligado' : 'desligado')); }
   if (k === 'tp') { const pl = CHEAT_PLACES[+v]; cheatTeleport(pl && pl[1]()); Screens.closeAll(); ok('Teleporte: ' + (pl ? pl[0] : '')); return; }
   if (k === 'tpgps') { if (Act.waypoint) { cheatTeleport(Act.waypoint); Screens.closeAll(); ok('Teleporte para o destino do GPS'); } else ok('Marque um destino no Mapa antes'); return; }
@@ -7514,17 +7516,28 @@ const Phone = {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Racha</div>' + (open ? '<p class="ph-note">Madrugada liberada. Vá até o ponto e aperte E. Quem ganhar leva o dobro da aposta. Se uma viatura chegar perto, é multa e aposta perdida.</p>' : '<p class="ph-empty">Os rachas só rolam de madrugada, das 22h às 4h30. Agora são ' + clockStr() + '.</p>') +
         World.rachas.map((r, i) => `<button class="ph-row" data-racha="${i}"><b>${H(r.name)} · aposta R$ ${fmtMoney(r.bet)}</b><span>contra ${H(r.rival)} (${fmtTime(r.rivalTime)}) · toque para marcar no GPS</span></button>`).join('');
     } else if (this.app === 'trapaca' && CHEATS_ENABLED && modoDono()) {
-      const btn = (k, v, label, on) => `<button class="ch-btn${on ? ' on' : ''}" data-cheat="${k}" data-cv="${v}">${label}</button>`;
-      html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Trapaças</div><p class="ph-note">App temporário de testes.</p>' +
-        '<div class="ch-sec">História</div><div class="ch-grid">' + btn('missao', 0, 'Pular missão') + '</div>' +
-        '<div class="ch-sec">Desafios do dia</div><div class="ch-grid">' + btn('des', 0, 'Cumprir o 1º') + btn('des', 1, 'Cumprir o 2º') + btn('des', 2, 'Cumprir o 3º') + btn('desnovo', 0, 'Outros 3 desafios') + btn('deszera', 0, 'Zerar o progresso') + '</div>' +
-        '<div class="ch-sec">Dinheiro e carro</div><div class="ch-grid">' + btn('money', 0, '+R$ 10.000') + btn('fix', 0, 'Consertar e encher') + btn('cars', 0, 'Liberar veículos') + btn('pois', 0, 'Revelar pontos') + btn('god', 0, 'Indestrutível', Cheats.god) + btn('turbo', 0, 'Turbo', Cheats.turbo) + '</div>' +
-        '<div class="ch-sec">Horário</div><div class="ch-grid">' + btn('time', 5 * 60 + 15, '05:15 (amanhecer)') + btn('time', 12 * 60, '12:00') + btn('time', 17 * 60 + 10, '17:10 (fim de tarde)') + btn('time', 19 * 60 + 40, '19:40') + btn('time', 22 * 60 + 5, '22:05 (racha)') + btn('time', 2 * 60, '02:00') + btn('dia', 0, 'Pular um dia') + btn('time', 4 * 60 + 40, '04:40') + '</div>' +
-        '<div class="ch-sec">Clima</div><div class="ch-grid">' + btn('wx', 'limpo', 'Limpo', Settings.weather === 'limpo') + btn('wx', 'garoa', 'Garoa') + btn('wx', 'chuva', 'Temporal', Settings.weather === 'chuva') + btn('wx', 'auto', 'Dinâmico', Settings.weather === 'auto') + '</div>' +
-        (POLICE_ENABLED ? '<div class="ch-sec">Polícia</div><div class="ch-grid">' + btn('police', 1, '★') + btn('police', 2, '★★') + btn('police', 3, '★★★') + btn('police', 0, 'Limpar') + '</div>' : '') +
-        '<div class="ch-sec">Eventos</div><div class="ch-grid">' + Object.keys(EV_NAMES).map((k) => btn('ev', k, H(EV_NAMES[k]))).join('') + '</div>' +
-        '<div class="ch-sec">Vida do carro</div><div class="ch-grid">' + btn('wear', 15, 'Gastar tudo (15%)') + btn('wear', 0, 'Zerar tudo') + btn('wear', 100, 'Tudo novo') + '</div>' +
-        '<div class="ch-sec">Teleporte</div><div class="ch-grid">' + CHEAT_PLACES.map(([n], i) => btn('tp', i, H(n))).join('') + btn('tpgps', 0, 'Destino do GPS') + '</div>';
+      // (0.2.0) app de trapaças organizado em abas, cada assunto num cartão, liga/desliga com chave
+      const tab = this.chTab || 'jogo', btn = (k, v, label) => `<button class="ch-btn" data-cheat="${k}" data-cv="${v}">${label}</button>`;
+      const chave = (k, label, desc, on) => `<button class="ch-sw${on ? ' on' : ''}" data-cheat="${k}" data-cv="0"><span><b>${label}</b><small>${desc}</small></span><i></i></button>`;
+      const card = (t, inner, grade) => `<div class="ch-card"><div class="ch-sec">${t}</div>${grade === false ? inner : '<div class="ch-grid">' + inner + '</div>'}</div>`;
+      const abas = [['jogo', 'Jogo'], ['carro', 'Carro'], ['mundo', 'Mundo'], ['ir', 'Ir para']];
+      html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Trapaças</div>' +
+        '<div class="ch-tabs">' + abas.map(([id, n]) => `<button class="${tab === id ? 'on' : ''}" data-cheat="tab" data-cv="${id}">${n}</button>`).join('') + '</div>';
+      if (tab === 'jogo') html +=
+        card('História', btn('missao', 0, 'Pular missão')) +
+        card('Dinheiro', btn('money', 0, '+R$ 10.000') + btn('cars', 0, 'Liberar veículos') + btn('pois', 0, 'Revelar pontos')) +
+        card('Desafios do dia', btn('des', 0, 'Cumprir o 1º') + btn('des', 1, 'Cumprir o 2º') + btn('des', 2, 'Cumprir o 3º') + btn('desnovo', 0, 'Outros 3') + btn('deszera', 0, 'Zerar progresso'));
+      else if (tab === 'carro') html +=
+        card('Modos', chave('god', 'Indestrutível', 'Não amassa e nada gasta', Cheats.god) + chave('turbo', 'Turbo', 'Mais força e velocidade', Cheats.turbo), false) +
+        card('Conserto', btn('fix', 0, 'Consertar e encher')) +
+        card('Vida do carro', btn('wear', 100, 'Tudo novo') + btn('wear', 15, 'Gastar (15%)') + btn('wear', 0, 'Zerar tudo'));
+      else if (tab === 'mundo') html +=
+        card('Trânsito', chave('semCarros', 'Ruas vazias', 'Tira os carros do trânsito', Cheats.semCarros), false) +
+        card('Horário', btn('time', 5 * 60 + 15, '05:15 amanhecer') + btn('time', 12 * 60, '12:00') + btn('time', 17 * 60 + 10, '17:10 fim de tarde') + btn('time', 19 * 60 + 40, '19:40') + btn('time', 22 * 60 + 5, '22:05 racha') + btn('time', 2 * 60, '02:00') + btn('time', 4 * 60 + 40, '04:40') + btn('dia', 0, 'Pular um dia')) +
+        card('Clima', `<div class="ch-seg">${[['limpo', 'Limpo'], ['garoa', 'Garoa'], ['chuva', 'Temporal'], ['auto', 'Dinâmico']].map(([v, n]) => `<button class="${Settings.weather === v ? 'on' : ''}" data-cheat="wx" data-cv="${v}">${n}</button>`).join('')}</div>`, false) +
+        (POLICE_ENABLED ? card('Polícia', btn('police', 1, '1 estrela') + btn('police', 2, '2 estrelas') + btn('police', 3, '3 estrelas') + btn('police', 0, 'Limpar')) : '') +
+        card('Eventos', Object.keys(EV_NAMES).map((k) => btn('ev', k, H(EV_NAMES[k]))).join(''));
+      else html += card('Teleporte', CHEAT_PLACES.map(([n], i) => btn('tp', i, H(n))).join('') + btn('tpgps', 0, 'Destino do GPS'));
     } else if (this.app === 'conquistas') {
       const A = Profile.ach || {}, done = ACHIEVEMENTS.filter((a) => A[a.id]).length;
       const fmtV = (a, v) => a.money ? 'R$ ' + fmtMoney(Math.floor(v)) : (a.unit === ' km' || a.unit === ' s' ? v.toFixed(1).replace('.', ',') : Math.floor(v)) + (a.unit || '');

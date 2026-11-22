@@ -973,7 +973,7 @@ Traffic.fill = function (cx, cy) {
   const v = Cam.view && Cam.view.x1 > Cam.view.x0 ? Cam.view : { x0: cx - 700, y0: cy - 400, x1: cx + 700, y1: cy + 400 };
   const w = (v.x1 - v.x0) / 2, h = (v.y1 - v.y0) / 2, vv = { x0: cx - w, y0: cy - h, x1: cx + w, y1: cy + h };
   this.scanEdges(vv);
-  const mx = trafficTarget(vv);
+  const mx = typeof Cheats !== 'undefined' && Cheats.semCarros ? 0 : trafficTarget(vv); // trapaça Ruas vazias
   for (let i = 0; i < mx * 3 && this.cars.length < mx; i++) this.spawnRing(vv, true);
   this.timer = 0;
 };
@@ -1011,7 +1011,7 @@ Traffic.update = function (dt, now, cx, cy, view) {
     const visMax = Settings.quality === 'baixa' ? 3 : altaQ() ? 5 : 4;
     let n = 0;
     let naFaixa = 0; for (const c of this.cars) if (!c.ze && trInView(c, v, TR_RING + 30)) naFaixa++; // quem já saiu para longe não ocupa lugar
-    while (naFaixa < mx && this.cars.length < mx + 4 && vis < visMax && n++ < 2) if (this.spawnRing(v, false)) naFaixa++; else break;
+    while (!(typeof Cheats !== 'undefined' && Cheats.semCarros) && naFaixa < mx && this.cars.length < mx + 4 && vis < visMax && n++ < 2) if (this.spawnRing(v, false)) naFaixa++; else break;
     // menos carros fora do pico: tira um por vez, dos que estão fora da tela
     if (this.cars.length > mx + 4 || (naFaixa > mx && this.cars.length > mx)) {
       let far = -1, fd = 0;
