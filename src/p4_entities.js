@@ -1476,6 +1476,7 @@ function drawAnimal(ctx, an) {
       ctx.fillStyle = an.pants; ctx.beginPath(); ctx.rect(-1.3 - sw * 0.55, -2.6, 2.6 + Math.abs(sw) * 0.15, 1.8); ctx.rect(-1.3 + sw * 0.55, 0.8, 2.6 + Math.abs(sw) * 0.15, 1.8); ctx.fill();
       if (ck > 0.2) { ctx.fillStyle = '#1a1a1e'; ctx.beginPath(); ctx.rect(1.2 - sw * 0.55 + Math.abs(sw) * 0.15, -2.5, 0.9, 1.6); ctx.rect(1.2 + sw * 0.55 + Math.abs(sw) * 0.15, 0.9, 0.9, 1.6); ctx.fill(); } // tênis aparecendo na passada
       if (an.chute > 0) { ctx.fillStyle = an.pants; ctx.fillRect(1.2, 0.5, 3.8, 1.7); ctx.fillStyle = '#1a1a1e'; ctx.fillRect(4.8, 0.4, 1.4, 1.9); } // perna esticada no chute
+      if (desenhoQ()) { ctx.fillStyle = '#101218'; ctx.beginPath(); ctx.ellipse(0, 0, 3.3, 5.1, 0, 0, TAU); ctx.moveTo(3.3, 0); ctx.arc(0.5, 0, 2.9, 0, TAU); ctx.fill(); } // contorno de HQ no corpo e na cabeça
       // mãos: uma reação (susto, punho, mão no ouvido) troca as mãos normais, nunca soma; correndo a reação não entra (os braços vão junto)
       const re0 = an.reacao && Game.time - an.reacao.t < 1.8 && ck < 0.3 ? an.reacao : null;
       ctx.fillStyle = an.skin; ctx.beginPath();
@@ -1576,6 +1577,7 @@ function drawAnimal(ctx, an) {
 /* ============================ PARTÍCULAS E MARCAS ============================ */
 function altaQ() { return Settings.quality === 'alta' || Settings.quality === 'ultra'; } // Ultra = Alta + sol e sombras mais fortes
 function ultraQ() { return Settings.quality === 'ultra'; }
+function desenhoQ() { return Settings.estilo === 'desenho'; } // estilo Desenho: pixels nítidos, contorno de HQ e cores fortes
 // cor da poeira conforme o chão: terra batida, terra vermelha, pasto seco e areia
 function corPoeira(g) { return g === SF.EARTH ? '#93633f' : g === SF.SAND ? '#e3cf9a' : g === SF.FIELD || g === SF.GRASS ? '#a99c72' : '#a0805a'; }
 // nuvem de poeira pronta (degradê redondo, sem borda): uma imagem por cor

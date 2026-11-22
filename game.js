@@ -96,7 +96,7 @@ const HORNS = {
 };
 // câmera única (0.2.0): sempre a altura de perto (145%); nada passa de 120%, nem correndo
 const CAM_ZOOM = 145, CAM_MIN = 120;
-const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', zoom: CAM_ZOOM, showFps: false, fpsCap: '60', minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4, slot: 1, legendas: true, teclas: {} }; // rádio começa desligada; depois o jogo lembra como você deixou
+const Settings = { weather: 'auto', master: 80, engine: 65, ambient: 40, ui: 45, quality: 'alta', estilo: 'realista', zoom: CAM_ZOOM, showFps: false, fpsCap: '60', minimapRotate: false, msgMode: 'audio', radio: 55, radioOff: true, sv: 4, slot: 1, legendas: true, teclas: {} }; // rádio começa desligada; depois o jogo lembra como você deixou
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem('brnd_settings') || 'null');
@@ -3933,6 +3933,7 @@ function drawVehicle(ctx, m, color, x, y, a, o) {
   else if (m.kind === 'tractor') drawTractor(ctx, m, color, o);
   else if (m.kind === 'moto') drawMoto(ctx, m, color, o);
   else drawCar(ctx, m, color, o);
+  if (desenhoQ()) { ctx.strokeStyle = 'rgba(10,10,16,0.92)'; ctx.lineWidth = 1.5; if (m.kind === 'car') ctx.stroke(bodyPath(m)); else { ctx.beginPath(); rrect(ctx, -m.L / 2, -m.W / 2, m.L, m.W, m.kind === 'moto' ? 3 : 4); ctx.stroke(); } } // contorno de HQ
   ctx.restore();
 }
 function drawMoto(ctx, m, color, o) {
@@ -4263,6 +4264,16 @@ function sombraArvore(type, v) {
   const k = type + v; let c = _sombraArv.get(k);
   if (!c) { const spr = treeSprite(type, v); c = makeCanvas(spr.width, spr.height); const g = c.getContext('2d'); g.drawImage(spr, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height); _sombraArv.set(k, c); }
   return c;
+}
+// estilo Desenho: o mesmo desenho da árvore com um contorno escuro em volta (feito uma vez por tipo)
+const _treeHQ = new Map();
+function treeHQ(type, v) {
+  const k = type + v; let c = _treeHQ.get(k); if (c) return c;
+  const base = treeSprite(type, v), W = base.width, H = base.height, d = Math.max(1, Math.round(W / 64 * 1.3));
+  const sil = makeCanvas(W, H), sg = sil.getContext('2d'); sg.drawImage(base, 0, 0); sg.globalCompositeOperation = 'source-in'; sg.fillStyle = '#0c1208'; sg.fillRect(0, 0, W, H);
+  c = makeCanvas(W, H); const g = c.getContext('2d');
+  for (const [dx, dy] of [[-d, 0], [d, 0], [0, -d], [0, d], [-d, -d], [d, d], [-d, d], [d, -d]]) g.drawImage(sil, dx, dy);
+  g.drawImage(base, 0, 0); _treeHQ.set(k, c); return c;
 }
 function treeSprite(type, v) {
   const k = type + v;
@@ -5876,6 +5887,7 @@ function drawAnimal(ctx, an) {
       ctx.fillStyle = an.pants; ctx.beginPath(); ctx.rect(-1.3 - sw * 0.55, -2.6, 2.6 + Math.abs(sw) * 0.15, 1.8); ctx.rect(-1.3 + sw * 0.55, 0.8, 2.6 + Math.abs(sw) * 0.15, 1.8); ctx.fill();
       if (ck > 0.2) { ctx.fillStyle = '#1a1a1e'; ctx.beginPath(); ctx.rect(1.2 - sw * 0.55 + Math.abs(sw) * 0.15, -2.5, 0.9, 1.6); ctx.rect(1.2 + sw * 0.55 + Math.abs(sw) * 0.15, 0.9, 0.9, 1.6); ctx.fill(); } // tênis aparecendo na passada
       if (an.chute > 0) { ctx.fillStyle = an.pants; ctx.fillRect(1.2, 0.5, 3.8, 1.7); ctx.fillStyle = '#1a1a1e'; ctx.fillRect(4.8, 0.4, 1.4, 1.9); } // perna esticada no chute
+      if (desenhoQ()) { ctx.fillStyle = '#101218'; ctx.beginPath(); ctx.ellipse(0, 0, 3.3, 5.1, 0, 0, TAU); ctx.moveTo(3.3, 0); ctx.arc(0.5, 0, 2.9, 0, TAU); ctx.fill(); } // contorno de HQ no corpo e na cabeça
       // mãos: uma reação (susto, punho, mão no ouvido) troca as mãos normais, nunca soma; correndo a reação não entra (os braços vão junto)
       const re0 = an.reacao && Game.time - an.reacao.t < 1.8 && ck < 0.3 ? an.reacao : null;
       ctx.fillStyle = an.skin; ctx.beginPath();
@@ -5976,6 +5988,7 @@ function drawAnimal(ctx, an) {
 /* ============================ PARTÍCULAS E MARCAS ============================ */
 function altaQ() { return Settings.quality === 'alta' || Settings.quality === 'ultra'; } // Ultra = Alta + sol e sombras mais fortes
 function ultraQ() { return Settings.quality === 'ultra'; }
+function desenhoQ() { return Settings.estilo === 'desenho'; } // estilo Desenho: pixels nítidos, contorno de HQ e cores fortes
 // cor da poeira conforme o chão: terra batida, terra vermelha, pasto seco e areia
 function corPoeira(g) { return g === SF.EARTH ? '#93633f' : g === SF.SAND ? '#e3cf9a' : g === SF.FIELD || g === SF.GRASS ? '#a99c72' : '#a0805a'; }
 // nuvem de poeira pronta (degradê redondo, sem borda): uma imagem por cor
@@ -8884,8 +8897,10 @@ function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
   const dpr = window.devicePixelRatio || 1;
   RS = altaQ() ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.7 : Math.min(dpr, 1.25);
+  if (desenhoQ()) RS = 0.5; // estilo Desenho: metade dos pontos e ampliado sem borrar (cada ponto vira um quadradinho nítido)
+  canvas.classList.toggle('pixel', desenhoQ());
   if (AutoRes.q !== Settings.quality) { AutoRes.q = Settings.quality; AutoRes.k = 1; AutoRes.teto = 1; } // trocou o gráfico: começa do zero
-  RS_MAX = RS; RS = Math.max(Math.min(RS, 0.75), RS * AutoRes.k); // nitidez automática para segurar 60 FPS
+  RS_MAX = RS; if (!desenhoQ()) RS = Math.max(Math.min(RS, 0.75), RS * AutoRes.k); // nitidez automática para segurar 60 FPS
   canvas.width = Math.round(SCREEN_W * RS); canvas.height = Math.round(SCREEN_H * RS);
   // a camada de luz é toda suave: resolução menor não muda o visual e alivia muito
   LS = altaQ() ? 0.5 : Settings.quality === 'baixa' ? 0.28 : 0.42;
@@ -9520,6 +9535,7 @@ function drawBuilding(ctx, b) {
   if (ox > 0.3) dw(ctx, b, x0, y1, x0, y0, ox, oy, 'W'); else if (ox < -0.3) dw(ctx, b, x1, y0, x1, y1, ox, oy, 'E');
   if (oy > 0.3) dw(ctx, b, x0, y0, x1, y0, ox, oy, 'N'); else if (oy < -0.3) dw(ctx, b, x1, y1, x0, y1, ox, oy, 'S');
   ctx.drawImage(roofSprite(b), x0 + ox, y0 + oy, x1 - x0, y1 - y0);
+  if (desenhoQ()) { ctx.strokeStyle = 'rgba(12,12,18,0.9)'; ctx.lineWidth = 1.6; ctx.strokeRect(x0 + ox, y0 + oy, x1 - x0, y1 - y0); } // contorno de HQ no telhado
   if (b.party) drawParty(ctx, b, x0 + ox, y0 + oy);
   if (alpha < 1) ctx.globalAlpha = 1;
 }
@@ -9591,7 +9607,7 @@ function drawTall(ctx, o) {
       }
       const [ox0, oy] = offAt(o.x, o.y, o.h);
       const bv = Vento.bal(o.x, o.y, o.x * 0.05 + o.y * 0.03, (o.type === 'bush' ? 1.1 : 1.8) * o.size), ox = ox0 + bv; // balança com o vento (rajadas passando)
-      const spr = treeSprite(o.type, o.v);
+      const spr = desenhoQ() ? treeHQ(o.type, o.v) : treeSprite(o.type, o.v);
       const S = 64 * o.size * (o.type === 'bush' ? 0.55 : 1);
       let a = 1;
       if (player && Game.state !== 'menu') { const d = Math.hypot(player.x - o.x - ox, player.y - o.y - oy); if (d < S * 0.32) a = 0.7; }
@@ -10508,9 +10524,10 @@ function render() {
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   ctx.fillStyle = '#0a1008'; ctx.fillRect(0, 0, W, Hh);
   pm('clear');
-  ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
-  WS_BASE.ctx = ctx; WS_BASE.z = z; WS_BASE.zs = z * SQ; WS_BASE.tx = W / 2 - cx * z; WS_BASE.ty = Hh / 2 - cy * z * SQ; wsTrim();
-  ctx.imageSmoothingEnabled = true;
+  const DQ = desenhoQ(), tx0 = W / 2 - cx * z, ty0 = Hh / 2 - cy * z * SQ, TX = DQ ? Math.round(tx0) : tx0, TY = DQ ? Math.round(ty0) : ty0; // Desenho: a câmera anda de ponto em ponto (sem tremer nem costura no chão)
+  ctx.setTransform(z, 0, 0, z * SQ, TX, TY);
+  WS_BASE.ctx = ctx; WS_BASE.z = z; WS_BASE.zs = z * SQ; WS_BASE.tx = TX; WS_BASE.ty = TY; wsTrim();
+  ctx.imageSmoothingEnabled = !DQ;
   drawGround(view, forceGround); forceGround = false;
   bordaFora(ctx, view); // além da borda: mata e mar continuam (por cima do chão que passa da borda)
   pm('ground');
@@ -10597,6 +10614,7 @@ function render() {
     gctx.globalAlpha = 1; gctx.globalCompositeOperation = 'source-over';
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.imageSmoothingEnabled = true; // a luz e o brilho continuam macios
   ctx.imageSmoothingQuality = 'low';
   ctx.drawImage(lightCanvas, 0, 0, W, Hh);
   pm('compLight');
@@ -12371,7 +12389,7 @@ function bindSettings() {
       const v = b.dataset.v;
       Settings[k] = v === 'true' ? true : v === 'false' ? false : v;
       AudioSys.click();
-      if (k === 'quality') { resize(); clearChunks(); forceGround = true; Particles.list.length = 0; }
+      if (k === 'quality' || k === 'estilo') { _treeHQ.clear(); resize(); clearChunks(); forceGround = true; Particles.list.length = 0; }
       if (k === 'showFps') $('fps').classList.toggle('hidden', !Settings.showFps);
       saveSettings(); syncSettingsUI();
     });
@@ -13938,9 +13956,9 @@ Dia.sombrasSol = function (ctx, view) {
 };
 // Ultra: cores um pouco mais vivas de dia (filtro da própria tela, quase sem custo); some de noite
 Dia.saturacao = function () {
-  const v = ultraQ() && Game.mode === 'play' ? 1.08 + 0.24 * this.sol : 1, key = v.toFixed(2); // Ultra: cores vivas de dia e um pouco de noite (letreiros e luzes)
+  const D = desenhoQ() && Game.mode === 'play', v = (ultraQ() && Game.mode === 'play' ? 1.08 + 0.24 * this.sol : 1) * (D ? 1.28 : 1), key = v.toFixed(2) + (D ? 'd' : ''); // Ultra: cores vivas de dia e um pouco de noite (letreiros e luzes)
   if (key === this._sat) return; this._sat = key;
-  canvas.style.filter = key === '1.00' ? '' : `saturate(${key}) contrast(${(1.03 + 0.05 * this.sol).toFixed(3)})`;
+  canvas.style.filter = key === '1.00' ? '' : `saturate(${v.toFixed(2)}) contrast(${(1.03 + 0.05 * this.sol + (D ? 0.1 : 0)).toFixed(3)})`; // Desenho: cores fortes e chapadas
 };
 // luz do sol de dia: um toque quente e mais contraste (estilo cinema), por cima de tudo
 Dia.luzSol = function (ctx, W, H) {

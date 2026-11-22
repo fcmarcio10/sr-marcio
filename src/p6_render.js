@@ -32,8 +32,10 @@ function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
   const dpr = window.devicePixelRatio || 1;
   RS = altaQ() ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.7 : Math.min(dpr, 1.25);
+  if (desenhoQ()) RS = 0.5; // estilo Desenho: metade dos pontos e ampliado sem borrar (cada ponto vira um quadradinho nítido)
+  canvas.classList.toggle('pixel', desenhoQ());
   if (AutoRes.q !== Settings.quality) { AutoRes.q = Settings.quality; AutoRes.k = 1; AutoRes.teto = 1; } // trocou o gráfico: começa do zero
-  RS_MAX = RS; RS = Math.max(Math.min(RS, 0.75), RS * AutoRes.k); // nitidez automática para segurar 60 FPS
+  RS_MAX = RS; if (!desenhoQ()) RS = Math.max(Math.min(RS, 0.75), RS * AutoRes.k); // nitidez automática para segurar 60 FPS
   canvas.width = Math.round(SCREEN_W * RS); canvas.height = Math.round(SCREEN_H * RS);
   // a camada de luz é toda suave: resolução menor não muda o visual e alivia muito
   LS = altaQ() ? 0.5 : Settings.quality === 'baixa' ? 0.28 : 0.42;
@@ -668,6 +670,7 @@ function drawBuilding(ctx, b) {
   if (ox > 0.3) dw(ctx, b, x0, y1, x0, y0, ox, oy, 'W'); else if (ox < -0.3) dw(ctx, b, x1, y0, x1, y1, ox, oy, 'E');
   if (oy > 0.3) dw(ctx, b, x0, y0, x1, y0, ox, oy, 'N'); else if (oy < -0.3) dw(ctx, b, x1, y1, x0, y1, ox, oy, 'S');
   ctx.drawImage(roofSprite(b), x0 + ox, y0 + oy, x1 - x0, y1 - y0);
+  if (desenhoQ()) { ctx.strokeStyle = 'rgba(12,12,18,0.9)'; ctx.lineWidth = 1.6; ctx.strokeRect(x0 + ox, y0 + oy, x1 - x0, y1 - y0); } // contorno de HQ no telhado
   if (b.party) drawParty(ctx, b, x0 + ox, y0 + oy);
   if (alpha < 1) ctx.globalAlpha = 1;
 }
@@ -739,7 +742,7 @@ function drawTall(ctx, o) {
       }
       const [ox0, oy] = offAt(o.x, o.y, o.h);
       const bv = Vento.bal(o.x, o.y, o.x * 0.05 + o.y * 0.03, (o.type === 'bush' ? 1.1 : 1.8) * o.size), ox = ox0 + bv; // balança com o vento (rajadas passando)
-      const spr = treeSprite(o.type, o.v);
+      const spr = desenhoQ() ? treeHQ(o.type, o.v) : treeSprite(o.type, o.v);
       const S = 64 * o.size * (o.type === 'bush' ? 0.55 : 1);
       let a = 1;
       if (player && Game.state !== 'menu') { const d = Math.hypot(player.x - o.x - ox, player.y - o.y - oy); if (d < S * 0.32) a = 0.7; }
@@ -1656,9 +1659,10 @@ function render() {
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   ctx.fillStyle = '#0a1008'; ctx.fillRect(0, 0, W, Hh);
   pm('clear');
-  ctx.setTransform(z, 0, 0, z * SQ, W / 2 - cx * z, Hh / 2 - cy * z * SQ);
-  WS_BASE.ctx = ctx; WS_BASE.z = z; WS_BASE.zs = z * SQ; WS_BASE.tx = W / 2 - cx * z; WS_BASE.ty = Hh / 2 - cy * z * SQ; wsTrim();
-  ctx.imageSmoothingEnabled = true;
+  const DQ = desenhoQ(), tx0 = W / 2 - cx * z, ty0 = Hh / 2 - cy * z * SQ, TX = DQ ? Math.round(tx0) : tx0, TY = DQ ? Math.round(ty0) : ty0; // Desenho: a câmera anda de ponto em ponto (sem tremer nem costura no chão)
+  ctx.setTransform(z, 0, 0, z * SQ, TX, TY);
+  WS_BASE.ctx = ctx; WS_BASE.z = z; WS_BASE.zs = z * SQ; WS_BASE.tx = TX; WS_BASE.ty = TY; wsTrim();
+  ctx.imageSmoothingEnabled = !DQ;
   drawGround(view, forceGround); forceGround = false;
   bordaFora(ctx, view); // além da borda: mata e mar continuam (por cima do chão que passa da borda)
   pm('ground');
@@ -1745,6 +1749,7 @@ function render() {
     gctx.globalAlpha = 1; gctx.globalCompositeOperation = 'source-over';
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.imageSmoothingEnabled = true; // a luz e o brilho continuam macios
   ctx.imageSmoothingQuality = 'low';
   ctx.drawImage(lightCanvas, 0, 0, W, Hh);
   pm('compLight');
