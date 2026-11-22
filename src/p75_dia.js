@@ -117,14 +117,14 @@ Dia.sombrasSol = function (ctx, view) {
 };
 // Ultra: cores um pouco mais vivas de dia (filtro da própria tela, quase sem custo); some de noite
 Dia.saturacao = function () {
-  const v = ultraQ() && Game.mode === 'play' ? 1 + 0.2 * this.sol : 1, key = v.toFixed(2);
+  const v = ultraQ() && Game.mode === 'play' ? 1.08 + 0.24 * this.sol : 1, key = v.toFixed(2); // Ultra: cores vivas de dia e um pouco de noite (letreiros e luzes)
   if (key === this._sat) return; this._sat = key;
-  canvas.style.filter = key === '1.00' ? '' : `saturate(${key}) contrast(${(1 + 0.04 * this.sol).toFixed(3)})`;
+  canvas.style.filter = key === '1.00' ? '' : `saturate(${key}) contrast(${(1.03 + 0.05 * this.sol).toFixed(3)})`;
 };
 // luz do sol de dia: um toque quente e mais contraste (estilo cinema), por cima de tudo
 Dia.luzSol = function (ctx, W, H) {
   if (this.sol < 0.04 || Settings.quality === 'baixa') return;
-  const U = ultraQ(), k = this.sol * (U ? 1.45 : 1), sx = -(typeof Sol !== 'undefined' ? Sol.dx : 0), sy = -(typeof Sol !== 'undefined' ? Sol.dy : 0.5), l = Math.hypot(sx, sy) || 1;
+  const U = ultraQ(), k = this.sol * (U ? 1.7 : 1), sx = -(typeof Sol !== 'undefined' ? Sol.dx : 0), sy = -(typeof Sol !== 'undefined' ? Sol.dy : 0.5), l = Math.hypot(sx, sy) || 1;
   // lado de onde vem o sol (oposto às sombras): mais claro e quente; o outro lado fica um pouco mais frio
   const cx = W / 2 + sx / l * W * 0.6, cy = H / 2 + sy / l * H * 0.6, fx = W / 2 - sx / l * W * 0.6, fy = H / 2 - sy / l * H * 0.6;
   const ar = this.aurora || 0; // manhãzinha e fim de tarde: luz mais dourada

@@ -5456,6 +5456,10 @@ function pessoaDesvia(a, ta) {
 function aproxima(v, alvo, sobe, desce) { return v < alvo ? Math.min(alvo, v + sobe) : Math.max(alvo, v - desce); }
 // quanto a pessoa/bicho está andando (0 parado, 1 no passo normal, mais que 1 correndo): mexe pernas, braços e a sombra igual
 function passoK(an) { return an.v > 0.3 ? clamp(an.v / ((an.P && an.P.walk) || 20), 0, 1.15) : 0; }
+// quanto está correndo (0 andando, 1 correndo de verdade): passada mais comprida e braços dobrados puxando junto do corpo
+function correK(an) { return an.v > 0.3 ? clamp((an.v / ((an.P && an.P.walk) || 20) - 1.25) / 1.1, 0, 1) : 0; }
+// balanço das pernas e braços (o mesmo no desenho e na sombra)
+function passada(an) { const pk = passoK(an); return pk > 0.04 ? Math.sin(an.phase) * Math.min(1, pk) * (1 + correK(an) * 0.75) : 0; }
 const _qp = [];
 function emParede(x, y, r) {
   colGrid.query(x - r, y - r, x + r, y + r, _qp);
@@ -5693,6 +5697,8 @@ function pelada(G, P, dt) {
     const d = Math.hypot(player.x - G.bx, player.y - G.by);
     if (d < 16 && player.speed > 10 && !(G.bz > 6)) { const a = Math.atan2(G.by - player.y, G.bx - player.x), sp = 120 + player.speed * 0.8; G.bvx = Math.cos(a) * sp; G.bvy = Math.sin(a) * sp; G.bvz = Math.min(160, sp * 0.35); G.dono = null; }
   }
+  // bola parada sem ninguém: conta o tempo (passou de 0,8 s, quem está perto domina mesmo sem encostar; nunca fica todo mundo travado em volta)
+  G.parada = !G.dono && Math.hypot(G.bvx, G.bvy) < 8 && !(G.bz > 2) && !(G.volta > 0) ? (G.parada || 0) + dt : 0;
   // quem está com a bola (conduzindo)
   let dono = G.dono;
   if (dono && (Math.hypot(dono.x - G.bx, dono.y - G.by) > 12 || G.bz > 3)) dono = G.dono = null;
@@ -5709,21 +5715,22 @@ function pelada(G, P, dt) {
       const minhaLinha = p.team ? P.gy1 : P.gy0, perto = Math.abs(G.by - minhaLinha) < 90;
       tx = clamp(G.bx, P.cx - 18, P.cx + 18); ty = minhaLinha + (p.team ? -1 : 1) * (perto ? 14 : 6); spd = perto ? 60 : 35;
     } else if (p === near[0] || p === near[1]) { // vai na bola (ou dá o bote em quem está com ela)
-      tx = prevX; ty = prevY; spd = dono && dono.team !== p.team ? 64 : 60;
+      tx = prevX; ty = prevY; spd = dono && dono.team !== p.team ? 64 : 60; p.vaiNaBola = true;
     } else { // se posiciona: acompanha o lance, os do time com a bola abrem para receber, os outros marcam
       const comBola = dono && dono.team === p.team;
       tx = p.hx + (G.bx - P.cx) * 0.5; ty = p.hy + (G.by - P.cy) * 0.4 + (comBola ? ataca * 34 : -ataca * 10); spd = comBola ? 44 : 36;
     }
     if (player) { const dx = p.x - player.x, dy = p.y - player.y, d = Math.hypot(dx, dy); if (d < 70) { tx = p.x + dx / d * 60; ty = p.y + dy / d * 60; spd = 85; } }
+    if (!(p === near[0] || p === near[1]) || G.volta > 0 || p === dono) p.vaiNaBola = false;
     [tx, ty] = dentro(tx, ty);
     corrigeJogador(p, tx, ty, spd, dt, G);
     // pegar a bola: domina com a bola baixa
-    if (!dono && G.cd <= 0 && !(G.volta > 0) && !(G.bz > 3) && Math.hypot(p.x - G.bx, p.y - G.by) < 6) {
+    if (!dono && G.cd <= 0 && !(G.volta > 0) && !(G.bz > 3) && Math.hypot(p.x - G.bx, p.y - G.by) < (G.parada > 0.8 ? 12 : 7.5)) {
       if (p.keeper) { goleiroRepoe(G, p, P); continue; }
       dono = G.dono = p; G.bvx *= 0.2; G.bvy *= 0.2; G.decide = 1.2 + Math.random() * 1.8;
     }
     // bote: quem marca chega em quem está com a bola e às vezes rouba (a bola espirra)
-    if (dono && p !== dono && p.team !== dono.team && !p.keeper && G.cd <= 0 && Math.hypot(p.x - dono.x, p.y - dono.y) < 6) {
+    if (dono && p !== dono && p.team !== dono.team && !p.keeper && G.cd <= 0 && Math.hypot(p.x - dono.x, p.y - dono.y) < 8.5) {
       G.cd = 0.7;
       if (Math.random() < 0.4) { const a = Math.atan2(G.by - p.y, G.bx - p.x) + (Math.random() - 0.5); G.bvx = Math.cos(a) * 90; G.bvy = Math.sin(a) * 90; dono = G.dono = null; p.chute = 0.2; }
     }
@@ -5768,11 +5775,12 @@ function goleiroRepoe(G, k, P) { // goleiro segura e repõe a bola longe, para u
 // jogador corre com peso: acelera, freia e faz a curva (velocidade como vetor); vira o corpo para onde corre
 function corrigeJogador(p, tx, ty, spd, dt, G) {
   const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
-  const s = Math.min(spd, d * 2.6), wx = d > 0.1 ? dx / d * s : 0, wy = d > 0.1 ? dy / d * s : 0, ac = 230 * dt;
+  const s = Math.min(spd, p.vaiNaBola ? d * 7 + 14 : d * 2.6), wx = d > 0.1 ? dx / d * s : 0, wy = d > 0.1 ? dy / d * s : 0, ac = 230 * dt;
   p.pvx = p.pvx || 0; p.pvy = p.pvy || 0;
   const ex = wx - p.pvx, ey = wy - p.pvy, el = Math.hypot(ex, ey); if (el > ac) { p.pvx += ex / el * ac; p.pvy += ey / el * ac; } else { p.pvx = wx; p.pvy = wy; }
-  // não trombam: afastam um pouco de quem está colado
-  for (const o of G.pl) { if (o === p) continue; const ox = p.x - o.x, oy = p.y - o.y, od = Math.hypot(ox, oy); if (od > 0.1 && od < 6) { p.pvx += ox / od * 60 * dt * 6; p.pvy += oy / od * 60 * dt * 6; } }
+  // não trombam: afastam um pouco de quem está colado (quem disputa a bola pode chegar junto, ombro a ombro)
+  const raio = p.vaiNaBola && Math.hypot(p.x - G.bx, p.y - G.by) < 16 ? 3.2 : 5.5;
+  for (const o of G.pl) { if (o === p) continue; const ox = p.x - o.x, oy = p.y - o.y, od = Math.hypot(ox, oy); if (od > 0.1 && od < raio) { const k = (raio - od) / raio * 240 * dt; p.pvx += ox / od * k; p.pvy += oy / od * k; } }
   p.x += p.pvx * dt; p.y += p.pvy * dt; p.v = Math.hypot(p.pvx, p.pvy);
   if (p.chute > 0) {} else if (p.v > 4) p.a += clamp(angDiff(p.a, Math.atan2(p.pvy, p.pvx)), -8 * dt, 8 * dt);
   else p.a += clamp(angDiff(p.a, Math.atan2(G.by - p.y, G.bx - p.x)), -5 * dt, 5 * dt);
@@ -5802,18 +5810,22 @@ function drawAnimal(ctx, an) {
   switch (an.type) {
     case 'person': {
       const dancing = (an.dance && an.v < 1) || an.danceUntil > Game.time;
-      const sw = pk > 0.04 ? Math.sin(an.phase) * 2.4 * pk * (an.mulher ? 0.85 : 1) : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
+      const ck = correK(an), sw = pk > 0.04 ? passada(an) * 2.4 * (an.mulher ? 0.85 : 1) : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
       if (dancing) ctx.rotate(Math.sin(Game.time * 4.5 + an.seed * 9) * 0.35);
       if (an.esc && an.esc !== 1) ctx.scale(an.esc, an.esc); // altura e porte de cada um
       // reação quando fala (PedVoz): susto dá um pulinho; calçada, sacode o braço; buzina e paredão, mão no ouvido
-      const re = an.reacao && Game.time - an.reacao.t < 1.8 ? an.reacao : null, rk2 = re ? Game.time - re.t : 0;
+      const re = an.reacao && Game.time - an.reacao.t < 1.8 && correK(an) < 0.3 ? an.reacao : null, rk2 = re ? Game.time - re.t : 0;
       if (re && re.tipo === 'susto') { const pulo = 1 + 0.25 * Math.max(0, Math.sin(rk2 * 11)) * (1 - rk2 / 1.8); ctx.scale(pulo, pulo); }
       ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(1.5, 2, 4, 5, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = an.pants; ctx.beginPath(); ctx.rect(-1 + sw * 0.5, -2.6, 2.6, 1.8); ctx.rect(-1 - sw * 0.5, 0.8, 2.6, 1.8); ctx.fill();
+      // pernas: cada uma vai ao contrário do braço do mesmo lado (como gente de verdade)
+      ctx.fillStyle = an.pants; ctx.beginPath(); ctx.rect(-1.3 - sw * 0.55, -2.6, 2.6 + Math.abs(sw) * 0.15, 1.8); ctx.rect(-1.3 + sw * 0.55, 0.8, 2.6 + Math.abs(sw) * 0.15, 1.8); ctx.fill();
+      if (ck > 0.2) { ctx.fillStyle = '#1a1a1e'; ctx.beginPath(); ctx.rect(1.2 - sw * 0.55 + Math.abs(sw) * 0.15, -2.5, 0.9, 1.6); ctx.rect(1.2 + sw * 0.55 + Math.abs(sw) * 0.15, 0.9, 0.9, 1.6); ctx.fill(); } // tênis aparecendo na passada
       if (an.chute > 0) { ctx.fillStyle = an.pants; ctx.fillRect(1.2, 0.5, 3.8, 1.7); ctx.fillStyle = '#1a1a1e'; ctx.fillRect(4.8, 0.4, 1.4, 1.9); } // perna esticada no chute
+      // mãos: uma reação (susto, punho, mão no ouvido) troca as mãos normais, nunca soma; correndo a reação não entra (os braços vão junto)
+      const re0 = an.reacao && Game.time - an.reacao.t < 1.8 && ck < 0.3 ? an.reacao : null;
       ctx.fillStyle = an.skin; ctx.beginPath();
       if (an.pulou > 0) { ctx.arc(0.6, -6.2, 1.2, 0, TAU); ctx.arc(0.6, 6.2, 1.2, 0, TAU); } // goleiro esticado pulando na bola
-      else { ctx.arc(sw, -4.6, 1.2, 0, TAU); ctx.arc(-sw, 4.6, 1.2, 0, TAU); }
+      else if (!re0) { const yb = 4.6 - ck * 1.1, fb = ck * 0.9; ctx.arc(sw + fb, -yb, 1.2, 0, TAU); ctx.arc(-sw + fb, yb, 1.2, 0, TAU); } // correndo: braço dobrado, perto do corpo else if (re0.tipo === 'calcada') ctx.arc(-sw, 4.6, 1.2, 0, TAU); // a outra mão continua normal
       ctx.fill();
       // na chuva: uns de guarda-chuva, outros de capa de chuva com capuz (os boleiros da pelada não ligam)
       const rk = ((an.seed || 0.37) * 7.31) % 1, wetP = Weather.rain > 0.12 && an.team === undefined && !an.seuze;
@@ -5927,7 +5939,7 @@ const Particles = {
   emit(type, x, y, vx, vy, life, size) {
     if (Settings.quality === 'baixa') return; // gráfico baixo: sem partículas
     if (type === 'dust' && Weather.wet > 0.3) { type = 'mud'; size = Math.min(size, 3.5); life *= 0.55; } // na chuva não levanta poeira: espirra barro
-    const max = altaQ() ? 560 : 320;
+    const max = ultraQ() ? 800 : altaQ() ? 560 : 320;
     if (this.list.length >= max) this.list.shift();
     const P = { type, x, y, vx, vy, life, max: life, size };
     if (type === 'dust') P.c = corPoeira(groundAt(x, y)); // poeira com a cor do chão de onde saiu
@@ -5949,11 +5961,24 @@ const Particles = {
     }
   },
   draw(ctx) {
+    const U = ultraQ();
     for (const p of this.list) {
       const t = p.life / p.max;
       if (p.type === 'spark' || p.type === 'flame') continue;
       if (p.type === 'hubcap') { ctx.globalAlpha = Math.min(1, t * 3); ctx.fillStyle = '#c9ccd2'; ctx.beginPath(); ctx.arc(p.x, p.y, 3.4, 0, TAU); ctx.fill(); ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.x + Math.cos(p.rot) * 3, p.y + Math.sin(p.rot) * 3); ctx.lineTo(p.x - Math.cos(p.rot) * 3, p.y - Math.sin(p.rot) * 3); ctx.stroke(); continue; }
-      if (p.type === 'leaf') { ctx.globalAlpha = t; ctx.fillStyle = '#3f7a2e'; ctx.fillRect(p.x, p.y, 2.4, 1.6); continue; }
+      if (p.type === 'leaf') {
+        if (U) { const g = (p.max - p.life) * 7 + p.x * 0.1; ctx.globalAlpha = t; ctx.save(); ctx.translate(p.x + Math.sin(g) * 1.5, p.y); ctx.rotate(g); ctx.scale(1, 0.35 + 0.65 * Math.abs(Math.cos(g * 0.7))); ctx.fillStyle = ((p.x | 0) & 1) ? '#4f8a34' : '#6b9a3a'; ctx.beginPath(); ctx.ellipse(0, 0, 1.8, 1.1, 0, 0, TAU); ctx.fill(); ctx.restore(); continue; } // Ultra: folha girando e virando no ar
+        ctx.globalAlpha = t; ctx.fillStyle = '#3f7a2e'; ctx.fillRect(p.x, p.y, 2.4, 1.6); continue;
+      }
+      if (U && (p.type === 'steam' || p.type === 'exhaust' || p.type === 'smoke')) { // Ultra: fumaça macia, escura saindo e clareando ao subir
+        const a = Math.min(1, (1 - t) * 8) * t * (p.type === 'steam' ? 0.42 : p.type === 'exhaust' ? 0.24 : 0.36), c = p.type === 'steam' ? '#eef2f6' : p.type === 'exhaust' ? '#9a9a9e' : '#cfd0d4';
+        if (a > 0.01) { ctx.globalAlpha = a; const s2 = p.size * 1.5; ctx.drawImage(puffSprite(c), p.x - s2, p.y - s2, s2 * 2, s2 * 2); }
+        continue;
+      }
+      if (U && (p.type === 'water' || p.type === 'mud')) { // Ultra: gota com brilho (água) ou torrão com miolo escuro (barro)
+        ctx.globalAlpha = t * (p.type === 'mud' ? 0.8 : 0.55); ctx.fillStyle = p.type === 'mud' ? '#4e3220' : '#b9d6e6'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 0.8, 0, TAU); ctx.fill();
+        ctx.fillStyle = p.type === 'mud' ? '#2e1c10' : '#f2f8ff'; ctx.beginPath(); ctx.arc(p.x - p.size * 0.25, p.y - p.size * 0.25, p.size * 0.3, 0, TAU); ctx.fill(); continue;
+      }
       if (p.type === 'steam' || p.type === 'exhaust') { ctx.globalAlpha = t * (p.type === 'steam' ? 0.35 : 0.18); ctx.fillStyle = p.type === 'steam' ? '#f0f4f8' : '#9a9a9a'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); continue; }
       if (p.type === 'dust' || p.type === 'areia') { // nuvem macia (sem borda dura): aparece rápido e some devagar
         const a = Math.min(1, (1 - t) * 6) * t * t * (p.type === 'dust' ? 0.7 : 0.55), sp = puffSprite(p.type === 'areia' ? '#e6d3a0' : p.c || '#9a7e5a');
@@ -5968,13 +5993,13 @@ const Particles = {
     ctx.globalAlpha = 1;
   },
   drawEmissive(ctx) {
-    ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = 1.6;
-    ctx.beginPath();
+    const P = new Path2D();
     for (const p of this.list) {
       if (p.type !== 'spark') continue;
-      ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03);
+      P.moveTo(p.x, p.y); P.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03);
     }
-    ctx.stroke();
+    if (ultraQ()) { ctx.strokeStyle = 'rgba(255,140,40,0.35)'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke(P); ctx.strokeStyle = '#fff2c0'; ctx.lineWidth = 0.9; ctx.stroke(P); } // Ultra: faísca com brilho laranja em volta e miolo quase branco
+    ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = 1.6; ctx.stroke(P);
     for (const p of this.list) if (p.type === 'flame') { ctx.globalAlpha = p.life / p.max; ctx.drawImage(glowSprite('#ff8a2a'), p.x - 9, p.y - 9, 18, 18); }
     ctx.globalAlpha = 1;
   },
@@ -9844,7 +9869,7 @@ Weather.update = function (dt) {
   // relâmpago e trovão no temporal
   if (this.rain > 0.6) { this.thunderT -= dt; if (this.thunderT <= 0) { this.thunderT = rnd(14, 32); Cam.flash = Math.max(Cam.flash, 0.55); const d = rnd(0.4, 2); setTimeout(() => AudioSys.thunder(d), d * 1000); } }
   // gotas na tela (espaço da tela)
-  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 81 : altaQ() ? 378 : 216)); // 10% menos gotas
+  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 81 : ultraQ() ? 945 : altaQ() ? 378 : 216)); // Ultra: 2,5x mais gotas
   // câmera olhando de cima: a gota cai na direção do chão, então na tela ela "afunda" em direção ao centro,
   // encolhendo e ficando mais fina até bater no chão (onde vira respingo)
   const newDrop = (d, z) => { const R = Math.hypot(SCREEN_W, SCREEN_H) * 0.62; d.a = Math.random() * TAU; d.r = Math.sqrt(Math.random()) * R; d.z = z; d.life = rnd(0.3, 0.55); d.l = rnd(0.025, 0.055); return d; };
@@ -9864,6 +9889,7 @@ Weather.update = function (dt) {
   if (this.ripples.length) this.ripples = this.ripples.filter((r) => r.t < 0.45);
   if (this.ripples.length > 160) this.ripples.splice(0, this.ripples.length - 160);
   AudioSys.rainSet && AudioSys.rainSet(this.rain);
+  Ultra.update(dt); // respingos no chão (só Ultra)
 };
 // poças: aparecem na chuva no asfalto (junto ao meio-fio) e nas trilhas da estrada de terra
 Weather.puddleGrid = null;
@@ -9898,6 +9924,7 @@ Weather.drawPuddles = function (ctx, view) {
   const k = clamp((this.wet - 0.05) / 0.4, 0, 1), T = Game.time;
   this.puddlesNear(view.x0 - 40, view.y0 - 40, view.x1 + 40, view.y1 + 40, _pq);
   for (const p of _pq) {
+    if (ultraQ()) { Ultra.poca(ctx, p, k, T); if (p.wave > 0) { const t = 1 - p.wave; ctx.strokeStyle = `rgba(210,225,245,${(0.6 * p.wave).toFixed(3)})`; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.ellipse(p.x, p.y, p.rx * (0.4 + t), p.ry * (0.4 + t), 0, 0, TAU); ctx.stroke(); } continue; }
     ctx.globalAlpha = k;
     ctx.fillStyle = p.mud ? 'rgba(52,34,20,0.75)' : 'rgba(16,22,32,0.7)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, TAU); ctx.fill();
@@ -9967,6 +9994,7 @@ Weather.drawDrops = function (ctx) {
     }
     ctx.stroke();
   }
+  if (ultraQ()) Ultra.gotasPerto(ctx, this.drops, cx, cy, wx);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 };
 const Fireflies = { list: [] };
@@ -10334,9 +10362,11 @@ function render() {
   Agua.desenhaChao(ctx, view); // rio correndo, ondas do mar e chão molhado
   Juncao.molhado(ctx, view); // encontro do asfalto com a terra na chuva: barro e poça
   Mata.chao(ctx, view); // vento nas copas da mata, plantação balançando e tufos de mato nos campos
+  Ultra.molhando(ctx, view); // Ultra: o chão vai molhando aos poucos quando a chuva chega
   Weather.drawPuddles(ctx, view);
   Skids.draw(ctx, view);
   Weather.drawRipples(ctx, view);
+  Ultra.respingos(ctx, view); // Ultra: gotas batendo no chão
   Debris.draw(ctx, view);
   Atropelo.desenhaSangue(ctx, view);
   Colecao.desenha(ctx, view); // panelas de barro e placas de zoeira
@@ -14109,14 +14139,14 @@ Dia.sombrasSol = function (ctx, view) {
 };
 // Ultra: cores um pouco mais vivas de dia (filtro da própria tela, quase sem custo); some de noite
 Dia.saturacao = function () {
-  const v = ultraQ() && Game.mode === 'play' ? 1 + 0.2 * this.sol : 1, key = v.toFixed(2);
+  const v = ultraQ() && Game.mode === 'play' ? 1.08 + 0.24 * this.sol : 1, key = v.toFixed(2); // Ultra: cores vivas de dia e um pouco de noite (letreiros e luzes)
   if (key === this._sat) return; this._sat = key;
-  canvas.style.filter = key === '1.00' ? '' : `saturate(${key}) contrast(${(1 + 0.04 * this.sol).toFixed(3)})`;
+  canvas.style.filter = key === '1.00' ? '' : `saturate(${key}) contrast(${(1.03 + 0.05 * this.sol).toFixed(3)})`;
 };
 // luz do sol de dia: um toque quente e mais contraste (estilo cinema), por cima de tudo
 Dia.luzSol = function (ctx, W, H) {
   if (this.sol < 0.04 || Settings.quality === 'baixa') return;
-  const U = ultraQ(), k = this.sol * (U ? 1.45 : 1), sx = -(typeof Sol !== 'undefined' ? Sol.dx : 0), sy = -(typeof Sol !== 'undefined' ? Sol.dy : 0.5), l = Math.hypot(sx, sy) || 1;
+  const U = ultraQ(), k = this.sol * (U ? 1.7 : 1), sx = -(typeof Sol !== 'undefined' ? Sol.dx : 0), sy = -(typeof Sol !== 'undefined' ? Sol.dy : 0.5), l = Math.hypot(sx, sy) || 1;
   // lado de onde vem o sol (oposto às sombras): mais claro e quente; o outro lado fica um pouco mais frio
   const cx = W / 2 + sx / l * W * 0.6, cy = H / 2 + sy / l * H * 0.6, fx = W / 2 - sx / l * W * 0.6, fy = H / 2 - sy / l * H * 0.6;
   const ar = this.aurora || 0; // manhãzinha e fim de tarde: luz mais dourada
@@ -15035,8 +15065,8 @@ function vaosTijolo(ctx, b, ax, ay, bx, by, ox, oy, side) {
 const Sol = { a: 0, dx: 0, dy: 0 };
 const SOMBRA_COR = (a) => `rgba(16,20,40,${Math.min(0.85, a).toFixed(3)})`; // sombra azulada (o céu clareia a sombra)
 // Ultra: sombra 45% mais forte e com borda macia (meia-sombra em volta, como sombra de sol de verdade)
-const SOMBRA_K = () => (ultraQ() ? 1.45 : 1);
-function sombraFill(ctx, P, a) { if (ultraQ()) { ctx.lineJoin = 'round'; ctx.lineWidth = 3.2; ctx.strokeStyle = SOMBRA_COR(a * 0.32); ctx.stroke(P); } ctx.fillStyle = SOMBRA_COR(a); ctx.fill(P); }
+const SOMBRA_K = () => (ultraQ() ? 1.6 : 1);
+function sombraFill(ctx, P, a) { if (ultraQ()) { ctx.lineJoin = 'round'; ctx.lineWidth = 4.2; ctx.strokeStyle = SOMBRA_COR(a * 0.3); ctx.stroke(P); ctx.lineWidth = 2; ctx.strokeStyle = SOMBRA_COR(a * 0.25); ctx.stroke(P); } ctx.fillStyle = SOMBRA_COR(a); ctx.fill(P); }
 Sol.calc = function () {
   if (typeof Dia === 'undefined' || Settings.quality === 'baixa') { this.a = 0; return; }
   const h = Dia.hora(), th = clamp(Math.PI * (h - 6) / 12, 0.08, Math.PI - 0.08);
@@ -15060,7 +15090,7 @@ function sbRet(cx, cy, L, W, a) { const c = Math.cos(a), s = Math.sin(a); return
 function sbPessoa(P, an, sx, sy) {
   const x = an.x, y = an.y, L = Math.hypot(sx, sy) || 0.001, ux = sx / L, uy = sy / L, nx = -uy, ny = ux;
   const hx = Math.cos(an.a), hy = Math.sin(an.a), pk = passoK(an), danca = !pk && ((an.dance && an.v < 1) || an.danceUntil > Game.time);
-  const sw = pk ? Math.sin(an.phase) * Math.min(1.15, pk) : danca ? Math.sin(Game.time * 9 + (an.seed || 0) * 20) * 1.1 : 0; // mesmo passo (e mesma dança) do desenho
+  const sw = pk ? passada(an) : danca ? Math.sin(Game.time * 9 + (an.seed || 0) * 20) * 1.1 : 0; // mesmo passo (e mesma dança) do desenho
   const at = (t, w) => [x + sx * t + nx * w, y + sy * t + ny * w];
   // pés (um para frente e outro para trás quando anda) e pernas até o quadril
   const q = at(0.46, 0);
@@ -15139,10 +15169,11 @@ Sombras.altos = function (ctx, view) {
     if (o.down !== undefined || o.removed) continue; // derrubado ou arrancado: sem sombra
     switch (o.kind) {
       case 'tree': {
-        const S = 64 * o.size * (o.type === 'bush' ? 0.55 : 1), H = o.h * 0.95, cx = o.x + sx * H, cy = o.y + sy * H;
+        const S = 64 * o.size * (o.type === 'bush' ? 0.55 : 1), H = o.h * 0.95, bv = Vento.bal(o.x, o.y, o.x * 0.05 + o.y * 0.03, (o.type === 'bush' ? 1.1 : 1.8) * o.size) * 1.25; // a copa balança e a sombra dela vai junto (um pouco mais, por estar longe)
+        const cx = o.x + sx * H + bv, cy = o.y + sy * H + bv * 0.3;
         if (!inView(view, cx, cy, S)) break;
         ctx.drawImage(sombraArvore(o.type, o.v), cx - S / 2, cy - S / 2, S, S); // copa com o contorno dela
-        if (o.type !== 'bush') sbSeg(P, o.x, o.y, o.x + sx * H * 0.75, o.y + sy * H * 0.75, 2.4 * o.size); // tronco
+        if (o.type !== 'bush') sbSeg(P, o.x, o.y, o.x + sx * H * 0.75 + bv * 0.6, o.y + sy * H * 0.75 + bv * 0.2, 2.4 * o.size); // tronco
         break;
       }
       case 'lamp': {
@@ -15350,6 +15381,107 @@ Embarque.draw = function (ctx, view) {
     ctx.globalAlpha = clamp(w.alpha, 0, 1); drawAnimal(ctx, w);
   }
   ctx.globalAlpha = 1;
+};
+/* ============================ GRÁFICO ULTRA: CHUVA DE VERDADE (0.2.0) ============================
+   Só no Ultra (nada disso roda no Alto, Médio ou Baixo):
+   - chão molhando aos poucos: quando a chuva chega, manchas escuras aparecem no asfalto, na calçada e na terra
+     (presas ao mapa) e vão crescendo até se juntar; quando para, secam na ordem contrária;
+   - poças nascem pequenas e crescem com a chuva, com várias ondinhas abrindo ao mesmo tempo e o céu refletido;
+   - respingos das gotas batendo no chão (coroinha que abre e gotinhas pulando para fora);
+   - gotas em quatro camadas (2,5x mais), com a ponta brilhando e algumas bem perto da câmera.
+   Tudo num caminho só por camada (poucas pinceladas). */
+const Ultra = { resp: [], _mancha: {} };
+// mancha macia pronta (asfalto molhado fica quase preto-azulado; terra molhada vira marrom escuro)
+Ultra.mancha = function (tipo) {
+  let c = this._mancha[tipo];
+  if (!c) {
+    c = makeCanvas(64, 64); const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    const cor = tipo === 'terra' ? '40,26,14' : tipo === 'areia' ? '120,96,60' : '10,14,24';
+    gr.addColorStop(0, `rgba(${cor},1)`); gr.addColorStop(0.55, `rgba(${cor},0.85)`); gr.addColorStop(1, `rgba(${cor},0)`);
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64); this._mancha[tipo] = c;
+  }
+  return c;
+};
+// chão molhando: cada casinha de 56 do mapa tem a hora dela de molhar (hash), a mancha cresce com Weather.wet
+Ultra.molhando = function (ctx, view) {
+  if (!ultraQ() || Weather.wet < 0.02) return;
+  // desenhado numa tela 4x menor (as manchas são macias, não perde nada) e ampliado numa pincelada só
+  const Q = 4, C = 56, w = Weather.wet, W = Math.ceil((view.x1 - view.x0) / Q) + 2, H = Math.ceil((view.y1 - view.y0) / Q) + 2;
+  const ox = Math.floor(view.x0 / Q) * Q, oy = Math.floor(view.y0 / Q) * Q, chave = ox + ',' + oy + ',' + W + ',' + H + ',' + w.toFixed(3);
+  let oc = this._oc; if (!oc) oc = this._oc = makeCanvas(W, H);
+  if (chave !== this._chave) {
+    this._chave = chave; if (oc.width !== W || oc.height !== H) { oc.width = W; oc.height = H; }
+    const g = oc.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H); g.setTransform(1 / Q, 0, 0, 1 / Q, -ox / Q, -oy / Q);
+    for (let cy = Math.floor(view.y0 / C) - 1; cy <= Math.floor(view.y1 / C) + 1; cy++) for (let cx = Math.floor(view.x0 / C) - 1; cx <= Math.floor(view.x1 / C) + 1; cx++) {
+      const h = hash2(cx * 3 + 11, cy * 5 + 7), k = clamp((w - h * 0.75) / 0.3, 0, 1); if (k <= 0) continue;
+      const x = (cx + 0.3 + hash2(cx, cy + 91) * 0.4) * C, y = (cy + 0.3 + hash2(cx + 57, cy) * 0.4) * C, gs = groundAt(x, y);
+      const tipo = gs === SF.ROAD || gs === SF.PAVED || gs === SF.BRIDGE || gs === SF.SIDEWALK ? 'asfalto' : gs === SF.EARTH || gs === SF.DIRT ? 'terra' : gs === SF.SAND ? 'areia' : null; if (!tipo) continue;
+      const r = C * (0.35 + 0.75 * k);
+      g.globalAlpha = (tipo === 'asfalto' ? 0.42 : tipo === 'terra' ? 0.45 : 0.26) * (0.4 + 0.6 * k);
+      g.drawImage(this.mancha(tipo), x - r, y - r, r * 2, r * 2);
+    }
+  }
+  ctx.drawImage(oc, ox, oy, W * Q, H * Q);
+};
+// poça na chuva (Ultra): cresce com a chuva, reflexo do céu e várias ondinhas abrindo em pontos diferentes
+Ultra.poca = function (ctx, p, k, T) {
+  const s = 0.35 + 0.65 * clamp(Weather.wet / 0.7, 0, 1), rx = p.rx * s, ry = p.ry * s;
+  ctx.globalAlpha = k;
+  ctx.fillStyle = p.mud ? 'rgba(48,32,18,0.8)' : 'rgba(14,20,32,0.78)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, rx, ry, 0, 0, TAU); ctx.fill();
+  const gr = ctx.createLinearGradient(p.x - rx, p.y - ry, p.x + rx, p.y + ry); // céu refletido, mais claro de um lado
+  gr.addColorStop(0, p.mud ? 'rgba(150,130,100,0.28)' : 'rgba(170,190,220,0.32)'); gr.addColorStop(0.6, 'rgba(120,140,170,0.06)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = gr; ctx.fill();
+  ctx.strokeStyle = p.mud ? 'rgba(110,84,56,0.55)' : 'rgba(150,170,200,0.4)'; ctx.lineWidth = 0.9; ctx.stroke();
+  if (Weather.rain > 0.05) { // de 3 a 6 ondinhas ao mesmo tempo, cada uma num ponto e numa hora
+    const n = 3 + Math.round(Weather.rain * 3); ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const ph = p.ph * (i + 1) * 1.37, t = (T * (1.1 + Weather.rain * 0.9) + ph) % 1, rot = Math.floor(T * (1.1 + Weather.rain * 0.9) + ph);
+      const ox = (hash2(rot, i * 13 + (p.x | 0)) - 0.5) * rx * 1.3, oy = (hash2(i * 7 + (p.y | 0), rot) - 0.5) * ry * 1.3, rr = 0.6 + t * Math.min(6, rx * 0.5);
+      ctx.moveTo(p.x + ox + rr, p.y + oy); ctx.ellipse(p.x + ox, p.y + oy, rr, rr * 0.62, 0, 0, TAU);
+    }
+    ctx.strokeStyle = `rgba(205,220,240,${(0.42 * Weather.rain).toFixed(3)})`; ctx.lineWidth = 0.7; ctx.stroke();
+  }
+};
+// respingos: as gotas que caem no chão perto da câmera
+Ultra.update = function (dt) {
+  const L = this.resp;
+  for (let i = L.length - 1; i >= 0; i--) { L[i].t += dt; if (L[i].t > 0.32) { L[i] = L[L.length - 1]; L.pop(); } }
+  if (!ultraQ() || Weather.rain < 0.05 || !Cam.view) return;
+  const v = Cam.view, n = Weather.rain * 260 * dt;
+  for (let i = 0; i < n && L.length < 420; i++) {
+    const x = rnd(v.x0, v.x1), y = rnd(v.y0, v.y1), g = groundAt(x, y);
+    if (g === SF.WATER) continue; // na água já tem o anel
+    L.push({ x, y, t: 0, a: Math.random() * TAU, g: g === SF.EARTH || g === SF.DIRT ? 1 : g === SF.GRASS || g === SF.FIELD ? 2 : 0 });
+  }
+};
+Ultra.respingos = function (ctx, view) {
+  if (!ultraQ() || !this.resp.length) return;
+  const anel = new Path2D(), pingo = new Path2D(), barro = new Path2D();
+  for (const r of this.resp) {
+    if (r.x < view.x0 || r.x > view.x1 || r.y < view.y0 || r.y > view.y1) continue;
+    const k = r.t / 0.32, rr = 0.5 + k * 3.2;
+    if (r.g !== 2) { anel.moveTo(r.x + rr, r.y); anel.ellipse(r.x, r.y, rr, rr * 0.6, 0, 0, TAU); } // coroinha que abre (na grama não aparece)
+    if (k < 0.75) { // gotinhas pulando para fora: sobem e descem (parábola)
+      const P = r.g === 1 ? barro : pingo, d = 1 + k * 5, alt = Math.sin(k / 0.75 * Math.PI) * 2.2;
+      for (let j = 0; j < 4; j++) { const a = r.a + j * 1.571, px = r.x + Math.cos(a) * d, py = r.y + Math.sin(a) * d * 0.6 - alt; P.moveTo(px + 0.55, py); P.arc(px, py, 0.55, 0, TAU); }
+    }
+  }
+  ctx.strokeStyle = 'rgba(200,214,235,0.32)'; ctx.lineWidth = 0.6; ctx.stroke(anel);
+  ctx.fillStyle = 'rgba(215,228,245,0.55)'; ctx.fill(pingo);
+  ctx.fillStyle = 'rgba(92,66,42,0.6)'; ctx.fill(barro);
+};
+// gotas (Ultra): quarta camada bem perto da câmera, mais grossas, com a ponta brilhando
+Ultra.gotasPerto = function (ctx, drops, cx, cy, wx) {
+  const P = new Path2D(), cab = new Path2D();
+  for (const d of drops) {
+    if (d.z < 0.86) continue;
+    const ca = Math.cos(d.a), sa = Math.sin(d.a), k = 0.55 + 0.45 * d.z, x = cx + ca * d.r * k + wx * (1 - d.z), y = cy + sa * d.r * k;
+    const tl = Math.max(9, d.r * d.l) * (0.9 + d.z * 1.4);
+    P.moveTo(x, y); P.lineTo(x + ca * tl - wx * 0.08, y + sa * tl);
+    cab.moveTo(x + 1.1, y); cab.arc(x, y, 1.1, 0, TAU);
+  }
+  ctx.strokeStyle = 'rgba(225,235,250,0.3)'; ctx.lineWidth = 2; ctx.stroke(P);
+  ctx.fillStyle = 'rgba(240,246,255,0.5)'; ctx.fill(cab);
 };
 /* ============================ JOGO / LOOP PRINCIPAL ============================ */
 const Game = {

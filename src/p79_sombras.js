@@ -9,8 +9,8 @@
 const Sol = { a: 0, dx: 0, dy: 0 };
 const SOMBRA_COR = (a) => `rgba(16,20,40,${Math.min(0.85, a).toFixed(3)})`; // sombra azulada (o céu clareia a sombra)
 // Ultra: sombra 45% mais forte e com borda macia (meia-sombra em volta, como sombra de sol de verdade)
-const SOMBRA_K = () => (ultraQ() ? 1.45 : 1);
-function sombraFill(ctx, P, a) { if (ultraQ()) { ctx.lineJoin = 'round'; ctx.lineWidth = 3.2; ctx.strokeStyle = SOMBRA_COR(a * 0.32); ctx.stroke(P); } ctx.fillStyle = SOMBRA_COR(a); ctx.fill(P); }
+const SOMBRA_K = () => (ultraQ() ? 1.6 : 1);
+function sombraFill(ctx, P, a) { if (ultraQ()) { ctx.lineJoin = 'round'; ctx.lineWidth = 4.2; ctx.strokeStyle = SOMBRA_COR(a * 0.3); ctx.stroke(P); ctx.lineWidth = 2; ctx.strokeStyle = SOMBRA_COR(a * 0.25); ctx.stroke(P); } ctx.fillStyle = SOMBRA_COR(a); ctx.fill(P); }
 Sol.calc = function () {
   if (typeof Dia === 'undefined' || Settings.quality === 'baixa') { this.a = 0; return; }
   const h = Dia.hora(), th = clamp(Math.PI * (h - 6) / 12, 0.08, Math.PI - 0.08);
@@ -34,7 +34,7 @@ function sbRet(cx, cy, L, W, a) { const c = Math.cos(a), s = Math.sin(a); return
 function sbPessoa(P, an, sx, sy) {
   const x = an.x, y = an.y, L = Math.hypot(sx, sy) || 0.001, ux = sx / L, uy = sy / L, nx = -uy, ny = ux;
   const hx = Math.cos(an.a), hy = Math.sin(an.a), pk = passoK(an), danca = !pk && ((an.dance && an.v < 1) || an.danceUntil > Game.time);
-  const sw = pk ? Math.sin(an.phase) * Math.min(1.15, pk) : danca ? Math.sin(Game.time * 9 + (an.seed || 0) * 20) * 1.1 : 0; // mesmo passo (e mesma dança) do desenho
+  const sw = pk ? passada(an) : danca ? Math.sin(Game.time * 9 + (an.seed || 0) * 20) * 1.1 : 0; // mesmo passo (e mesma dança) do desenho
   const at = (t, w) => [x + sx * t + nx * w, y + sy * t + ny * w];
   // pés (um para frente e outro para trás quando anda) e pernas até o quadril
   const q = at(0.46, 0);
@@ -113,10 +113,11 @@ Sombras.altos = function (ctx, view) {
     if (o.down !== undefined || o.removed) continue; // derrubado ou arrancado: sem sombra
     switch (o.kind) {
       case 'tree': {
-        const S = 64 * o.size * (o.type === 'bush' ? 0.55 : 1), H = o.h * 0.95, cx = o.x + sx * H, cy = o.y + sy * H;
+        const S = 64 * o.size * (o.type === 'bush' ? 0.55 : 1), H = o.h * 0.95, bv = Vento.bal(o.x, o.y, o.x * 0.05 + o.y * 0.03, (o.type === 'bush' ? 1.1 : 1.8) * o.size) * 1.25; // a copa balança e a sombra dela vai junto (um pouco mais, por estar longe)
+        const cx = o.x + sx * H + bv, cy = o.y + sy * H + bv * 0.3;
         if (!inView(view, cx, cy, S)) break;
         ctx.drawImage(sombraArvore(o.type, o.v), cx - S / 2, cy - S / 2, S, S); // copa com o contorno dela
-        if (o.type !== 'bush') sbSeg(P, o.x, o.y, o.x + sx * H * 0.75, o.y + sy * H * 0.75, 2.4 * o.size); // tronco
+        if (o.type !== 'bush') sbSeg(P, o.x, o.y, o.x + sx * H * 0.75 + bv * 0.6, o.y + sy * H * 0.75 + bv * 0.2, 2.4 * o.size); // tronco
         break;
       }
       case 'lamp': {

@@ -1084,6 +1084,10 @@ function pessoaDesvia(a, ta) {
 function aproxima(v, alvo, sobe, desce) { return v < alvo ? Math.min(alvo, v + sobe) : Math.max(alvo, v - desce); }
 // quanto a pessoa/bicho está andando (0 parado, 1 no passo normal, mais que 1 correndo): mexe pernas, braços e a sombra igual
 function passoK(an) { return an.v > 0.3 ? clamp(an.v / ((an.P && an.P.walk) || 20), 0, 1.15) : 0; }
+// quanto está correndo (0 andando, 1 correndo de verdade): passada mais comprida e braços dobrados puxando junto do corpo
+function correK(an) { return an.v > 0.3 ? clamp((an.v / ((an.P && an.P.walk) || 20) - 1.25) / 1.1, 0, 1) : 0; }
+// balanço das pernas e braços (o mesmo no desenho e na sombra)
+function passada(an) { const pk = passoK(an); return pk > 0.04 ? Math.sin(an.phase) * Math.min(1, pk) * (1 + correK(an) * 0.75) : 0; }
 const _qp = [];
 function emParede(x, y, r) {
   colGrid.query(x - r, y - r, x + r, y + r, _qp);
@@ -1321,6 +1325,8 @@ function pelada(G, P, dt) {
     const d = Math.hypot(player.x - G.bx, player.y - G.by);
     if (d < 16 && player.speed > 10 && !(G.bz > 6)) { const a = Math.atan2(G.by - player.y, G.bx - player.x), sp = 120 + player.speed * 0.8; G.bvx = Math.cos(a) * sp; G.bvy = Math.sin(a) * sp; G.bvz = Math.min(160, sp * 0.35); G.dono = null; }
   }
+  // bola parada sem ninguém: conta o tempo (passou de 0,8 s, quem está perto domina mesmo sem encostar; nunca fica todo mundo travado em volta)
+  G.parada = !G.dono && Math.hypot(G.bvx, G.bvy) < 8 && !(G.bz > 2) && !(G.volta > 0) ? (G.parada || 0) + dt : 0;
   // quem está com a bola (conduzindo)
   let dono = G.dono;
   if (dono && (Math.hypot(dono.x - G.bx, dono.y - G.by) > 12 || G.bz > 3)) dono = G.dono = null;
@@ -1337,21 +1343,22 @@ function pelada(G, P, dt) {
       const minhaLinha = p.team ? P.gy1 : P.gy0, perto = Math.abs(G.by - minhaLinha) < 90;
       tx = clamp(G.bx, P.cx - 18, P.cx + 18); ty = minhaLinha + (p.team ? -1 : 1) * (perto ? 14 : 6); spd = perto ? 60 : 35;
     } else if (p === near[0] || p === near[1]) { // vai na bola (ou dá o bote em quem está com ela)
-      tx = prevX; ty = prevY; spd = dono && dono.team !== p.team ? 64 : 60;
+      tx = prevX; ty = prevY; spd = dono && dono.team !== p.team ? 64 : 60; p.vaiNaBola = true;
     } else { // se posiciona: acompanha o lance, os do time com a bola abrem para receber, os outros marcam
       const comBola = dono && dono.team === p.team;
       tx = p.hx + (G.bx - P.cx) * 0.5; ty = p.hy + (G.by - P.cy) * 0.4 + (comBola ? ataca * 34 : -ataca * 10); spd = comBola ? 44 : 36;
     }
     if (player) { const dx = p.x - player.x, dy = p.y - player.y, d = Math.hypot(dx, dy); if (d < 70) { tx = p.x + dx / d * 60; ty = p.y + dy / d * 60; spd = 85; } }
+    if (!(p === near[0] || p === near[1]) || G.volta > 0 || p === dono) p.vaiNaBola = false;
     [tx, ty] = dentro(tx, ty);
     corrigeJogador(p, tx, ty, spd, dt, G);
     // pegar a bola: domina com a bola baixa
-    if (!dono && G.cd <= 0 && !(G.volta > 0) && !(G.bz > 3) && Math.hypot(p.x - G.bx, p.y - G.by) < 6) {
+    if (!dono && G.cd <= 0 && !(G.volta > 0) && !(G.bz > 3) && Math.hypot(p.x - G.bx, p.y - G.by) < (G.parada > 0.8 ? 12 : 7.5)) {
       if (p.keeper) { goleiroRepoe(G, p, P); continue; }
       dono = G.dono = p; G.bvx *= 0.2; G.bvy *= 0.2; G.decide = 1.2 + Math.random() * 1.8;
     }
     // bote: quem marca chega em quem está com a bola e às vezes rouba (a bola espirra)
-    if (dono && p !== dono && p.team !== dono.team && !p.keeper && G.cd <= 0 && Math.hypot(p.x - dono.x, p.y - dono.y) < 6) {
+    if (dono && p !== dono && p.team !== dono.team && !p.keeper && G.cd <= 0 && Math.hypot(p.x - dono.x, p.y - dono.y) < 8.5) {
       G.cd = 0.7;
       if (Math.random() < 0.4) { const a = Math.atan2(G.by - p.y, G.bx - p.x) + (Math.random() - 0.5); G.bvx = Math.cos(a) * 90; G.bvy = Math.sin(a) * 90; dono = G.dono = null; p.chute = 0.2; }
     }
@@ -1396,11 +1403,12 @@ function goleiroRepoe(G, k, P) { // goleiro segura e repõe a bola longe, para u
 // jogador corre com peso: acelera, freia e faz a curva (velocidade como vetor); vira o corpo para onde corre
 function corrigeJogador(p, tx, ty, spd, dt, G) {
   const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
-  const s = Math.min(spd, d * 2.6), wx = d > 0.1 ? dx / d * s : 0, wy = d > 0.1 ? dy / d * s : 0, ac = 230 * dt;
+  const s = Math.min(spd, p.vaiNaBola ? d * 7 + 14 : d * 2.6), wx = d > 0.1 ? dx / d * s : 0, wy = d > 0.1 ? dy / d * s : 0, ac = 230 * dt;
   p.pvx = p.pvx || 0; p.pvy = p.pvy || 0;
   const ex = wx - p.pvx, ey = wy - p.pvy, el = Math.hypot(ex, ey); if (el > ac) { p.pvx += ex / el * ac; p.pvy += ey / el * ac; } else { p.pvx = wx; p.pvy = wy; }
-  // não trombam: afastam um pouco de quem está colado
-  for (const o of G.pl) { if (o === p) continue; const ox = p.x - o.x, oy = p.y - o.y, od = Math.hypot(ox, oy); if (od > 0.1 && od < 6) { p.pvx += ox / od * 60 * dt * 6; p.pvy += oy / od * 60 * dt * 6; } }
+  // não trombam: afastam um pouco de quem está colado (quem disputa a bola pode chegar junto, ombro a ombro)
+  const raio = p.vaiNaBola && Math.hypot(p.x - G.bx, p.y - G.by) < 16 ? 3.2 : 5.5;
+  for (const o of G.pl) { if (o === p) continue; const ox = p.x - o.x, oy = p.y - o.y, od = Math.hypot(ox, oy); if (od > 0.1 && od < raio) { const k = (raio - od) / raio * 240 * dt; p.pvx += ox / od * k; p.pvy += oy / od * k; } }
   p.x += p.pvx * dt; p.y += p.pvy * dt; p.v = Math.hypot(p.pvx, p.pvy);
   if (p.chute > 0) {} else if (p.v > 4) p.a += clamp(angDiff(p.a, Math.atan2(p.pvy, p.pvx)), -8 * dt, 8 * dt);
   else p.a += clamp(angDiff(p.a, Math.atan2(G.by - p.y, G.bx - p.x)), -5 * dt, 5 * dt);
@@ -1430,18 +1438,22 @@ function drawAnimal(ctx, an) {
   switch (an.type) {
     case 'person': {
       const dancing = (an.dance && an.v < 1) || an.danceUntil > Game.time;
-      const sw = pk > 0.04 ? Math.sin(an.phase) * 2.4 * pk * (an.mulher ? 0.85 : 1) : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
+      const ck = correK(an), sw = pk > 0.04 ? passada(an) * 2.4 * (an.mulher ? 0.85 : 1) : dancing ? Math.sin(Game.time * 9 + an.seed * 20) * 2.6 : 0;
       if (dancing) ctx.rotate(Math.sin(Game.time * 4.5 + an.seed * 9) * 0.35);
       if (an.esc && an.esc !== 1) ctx.scale(an.esc, an.esc); // altura e porte de cada um
       // reação quando fala (PedVoz): susto dá um pulinho; calçada, sacode o braço; buzina e paredão, mão no ouvido
-      const re = an.reacao && Game.time - an.reacao.t < 1.8 ? an.reacao : null, rk2 = re ? Game.time - re.t : 0;
+      const re = an.reacao && Game.time - an.reacao.t < 1.8 && correK(an) < 0.3 ? an.reacao : null, rk2 = re ? Game.time - re.t : 0;
       if (re && re.tipo === 'susto') { const pulo = 1 + 0.25 * Math.max(0, Math.sin(rk2 * 11)) * (1 - rk2 / 1.8); ctx.scale(pulo, pulo); }
       ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(1.5, 2, 4, 5, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = an.pants; ctx.beginPath(); ctx.rect(-1 + sw * 0.5, -2.6, 2.6, 1.8); ctx.rect(-1 - sw * 0.5, 0.8, 2.6, 1.8); ctx.fill();
+      // pernas: cada uma vai ao contrário do braço do mesmo lado (como gente de verdade)
+      ctx.fillStyle = an.pants; ctx.beginPath(); ctx.rect(-1.3 - sw * 0.55, -2.6, 2.6 + Math.abs(sw) * 0.15, 1.8); ctx.rect(-1.3 + sw * 0.55, 0.8, 2.6 + Math.abs(sw) * 0.15, 1.8); ctx.fill();
+      if (ck > 0.2) { ctx.fillStyle = '#1a1a1e'; ctx.beginPath(); ctx.rect(1.2 - sw * 0.55 + Math.abs(sw) * 0.15, -2.5, 0.9, 1.6); ctx.rect(1.2 + sw * 0.55 + Math.abs(sw) * 0.15, 0.9, 0.9, 1.6); ctx.fill(); } // tênis aparecendo na passada
       if (an.chute > 0) { ctx.fillStyle = an.pants; ctx.fillRect(1.2, 0.5, 3.8, 1.7); ctx.fillStyle = '#1a1a1e'; ctx.fillRect(4.8, 0.4, 1.4, 1.9); } // perna esticada no chute
+      // mãos: uma reação (susto, punho, mão no ouvido) troca as mãos normais, nunca soma; correndo a reação não entra (os braços vão junto)
+      const re0 = an.reacao && Game.time - an.reacao.t < 1.8 && ck < 0.3 ? an.reacao : null;
       ctx.fillStyle = an.skin; ctx.beginPath();
       if (an.pulou > 0) { ctx.arc(0.6, -6.2, 1.2, 0, TAU); ctx.arc(0.6, 6.2, 1.2, 0, TAU); } // goleiro esticado pulando na bola
-      else { ctx.arc(sw, -4.6, 1.2, 0, TAU); ctx.arc(-sw, 4.6, 1.2, 0, TAU); }
+      else if (!re0) { const yb = 4.6 - ck * 1.1, fb = ck * 0.9; ctx.arc(sw + fb, -yb, 1.2, 0, TAU); ctx.arc(-sw + fb, yb, 1.2, 0, TAU); } // correndo: braço dobrado, perto do corpo else if (re0.tipo === 'calcada') ctx.arc(-sw, 4.6, 1.2, 0, TAU); // a outra mão continua normal
       ctx.fill();
       // na chuva: uns de guarda-chuva, outros de capa de chuva com capuz (os boleiros da pelada não ligam)
       const rk = ((an.seed || 0.37) * 7.31) % 1, wetP = Weather.rain > 0.12 && an.team === undefined && !an.seuze;
@@ -1555,7 +1567,7 @@ const Particles = {
   emit(type, x, y, vx, vy, life, size) {
     if (Settings.quality === 'baixa') return; // gráfico baixo: sem partículas
     if (type === 'dust' && Weather.wet > 0.3) { type = 'mud'; size = Math.min(size, 3.5); life *= 0.55; } // na chuva não levanta poeira: espirra barro
-    const max = altaQ() ? 560 : 320;
+    const max = ultraQ() ? 800 : altaQ() ? 560 : 320;
     if (this.list.length >= max) this.list.shift();
     const P = { type, x, y, vx, vy, life, max: life, size };
     if (type === 'dust') P.c = corPoeira(groundAt(x, y)); // poeira com a cor do chão de onde saiu
@@ -1577,11 +1589,24 @@ const Particles = {
     }
   },
   draw(ctx) {
+    const U = ultraQ();
     for (const p of this.list) {
       const t = p.life / p.max;
       if (p.type === 'spark' || p.type === 'flame') continue;
       if (p.type === 'hubcap') { ctx.globalAlpha = Math.min(1, t * 3); ctx.fillStyle = '#c9ccd2'; ctx.beginPath(); ctx.arc(p.x, p.y, 3.4, 0, TAU); ctx.fill(); ctx.strokeStyle = '#6a6d72'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(p.x + Math.cos(p.rot) * 3, p.y + Math.sin(p.rot) * 3); ctx.lineTo(p.x - Math.cos(p.rot) * 3, p.y - Math.sin(p.rot) * 3); ctx.stroke(); continue; }
-      if (p.type === 'leaf') { ctx.globalAlpha = t; ctx.fillStyle = '#3f7a2e'; ctx.fillRect(p.x, p.y, 2.4, 1.6); continue; }
+      if (p.type === 'leaf') {
+        if (U) { const g = (p.max - p.life) * 7 + p.x * 0.1; ctx.globalAlpha = t; ctx.save(); ctx.translate(p.x + Math.sin(g) * 1.5, p.y); ctx.rotate(g); ctx.scale(1, 0.35 + 0.65 * Math.abs(Math.cos(g * 0.7))); ctx.fillStyle = ((p.x | 0) & 1) ? '#4f8a34' : '#6b9a3a'; ctx.beginPath(); ctx.ellipse(0, 0, 1.8, 1.1, 0, 0, TAU); ctx.fill(); ctx.restore(); continue; } // Ultra: folha girando e virando no ar
+        ctx.globalAlpha = t; ctx.fillStyle = '#3f7a2e'; ctx.fillRect(p.x, p.y, 2.4, 1.6); continue;
+      }
+      if (U && (p.type === 'steam' || p.type === 'exhaust' || p.type === 'smoke')) { // Ultra: fumaça macia, escura saindo e clareando ao subir
+        const a = Math.min(1, (1 - t) * 8) * t * (p.type === 'steam' ? 0.42 : p.type === 'exhaust' ? 0.24 : 0.36), c = p.type === 'steam' ? '#eef2f6' : p.type === 'exhaust' ? '#9a9a9e' : '#cfd0d4';
+        if (a > 0.01) { ctx.globalAlpha = a; const s2 = p.size * 1.5; ctx.drawImage(puffSprite(c), p.x - s2, p.y - s2, s2 * 2, s2 * 2); }
+        continue;
+      }
+      if (U && (p.type === 'water' || p.type === 'mud')) { // Ultra: gota com brilho (água) ou torrão com miolo escuro (barro)
+        ctx.globalAlpha = t * (p.type === 'mud' ? 0.8 : 0.55); ctx.fillStyle = p.type === 'mud' ? '#4e3220' : '#b9d6e6'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 0.8, 0, TAU); ctx.fill();
+        ctx.fillStyle = p.type === 'mud' ? '#2e1c10' : '#f2f8ff'; ctx.beginPath(); ctx.arc(p.x - p.size * 0.25, p.y - p.size * 0.25, p.size * 0.3, 0, TAU); ctx.fill(); continue;
+      }
       if (p.type === 'steam' || p.type === 'exhaust') { ctx.globalAlpha = t * (p.type === 'steam' ? 0.35 : 0.18); ctx.fillStyle = p.type === 'steam' ? '#f0f4f8' : '#9a9a9a'; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); continue; }
       if (p.type === 'dust' || p.type === 'areia') { // nuvem macia (sem borda dura): aparece rápido e some devagar
         const a = Math.min(1, (1 - t) * 6) * t * t * (p.type === 'dust' ? 0.7 : 0.55), sp = puffSprite(p.type === 'areia' ? '#e6d3a0' : p.c || '#9a7e5a');
@@ -1596,13 +1621,13 @@ const Particles = {
     ctx.globalAlpha = 1;
   },
   drawEmissive(ctx) {
-    ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = 1.6;
-    ctx.beginPath();
+    const P = new Path2D();
     for (const p of this.list) {
       if (p.type !== 'spark') continue;
-      ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03);
+      P.moveTo(p.x, p.y); P.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03);
     }
-    ctx.stroke();
+    if (ultraQ()) { ctx.strokeStyle = 'rgba(255,140,40,0.35)'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke(P); ctx.strokeStyle = '#fff2c0'; ctx.lineWidth = 0.9; ctx.stroke(P); } // Ultra: faísca com brilho laranja em volta e miolo quase branco
+    ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = 1.6; ctx.stroke(P);
     for (const p of this.list) if (p.type === 'flame') { ctx.globalAlpha = p.life / p.max; ctx.drawImage(glowSprite('#ff8a2a'), p.x - 9, p.y - 9, 18, 18); }
     ctx.globalAlpha = 1;
   },

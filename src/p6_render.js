@@ -1157,7 +1157,7 @@ Weather.update = function (dt) {
   // relâmpago e trovão no temporal
   if (this.rain > 0.6) { this.thunderT -= dt; if (this.thunderT <= 0) { this.thunderT = rnd(14, 32); Cam.flash = Math.max(Cam.flash, 0.55); const d = rnd(0.4, 2); setTimeout(() => AudioSys.thunder(d), d * 1000); } }
   // gotas na tela (espaço da tela)
-  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 81 : altaQ() ? 378 : 216)); // 10% menos gotas
+  const want = Math.round(this.rain * (Settings.quality === 'baixa' ? 81 : ultraQ() ? 945 : altaQ() ? 378 : 216)); // Ultra: 2,5x mais gotas
   // câmera olhando de cima: a gota cai na direção do chão, então na tela ela "afunda" em direção ao centro,
   // encolhendo e ficando mais fina até bater no chão (onde vira respingo)
   const newDrop = (d, z) => { const R = Math.hypot(SCREEN_W, SCREEN_H) * 0.62; d.a = Math.random() * TAU; d.r = Math.sqrt(Math.random()) * R; d.z = z; d.life = rnd(0.3, 0.55); d.l = rnd(0.025, 0.055); return d; };
@@ -1177,6 +1177,7 @@ Weather.update = function (dt) {
   if (this.ripples.length) this.ripples = this.ripples.filter((r) => r.t < 0.45);
   if (this.ripples.length > 160) this.ripples.splice(0, this.ripples.length - 160);
   AudioSys.rainSet && AudioSys.rainSet(this.rain);
+  Ultra.update(dt); // respingos no chão (só Ultra)
 };
 // poças: aparecem na chuva no asfalto (junto ao meio-fio) e nas trilhas da estrada de terra
 Weather.puddleGrid = null;
@@ -1211,6 +1212,7 @@ Weather.drawPuddles = function (ctx, view) {
   const k = clamp((this.wet - 0.05) / 0.4, 0, 1), T = Game.time;
   this.puddlesNear(view.x0 - 40, view.y0 - 40, view.x1 + 40, view.y1 + 40, _pq);
   for (const p of _pq) {
+    if (ultraQ()) { Ultra.poca(ctx, p, k, T); if (p.wave > 0) { const t = 1 - p.wave; ctx.strokeStyle = `rgba(210,225,245,${(0.6 * p.wave).toFixed(3)})`; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.ellipse(p.x, p.y, p.rx * (0.4 + t), p.ry * (0.4 + t), 0, 0, TAU); ctx.stroke(); } continue; }
     ctx.globalAlpha = k;
     ctx.fillStyle = p.mud ? 'rgba(52,34,20,0.75)' : 'rgba(16,22,32,0.7)';
     ctx.beginPath(); ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, TAU); ctx.fill();
@@ -1280,6 +1282,7 @@ Weather.drawDrops = function (ctx) {
     }
     ctx.stroke();
   }
+  if (ultraQ()) Ultra.gotasPerto(ctx, this.drops, cx, cy, wx);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 };
 const Fireflies = { list: [] };
@@ -1647,9 +1650,11 @@ function render() {
   Agua.desenhaChao(ctx, view); // rio correndo, ondas do mar e chão molhado
   Juncao.molhado(ctx, view); // encontro do asfalto com a terra na chuva: barro e poça
   Mata.chao(ctx, view); // vento nas copas da mata, plantação balançando e tufos de mato nos campos
+  Ultra.molhando(ctx, view); // Ultra: o chão vai molhando aos poucos quando a chuva chega
   Weather.drawPuddles(ctx, view);
   Skids.draw(ctx, view);
   Weather.drawRipples(ctx, view);
+  Ultra.respingos(ctx, view); // Ultra: gotas batendo no chão
   Debris.draw(ctx, view);
   Atropelo.desenhaSangue(ctx, view);
   Colecao.desenha(ctx, view); // panelas de barro e placas de zoeira
