@@ -501,6 +501,7 @@ class AICar {
     return true;
   }
   chooseNext() {
+    if (this.rota && this.guia()) return; // carro com destino (Seu Zé; no futuro a polícia): segue a rota pelas ruas
     const n = this.to;
     let opts = n.edges.filter((x) => x !== this.e && this.allowed(x));
     if (!opts.length) opts = n.edges.filter((x) => x !== this.e && !x.closed);
@@ -510,6 +511,21 @@ class AICar {
       const weighted = opts.map((x) => { const d = x.a === n ? 1 : -1; const dot = this.dx * x.dx * d + this.dy * x.dy * d; return [x, dot > 0.5 ? 2.3 : 1]; });
       ne = wpick(weighted); nd = ne.a === n ? 1 : -1;
     }
+    this.defineNext(ne, nd);
+  }
+  // (0.2.0) segue uma rota de cruzamentos (navNos) até a rua do destino; recalcula sozinho se saiu dela
+  guia() {
+    const R = this.rota;
+    let i = R.nos ? R.nos.indexOf(this.to) : -1;
+    if (i < 0) { const nr = navNos(this.to, this.e, R.alvoE, R.alvoS); if (!nr) return false; R.nos = nr.nos; R.dirFinal = nr.dirFinal; i = 0; }
+    let ne;
+    if (i < R.nos.length - 1) ne = navArestaEntre(this.to, R.nos[i + 1]);
+    else ne = R.alvoE.a === this.to || R.alvoE.b === this.to ? R.alvoE : null;
+    if (!ne || ne.closed) return false;
+    this.defineNext(ne, ne.a === this.to ? 1 : -1);
+    return true;
+  }
+  defineNext(ne, nd) {
     const ox = ne.dx * nd, oy = ne.dy * nd;
     const dot = this.dx * ox + this.dy * oy, cross = this.dx * oy - this.dy * ox;
     this.turnType = dot > 0.5 ? 'straight' : dot < -0.5 ? 'uturn' : cross > 0 ? 'right' : 'left';
@@ -584,7 +600,7 @@ class AICar {
       const L2 = 1 - this.lane, off2 = T.lanes[L2];
       if (this.laneClear(off2, -70, 120)) { this.lane = L2; this.offT = off2; this.lcT = 3.5; }
       else this.lcT = 0.6;
-    } else if (T.lanes.length === 1 && (bl === player || (bl instanceof AICar && bl.hitT > 0)) && this.wait > 1.8 && this.overtake <= 0 && bv < 25) {
+    } else if (T.lanes.length === 1 && (bl === player || (bl instanceof AICar && (bl.hitT > 0 || bl.hold))) && this.wait > 1.8 && this.overtake <= 0 && bv < 25) {
       const off2 = -T.lanes[0];
       if (this.laneClear(off2, -40, 280)) { this.offT = off2; this.overtake = 4; this.lcT = 6; }
       else this.lcT = 1;
@@ -758,6 +774,8 @@ class AICar {
     this.off += clamp(this.offV * dt, -Math.abs(dOff), Math.abs(dOff));
     this.lcBlink = Math.abs(dOff) > 2 ? (dOff > 0 ? 1 : -1) : 0;
     if (this.hitT > 0) { this.hitT -= dt; target = 0; }
+    if (this.hold) target = 0; // parado de propósito (Seu Zé atendendo)
+    if (this.paraE && this.state === 'edge' && this.e === this.paraE && this.dir === this.paraDir) target = Math.min(target, Math.max(0, (this.paraEm - this.s) * 1.4)); // encosta no ponto certo
     this.ghost -= dt;
     if (this.v < 5 && target < 5) this.wait += dt; else this.wait = Math.max(0, this.wait - dt * 2);
     if (this.wait > 4 && gap < 1e9 && this.ghost <= 0 && this.blockCycle()) { this.ghost = 2; this.wait = 0; }
@@ -947,8 +965,9 @@ Traffic.spawnRing = function (v, inside) {
   return null;
 };
 Traffic.fill = function (cx, cy) {
-  for (const c of this.cars) c.release();
-  this.cars.length = 0;
+  const fica = this.cars.filter((c) => c.ze); // o caminhão do Seu Zé continua (não é trânsito comum)
+  for (const c of this.cars) if (!c.ze) c.release();
+  this.cars.length = 0; this.cars.push(...fica);
   for (const n of World.nodes) n.res = null;
   // ainda não tem nada na tela: pode pôr carro em qualquer lugar perto
   const v = Cam.view && Cam.view.x1 > Cam.view.x0 ? Cam.view : { x0: cx - 700, y0: cy - 400, x1: cx + 700, y1: cy + 400 };
@@ -971,13 +990,13 @@ Traffic.update = function (dt, now, cx, cy, view) {
     let o = c, light = false, k = 0;
     while (o && k < 10) { if (o === player) { light = true; break; } if (o.atLight) { light = true; break; } o = o.blocker instanceof AICar ? o.blocker : null; k++; }
     if (light) continue;
-    if (!trInView(c, v, 60)) { c.release(); c.dead = true; continue; }
+    if (!trInView(c, v, 60) && !c.ze) { c.release(); c.dead = true; continue; }
     c.ghost = 2; c.animalGhost = 2; c.wait = 0;
   }
   // some: saiu da tela indo embora, ficou fora da tela uns segundos ou saiu da área onde os carros nascem
   const mx0 = (v.x0 + v.x1) / 2, my0 = (v.y0 + v.y1) / 2;
   for (const c of this.cars) {
-    if (c.dead) continue;
+    if (c.dead || c.ze) continue;
     const longe = !trInView(c, v, TR_EMBORA), indoEmbora = longe && (c.x - mx0) * Math.cos(c.a) + (c.y - my0) * Math.sin(c.a) > 0;
     if (indoEmbora || c.hideT > TR_GONE || !trInView(c, v, TR_FICA)) { c.release(); c.dead = true; }
   }
@@ -988,15 +1007,15 @@ Traffic.update = function (dt, now, cx, cy, view) {
     this.scanEdges(v);
     const mx = trafficTarget(v);
     // poucos na tela de cada vez: com a tela já movimentada, não manda mais
-    let vis = 0; for (const c of this.cars) if (trInView(c, v, 0)) vis++;
+    let vis = 0; for (const c of this.cars) if (!c.ze && trInView(c, v, 0)) vis++;
     const visMax = Settings.quality === 'baixa' ? 3 : altaQ() ? 5 : 4;
     let n = 0;
-    let naFaixa = 0; for (const c of this.cars) if (trInView(c, v, TR_RING + 30)) naFaixa++; // quem já saiu para longe não ocupa lugar
+    let naFaixa = 0; for (const c of this.cars) if (!c.ze && trInView(c, v, TR_RING + 30)) naFaixa++; // quem já saiu para longe não ocupa lugar
     while (naFaixa < mx && this.cars.length < mx + 4 && vis < visMax && n++ < 2) if (this.spawnRing(v, false)) naFaixa++; else break;
     // menos carros fora do pico: tira um por vez, dos que estão fora da tela
     if (this.cars.length > mx + 4 || (naFaixa > mx && this.cars.length > mx)) {
       let far = -1, fd = 0;
-      this.cars.forEach((c, i) => { if (trInView(c, v, 80)) return; const d = Math.hypot(c.x - cx, c.y - cy); if (d > fd) { fd = d; far = i; } });
+      this.cars.forEach((c, i) => { if (c.ze || trInView(c, v, 80)) return; const d = Math.hypot(c.x - cx, c.y - cy); if (d > fd) { fd = d; far = i; } });
       if (far >= 0) { this.cars[far].release(); this.cars.splice(far, 1); }
     }
   }

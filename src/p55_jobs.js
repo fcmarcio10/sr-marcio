@@ -195,30 +195,52 @@ function socorroDrive(J, speed, dt) {
   }
   return J.ri >= J.pts.length;
 }
+// (0.2.0) o caminhão do Seu Zé é um carro do trânsito de verdade (AICar com rota): anda na faixa dele, respeita sinal,
+// espera na fila, não atravessa ninguém e faz as curvas como os outros. Ele segue a rota (navNos) até a rua onde você está
+// e encosta perto de você. Se estiver no meio da rua ou no cruzamento quando você mudar de lugar, segue até o próximo
+// cruzamento e de lá pega o novo caminho (nunca dá meia-volta no meio da rua).
+function socorroAlvo(x, y) { const B = nearestEdge(x, y); return B && B.e ? { e: B.e, s: B.s } : null; }
+function socorroMira(car, A) {
+  car.rota = { alvoE: A.e, alvoS: A.s, nos: null };
+  if (car.state === 'edge' && !car.committed) { car.plan = null; car.chooseNext(); }
+}
+// onde ele encosta: um pouco antes de você, na rua onde você está (no sentido em que ele chega)
+function socorroPara(car) {
+  const R = car.rota; if (!R || !R.dirFinal) return;
+  car.paraE = R.alvoE; car.paraDir = R.dirFinal;
+  const sP = R.dirFinal > 0 ? R.alvoS : R.alvoE.len - R.alvoS;
+  car.paraEm = sP - 34;
+}
+function socorroCarro(J) {
+  const ox = J.sx, oy = J.sy; // oficina (se perto) ou uma rua a uns 1,2 km
+  const A = nearestEdge(ox, oy); if (!A.e) return null;
+  const e = A.e, dir = ((player.x - ox) * e.dx + (player.y - oy) * e.dy) >= 0 ? 1 : -1, sCar = dir > 0 ? A.s : e.len - A.s;
+  const car = new AICar(e, dir, sCar, 0, 'guincho');
+  car.ze = true; car.color = '#c8302a'; car.mul = 1; car.cruise = Math.min(e.T.speed, car.vmax); car.v = 0; car.hideT = 0; car.simT = 0;
+  Traffic.cars.push(car);
+  const T = socorroAlvo(player.x, player.y); if (T) socorroMira(car, T);
+  return car;
+}
+function socorroTira(J) { if (J && J.car) { J.car.release(); J.car.dead = true; Traffic.cars = Traffic.cars.filter((c) => c !== J.car); J.car = null; } }
 function socorroCall(kind) {
   if (Socorro.job || !player) return;
   if (!zeFiadoGate()) return; // fiado em aberto: sem acertar, ele não vem
-  // sai da oficina se ela estiver perto; senão aparece numa rua a uns 1,2 km de você
   const of = World.shops.find((s) => s.kind === 'oficina');
   let sx, sy;
   if (of && Math.hypot(of.x - player.x, of.y - player.y) < 2600) { sx = of.x; sy = of.y; }
   else { const a = rnd(TAU); const ne = nearestEdge(clamp(player.x + Math.cos(a) * 1300, 100, WORLD_W - 100), clamp(player.y + Math.sin(a) * 1300, 100, WORLD_H - 100)); sx = ne.e.h ? ne.e.a.x + ne.s : ne.e.a.x; sy = ne.e.h ? ne.e.a.y : ne.e.a.y + ne.s; }
-  // (0.2.0) caminho só pelas ruas (Nav): sai da rua mais perto da oficina, vai na mão certa, faz as curvas e para na rua mais perto de você
   const route = navRota(sx, sy, player.x, player.y, { soRua: true });
-  const pts = route ? route.pts : [[sx, sy], [player.x, player.y]];
-  if (route) { sx = pts[0][0]; sy = pts[0][1]; }
   const len0 = route ? route.len : Math.hypot(sx - player.x, sy - player.y);
-  // chega uns 80% mais tarde que antes: anda um pouco mais devagar (260) e demora para sair da oficina (pega as ferramentas)
-  const sai = Math.max(4, len0 / 300 * 1.8 - len0 / 260);
+  const sai = 5; // pega as ferramentas e sai da oficina
   const itens = socorroItens(kind).map((i) => i.k);
-  const J = { kind, itens, x: sx, y: sy, a: pts[1] ? Math.atan2(pts[1][1] - sy, pts[1][0] - sx) : 0, pts, ri: 1, state: 'coming', t: 0, rt: 3, quote: socorroQuote(kind), sai };
+  const J = { kind, itens, sx, sy, x: sx, y: sy, a: 0, state: 'coming', t: 0, rt: 2, quote: socorroQuote(kind), sai, car: null };
   Profile.sos = (Profile.sos || 0) + 1;
   Socorro.job = J;
-  const eta = Math.max(1, Math.round((sai + len0 / 260) / 20)); // minutos do relógio do jogo (1 min = 1 s... como antes: / 20)
+  const eta = Math.max(1, Math.round((sai + len0 / 150) / 20)); // anda no ritmo do trânsito (sinal, fila, curva)
   const what = kind === 'kit' ? 'o kit completo (' + zeLista(itens) + ')' : kind === 'bat' ? 'uma carga na bateria, ela arriou' : kind === 'tires' || kind === 'pneu' ? 'pneus novos, tô no aro' : kind === 'oil' ? 'uma troca de óleo' : kind === 'fix' ? 'um conserto na lataria' : 'gasolina';
   Profile.msgs.unshift({ from: ZE, title: '', body: 'Seu Zé, preciso de ' + what + '. Me socorre aí!', read: true, me: true, t: Math.floor(Profile.time) });
   setTimeout(() => {
-    addMsg(ZE, '', 'Tô indo aí com o guincho! Fica parado num lugar seguro, com o pisca ligado. Chego em uns ' + eta + ' min. Fica uns R$ ' + fmtMoney(J.quote) + ' (15% a mais que na oficina, por causa do deslocamento).', true);
+    addMsg(ZE, '', 'Tô indo aí com o guincho! Fica parado num lugar seguro, com o pisca ligado. Chego em uns ' + eta + ' min, depende do trânsito. Fica uns R$ ' + fmtMoney(J.quote) + ' (15% a mais que na oficina, por causa do deslocamento).', true);
     if (Screens.current === 'screen-phone' && Phone.chat === ZE) Phone.render();
     phoneTone(1320, 0.06, 0.05);
   }, 1200);
@@ -226,30 +248,37 @@ function socorroCall(kind) {
 }
 function socorroCancel() {
   if (!Socorro.job) return;
-  Socorro.job = null;
+  socorroTira(Socorro.job); Socorro.job = null;
   Profile.msgs.unshift({ from: ZE, title: '', body: 'Seu Zé, pode cancelar, já me virei.', read: true, me: true, t: Math.floor(Profile.time) });
   setTimeout(() => { addMsg(ZE, '', 'Beleza, dei meia-volta. Qualquer coisa me chama!', true); if (Screens.current === 'screen-phone' && Phone.chat === ZE) Phone.render(); }, 900);
 }
 Socorro.update = function (dt) {
   const J = this.job; if (!J || !player) return;
   J.t += dt;
+  if (J.sai > 0) { J.sai -= dt; return; } // ainda saindo da oficina
+  if (!J.car || !J.car.alive) { if (J.state === 'leaving') { this.job = null; return; } J.car = socorroCarro(J); if (!J.car) return; }
+  const car = J.car; J.x = car.x; J.y = car.y; J.a = car.a; J.v = car.v;
+  const d = Math.hypot(player.x - car.x, player.y - car.y);
   if (J.state === 'coming') {
-    if (J.sai > 0) { J.sai -= dt; return; } // ainda saindo da oficina (fora da tela)
-    // recalcula a rota (pelas ruas) se você saiu do lugar
+    car.hold = false;
+    // você mudou de lugar: ele mira a nova rua (o caminho novo começa no próximo cruzamento)
     J.rt -= dt;
-    const end = J.pts[J.pts.length - 1];
-    if (J.rt <= 0) { J.rt = 3; if (Math.hypot(end[0] - player.x, end[1] - player.y) > 150) { const r = navRota(J.x, J.y, player.x, player.y, { soRua: true }); if (r) { J.pts = [[J.x, J.y], ...r.pts]; J.ri = 1; } } }
-    socorroDrive(J, 260, dt);
-    // acabou a rua: só encosta o último pedacinho se você estiver logo ali (nunca corta casa, rio ou terreno)
-    const fim = J.ri >= J.pts.length;
-    if (fim) { const dx = player.x - J.x, dy = player.y - J.y, d = Math.hypot(dx, dy); if (d > 40 && d < 140 && !areaBlocked(J.x + dx / d * 20 - 6, J.y + dy / d * 20 - 6, J.x + dx / d * 20 + 6, J.y + dy / d * 20 + 6)) { const m = Math.min(d - 40, 120 * dt); J.x += dx / d * m; J.y += dy / d * m; J.a += angDiff(J.a, Math.atan2(dy, dx)) * Math.min(1, dt * 5); } }
-    if (Math.hypot(player.x - J.x, player.y - J.y) < 75 || (fim && Math.hypot(player.x - J.x, player.y - J.y) < 220)) { J.state = 'arrived'; J.t = 0; toast('Seu Zé chegou!', 'Fica parado aí que ele já resolve.', 'info'); AudioSys.aiHorn(60, 'caminhao', 0); }
+    if (J.rt <= 0) {
+      J.rt = 2; const T = socorroAlvo(player.x, player.y), R = car.rota;
+      if (T && (!R || T.e !== R.alvoE || Math.abs(T.s - R.alvoS) > 120)) socorroMira(car, T);
+    }
+    socorroPara(car);
+    const naRua = car.state === 'edge' && car.e === car.paraE && car.dir === car.paraDir;
+    if (d < 80 || (naRua && car.v < 4 && d < 230 && (car.paraEm - car.s < 20 || car.blocker === player))) {
+      J.state = 'arrived'; J.t = 0; car.hold = true; car.offT = car.off + (car.e.T.lanes.length === 1 ? 8 : 0); // encosta e liga o pisca
+      toast('Seu Zé chegou!', 'Fica parado aí que ele já resolve.', 'info'); AudioSys.aiHorn(60, 'caminhao', 0);
+    }
   } else if (J.state === 'arrived') {
-    if (player.speed > 30) { J.t = 0; if (Math.hypot(player.x - J.x, player.y - J.y) > 160) { J.state = 'coming'; J.rt = 0; } return; }
+    car.hold = true; car.blink = 1;
+    if (player.speed > 30) { J.t = 0; if (d > 160) { J.state = 'coming'; J.rt = 0; } return; }
     if (J.t > 0.4 && Math.floor(J.t * 2.5) !== Math.floor((J.t - dt) * 2.5)) AudioSys.wrench();
     if (J.t > 3) {
       // serviço completo; o que faltar de dinheiro o Seu Zé anota no fiado (é amigo)
-      // faz exatamente os itens pedidos (o preço é o de agora, pode ter mudado no caminho)
       const itens = socorroItens(J.kind === 'kit' ? 'kit' : J.itens[0]).filter((x) => J.kind !== 'kit' || J.itens.includes(x.k));
       let cost = 0; for (const it of itens) { cost += it.preco; zeAplica(it.k); }
       const what = itens.length ? 'Feito: ' + zeLista(itens) + '.' : 'Tudo em dia.';
@@ -258,20 +287,18 @@ Socorro.update = function (dt) {
       toast('Socorro do Seu Zé', what + ' Pago R$ ' + fmtMoney(ch.paid) + (ch.owed ? ' · fiado R$ ' + fmtMoney(ch.owed) : ''), 'good');
       const tip = J.itens.includes('bat') && J.itens.length === 1 ? ' Agora não fica parado com o farol aceso não, hein. Bateria não é poste.' : J.itens.includes('tires') && J.itens.length === 1 ? ' Pneu novo, sapato novo! Para de cantar pneu em toda esquina.' : ' Vai com Deus e devagar.';
       addMsg(ZE, '', ch.owed ? (ch.paid ? 'Peguei os R$ ' + fmtMoney(ch.paid) + ' que você tinha e ' : 'Tá liso, né? Tranquilo, ') + 'anotei R$ ' + fmtMoney(ch.owed) + ' no fiado. Amanhã, na virada da noite, eu pego sozinho se tiver dinheiro. Se atrasar, entra jurinho, viu?' + tip : 'Prontinho, R$ ' + fmtMoney(ch.paid) + '.' + tip, true);
-      J.kind = 'done';
-      J.state = 'leaving'; J.t = 0; J.v = 0; saveGame();
-      // volta pela rua até a garagem da oficina
-      const of = World.shops.find((s) => s.kind === 'oficina');
-      const rb = of ? gpsRoute(J.x, J.y, of.x, of.y) : null;
-      J.pts = rb ? laneShift(rb.pts, 20) : [[J.x, J.y]]; J.ri = 1;
-      if (of && of.bld) { const b = of.bld; J.pts.push([clamp(of.x, b.x0 + 20, b.x1 - 20), clamp(of.y, b.y0, b.y1)]); }
-      J.home = !!of;
+      J.kind = 'done'; J.state = 'leaving'; J.t = 0; saveGame();
+      // volta para a oficina pelo trânsito, como qualquer carro
+      car.hold = false; car.blink = 0; car.paraE = null;
+      const of = World.shops.find((s) => s.kind === 'oficina'), T = of ? socorroAlvo(of.x, of.y) : null;
+      if (T) socorroMira(car, T); else car.rota = null;
+      J.home = !!T;
     }
   } else if (J.state === 'leaving') {
-    const done = socorroDrive(J, 260, dt);
-    // longe da tela por muito tempo: considera que já chegou
-    const far = Math.hypot(J.x - Cam.x, J.y - Cam.y) > 2600 && J.t > 8;
-    if (done || far || !J.home) { J.fade = (J.fade || 0) + dt; if (J.fade > 1 || far || !J.home) this.job = null; }
+    if (car.rota && car.rota.dirFinal) socorroPara(car);
+    const chegou = car.paraE && car.state === 'edge' && car.e === car.paraE && car.v < 3 && car.paraEm - car.s < 25;
+    const longe = Math.hypot(car.x - Cam.x, car.y - Cam.y) > 1400 && J.t > 6; // longe de você: considera que já chegou
+    if (chegou || longe || !J.home) { socorroTira(J); this.job = null; }
   }
 };
 function socorroBar(H) {

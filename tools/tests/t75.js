@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
   console.log('dead battery:', JSON.stringify(bat));
   await p.waitForTimeout(400); await p.screenshot({ path: 'life_hud.png' });
   // socorro chupeta
-  const sos = await p.evaluate(async () => { socorroCall('bat'); const J = Socorro.job; J.x = player.x + 50; J.y = player.y; J.state = 'coming'; return J.quote; });
+  const sos = await p.evaluate(async () => { socorroCall('bat'); const J = Socorro.job; J.sai = 0; J.sx = player.x + 60; J.sy = player.y; J.state = 'coming'; return J.quote; });
   await p.waitForTimeout(5500);
   console.log('socorro bat quote', sos, await p.evaluate(() => [carLife().bat, CarLife.stalled, Socorro.job && Socorro.job.state]));
   // farol H

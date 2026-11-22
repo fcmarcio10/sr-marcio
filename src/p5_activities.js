@@ -299,6 +299,31 @@ function gpsRoute(sx, sy, tx, ty, hx, hy) {
 /* ---------- Nav: caminho pelas ruas para quem dirige (GPS, caminhão do Seu Zé e as próximas IAs, como a polícia) ----------
    Usa a mesma malha de ruas do GPS (cruzamentos ligados pelas ruas), mas monta a linha por onde um carro anda de verdade:
    na mão certa (faixa da direita de cada rua), com curva arredondada nos cruzamentos e, se pedir, sem as retas de fora da rua. */
+// (0.2.0) rota de cruzamentos para um carro do trânsito com destino (Seu Zé, e no futuro a polícia):
+// sai do cruzamento 'inicio' e chega na rua 'alvoE' (no ponto alvoS a partir de alvoE.a). Voltar pela rua de onde
+// veio ('evita') custa um retorno: só faz se precisar mesmo. Devolve os cruzamentos e o sentido na rua final.
+function navNos(inicio, evita, alvoE, alvoS) {
+  const N = World.nodes.length, dist = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), done = new Uint8Array(N);
+  dist[inicio.id] = 0;
+  for (;;) {
+    let u = -1, best = Infinity;
+    for (let i = 0; i < N; i++) if (!done[i] && dist[i] < best) { best = dist[i]; u = i; }
+    if (u < 0) break;
+    done[u] = 1;
+    const n = World.nodes[u];
+    for (const e of n.edges) {
+      if (e.closed) continue;
+      const o = e.a === n ? e.b : e.a, nd = best + e.len + (n === inicio && e === evita ? 400 : 0);
+      if (nd < dist[o.id]) { dist[o.id] = nd; prev[o.id] = u; }
+    }
+  }
+  const ca = dist[alvoE.a.id] + alvoS, cb = dist[alvoE.b.id] + (alvoE.len - alvoS);
+  if (!isFinite(Math.min(ca, cb))) return null;
+  const fim = ca <= cb ? alvoE.a : alvoE.b, nos = [];
+  for (let i = fim.id; i >= 0; i = prev[i]) nos.push(World.nodes[i]);
+  nos.reverse();
+  return { nos, dirFinal: fim === alvoE.a ? 1 : -1 };
+}
 function navArestaEntre(a, b) { for (const e of a.edges) if ((e.a === a && e.b === b) || (e.b === a && e.a === b)) return e; return null; }
 function navRota(sx, sy, tx, ty, opt) {
   opt = opt || {};

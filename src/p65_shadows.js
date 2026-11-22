@@ -52,7 +52,6 @@ function drawDynShadows(ctx, view) {
   };
   for (const c of Traffic.cars) if (inView(view, c.x, c.y, 60)) car(c, c.m, c.a);
   for (const u of Police.units) if (inView(view, u.x, u.y, 60)) car(u, VMODELS.police, u.a);
-  if (Socorro.job && inView(view, Socorro.job.x, Socorro.job.y, 60)) car(Socorro.job, VMODELS.guincho, Socorro.job.a);
   if (player && Game.state !== 'menu') car(player, player.m, player.a);
   for (const an of Animals.list) if ((an.type === 'person' || an.type === 'dog') && !an.morto && !an.oculto && inView(view, an.x, an.y, 30)) ped(an);
   ctx.globalAlpha = 1;

@@ -1509,7 +1509,7 @@ function emissivePass(view, talls) {
   }
   for (const u of Police.units) { const ph = Math.floor(T * 7 + u.id * 10) % 2; ctx.globalAlpha = 0.95; ctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 14, u.y - 14, 28, 28); ctx.globalAlpha = 0.3; ctx.drawImage(glowSprite(ph ? '#ff2a2a' : '#2a6aff'), u.x - 70, u.y - 70, 140, 140); ctx.globalAlpha = 1; }
   Events.drawGlow(ctx, view);
-  if (Socorro.job && (Game.time * 2.2) % 1 < 0.5) { const J = Socorro.job; ctx.globalAlpha = 0.9; const s = glowSprite('#ffa520'); ctx.drawImage(s, J.x - 22, J.y - 22, 44, 44); ctx.globalAlpha = 1; }
+  if (Socorro.job && Socorro.job.car && (Game.time * 2.2) % 1 < 0.5) { const J = Socorro.job; ctx.globalAlpha = 0.9; const s = glowSprite('#ffa520'); ctx.drawImage(s, J.x - 22, J.y - 22, 44, 44); ctx.globalAlpha = 1; }
   // animais (olhos de coruja)
   for (const an of Animals.list) {
     if (an.type !== 'owl' || an.blinkT < 0) continue;
@@ -1683,7 +1683,7 @@ function render() {
   }
   Events.draw(ctx, view);
   for (const u of Police.units) if (inView(view, u.x, u.y, 80)) drawVehicle(ctx, VMODELS.police, '#f2f2ee', u.x, u.y, u.a, { roll: 0, brake: u.v < 30 });
-  if (Socorro.job && inView(view, Socorro.job.x, Socorro.job.y, 120)) { const J = Socorro.job; ctx.globalAlpha = clamp(1 - (J.fade || 0), 0, 1); drawVehicle(ctx, VMODELS.guincho, '#c8302a', J.x, J.y, J.a, { roll: 0, brake: J.state === 'arrived' || (J.v || 0) < 20 }); ctx.globalAlpha = 1; }
+  // (o caminhão do Seu Zé agora é desenhado junto com o trânsito: é um carro do trânsito com rota)
   if (Game.state === 'menu') MenuCar.desenha(ctx, view);
   if (player && Game.state !== 'menu') {
     drawVehicle(ctx, player.m, player.color, player.x, player.y, player.a, { steer: player.steer * 1.4, roll: player.roll, lean: player.lean, pitch: player.pitch, brake: player.braking || key.hb(), rev: player.rev, dirt: Profile.dirt, damage: Profile.damage, cargo: !!Act.delivery || !!(Act.ride && Act.ride.type === 'mudanca' && Act.ride.stage === 'drive'), zones: Profile.zones, tow: player.car.job === 'guincho' && Act.delivery && Act.delivery.stage === 'deliver', towColor: Act.delivery && Act.delivery.color, boxText: player.car.job === 'bau' ? 'LEVA-E-TRAZ' : null, kit: carKit(player.car.id) });

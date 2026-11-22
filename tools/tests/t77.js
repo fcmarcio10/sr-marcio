@@ -24,7 +24,7 @@ const { chromium } = require('playwright');
   await p.evaluate(() => { Phone.go('carteira'); Phone.wtab = 'loan'; Phone.render(); }); await p.waitForTimeout(200); await p.screenshot({ path: 'loan3.png' });
   await p.keyboard.press('KeyQ');
   // fiado
-  await p.evaluate(() => { Profile.money = 30; Profile.damage = 60; Profile.fuel = 20; socorroCall('both'); const J = Socorro.job; J.x = player.x + 50; J.y = player.y; });
+  await p.evaluate(() => { Profile.money = 30; Profile.damage = 60; Profile.fuel = 20; socorroCall('kit'); const J = Socorro.job; J.sai = 0; J.sx = player.x + 60; J.sy = player.y; });
   await p.waitForTimeout(5000);
   console.log('fiado after sos:', await p.evaluate(() => [Math.round(Profile.money), Profile.fiado && Math.round(Profile.fiado.amount), Math.round(Profile.damage), Math.round(Profile.fuel)]));
   await p.evaluate(() => { Socorro.job = null; carLife().bat = 0; socorroCall('bat'); });
