@@ -25,6 +25,7 @@ AutoRes.quadro = function (dtReal, trabalhoMs, cap) {
 };
 const Cam = { x: 1000, y: 2700, zoom: 1, shake: 0, quick: 1, view: { x0: 0, y0: 0, x1: 0, y1: 0 }, dark: 0.84, menuTarget: null, menuT: 0 };
 const PAR = 1 / 1700;
+let DESENHO_RS = 0.5; // tamanho do ponto no estilo Desenho (0,5 = cada ponto vira 2x2)
 const SQ = 1;      // visão de cima (sem achatamento vertical)
 const TILT_H = 0;  // sem inclinação extra: só a paralaxe 2.5D a partir do centro da tela (a vista 3/4 foi testada e voltou, nov/2026)
 
@@ -32,11 +33,17 @@ function resize() {
   SCREEN_W = window.innerWidth; SCREEN_H = window.innerHeight;
   const dpr = window.devicePixelRatio || 1;
   RS = altaQ() ? Math.min(dpr, 2) : Settings.quality === 'baixa' ? Math.min(dpr, 1) * 0.7 : Math.min(dpr, 1.25);
-  if (desenhoQ()) RS = 0.5; // estilo Desenho: metade dos pontos e ampliado sem borrar (cada ponto vira um quadradinho nítido)
+  if (desenhoQ()) RS = DESENHO_RS; // estilo Desenho: menos pontos e ampliado sem borrar (cada ponto vira um quadradinho nítido)
   canvas.classList.toggle('pixel', desenhoQ());
   if (AutoRes.q !== Settings.quality) { AutoRes.q = Settings.quality; AutoRes.k = 1; AutoRes.teto = 1; } // trocou o gráfico: começa do zero
   RS_MAX = RS; if (!desenhoQ()) RS = Math.max(Math.min(RS, 0.75), RS * AutoRes.k); // nitidez automática para segurar 60 FPS
-  canvas.width = Math.round(SCREEN_W * RS); canvas.height = Math.round(SCREEN_H * RS);
+  if (desenhoQ()) { // Desenho: 1 ponto a mais de cada lado; a tela é deslocada pelo pedaço de ponto que sobra (câmera macia sem tremer)
+    canvas.width = Math.ceil(SCREEN_W * RS) + 2; canvas.height = Math.ceil(SCREEN_H * RS) + 2;
+    const cs = canvas.style; cs.width = (canvas.width / RS) + 'px'; cs.height = (canvas.height / RS) + 'px'; cs.left = (-1 / RS) + 'px'; cs.top = (-1 / RS) + 'px'; cs.right = cs.bottom = 'auto';
+  } else {
+    canvas.width = Math.round(SCREEN_W * RS); canvas.height = Math.round(SCREEN_H * RS);
+    const cs = canvas.style; cs.width = cs.height = cs.left = cs.top = cs.right = cs.bottom = cs.transform = '';
+  }
   // a camada de luz é toda suave: resolução menor não muda o visual e alivia muito
   LS = altaQ() ? 0.5 : Settings.quality === 'baixa' ? 0.28 : 0.42;
   lightCanvas.width = Math.ceil(SCREEN_W * LS); lightCanvas.height = Math.ceil(SCREEN_H * LS);
@@ -1650,8 +1657,9 @@ function render() {
   const W = canvas.width, Hh = canvas.height;
   const z = Cam.zoom * RS;
   // tremida + tranco da batida + vibração leve que cresce com a velocidade (acima de ~110 km/h; macia, sem sorteio)
-  const vib = Game.mode === 'play' && player && !Apresenta.on ? clamp((player.speed * 0.3 - 110) / 110, 0, 1) * 0.9 : 0, T9 = Game.time;
-  const sx = (Math.random() - 0.5) * Cam.shake * 0.6 + (Cam.kx || 0) + vib * (Math.sin(T9 * 31) * 0.6 + Math.sin(T9 * 53 + 1) * 0.4), sy = (Math.random() - 0.5) * Cam.shake * 0.6 + (Cam.ky || 0) + vib * (Math.sin(T9 * 37 + 2) * 0.6 + Math.sin(T9 * 47) * 0.4);
+  const vib = Game.mode === 'play' && player && !Apresenta.on && !desenhoQ() ? clamp((player.speed * 0.3 - 110) / 110, 0, 1) * 0.9 : 0, T9 = Game.time;
+  const shk = desenhoQ() ? 0 : Cam.shake * 0.6; // Desenho: sem tremida (fica só o tranco macio da batida)
+  const sx = (Math.random() - 0.5) * shk + (Cam.kx || 0) + vib * (Math.sin(T9 * 31) * 0.6 + Math.sin(T9 * 53 + 1) * 0.4), sy = (Math.random() - 0.5) * shk + (Cam.ky || 0) + vib * (Math.sin(T9 * 37 + 2) * 0.6 + Math.sin(T9 * 47) * 0.4);
   const cx = Cam.x + sx, cy = Cam.y + sy;
   const vw = W / z, vh = Hh / (z * SQ);
   const view = Cam.view; view.x0 = cx - vw / 2; view.y0 = cy - vh / 2; view.x1 = cx + vw / 2; view.y1 = cy + vh / 2;
@@ -1661,6 +1669,7 @@ function render() {
   pm('clear');
   const DQ = desenhoQ(), tx0 = W / 2 - cx * z, ty0 = Hh / 2 - cy * z * SQ, TX = DQ ? Math.round(tx0) : tx0, TY = DQ ? Math.round(ty0) : ty0; // Desenho: a câmera anda de ponto em ponto (sem tremer nem costura no chão)
   ctx.setTransform(z, 0, 0, z * SQ, TX, TY);
+  if (DQ) { const fx = (TX - tx0) / RS, fy = (TY - ty0) / RS, k = fx.toFixed(2) + ',' + fy.toFixed(2); if (k !== render._fk) { render._fk = k; canvas.style.transform = `translate(${-fx.toFixed(2)}px, ${-fy.toFixed(2)}px)`; } }
   WS_BASE.ctx = ctx; WS_BASE.z = z; WS_BASE.zs = z * SQ; WS_BASE.tx = TX; WS_BASE.ty = TY; wsTrim();
   ctx.imageSmoothingEnabled = !DQ;
   drawGround(view, forceGround); forceGround = false;
