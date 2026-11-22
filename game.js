@@ -2739,7 +2739,7 @@ const vagaH = (e, k) => hash2(e.id * 31 + k, e.a.x + e.a.y * 7);
 function vagaGeo(e) { // mesma conta do desenho da faixa (drawEdgeMarkings)
   const pad = 26, s0 = e.perpA ? e.perpA + pad : 0, s1 = e.perpB ? e.len - e.perpB - pad : e.len;
   const outer = e.T.lanes[e.T.lanes.length - 1] + 12;
-  return { a0: s0 + 34, a1: s1 - 34, larg: (e.hw - outer) * 1.1 };
+  return { a0: s0 + 34, a1: s1 - 34, larg: ((e.hwVaga || e.hw) - outer) * 1.1 }; // a vaga continua do tamanho do carro mesmo com a rua mais larga
 }
 const vagaMundo = (e, s, y) => e.h ? [e.a.x + s, e.a.y + y] : [e.a.x - y, e.a.y + s];
 // a construção fica de frente para esse lado da rua?
@@ -2754,6 +2754,7 @@ function vagaLoja(e, b, sd, G) {
 function marcaVagas() {
   const lojas = World.buildings.filter((b) => b.style === 'shop' && b.sign);
   World.vagasRua = 0;
+  const comVaga = [];
   for (const e of World.edges) {
     e.vagas = null;
     if (!e.T.sw || !(e.T.id === 'street' || e.T.id === 'avenue') || edgePave(e) === 'bloquete') continue;
@@ -2761,12 +2762,17 @@ function marcaVagas() {
     const rk = regionKeyAt((e.a.x + e.b.x) / 2, (e.a.y + e.b.y) / 2), lados = [];
     for (const sd of [-1, 1]) {
       const ok = e.T.id === 'avenue' ? !!VAGA_REG[rk] : e.len <= 800 && lojas.some((b) => vagaLoja(e, b, sd, G));
-      if (ok) lados.push(sd);
+      if (ok && vagaH(e, 700 + sd) >= VAGA_CORTE) lados.push(sd); // 0.2.0: 25% dos lados com vaga saíram (escolha pela posição)
     }
     if (!lados.length) continue;
-    e.vagas = lados;
-    // carros estacionados (cerca de metade das vagas comuns)
-    for (const sd of lados) {
+    e.vagas = lados; comVaga.push(e);
+  }
+  alargaVagas(comVaga);
+  empurraDaPista(); // poste, árvore ou objeto que ficou no asfalto novo vai para a calçada
+  // carros estacionados (cerca de metade das vagas comuns)
+  for (const e of comVaga) {
+    const G = vagaGeo(e);
+    for (const sd of e.vagas) {
       const quer = vagaH(e, sd + 60);
       let k = 0;
       for (let s = G.a0; s + VAGA_PASSO <= G.a1; s += VAGA_PASSO, k++) {
@@ -2780,6 +2786,53 @@ function marcaVagas() {
         addParkedCar(x, y, ang, VAGA_MODELOS[mi], CAR_COLORS[ci]);
       }
     }
+  }
+}
+// 0.2.0: rua com vaga fica 20% mais larga (avenida: o mesmo tanto, ~11%, porque a calçada não deixa mais).
+// O asfalto cresce para dentro da calçada (as construções não mudam); a vaga continua junto da calçada e
+// sobra mais espaço entre os carros estacionados e quem passa.
+const VAGA_CORTE = 0.25;
+function alargaVagas(lista) {
+  for (const e of lista) {
+    const cresce = Math.min(e.hw * 0.2, 12);
+    e.hwVaga = e.hw; e.hw0 = e.hw; e.hw = +(e.hw + cresce).toFixed(2);
+    e.T = Object.assign({}, e.T, { sw: +(e.T.sw - cresce).toFixed(2) }); // calçada mais estreita só nessa rua
+    const x0 = Math.min(e.a.x, e.b.x) - e.hw, x1 = Math.max(e.a.x, e.b.x) + e.hw, y0 = Math.min(e.a.y, e.b.y) - e.hw, y1 = Math.max(e.a.y, e.b.y) + e.hw;
+    const a0 = e.h ? Math.min(e.a.x, e.b.x) : Math.min(e.a.y, e.b.y), a1 = e.h ? Math.max(e.a.x, e.b.x) : Math.max(e.a.y, e.b.y);
+    for (let gy = Math.floor(y0 / GC); gy <= Math.floor(y1 / GC); gy++) for (let gx = Math.floor(x0 / GC); gx <= Math.floor(x1 / GC); gx++) {
+      if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) continue;
+      const cx = gx * GC + 5, cy = gy * GC + 5, d = e.h ? Math.abs(cy - e.a.y) : Math.abs(cx - e.a.x), al = e.h ? cx : cy;
+      const i = gy * GW + gx;
+      if (d < e.hw && al >= a0 && al <= a1 && (ground[i] === SF.SIDEWALK || ground[i] === SF.PAVED)) ground[i] = SF.ROAD;
+    }
+  }
+  // caminho dos pedestres na calçada: vai junto para a calçada nova (mais estreita), fora do asfalto
+  for (const e of lista) {
+    const c = e.h ? e.a.y : e.a.x, al0 = e.h ? Math.min(e.a.x, e.b.x) : Math.min(e.a.y, e.b.y), al1 = e.h ? Math.max(e.a.x, e.b.x) : Math.max(e.a.y, e.b.y);
+    const i0 = e.h ? 1 : 0, i1 = e.h ? 3 : 2, j0 = e.h ? 0 : 1, j1 = e.h ? 2 : 3, dentro = e.hw + 2, fora = e.hw + e.T.sw - 2;
+    for (const D of World.animalsDef || []) {
+      const R = D.rect; if (!R || D.type !== 'person') continue;
+      if (R[j1] < al0 || R[j0] > al1) continue;
+      for (const sd of [-1, 1]) {
+        const lo = sd > 0 ? c + e.hw0 - 2 : c - e.hw - 8, hi = sd > 0 ? c + e.hw + 8 : c - e.hw0 + 2;
+        if (R[i0] >= lo && R[i1] <= hi) { if (sd > 0) { R[i0] = c + dentro; R[i1] = c + fora; } else { R[i0] = c - fora; R[i1] = c - dentro; } }
+      }
+    }
+  }
+  // cruzamentos e faixas de pedestre acompanham a beira nova
+  const perpN = (e, n) => { let m = 0; for (const o of n.edges) if (o.h !== e.h) m = Math.max(m, o.hw); return m; };
+  for (const n of World.nodes) {
+    if (!n.edges.some((e) => e.hwVaga)) continue;
+    let hv = 0, hh = 0;
+    for (const e of n.edges) { if (e.h) hh = Math.max(hh, e.hw); else hv = Math.max(hv, e.hw); }
+    if (!hv) hv = hh; if (!hh) hh = hv;
+    if (n.hx0 === undefined) { n.hx0 = n.hx; n.hy0 = n.hy; }
+    n.hx = hv; n.hy = hh;
+    for (let gy = Math.floor((n.y - hh) / GC); gy <= Math.floor((n.y + hh) / GC); gy++) for (let gx = Math.floor((n.x - hv) / GC); gx <= Math.floor((n.x + hv) / GC); gx++) {
+      const cx = gx * GC + 5, cy = gy * GC + 5, i = gy * GW + gx;
+      if (Math.abs(cx - n.x) < hv && Math.abs(cy - n.y) < hh && (ground[i] === SF.SIDEWALK || ground[i] === SF.PAVED)) ground[i] = SF.ROAD;
+    }
+    for (const e of n.edges) { e.perpA = perpN(e, e.a); e.perpB = perpN(e, e.b); }
   }
 }
 
@@ -4905,9 +4958,26 @@ class AICar {
       if (o === this) continue;
       // modo fantasma (para destravar ciclos no cruzamento) nunca atravessa a fila da própria faixa
       const sameQueue = this.state === 'edge' && o.state === 'edge' && o.e === this.e && o.dir === this.dir && Math.abs(o.off - this.off) < 12;
-      if (this.ghost > 0 && !sameQueue) continue;
+      if (this.ghost > 0 && !sameQueue) { // fantasma (destrava ciclo) ainda para antes de encostar: nunca passa por dentro de outro carro
+        const rx = o.x - this.x, ry = o.y - this.y, f = rx * c + ry * s, l = Math.abs(-rx * s + ry * c), g = f - this.m.L / 2 - o.m.L / 2;
+        if (f > 0 && l < (this.m.W + o.m.W) * 0.5 + 2 && g < 4 && g < best) { best = g; this.blocker = o; }
+        continue;
+      }
       if (this.state === 'turn' && o.state === 'edge' && o.e !== this.next.e && Math.abs(angDiff(o.a, this.a)) > 0.9) continue; // parado na faixa de retenção da outra rua
       check(o, o.x, o.y, o.m.L, o.m.W);
+    }
+    // fazendo a curva: olha o caminho da curva (não só reto para a frente), para não atravessar quem parou no cruzamento
+    if (this.state === 'turn' && this.turn && this.turn.pts) {
+      const P = this.turn.pts, i0 = Math.min(P.length - 1, Math.ceil(this.turn.t * (P.length - 1)) + 1);
+      let along = 0, lx = this.x, ly = this.y;
+      for (let i = i0; i < P.length && along < look; i++) {
+        along += Math.hypot(P[i][0] - lx, P[i][1] - ly); lx = P[i][0]; ly = P[i][1];
+        for (const o of Traffic.cars) {
+          if (o === this) continue;
+          const d = Math.hypot(o.x - lx, o.y - ly); if (d > (this.m.W + o.m.W) * 0.5 + o.m.L * 0.35) continue;
+          const g = along - this.m.L / 2 - o.m.L / 2; if (g < best) { best = Math.max(0, g); this.blocker = o; }
+        }
+      }
     }
     // o jogador é visto de mais longe e com folga lateral maior: os carros mantêm distância de você
     if (player && Game.state !== 'menu') { const m = this.state === 'edge' ? 1 : 0; check(player, player.x, player.y, player.m.L + 26 * m, player.m.W + 12 * m); }
@@ -5079,7 +5149,9 @@ Traffic.randomEdge = function () {
    segundos é apagado. Fora da tela, quem ainda existe é calculado 4x menos vezes. Se um trecho já
    está cheio (engarrafamento), não chega carro novo ali. */
 const TR_RING = 240;      // faixa em volta da tela onde os carros nascem e existem (pequena)
-const TR_GONE = 2.5;      // segundos fora da tela até o carro sumir
+const TR_GONE = 7;        // segundos fora da tela até o carro sumir (0.2.0: era 2,5 e o carro sumia antes de dar para alcançar)
+const TR_EMBORA = 520;    // indo embora, só some depois de passar disso da beira da tela (era logo na beira)
+const TR_FICA = 950;      // longe disso da tela o carro some de qualquer jeito
 const TR_SLOW = 1 / 30;   // passo do cálculo fora da tela (30 vezes por segundo, em vez de 120)
 // quantos carros cabem na faixa (mesma sensação de rua movimentada na tela)
 function trafficTarget(view) {
@@ -5169,8 +5241,8 @@ Traffic.update = function (dt, now, cx, cy, view) {
   const mx0 = (v.x0 + v.x1) / 2, my0 = (v.y0 + v.y1) / 2;
   for (const c of this.cars) {
     if (c.dead) continue;
-    const fora = !trInView(c, v, 40), indoEmbora = fora && (c.x - mx0) * Math.cos(c.a) + (c.y - my0) * Math.sin(c.a) > 0;
-    if (indoEmbora || c.hideT > TR_GONE || !trInView(c, v, TR_RING + 30)) { c.release(); c.dead = true; }
+    const longe = !trInView(c, v, TR_EMBORA), indoEmbora = longe && (c.x - mx0) * Math.cos(c.a) + (c.y - my0) * Math.sin(c.a) > 0;
+    if (indoEmbora || c.hideT > TR_GONE || !trInView(c, v, TR_FICA)) { c.release(); c.dead = true; }
   }
   if (this.cars.some((c) => c.dead)) this.cars = this.cars.filter((c) => !c.dead);
   this.timer -= dt;
@@ -5182,9 +5254,10 @@ Traffic.update = function (dt, now, cx, cy, view) {
     let vis = 0; for (const c of this.cars) if (trInView(c, v, 0)) vis++;
     const visMax = Settings.quality === 'baixa' ? 3 : Settings.quality === 'alta' ? 5 : 4;
     let n = 0;
-    while (this.cars.length < mx && vis < visMax && n++ < 2) this.spawnRing(v, false);
+    let naFaixa = 0; for (const c of this.cars) if (trInView(c, v, TR_RING + 30)) naFaixa++; // quem já saiu para longe não ocupa lugar
+    while (naFaixa < mx && this.cars.length < mx + 4 && vis < visMax && n++ < 2) if (this.spawnRing(v, false)) naFaixa++; else break;
     // menos carros fora do pico: tira um por vez, dos que estão fora da tela
-    if (this.cars.length > mx) {
+    if (this.cars.length > mx + 4 || (naFaixa > mx && this.cars.length > mx)) {
       let far = -1, fd = 0;
       this.cars.forEach((c, i) => { if (trInView(c, v, 80)) return; const d = Math.hypot(c.x - cx, c.y - cy); if (d > fd) { fd = d; far = i; } });
       if (far >= 0) { this.cars[far].release(); this.cars.splice(far, 1); }
@@ -9864,7 +9937,7 @@ function render() {
   pm('decals');
   // veículos e animais
   if (World.caidos) for (const o of World.caidos) if (inView(view, o.x, o.y, 90)) drawTall(ctx, o); // derrubados ficam no chão, embaixo dos carros
-  for (const an of Animals.list) if (an.type !== 'owl' && !an.morto && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
+  for (const an of Animals.list) if (an.type !== 'owl' && !an.morto && !an.oculto && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
   Atropelo.desenhaCorpos(ctx, view);
   if (Settings.quality !== 'baixa') Peladas.draw(ctx, view);
   pm('animals');

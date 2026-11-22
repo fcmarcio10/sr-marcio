@@ -643,9 +643,26 @@ class AICar {
       if (o === this) continue;
       // modo fantasma (para destravar ciclos no cruzamento) nunca atravessa a fila da própria faixa
       const sameQueue = this.state === 'edge' && o.state === 'edge' && o.e === this.e && o.dir === this.dir && Math.abs(o.off - this.off) < 12;
-      if (this.ghost > 0 && !sameQueue) continue;
+      if (this.ghost > 0 && !sameQueue) { // fantasma (destrava ciclo) ainda para antes de encostar: nunca passa por dentro de outro carro
+        const rx = o.x - this.x, ry = o.y - this.y, f = rx * c + ry * s, l = Math.abs(-rx * s + ry * c), g = f - this.m.L / 2 - o.m.L / 2;
+        if (f > 0 && l < (this.m.W + o.m.W) * 0.5 + 2 && g < 4 && g < best) { best = g; this.blocker = o; }
+        continue;
+      }
       if (this.state === 'turn' && o.state === 'edge' && o.e !== this.next.e && Math.abs(angDiff(o.a, this.a)) > 0.9) continue; // parado na faixa de retenção da outra rua
       check(o, o.x, o.y, o.m.L, o.m.W);
+    }
+    // fazendo a curva: olha o caminho da curva (não só reto para a frente), para não atravessar quem parou no cruzamento
+    if (this.state === 'turn' && this.turn && this.turn.pts) {
+      const P = this.turn.pts, i0 = Math.min(P.length - 1, Math.ceil(this.turn.t * (P.length - 1)) + 1);
+      let along = 0, lx = this.x, ly = this.y;
+      for (let i = i0; i < P.length && along < look; i++) {
+        along += Math.hypot(P[i][0] - lx, P[i][1] - ly); lx = P[i][0]; ly = P[i][1];
+        for (const o of Traffic.cars) {
+          if (o === this) continue;
+          const d = Math.hypot(o.x - lx, o.y - ly); if (d > (this.m.W + o.m.W) * 0.5 + o.m.L * 0.35) continue;
+          const g = along - this.m.L / 2 - o.m.L / 2; if (g < best) { best = Math.max(0, g); this.blocker = o; }
+        }
+      }
     }
     // o jogador é visto de mais longe e com folga lateral maior: os carros mantêm distância de você
     if (player && Game.state !== 'menu') { const m = this.state === 'edge' ? 1 : 0; check(player, player.x, player.y, player.m.L + 26 * m, player.m.W + 12 * m); }
@@ -817,7 +834,9 @@ Traffic.randomEdge = function () {
    segundos é apagado. Fora da tela, quem ainda existe é calculado 4x menos vezes. Se um trecho já
    está cheio (engarrafamento), não chega carro novo ali. */
 const TR_RING = 240;      // faixa em volta da tela onde os carros nascem e existem (pequena)
-const TR_GONE = 2.5;      // segundos fora da tela até o carro sumir
+const TR_GONE = 7;        // segundos fora da tela até o carro sumir (0.2.0: era 2,5 e o carro sumia antes de dar para alcançar)
+const TR_EMBORA = 520;    // indo embora, só some depois de passar disso da beira da tela (era logo na beira)
+const TR_FICA = 950;      // longe disso da tela o carro some de qualquer jeito
 const TR_SLOW = 1 / 30;   // passo do cálculo fora da tela (30 vezes por segundo, em vez de 120)
 // quantos carros cabem na faixa (mesma sensação de rua movimentada na tela)
 function trafficTarget(view) {
@@ -907,8 +926,8 @@ Traffic.update = function (dt, now, cx, cy, view) {
   const mx0 = (v.x0 + v.x1) / 2, my0 = (v.y0 + v.y1) / 2;
   for (const c of this.cars) {
     if (c.dead) continue;
-    const fora = !trInView(c, v, 40), indoEmbora = fora && (c.x - mx0) * Math.cos(c.a) + (c.y - my0) * Math.sin(c.a) > 0;
-    if (indoEmbora || c.hideT > TR_GONE || !trInView(c, v, TR_RING + 30)) { c.release(); c.dead = true; }
+    const longe = !trInView(c, v, TR_EMBORA), indoEmbora = longe && (c.x - mx0) * Math.cos(c.a) + (c.y - my0) * Math.sin(c.a) > 0;
+    if (indoEmbora || c.hideT > TR_GONE || !trInView(c, v, TR_FICA)) { c.release(); c.dead = true; }
   }
   if (this.cars.some((c) => c.dead)) this.cars = this.cars.filter((c) => !c.dead);
   this.timer -= dt;
@@ -920,9 +939,10 @@ Traffic.update = function (dt, now, cx, cy, view) {
     let vis = 0; for (const c of this.cars) if (trInView(c, v, 0)) vis++;
     const visMax = Settings.quality === 'baixa' ? 3 : Settings.quality === 'alta' ? 5 : 4;
     let n = 0;
-    while (this.cars.length < mx && vis < visMax && n++ < 2) this.spawnRing(v, false);
+    let naFaixa = 0; for (const c of this.cars) if (trInView(c, v, TR_RING + 30)) naFaixa++; // quem já saiu para longe não ocupa lugar
+    while (naFaixa < mx && this.cars.length < mx + 4 && vis < visMax && n++ < 2) if (this.spawnRing(v, false)) naFaixa++; else break;
     // menos carros fora do pico: tira um por vez, dos que estão fora da tela
-    if (this.cars.length > mx) {
+    if (this.cars.length > mx + 4 || (naFaixa > mx && this.cars.length > mx)) {
       let far = -1, fd = 0;
       this.cars.forEach((c, i) => { if (trInView(c, v, 80)) return; const d = Math.hypot(c.x - cx, c.y - cy); if (d > fd) { fd = d; far = i; } });
       if (far >= 0) { this.cars[far].release(); this.cars.splice(far, 1); }

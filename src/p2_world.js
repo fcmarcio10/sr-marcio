@@ -2053,7 +2053,7 @@ const vagaH = (e, k) => hash2(e.id * 31 + k, e.a.x + e.a.y * 7);
 function vagaGeo(e) { // mesma conta do desenho da faixa (drawEdgeMarkings)
   const pad = 26, s0 = e.perpA ? e.perpA + pad : 0, s1 = e.perpB ? e.len - e.perpB - pad : e.len;
   const outer = e.T.lanes[e.T.lanes.length - 1] + 12;
-  return { a0: s0 + 34, a1: s1 - 34, larg: (e.hw - outer) * 1.1 };
+  return { a0: s0 + 34, a1: s1 - 34, larg: ((e.hwVaga || e.hw) - outer) * 1.1 }; // a vaga continua do tamanho do carro mesmo com a rua mais larga
 }
 const vagaMundo = (e, s, y) => e.h ? [e.a.x + s, e.a.y + y] : [e.a.x - y, e.a.y + s];
 // a construção fica de frente para esse lado da rua?
@@ -2068,6 +2068,7 @@ function vagaLoja(e, b, sd, G) {
 function marcaVagas() {
   const lojas = World.buildings.filter((b) => b.style === 'shop' && b.sign);
   World.vagasRua = 0;
+  const comVaga = [];
   for (const e of World.edges) {
     e.vagas = null;
     if (!e.T.sw || !(e.T.id === 'street' || e.T.id === 'avenue') || edgePave(e) === 'bloquete') continue;
@@ -2075,12 +2076,17 @@ function marcaVagas() {
     const rk = regionKeyAt((e.a.x + e.b.x) / 2, (e.a.y + e.b.y) / 2), lados = [];
     for (const sd of [-1, 1]) {
       const ok = e.T.id === 'avenue' ? !!VAGA_REG[rk] : e.len <= 800 && lojas.some((b) => vagaLoja(e, b, sd, G));
-      if (ok) lados.push(sd);
+      if (ok && vagaH(e, 700 + sd) >= VAGA_CORTE) lados.push(sd); // 0.2.0: 25% dos lados com vaga saíram (escolha pela posição)
     }
     if (!lados.length) continue;
-    e.vagas = lados;
-    // carros estacionados (cerca de metade das vagas comuns)
-    for (const sd of lados) {
+    e.vagas = lados; comVaga.push(e);
+  }
+  alargaVagas(comVaga);
+  empurraDaPista(); // poste, árvore ou objeto que ficou no asfalto novo vai para a calçada
+  // carros estacionados (cerca de metade das vagas comuns)
+  for (const e of comVaga) {
+    const G = vagaGeo(e);
+    for (const sd of e.vagas) {
       const quer = vagaH(e, sd + 60);
       let k = 0;
       for (let s = G.a0; s + VAGA_PASSO <= G.a1; s += VAGA_PASSO, k++) {
@@ -2094,6 +2100,53 @@ function marcaVagas() {
         addParkedCar(x, y, ang, VAGA_MODELOS[mi], CAR_COLORS[ci]);
       }
     }
+  }
+}
+// 0.2.0: rua com vaga fica 20% mais larga (avenida: o mesmo tanto, ~11%, porque a calçada não deixa mais).
+// O asfalto cresce para dentro da calçada (as construções não mudam); a vaga continua junto da calçada e
+// sobra mais espaço entre os carros estacionados e quem passa.
+const VAGA_CORTE = 0.25;
+function alargaVagas(lista) {
+  for (const e of lista) {
+    const cresce = Math.min(e.hw * 0.2, 12);
+    e.hwVaga = e.hw; e.hw0 = e.hw; e.hw = +(e.hw + cresce).toFixed(2);
+    e.T = Object.assign({}, e.T, { sw: +(e.T.sw - cresce).toFixed(2) }); // calçada mais estreita só nessa rua
+    const x0 = Math.min(e.a.x, e.b.x) - e.hw, x1 = Math.max(e.a.x, e.b.x) + e.hw, y0 = Math.min(e.a.y, e.b.y) - e.hw, y1 = Math.max(e.a.y, e.b.y) + e.hw;
+    const a0 = e.h ? Math.min(e.a.x, e.b.x) : Math.min(e.a.y, e.b.y), a1 = e.h ? Math.max(e.a.x, e.b.x) : Math.max(e.a.y, e.b.y);
+    for (let gy = Math.floor(y0 / GC); gy <= Math.floor(y1 / GC); gy++) for (let gx = Math.floor(x0 / GC); gx <= Math.floor(x1 / GC); gx++) {
+      if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) continue;
+      const cx = gx * GC + 5, cy = gy * GC + 5, d = e.h ? Math.abs(cy - e.a.y) : Math.abs(cx - e.a.x), al = e.h ? cx : cy;
+      const i = gy * GW + gx;
+      if (d < e.hw && al >= a0 && al <= a1 && (ground[i] === SF.SIDEWALK || ground[i] === SF.PAVED)) ground[i] = SF.ROAD;
+    }
+  }
+  // caminho dos pedestres na calçada: vai junto para a calçada nova (mais estreita), fora do asfalto
+  for (const e of lista) {
+    const c = e.h ? e.a.y : e.a.x, al0 = e.h ? Math.min(e.a.x, e.b.x) : Math.min(e.a.y, e.b.y), al1 = e.h ? Math.max(e.a.x, e.b.x) : Math.max(e.a.y, e.b.y);
+    const i0 = e.h ? 1 : 0, i1 = e.h ? 3 : 2, j0 = e.h ? 0 : 1, j1 = e.h ? 2 : 3, dentro = e.hw + 2, fora = e.hw + e.T.sw - 2;
+    for (const D of World.animalsDef || []) {
+      const R = D.rect; if (!R || D.type !== 'person') continue;
+      if (R[j1] < al0 || R[j0] > al1) continue;
+      for (const sd of [-1, 1]) {
+        const lo = sd > 0 ? c + e.hw0 - 2 : c - e.hw - 8, hi = sd > 0 ? c + e.hw + 8 : c - e.hw0 + 2;
+        if (R[i0] >= lo && R[i1] <= hi) { if (sd > 0) { R[i0] = c + dentro; R[i1] = c + fora; } else { R[i0] = c - fora; R[i1] = c - dentro; } }
+      }
+    }
+  }
+  // cruzamentos e faixas de pedestre acompanham a beira nova
+  const perpN = (e, n) => { let m = 0; for (const o of n.edges) if (o.h !== e.h) m = Math.max(m, o.hw); return m; };
+  for (const n of World.nodes) {
+    if (!n.edges.some((e) => e.hwVaga)) continue;
+    let hv = 0, hh = 0;
+    for (const e of n.edges) { if (e.h) hh = Math.max(hh, e.hw); else hv = Math.max(hv, e.hw); }
+    if (!hv) hv = hh; if (!hh) hh = hv;
+    if (n.hx0 === undefined) { n.hx0 = n.hx; n.hy0 = n.hy; }
+    n.hx = hv; n.hy = hh;
+    for (let gy = Math.floor((n.y - hh) / GC); gy <= Math.floor((n.y + hh) / GC); gy++) for (let gx = Math.floor((n.x - hv) / GC); gx <= Math.floor((n.x + hv) / GC); gx++) {
+      const cx = gx * GC + 5, cy = gy * GC + 5, i = gy * GW + gx;
+      if (Math.abs(cx - n.x) < hv && Math.abs(cy - n.y) < hh && (ground[i] === SF.SIDEWALK || ground[i] === SF.PAVED)) ground[i] = SF.ROAD;
+    }
+    for (const e of n.edges) { e.perpA = perpN(e, e.a); e.perpB = perpN(e, e.b); }
   }
 }
 

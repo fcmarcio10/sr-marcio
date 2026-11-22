@@ -1658,7 +1658,7 @@ function render() {
   pm('decals');
   // veículos e animais
   if (World.caidos) for (const o of World.caidos) if (inView(view, o.x, o.y, 90)) drawTall(ctx, o); // derrubados ficam no chão, embaixo dos carros
-  for (const an of Animals.list) if (an.type !== 'owl' && !an.morto && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
+  for (const an of Animals.list) if (an.type !== 'owl' && !an.morto && !an.oculto && inView(view, an.x, an.y, 30)) drawAnimal(ctx, an);
   Atropelo.desenhaCorpos(ctx, view);
   if (Settings.quality !== 'baixa') Peladas.draw(ctx, view);
   pm('animals');
