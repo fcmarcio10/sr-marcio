@@ -142,3 +142,10 @@ function tiraFotoSlot() {
     localStorage.setItem(slotFoto(Settings.slot), c.toDataURL('image/jpeg', 0.72));
   } catch (e) {}
 }
+
+// botão CRIADOR do menu: abre o Instagram do criador (no app do Windows abre no navegador do computador)
+const CRIADOR_URL = 'https://www.instagram.com/criattogames/';
+function abreCriador() {
+  try { if (window.brnd && window.brnd.abrir) { window.brnd.abrir(CRIADOR_URL); return; } } catch (e) {}
+  try { window.open(CRIADOR_URL, '_blank', 'noopener'); } catch (e) {}
+}

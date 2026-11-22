@@ -12308,6 +12308,7 @@ function bindMenus() {
       case 'garage': Garage.sel = Profile.current; Screens.open('screen-garage'); break;
       case 'settings': Screens.open('screen-settings'); break;
       case 'credits': Screens.open('screen-credits'); break;
+      case 'criador': abreCriador(); break;
       case 'slots': Screens.open('screen-slots'); break;
       case 'back': Screens.back(); break;
       case 'resume': Screens.closeAll(); break;
@@ -14102,6 +14103,13 @@ function tiraFotoSlot() {
     g.drawImage(canvas, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, 192, 108);
     localStorage.setItem(slotFoto(Settings.slot), c.toDataURL('image/jpeg', 0.72));
   } catch (e) {}
+}
+
+// botão CRIADOR do menu: abre o Instagram do criador (no app do Windows abre no navegador do computador)
+const CRIADOR_URL = 'https://www.instagram.com/criattogames/';
+function abreCriador() {
+  try { if (window.brnd && window.brnd.abrir) { window.brnd.abrir(CRIADOR_URL); return; } } catch (e) {}
+  try { window.open(CRIADOR_URL, '_blank', 'noopener'); } catch (e) {}
 }
 /* ============================ OUTDOORS (painel de propaganda com desenho e humor) ============================
    No lugar das placas verdes de rodovia e dos outdoors só com letra: painel grande em duas colunas de aço, com

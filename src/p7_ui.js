@@ -112,6 +112,7 @@ function bindMenus() {
       case 'garage': Garage.sel = Profile.current; Screens.open('screen-garage'); break;
       case 'settings': Screens.open('screen-settings'); break;
       case 'credits': Screens.open('screen-credits'); break;
+      case 'criador': abreCriador(); break;
       case 'slots': Screens.open('screen-slots'); break;
       case 'back': Screens.back(); break;
       case 'resume': Screens.closeAll(); break;
