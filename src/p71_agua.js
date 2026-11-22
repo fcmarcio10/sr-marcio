@@ -234,6 +234,28 @@ Agua.molhado = function (ctx, view) {
   for (const [e, r] of vis) if (!e.T.asphalt) ctx.rect(r[0], r[1], r[2] - r[0], r[3] - r[1]);
   for (const [n, asf] of nos) if (!asf) ctx.rect(n.x - n.hx, n.y - n.hy, n.hx * 2, n.hy * 2);
   ctx.fill();
+  // (0.2.0) estrada de terra na chuva: trilhas de pneu brilhando de água e poças de lama marrom (aparecem com a chuva)
+  if (w > 0.15 && Settings.quality !== 'baixa') {
+    const lama = new Path2D(), brilho = new Path2D(), trilha = new Path2D();
+    for (const [e, r] of vis) {
+      if (e.T.asphalt) continue;
+      const comp = e.h ? r[2] - r[0] : r[3] - r[1], c = e.h ? e.a.y : e.a.x, a0 = e.h ? r[0] : r[1];
+      for (const sd of [-1, 1]) { const off = sd * e.hw * 0.42; if (e.h) { trilha.moveTo(r[0], c + off); trilha.lineTo(r[2], c + off); } else { trilha.moveTo(c + off, r[1]); trilha.lineTo(c + off, r[3]); } }
+      for (let k = 0, n = Math.floor(comp / 70); k < n; k++) {
+        const h = hash2(e.id * 7 + k, 991); if (h > 0.55) continue;
+        const al = a0 + (k + 0.5) * 70 + (hash2(k, e.id) - 0.5) * 30, lat = (hash2(k + 50, e.id) - 0.5) * e.hw * 1.1, rx = 6 + h * 18, ry = 3.5 + hash2(k, 7) * 5;
+        const x = e.h ? al : c + lat, y = e.h ? c + lat : al;
+        if (x < view.x0 - 40 || x > view.x1 + 40 || y < view.y0 - 40 || y > view.y1 + 40) continue;
+        lama.moveTo(x + (e.h ? rx : ry), y); lama.ellipse(x, y, e.h ? rx : ry, e.h ? ry : rx, 0, 0, TAU);
+        brilho.moveTo(x - rx * 0.2 + rx * 0.35, y - 1); brilho.ellipse(x - rx * 0.2, y - 1, rx * 0.35, ry * 0.3, 0, 0, TAU);
+      }
+    }
+    const k = (w - 0.15) / 0.85;
+    ctx.lineWidth = 5; ctx.strokeStyle = `rgba(40,26,14,${(0.3 * k).toFixed(3)})`; ctx.stroke(trilha);
+    ctx.lineWidth = 1.2; ctx.strokeStyle = `rgba(190,200,215,${(0.12 * k).toFixed(3)})`; ctx.stroke(trilha);
+    ctx.fillStyle = `rgba(74,52,32,${(0.75 * k).toFixed(3)})`; ctx.fill(lama);
+    ctx.fillStyle = `rgba(170,185,205,${(0.22 * k).toFixed(3)})`; ctx.fill(brilho);
+  }
   ctx.restore();
 };
 // ---------- a onda chegando no carro parado na areia ----------

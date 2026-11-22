@@ -160,7 +160,7 @@ function estradinha(e, s, lw, beira, L, sd) {
   const comp = vert ? r[3] - r[1] : r[2] - r[0];
   for (let t = 14; t < comp - 6; t += rnd(15, 24)) for (const lado of [0, 1]) {
     if (chance(0.12)) continue;
-    const dentro = rnd(0, 4), x = vert ? (lado ? r[2] + 5 - dentro : r[0] - 5 + dentro) : r[0] + t, y = vert ? r[1] + t : (lado ? r[3] + 5 - dentro : r[1] - 5 + dentro);
+    rnd(0, 4); const x = vert ? (lado ? r[2] + 9 : r[0] - 9) : r[0] + t, y = vert ? r[1] + t : (lado ? r[3] + 9 : r[1] - 9); // (0.2.0) moita fica fora da estrada, nada em cima dela
     addTree(x, y, 'bush', rnd(0.85, 1.15), { force: true });
     if (chance(0.18)) { const fx = vert ? x + (lado ? 22 : -22) : x, fy = vert ? y : y + (lado ? 22 : -22); if (groundAt(fx, fy) === SF.GRASS && !areaBlocked(fx - 6, fy - 6, fx + 6, fy + 6)) addTree(fx, fy, pick(['round', 'mango', 'round']), rnd(0.75, 1)); }
   }
@@ -278,15 +278,7 @@ function trilhaTerra(g, r, vert, R) {
   // duas trilhas de pneu mais escuras e capim no meio
   g.strokeStyle = 'rgba(70,48,28,0.35)'; g.lineWidth = 4.5; g.lineCap = 'round';
   for (const w of [W * 0.3, W * 0.7]) { g.beginPath(); for (let t = 0; t <= L; t += 20) { const p = P(t, w + Math.sin(t * 0.03) * 1.5); if (t) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); } g.stroke(); }
-  g.lineWidth = 1;
-  for (let t = 4; t < L; t += 5) { const p = P(t, W / 2 + (R() - 0.5) * 4), h = 2 + R() * 4; g.strokeStyle = R() < 0.4 ? 'rgba(150,150,80,0.8)' : 'rgba(60,100,40,0.85)'; g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(p[0] + (R() - 0.5) * 3, p[1] - h); g.stroke(); }
-  // capim avançando das beiradas (a estrada vai se fechando)
-  for (let t = 0; t < L; t += 3) for (const lado of [0, 1]) {
-    if (R() < 0.35) continue;
-    const w = lado ? W - R() * 7 : R() * 7, p = P(t, w), h = 3 + R() * 6;
-    g.strokeStyle = R() < 0.3 ? 'rgba(160,150,85,0.85)' : 'rgba(55,95,38,0.9)';
-    g.beginPath(); g.moveTo(p[0], p[1]); g.quadraticCurveTo(p[0] + (R() - 0.5) * 4, p[1] - h * 0.6, p[0] + (R() - 0.5) * 6, p[1] - h); g.stroke();
-  }
+  // (0.2.0) estrada limpa: sem capim no meio nem mato avançando das beiradas
   // pedrinhas e poça seca
   g.fillStyle = 'rgba(120,100,80,0.6)'; for (let i = 0; i < L / 12; i++) { const p = P(R() * L, W * (0.2 + R() * 0.6)); g.fillRect(p[0], p[1], 1.4, 1.2); }
 }

@@ -74,7 +74,7 @@ Sombras.chao = function (ctx, view) {
   const P = new Path2D(), sx = Sol.dx, sy = Sol.dy;
   for (const an of Animals.list) {
     if (an.morto || an.oculto || an.type === 'owl' || !inView(view, an.x, an.y, 60)) continue;
-    if (an.type === 'person') sbPessoa(P, an, sx * 14, sy * 14); else sbBicho(P, an, sx, sy, 1);
+    if (an.type === 'person') sbPessoa(P, an, sx * 14 * (an.esc || 1), sy * 14 * (an.esc || 1)); else sbBicho(P, an, sx, sy, 1); // sombra da altura de cada um
   }
   if (Act.ride && Act.ride.stage === 'pickup' && inView(view, Act.ride.pick.x, Act.ride.pick.y, 60)) sbPessoa(P, Embarque.esperando(Act.ride), sx * 14, sy * 14);
   // quem não está na lista de pedestres: boleiros da pelada, gente dos eventos e passageiro entrando ou saindo do carro

@@ -30,7 +30,11 @@ Embarque.sai = function (look, destX, destY) {
 };
 // passageiro esperando: vira devagar para o carro quando ele chega perto (o mesmo para o desenho e a sombra)
 Embarque.esperando = function (R) {
-  const o = R._esp || (R._esp = { type: 'person', x: R.pick.x, y: R.pick.y, a: Math.PI / 2, v: 0, phase: 0, seed: R.seed, col: '#ffd24a', skin: '#c68642', hair: '#1a1410', pants: '#2b3a55', dance: true, state: 'idle' });
+  let o = R._esp;
+  if (!o) { // o passageiro tem a cara do nome dele (homem ou mulher), com a camisa amarela para achar fácil
+    o = R._esp = { type: 'person', x: R.pick.x, y: R.pick.y, a: Math.PI / 2, v: 0, phase: 0, seed: R.seed, skin: pick(['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#5a3a22']), hair: '#1a1410', pants: '#2b3a55', dance: true, state: 'idle' };
+    vistePessoa(o, typeof genderOf === 'function' && R.name ? genderOf(R.name) === 'f' : Math.random() < 0.5); o.col = '#ffd24a'; if (o.roupa === 'time' || o.roupa === 'listrada') o.roupa = 'lisa';
+  }
   o.x = R.pick.x; o.y = R.pick.y;
   return o;
 };

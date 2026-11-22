@@ -1165,7 +1165,7 @@ function buildRiver() {
     const x0 = cx + hw + 60, x1 = 6240;
     if (chance(0.6) && x1 - x0 > 120 && !(y > 2400 && y < 2800)) {
       const fx0 = x0 + rnd(0, 60), fx1 = x1 - rnd(0, 80);
-      forest(fx0, y, fx1, y + rnd(120, 220));
+      rnd(120, 220); void fx0; void fx1; // (0.2.0) a mata no meio do mapa saiu: só a borda do mundo tem mata fechada; os sorteios continuam iguais
     } else scatterTrees(x0, y, x1, y + 230, 5, ['round', 'mango', 'pine', 'bush']);
     scatterTrees(4900, y, cx - hw - 40, y + 230, 2, ['round', 'palm', 'bush', 'ipeY']);
   }
@@ -1225,7 +1225,7 @@ function buildRural() {
   // cafezal
   decal(7540, 1540, 8660, 3300, 'coffee');
   decal(7540, 3300, 8660, 3330, 'earth');
-  forest(7540, 3330, 8660, 3840);
+  // (0.2.0) o bloco de mata embaixo do cafezal saiu (mata fechada só na borda do mundo)
   addBuilding(8460, 2380, 8580, 2470, 26, { style: 'farmhouse', roofType: 'hip', roofColor: '#9a4a2a', wall: '#e8dcc2', lit: 0.6 });
   decal(8580, 2410, 8662, 2440, 'earth');
   World.animalsDef.push({ type: 'dog', n: 1, rect: [8420, 2360, 8640, 2520] });

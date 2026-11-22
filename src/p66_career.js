@@ -269,10 +269,14 @@ const PED_FALAS = {
   buzina: [['ped_7', 'Buzina pra tua avó, rapá!'], ['ped_8', 'Bah, que susto, tchê!'], ['ped_17', 'Tô surdo não, moço!'], ['ped_18', 'Pra que essa buzina toda?'], ['ped_25', 'Calma, já tô saindo, credo!'], ['ped_26', 'Buzina mais alto, que eu não ouvi não!']],
   paredao: [['ped_9', 'Aumenta o som, motorista!'], ['ped_10', 'Esse paredão é bom demais!'], ['ped_19', 'Aí sim, hein!'], ['ped_20', 'Que som é esse, meu Deus!'], ['ped_27', 'Abaixa esse som, que tem criança dormindo!'], ['ped_28', 'Eita, que som é esse? Toca um forró aí!']],
 };
+// gênero de cada voz de pedestre (pelo jeito que foi gravada no ElevenLabs: "assustado"/"assustada"...); 'x' serve para os dois
+const PED_SEXO = { ped_1: 'M', ped_2: 'F', ped_3: 'F', ped_4: 'M', ped_5: 'M', ped_6: 'F', ped_7: 'M', ped_8: 'F', ped_9: 'M', ped_10: 'F', ped_11: 'M', ped_12: 'F', ped_13: 'M', ped_14: 'F', ped_15: 'M', ped_16: 'F', ped_17: 'M', ped_18: 'M', ped_19: 'M', ped_20: 'x', ped_21: 'M', ped_22: 'F', ped_23: 'M', ped_24: 'F', ped_25: 'F', ped_26: 'M', ped_27: 'M', ped_28: 'F' };
 const PedVoz = { t: 0, a: null, ultimo: null, quem: null, falas: 0 };
 PedVoz.fala = function (an, tipo) {
   if (!an || an.morto || Game.mode !== 'play' || Game.time < this.t || VoicePlayer.msg) return false;
-  const L = PED_FALAS[tipo]; if (!L) return false;
+  const L0 = PED_FALAS[tipo]; if (!L0) return false;
+  // voz do mesmo gênero da pessoa (homem fala com voz de homem, mulher com voz de mulher)
+  const sx = an.mulher === undefined ? null : an.mulher ? 'F' : 'M', Lg = sx ? L0.filter((f) => PED_SEXO[f[0]] === sx || PED_SEXO[f[0]] === 'x') : L0, L = Lg.length ? Lg : L0;
   let F = pick(L); if (F[0] === this.ultimo && L.length > 1) F = L.find((x) => x[0] !== this.ultimo);
   this.ultimo = F[0]; this.t = Game.time + rnd(7, 12); this.falas++;
   this.quem = an; this.vol0 = 1;

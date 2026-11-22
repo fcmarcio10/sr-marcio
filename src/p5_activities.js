@@ -39,18 +39,19 @@ function onPlayerImpact(imp) {
   Desafios.bateu(); // batida zera o "rode sem bater"
   const k = clamp((imp - 70) / 380, 0, 1);
   { const hx = (player.hitX || player.x) - player.x, hy = (player.hitY || player.y) - player.y, d = Math.hypot(hx, hy) || 1; Cam.kx = (Cam.kx || 0) + hx / d * (2 + 9 * k); Cam.ky = (Cam.ky || 0) + hy / d * (2 + 9 * k); } // tranco da câmera para o lado da pancada
-  // batidas leves e médias amassam 6% menos; batida forte continua igual
-  const kd = k < 0.45 ? k * 0.94 : k;
-  Profile.damage = clamp(Profile.damage + kd * 13, 0, 100);
+  // dano pela força da batida (0.2.0): esbarrão quase não faz nada; média amassa um pouco; forte amassa de verdade;
+  // acima de ~110 km/h uma batida forte já amassa bem e solta fumaça na primeira vez
+  const sev = gravidade(imp), kd = sev;
+  Profile.damage = clamp(Profile.damage + 24 * Math.pow(sev, 1.3), 0, 100);
   const mato = player.hitTag === 'forest'; player.hitTag = null; // bateu na mata: barulho de folha e galho, folhas voando e sem faísca
   if (mato) AudioSys.mato(0.2 + k); else AudioSys.crash(0.2 + k);
   Cam.shake = Math.max(Cam.shake, (3 + k * 12) * (mato ? 0.6 : 1));
   const hx = player.hitX || player.x, hy = player.hitY || player.y;
   if (mato) for (let i = 0; i < 8 + k * 16; i++) Particles.emit('leaf', hx + rnd(-8, 8), hy + rnd(-8, 8), rnd(-120, 120), rnd(-120, 120), rnd(0.8, 1.6), 2);
-  else for (let i = 0; i < 4 + k * 12; i++) Particles.emit('spark', hx, hy, rnd(-220, 220), rnd(-220, 220), rnd(0.2, 0.5), 2);
+  else for (let i = 0; i < (sev < 0.05 ? 2 : 4 + k * 12); i++) Particles.emit('spark', hx, hy, rnd(-220, 220), rnd(-220, 220), rnd(0.2, 0.5), 2);
   if (k > 0.45 && chance(0.6)) { const f = pick([['Eita!', 'Isso vai doer no bolso…'], ['Ô, rapá!', 'Olha a lataria, sô!'], ['Que isso, maluco?', 'Seu Zé vai ter trabalho.'], ['Vixe!', 'Bateu feio.'], ['Bah!', 'Que barbaridade, tchê.'], ['Oxente!', 'Arrebentou foi tudo!'], ['Uai!', 'Esse trem amassou, sô.'], ['Égua!', 'Doeu até em mim.'], ['Caraca!', 'Pegou de jeito, mermão.']]); toast(f[0], f[1], 'bad'); }
   const zone = addZoneDamage(Profile.zones || (Profile.zones = { f: 0, r: 0, l: 0, rt: 0 }), player, hx, hy, kd);
-  Debris.spill(hx, hy, k, player.color, zone);
+  if (sev > 0.06) Debris.spill(hx, hy, sev, player.color, zone); // esbarrão não espalha caco
   if ((zone === 'l' || zone === 'rt') && k > 0.45 && chance(0.6)) Particles.emit('hubcap', hx, hy, rnd(-140, 140), rnd(-140, 140), 2.6, 3);
   Events.onImpact(imp);
   if (Act.ride && Act.ride.stage === 'drive' && imp > 110) rideHit(Act.ride);
@@ -60,15 +61,18 @@ function onPlayerImpact(imp) {
   }
 }
 // marcas de colisão: amassados por região do carro (frente, traseira, laterais)
+// gravidade da batida (0 a 1) pela força do impacto: até ~35 km/h quase nada; ~60 km/h média; ~110 km/h forte (0,7); 140+ km/h máxima
+function gravidade(imp) { const s = clamp((imp - 110) / 360, 0, 1); return s < 0.03 ? 0 : s; }
 function addZoneDamage(Z, car, hx, hy, k) {
   const c = Math.cos(car.a), s = Math.sin(car.a);
   const dx = hx - car.x, dy = hy - car.y;
   const lx = dx * c + dy * s, ly = -dx * s + dy * c;
   let zone;
   if (Math.abs(lx) > car.m.L * 0.28) zone = lx > 0 ? 'f' : 'r'; else zone = ly < 0 ? 'l' : 'rt';
-  Z[zone] = clamp(Z[zone] + 0.12 + k * 0.7, 0, 1);
+  if (k <= 0.02) return zone; // esbarrão: sem amassado visível
+  Z[zone] = clamp(Z[zone] + 0.85 * Math.pow(k, 1.15) + (k > 0.62 ? 0.16 : 0), 0, 1); // muito forte (≥ ~110 km/h): amassado grande de uma vez
   // batida na frente: guarda de que lado do para-choque foi (para o farol daquele lado)
-  if (zone === 'f') { const sk = ly < 0 ? 'fL' : 'fR'; Z[sk] = clamp((Z[sk] || 0) + (0.1 + k * 0.6) * (Math.abs(ly) > car.m.W * 0.15 ? 0.8 : 0.4), 0, 1); }
+  if (zone === 'f') { const sk = ly < 0 ? 'fL' : 'fR'; Z[sk] = clamp((Z[sk] || 0) + k * 0.65 * (Math.abs(ly) > car.m.W * 0.15 ? 0.8 : 0.4), 0, 1); }
   Z.seed = (Z.seed || 0) + 1;
   return zone;
 }

@@ -26,8 +26,12 @@ Dia.update = function () {
   this.neblina = h >= 3.8 && h < 7.6 ? Math.sin(Math.PI * (h - 3.8) / 3.8) : 0;
   // na roça com neblina, o céu não fica alaranjado (a neblina é branca) e aparece o aviso, como o de pista molhada
   if (Game.mode === 'play') {
-    const R = REGIONS[regionKeyAt(Cam.x, Cam.y)], nk = this.neblina * clamp((R.rural - 0.2) / 0.6, 0, 1);
-    this.aurora *= 1 - clamp(nk * 1.5, 0, 1);
+    // (0.2.0) neblina em todo lugar: mais fechada na roça, mais rala na cidade; garoa e chuva também deixam o ar enevoado
+    const R = REGIONS[regionKeyAt(Cam.x, Cam.y)], rural = clamp((R.rural - 0.2) / 0.6, 0, 1);
+    const alvo = clamp(this.neblina * (0.5 + 0.5 * rural) + (Weather.rain || 0) * 0.22, 0, 1);
+    this.nevoa = lerp(this.nevoa || 0, alvo, 0.02); // muda devagar (entrando e saindo da roça)
+    const nk = this.nevoa;
+    this.aurora *= 1 - clamp(nk * 1.8, 0, 1); // com neblina o céu não fica alaranjado/avermelhado
     if (nk > 0.25 && !this.avisoNeblina) { this.avisoNeblina = true; toast('Neblina na estrada', 'Visibilidade diminui: vá devagar e use o farol.', 'info'); }
     if (nk < 0.05) this.avisoNeblina = false;
   }
@@ -68,17 +72,27 @@ function avisoFechada(s) {
 }
 // neblina da roça: manchas claras e lentas por cima de tudo (tela inteira)
 Dia.desenhaNeblina = function (ctx, W, H) {
-  if (!this.neblina || Settings.quality === 'baixa' || Game.mode !== 'play') return;
-  const R = REGIONS[regionKeyAt(Cam.x, Cam.y)], k = this.neblina * clamp((R.rural - 0.2) / 0.6, 0, 1);
-  if (k < 0.02) return;
-  const T = Game.time;
+  const k = this.nevoa || 0;
+  if (k < 0.02 || Settings.quality === 'baixa' || Game.mode !== 'play') return;
+  // cor da neblina pela hora: cinza-claro de dia, cinza-azulado escuro de noite (nunca colorida nem avermelhada)
+  const d = this.sol, r = Math.round(lerp(92, 214, d)), g = Math.round(lerp(102, 219, d)), b = Math.round(lerp(118, 224, d));
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = `rgba(222,226,230,${(0.38 * k).toFixed(3)})`; ctx.fillRect(0, 0, W, H); // neblina branca e densa: a visibilidade cai
-  for (let i = 0; i < 7; i++) {
-    const zz = Cam.zoom * (typeof RS !== 'undefined' ? RS : 1), x = ((hash2(i, 3) * W + T * (6 + i) - Cam.x * zz) % (W * 1.4) + W * 1.4) % (W * 1.4) - W * 0.2, y = ((hash2(i, 9) * H - Cam.y * zz * SQ) % (H * 1.3) + H * 1.3) % (H * 1.3) - H * 0.15, r = (0.25 + hash2(i, 5) * 0.25) * W; // anda junto com o chão (antes ia em outra velocidade e enjoava)
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, `rgba(235,238,240,${(0.42 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(235,238,240,0)');
-    ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  // perto do carro dá para ver; quanto mais longe, mais fechada (a visibilidade cai com a distância)
+  const gr = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.12, W / 2, H / 2, Math.hypot(W, H) * 0.55);
+  gr.addColorStop(0, `rgba(${r},${g},${b},${(0.1 * k).toFixed(3)})`);
+  gr.addColorStop(0.45, `rgba(${r},${g},${b},${(0.32 * k).toFixed(3)})`);
+  gr.addColorStop(1, `rgba(${r},${g},${b},${(0.7 * k).toFixed(3)})`);
+  ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+  // umas manchas mais densas presas ao chão, andando bem devagar com o vento (intensidade varia de lugar para lugar)
+  const zz = Cam.zoom * (typeof RS !== 'undefined' ? RS : 1), T = Game.time;
+  const C = 700, gx0 = Math.floor((Cam.x - W / zz / 2) / C) - 1, gx1 = Math.floor((Cam.x + W / zz / 2) / C) + 1, gy0 = Math.floor((Cam.y - H / zz / SQ / 2) / C) - 1, gy1 = Math.floor((Cam.y + H / zz / SQ / 2) / C) + 1;
+  for (let gx = gx0; gx <= gx1; gx++) for (let gy = gy0; gy <= gy1; gy++) { // cada mancha tem o seu lugar fixo no mapa (não pula com a câmera)
+    const wx = gx * C + hash2(gx, gy) * C + T * 4, wy = gy * C + hash2(gy + 31, gx) * C;
+    const x = W / 2 + (wx - Cam.x) * zz, y = H / 2 + (wy - Cam.y) * zz * SQ, rr = (220 + hash2(gx + 5, gy + 9) * 200) * zz;
+    if (x < -rr || x > W + rr || y < -rr || y > H + rr) continue;
+    const m = ctx.createRadialGradient(x, y, 0, x, y, rr);
+    m.addColorStop(0, `rgba(${r},${g},${b},${(0.2 * k).toFixed(3)})`); m.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    ctx.fillStyle = m; ctx.fillRect(x - rr, y - rr, rr * 2, rr * 2);
   }
   ctx.restore();
 };
