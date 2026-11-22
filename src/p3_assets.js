@@ -308,9 +308,9 @@ function drawEdgeBase(g, e) {
     g.fillStyle = 'rgba(0,0,0,0.30)'; g.fillRect(s0, -hw, s1 - s0, 1.6);
     g.fillStyle = 'rgba(0,0,0,0.14)'; g.fillRect(s0, -hw + 1.6, s1 - s0, 1.4); g.fillRect(s0, hw - 1.2, s1 - s0, 1.2);
   }
-  if (T.shoulder) {
+  if (T.shoulder) { // acostamento: para na boca de quem chega de lado (não atravessa a outra pista nem a estrada de terra)
     g.fillStyle = pat(g, 'gravel');
-    g.fillRect(0, -hw - T.shoulder, L, T.shoulder); g.fillRect(0, hw, L, T.shoulder);
+    for (const lado of [-1, 1]) { const [p0, p1] = acostamento(e, lado); if (p1 > p0) g.fillRect(p0, lado < 0 ? -hw - T.shoulder : hw, p1 - p0, T.shoulder); }
   }
   if (T.asphalt && edgePave(e) === 'bloquete') {
     g.fillStyle = pat(g, 'bloquete'); g.fillRect(0, -hw, L, hw * 2);
@@ -350,6 +350,9 @@ function drawEdgeBase(g, e) {
       g.strokeStyle = 'rgba(90,90,95,0.6)'; g.lineWidth = 1; g.beginPath(); g.moveTo(s - 4, y); g.lineTo(s + 4, y); g.moveTo(s, y - 4); g.lineTo(s, y + 4); g.stroke();
     }
   } else {
+    // estrada de terra começa na beira do quadrado do asfalto (o capim e a borda irregular não riscam a pista do outro)
+    const cA = e.a.edges.some((o) => o.T.asphalt) ? (e.h ? e.a.hx : e.a.hy) : -40, cB = e.b.edges.some((o) => o.T.asphalt) ? (e.h ? e.b.hx : e.b.hy) : -40;
+    g.save(); g.beginPath(); g.rect(cA, -hw - 30, L - cA - cB, hw * 2 + 60); g.clip();
     g.fillStyle = pat(g, 'dirt');
     g.beginPath();
     g.moveTo(0, -hw);
@@ -391,8 +394,28 @@ function drawEdgeBase(g, e) {
     }
     // pedras soltas
     for (let i = 0; i < L / 18; i++) { g.fillStyle = R() < 0.5 ? 'rgba(170,160,145,0.8)' : 'rgba(110,100,92,0.8)'; g.fillRect(R() * L, (R() - 0.5) * hw * 1.8, 1.5 + R() * 1.5, 1.2 + R()); }
+    g.restore(); // tira o recorte da estrada de terra
   }
   g.restore();
+}
+// ruas que chegam num cruzamento, por lado (N, S, L, O)
+function nodeDirs(n) { const d = { N: null, S: null, W: null, E: null }; for (const e of n.edges) { if (e.h) d[e.a === n ? 'E' : 'W'] = e; else d[e.a === n ? 'S' : 'N'] = e; } return d; }
+function cruzaAsfalto(e, n) { const d = nodeDirs(n); return e.h ? !!((d.N && d.N.T.asphalt) || (d.S && d.S.T.asphalt)) : !!((d.W && d.W.T.asphalt) || (d.E && d.E.T.asphalt)); }
+// começo e fim da linha da beira de um lado (lado -1 = norte/leste, +1 = sul/oeste, no sistema da rua)
+function beiraLinha(e, lado) {
+  const L = e.len, ld = e.h ? (lado < 0 ? 'N' : 'S') : (lado < 0 ? 'E' : 'W');
+  const ponta = (n, frente) => {
+    const d = nodeDirs(n), ext = e.h ? n.hx : n.hy;
+    if (d[ld]) return ext; // chega rua desse lado: a linha para na beira do cruzamento
+    if (n.edges.length > 1 && !d[frente]) return -(ext - 3); // esquina: vai até encontrar a linha da outra rua
+    return 0;
+  };
+  return [ponta(e.a, e.h ? 'W' : 'N'), L - ponta(e.b, e.h ? 'E' : 'S')];
+}
+function acostamento(e, lado) {
+  const ld = e.h ? (lado < 0 ? 'N' : 'S') : (lado < 0 ? 'E' : 'W');
+  const ponta = (n) => (nodeDirs(n)[ld] ? (e.h ? n.hx : n.hy) : 0);
+  return [ponta(e.a), e.len - ponta(e.b)];
 }
 function drawEdgeMarkings(g, e) {
   const T = e.T;
@@ -400,7 +423,9 @@ function drawEdgeMarkings(g, e) {
   const blq = edgePave(e) === 'bloquete';
   const L = e.len, hw = e.hw;
   const pad = T.sw ? 26 : 6;
-  const s0 = e.perpA ? e.perpA + pad : 0, s1 = e.perpB ? L - e.perpB - pad : L;
+  let s0 = e.perpA ? e.perpA + pad : 0, s1 = e.perpB ? L - e.perpB - pad : L;
+  // estrada sem calçada: a faixa do meio para na beira do cruzamento quando chega outra rua asfaltada de lado
+  if (!T.sw) { if (cruzaAsfalto(e, e.a)) s0 = Math.max(s0, (e.h ? e.a.hx : e.a.hy) + 4); if (cruzaAsfalto(e, e.b)) s1 = Math.min(s1, L - (e.h ? e.b.hx : e.b.hy) - 4); }
   if (s1 <= s0) return;
   edgeLocal(g, e);
   if (!blq) asfaltoDesgaste(g, e, s0, s1, hw);
@@ -416,7 +441,10 @@ function drawEdgeMarkings(g, e) {
     g.fillStyle = wht;
     for (let s = s0; s < s1; s += 42) { const l = Math.min(20, s1 - s); g.fillRect(s, -T.laneDiv - 1, l, 2.4); g.fillRect(s, T.laneDiv - 1.4, l, 2.4); }
   }
-  if (T.edgeLine) { g.fillStyle = wht; g.fillRect(0, -hw + 3, L, 2.4); g.fillRect(0, hw - 5.4, L, 2.4); }
+  if (T.edgeLine) { // linha da beira: abre na boca de quem chega de lado e fecha a esquina quando a estrada vira
+    g.fillStyle = wht;
+    for (const lado of [-1, 1]) { const [p0, p1] = beiraLinha(e, lado); if (p1 > p0) g.fillRect(p0, lado < 0 ? -hw + 3 : hw - 5.4, p1 - p0, 2.4); }
+  }
   if (T.sw && !blq && (T.id === 'street' || T.id === 'avenue')) drawRuaDetalhes(g, e, s0, s1, hw);
   if (T.sw) {
     for (const [atA, perp] of [[true, e.perpA], [false, e.perpB]]) {
@@ -527,7 +555,15 @@ function drawNode(g, n, asph) {
     if (!dirs.E) g.fillRect(n.x + hv, n.y - hh, 2.5, hh * 2);
   } else {
     let sh = 0; for (const e of n.edges) sh = Math.max(sh, e.T.shoulder || 0);
-    if (sh) { g.fillStyle = pat(g, 'gravel'); g.fillRect(n.x - hv - sh, n.y - hh - sh, (hv + sh) * 2, (hh + sh) * 2); }
+    // o acostamento de cada estrada já para na beira das outras (drawEdgeBase); o quadrado de cascalho só fecha esquina e ponta de estrada
+    const d = nodeDirs(n), reto = (d.N && d.S && !d.W && !d.E) || (d.W && d.E && !d.N && !d.S);
+    if (sh && n.edges.length <= 2 && !reto) {
+      g.fillStyle = pat(g, 'gravel'); g.fillRect(n.x - hv - sh, n.y - hh - sh, (hv + sh) * 2, (hh + sh) * 2);
+      for (const e of n.edges) { // a pista de cada estrada continua até a beira do quadrado
+        g.fillStyle = pat(g, e.T.asphalt ? 'asphalt' : 'dirt');
+        if (e.h) g.fillRect(e.a === n ? n.x : n.x - hv - sh, n.y - e.hw, hv + sh, e.hw * 2); else g.fillRect(n.x - e.hw, e.a === n ? n.y : n.y - hh - sh, e.hw * 2, hh + sh);
+      }
+    }
   }
   g.fillStyle = pat(g, asph ? (blq ? 'bloquete' : 'asphalt') : 'dirt');
   if (asph) g.fillRect(n.x - hv, n.y - hh, hv * 2, hh * 2);

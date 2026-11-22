@@ -1814,7 +1814,7 @@ function buildRoadSurface() {
       b.rails = [addRectCol(b.x0, e.a.y - e.hw - 7, b.x1, e.a.y - e.hw - 1, 'rail'), addRectCol(b.x0, e.a.y + e.hw + 1, b.x1, e.a.y + e.hw + 7, 'rail')];
     }
     bake(box[0] - 8, box[1] - 8, box[2] + 8, box[3] + 8, 3, (g) => drawEdgeBase(g, e));
-    bake(box[0], box[1], box[2], box[3], 5, (g) => drawEdgeMarkings(g, e));
+    bake(box[0] - (e.h ? 80 : 0), box[1] - (e.h ? 0 : 80), box[2] + (e.h ? 80 : 0), box[3] + (e.h ? 0 : 80), 5, (g) => drawEdgeMarkings(g, e)); // linha da beira pode fechar a esquina além do centro
     if (e.bridge) bake(e.bridge.x0 - 10, box[1] - 30, e.bridge.x1 + 10, box[3] + 40, 5.2, (g) => drawBridge(g, e));
   }
   for (const n of World.nodes) {
@@ -1823,7 +1823,9 @@ function buildRoadSurface() {
     if (!hv) hv = hh; if (!hh) hh = hv;
     n.hx = hv; n.hy = hh;
     gFill(n.x - hv, n.y - hh, n.x + hv, n.y + hh, asph ? SF.ROAD : SF.DIRT);
-    bake(n.x - hv - sw - 6, n.y - hh - sw - 6, n.x + hv + sw + 6, n.y + hh + sw + 6, 4, (g) => drawNode(g, n, asph));
+    let shN = 0; for (const e of n.edges) shN = Math.max(shN, e.T.shoulder || 0);
+    const mN = Math.max(sw, shN) + 6;
+    bake(n.x - hv - mN, n.y - hh - mN, n.x + hv + mN, n.y + hh + mN, 4, (g) => drawNode(g, n, asph));
   }
 }
 
