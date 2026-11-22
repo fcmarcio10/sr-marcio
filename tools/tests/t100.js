@@ -18,7 +18,7 @@ const { chromium } = require('playwright');
     const blocos = []; for (let i = 0; i < 30; i++) blocos.push(Radio.monta().map((x) => x.clip));
     out.semChuvaBossa = blocos.some((B) => B.includes('mus_bossa'));
     out.musicasTocadas = [...new Set(blocos.flat().filter((c) => c.startsWith('mus_')))].length;
-    out.introAntes = blocos.filter((B) => B.some((c) => c.startsWith('mus_'))).every((B) => { const i = B.findIndex((c) => c.startsWith('mus_')); return i > 0 && B[i - 1].startsWith('dj_m'); });
+    out.introAntes = blocos.filter((B) => B.some((c) => c.startsWith('mus_'))).every((B) => { const i = B.findIndex((c) => c.startsWith('mus_')); return i > 0 && (B[i - 1].startsWith('dj_m') || RADIO_VINHETAS.some((v) => v.clip === B[i - 1])); });
     out.blocos = blocos.slice(0, 6).map((B) => B.join('>'));
     // ouvinte pede o forró: Thaís > DJ apresenta > xote
     Radio.semMusica = 0; Radio.bag = [RADIO.find((x) => x.clip === 'radio_thais')]; Radio.mbag = RADIO_MUSICAS.slice();

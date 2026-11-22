@@ -1,6 +1,6 @@
 # Músicas da Rádio Gambiarra FM: 8 faixas instrumentais compostas aqui no código (sintetizadas nota por nota),
 # sem trecho de música de ninguém: são do jogo, livres de direitos.
-# Uso (de dentro de tools/radio):  python3 musicas.py [nome]   ->  ../../audio/mus_<nome>.mp3 (mono, 24 kHz, 40 kbps)
+# Uso (de dentro de tools/radio):  python3 musicas.py [nome]   ->  ../../audio/mus_<nome>.mp3 (mono, 22 kHz, 24 kbps: a página única tem limite de tamanho)
 #   PREVIA=1 python3 musicas.py   grava também previa/<nome>.wav (qualidade cheia, para ouvir)
 import numpy as np, os, sys, subprocess
 from scipy.signal import butter, sosfilt, fftconvolve
@@ -456,7 +456,230 @@ def axe():  # Banda Botijão — Axé do Caminhão do Gás (surdos, agogô, meta
     M.poe(surdo(1.2), M.t(35, 0)); M.poe(kick(130, 40, 0.8, 1.0), M.t(35, 0))
     return M.mestre(sala=0.8)
 
-MUSICAS = {'xote': xote, 'funk': funk, 'moda': moda, 'pagode': pagode, 'neon': neon, 'arrocha': arrocha, 'bossa': bossa}  # o axé saiu da rádio (pedido do dono)
+
+# ---------------- instrumentos novos (0.2.0: trap, funk melody, brega funk, eletrônica calma, lo-fi, reggae, piseiro...) ----------------
+def sub808g(f0, f1, dur, v=1.0):  # 808 que escorrega de uma nota para outra (o "glide" do trap)
+    t = tt(dur); k = np.clip(t / max(0.05, dur * 0.35), 0, 1); fr = (f0 + (f1 - f0) * k ** 2) * (1 + 0.5 * np.exp(-t * 40)); ph = TAU * np.cumsum(fr) / SR
+    return np.tanh(2.4 * np.sin(ph) * np.exp(-t * 1.1)) * env(len(t), 0.002, 0.08) * 0.8 * v
+def pluck(f, dur, v=1.0):  # sintetizador de corda beliscada (eletrônica)
+    t = tt(dur); s = serrote(f, dur, 18, 0.0) + 0.7 * serrote(f, dur, 18, 0.005)
+    fc = 600 + 3400 * np.exp(-t * 9); y = np.zeros(len(t))
+    for i0 in range(0, len(t), 512): y[i0:i0 + 512] = lp(s[i0:i0 + 512], float(fc[i0]))
+    return y * np.exp(-t * 4) * env(len(t), 0.002, 0.05) * 0.16 * v
+def sino(f, dur, v=1.0):  # sininho / campainha do trap
+    t = tt(dur); s = np.sin(TAU * f * t + 2.2 * np.exp(-t * 3) * np.sin(TAU * f * 3.5 * t))
+    return s * np.exp(-t * 2.4) * env(len(t), 0.002, 0.08) * 0.3 * v
+def piano(f, dur, v=1.0):  # piano macio (lo-fi)
+    t = tt(dur); s = np.zeros(len(t))
+    for k, a in ((1, 1), (2, 0.5), (3, 0.25), (4, 0.12), (5, 0.06)): s += a * np.sin(TAU * f * k * (1 + 0.0004 * k * k) * t) * np.exp(-t * (1.2 + 0.9 * k))
+    return lp(s, 2600) * env(len(t), 0.004, 0.12) * 0.32 * v
+def chiado(dur, v=1.0):  # chiado de disco (lo-fi), com estalinhos
+    n = int(SR * dur); s = lp(ruido(n), 4500) * 0.05
+    for i in RNGN.integers(0, n - 200, int(dur * 9)): s[i:i + 60] += RNGN.uniform(-1, 1) * np.exp(-np.arange(60) / 9) * 0.5
+    return hp(s, 800) * v
+def kickmacio(v=1.0): return kick(110, 46, 0.3, 0.8 * v)  # bumbo abafado (lo-fi e reggae)
+
+def trap():  # Lil Retrovisor — Trap do Quebra-Molas (808 escorregando, chimbal picotado e sininho)
+    M = Musica(140, 29); prog = ['Cm', 'Cm', 'Ab', 'G']; rng = np.random.default_rng(101); esc = escala('C', True, 60, 84)
+    for c in range(29):
+        nome = prog[c % 4]; intro = c < 2; fim = c == 28; r0 = acorde(nome)[0]
+        if not intro:
+            M.poe(kick(150, 42, 0.5, 1.0), M.t(c, 0)); M.poe(kick(150, 42, 0.5, 0.8), M.t(c, 2.75))
+            nxt = acorde(prog[(c + 1) % 4])[0]
+            M.poe(sub808g(mf(36 + r0), mf(36 + r0), 1.6, 0.95), M.t(c, 0)); M.poe(sub808g(mf(36 + r0), mf(36 + nxt), 1.2, 0.85), M.t(c, 2.75))
+        if fim: break
+        M.poe(palma(0.9), M.t(c, 2)); M.poe(caixa(200, 0.14, 0.4), M.t(c, 2))
+        # chimbal em semicolcheias, com rajadas de 1/32 e de tercina no fim do compasso
+        for k in range(16):
+            if c % 2 == 1 and k >= 12: continue
+            M.poe(chimbal(False, 0.45 if k % 2 == 0 else 0.3), M.t(c, k / 4))
+        if c % 2 == 1:
+            for k in range(8): M.poe(chimbal(False, 0.25 + 0.04 * k), M.t(c, 3 + k / 8))
+        if c >= 1:
+            for (b, m) in ((0, 0), (0.5, 3), (1, 7), (1.5, 3), (2, 12), (2.5, 7), (3, 3), (3.5, 2)):
+                M.poe(sino(mf(72 + r0 + m), 0.4), M.t(c, b), 0.45, 0.35)
+        if c % 4 == 0: [M.poe(pad(mf(m), 16 * M.tc), M.t(c, 0), 0.7, 0.5) for m in notas_acorde(nome, 4)]
+    return M.mestre(sala=1.2)
+
+def trapcalmo():  # MC Embreagem — Drip no Painel (trap melódico, piano e flauta)
+    M = Musica(130, 27); prog = ['Am7', 'Fmaj7', 'Dm7', 'Em7']; rng = np.random.default_rng(102); esc = escala('A', True, 64, 88)
+    for c in range(27):
+        nome = prog[c % 4]; fim = c == 26; r0 = acorde(nome)[0]
+        if c >= 2:
+            M.poe(kick(140, 42, 0.5, 0.9), M.t(c, 0)); M.poe(kick(140, 42, 0.45, 0.6), M.t(c, 1.75))
+            M.poe(sub808g(mf(33 + r0), mf(33 + r0), 2.0, 0.85), M.t(c, 0))
+        if fim: break
+        if c >= 2: M.poe(palma(0.7), M.t(c, 2)); M.poe(caixa(240, 0.1, 0.3, 7000), M.t(c, 2))
+        for k in range(8): M.poe(chimbal(False, 0.3 if k % 2 == 0 else 0.2), M.t(c, k / 2))
+        if c % 4 == 3 and c >= 2: [M.poe(chimbal(False, 0.22), M.t(c, 3 + k / 6)) for k in range(6)]
+        for i, m in enumerate(notas_acorde(nome, 4)): M.poe(piano(mf(m), 4 * M.tc), M.t(c, 0) + i * 0.02, 0.55, 0.5)
+    r = [(0, 1), (1, 0.5), (1.5, 1.5), (3, 1), (4, 2), (6, 2)]
+    p = None
+    for c in range(4, 24, 2): p, _ = frase(M, rng, prog, c, 2, r, flauta, (69, 86), p, 0.75, 0.55, esc=esc)
+    return M.mestre(alvo_db=-23.0, sala=1.4)
+
+def funkmelody():  # MC Pisca-Alerta — Funk do Farol Alto (funk melody: batidão com teclado e melodia)
+    M = Musica(130, 27); prog = ['F', 'C', 'Dm', 'Bb']; rng = np.random.default_rng(103); esc = escala('F', lo=64, hi=86)
+    bumbo = [0, 3, 6, 8, 11, 14]
+    for c in range(27):
+        nome = prog[c % 4]; fim = c == 26
+        for k in range(16):
+            tk = M.t(c, k / 4)
+            if k in bumbo and c >= 1: M.poe(kick(150, 46, 0.35, 0.95), tk); M.poe(sub808(baixo_raiz(nome, 1), 0.3, 0.8), tk)
+            if k in (4, 12): M.poe(palma(0.85), tk)
+            if k in (2, 10): M.poe(tom(190, 0.16, 0.45), tk)
+            if k % 2 == 0: M.poe(chimbal(False, 0.3), tk)
+        if fim: break
+        for b in (0, 1.5, 3):
+            for m in notas_acorde(nome, 4): M.poe(bipe(mf(m), 0.3), M.t(c, b), 0.28, 0.2)
+    r = [(0, 0.5), (0.5, 0.5), (1, 1), (2, 0.5), (2.5, 1.5), (4, 0.5), (4.5, 0.5), (5, 1), (6, 2)]
+    p = None; p, A = frase(M, rng, prog, 4, 2, r, lead80, (65, 84), p, 0.8, 0.35, esc=esc)
+    for c in (6, 8, 10, 12, 14, 16): p, _ = frase(M, rng, prog, c, 2, r, lead80, (65, 84), p, 0.8, 0.35, esc=esc)
+    repete(M, A, 4, 18, lead80, 0.8, 0.35); repete(M, A, 4, 22, lead80, 0.8, 0.35)
+    return M.mestre(sala=0.7)
+
+def brega():  # Os Insulfilm — Brega do Retrovisor (brega funk: bumbo acelerado, teclado e guitarra)
+    M = Musica(160, 33); prog = ['G', 'Em', 'C', 'D']; rng = np.random.default_rng(104); esc = escala('G', lo=64, hi=86)
+    for c in range(33):
+        nome = prog[(c // 2) % 4]; fim = c == 32
+        for (b, v) in ((0, 1), (0.75, 0.7), (1.5, 0.8), (2.5, 0.75), (3, 0.9)):
+            if c >= 1: M.poe(kick(140, 48, 0.28, v), M.t(c, b))
+        M.poe(palma(0.8), M.t(c, 2)) if c >= 1 else None
+        if fim: break
+        for k in range(8): M.poe(chimbal(k % 2 == 1, 0.25), M.t(c, k / 2))
+        M.poe(baixo(baixo_raiz(nome), 0.6 * M.tc, 0.8), M.t(c, 0)); M.poe(baixo(quinta(nome), 0.6 * M.tc, 0.6), M.t(c, 2))
+        if c % 2 == 0: [M.poe(orgao(mf(m), 8 * M.tc), M.t(c, 0), 0.5, 0.3) for m in notas_acorde(nome, 4)]
+        arp = notas_acorde(nome, 4) + [notas_acorde(nome, 5)[0]]
+        for k in range(8): M.poe(guitarra(mf(arp[[0, 2, 1, 3, 2, 1, 3, 2][k]]), 0.4), M.t(c, k / 2), 0.25, 0.3)
+    r = [(0, 1), (1, 1), (2, 2), (4, 1), (5, 1), (6, 2), (8, 1), (9, 1), (10, 1), (11, 1), (12, 4)]
+    p = None
+    for c in range(4, 30, 4): p, _ = frase(M, rng, prog_dobro(prog), c, 4, r, sopro, (64, 81), p, 0.7, 0.35, esc=esc)
+    return M.mestre(sala=0.8)
+
+def chill():  # Garoa.wav — Madrugada em São Gambiarra (eletrônica calma: pad, plucks e batida suave)
+    M = Musica(90, 19); prog = ['Dm9' if False else 'Dm7', 'Bbmaj7', 'Fmaj7', 'C']; rng = np.random.default_rng(105); esc = escala('F', lo=62, hi=86)
+    for c in range(19):
+        nome = prog[c % 4]; fim = c == 18
+        for m in notas_acorde(nome, 3)[1:] + notas_acorde(nome, 4)[:2]: M.poe(pad(mf(m), 4 * M.tc + 0.6), M.t(c, 0), 0.9, 0.7)
+        if fim: break
+        if c >= 2:
+            M.poe(kickmacio(0.8), M.t(c, 0)); M.poe(kickmacio(0.6), M.t(c, 2.5))
+            M.poe(caixa(200, 0.2, 0.25, 3500), M.t(c, 2), 1, 0.6)
+            for k in range(8): M.poe(chimbal(False, 0.16), M.t(c, k / 2 + 0.25))
+        M.poe(baixo(baixo_raiz(nome), 3.5 * M.tc, 0.55), M.t(c, 0))
+        arp = notas_acorde(nome, 5)
+        for k in range(8): M.poe(pluck(mf(arp[k % len(arp)]), 0.5), M.t(c, k / 2), 0.7, 0.6)
+    return M.mestre(alvo_db=-23.5, sala=2.0)
+
+def deephouse():  # DJ Maré Baixa — Deep na Orla (house calmo: bumbo reto, contratempo e acordes)
+    M = Musica(120, 25); prog = ['Am7', 'Am7', 'Dm7', 'Em7']; rng = np.random.default_rng(106); esc = escala('A', True, 64, 86)
+    for c in range(25):
+        nome = prog[c % 4]; fim = c == 24
+        for b in range(4):
+            if c >= 1: M.poe(kick(130, 48, 0.3, 0.85), M.t(c, b))
+            M.poe(chimbal(True, 0.22), M.t(c, b + 0.5))
+        if fim: break
+        if c >= 2: M.poe(palma(0.5), M.t(c, 1), 1, 0.5); M.poe(palma(0.5), M.t(c, 3), 1, 0.5)
+        r0 = acorde(nome)[0]
+        for (b, d) in ((0, 0.4), (0.75, 0.25), (1.5, 0.4), (2.5, 0.25), (3, 0.4)): M.poe(baixo(mf(36 + r0), d * M.tc * 1.5, 0.7), M.t(c, b))
+        for b in (0.5, 1.75, 3.0):
+            for i, m in enumerate(notas_acorde(nome, 4)): M.poe(rhodes(mf(m), 0.7), M.t(c, b) + i * 0.01, 0.4, 0.5)
+    r = [(0, 2), (2, 1), (3, 1), (4, 4)]
+    p = None
+    for c in range(8, 22, 2): p, _ = frase(M, rng, prog, c, 2, r, flauta, (69, 86), p, 0.55, 0.6, esc=esc)
+    return M.mestre(alvo_db=-23.0, sala=1.6)
+
+def lofi():  # Sono no Volante — Lo-fi do Engarrafamento (piano macio, batida arrastada e chiado de disco)
+    M = Musica(80, 17); prog = ['Fmaj7', 'Em7', 'Dm7', 'Cmaj7']; rng = np.random.default_rng(107); esc = escala('C', lo=64, hi=84)
+    M.poe(chiado(M.dur + 1.5, 1.0), 0.0, 1, 0)
+    for c in range(17):
+        nome = prog[c % 4]; fim = c == 16
+        for i, m in enumerate(notas_acorde(nome, 4)): M.poe(piano(mf(m), 3.6 * M.tc), M.t(c, 0) + i * 0.035, 0.55, 0.5, hum=0.012)
+        if fim: break
+        if c >= 1:
+            M.poe(kickmacio(0.9), M.t(c, 0)); M.poe(kickmacio(0.6), M.t(c, 1.75)); M.poe(kickmacio(0.7), M.t(c, 2.5))
+            M.poe(caixa(180, 0.18, 0.5, 3000), M.t(c, 1) + 0.03); M.poe(caixa(180, 0.18, 0.5, 3000), M.t(c, 3) + 0.03)
+            for k in range(8): M.poe(chimbal(False, 0.22 if k % 2 == 0 else 0.12), M.t(c, k / 2) + (0.04 if k % 2 else 0))
+        M.poe(baixo(baixo_raiz(nome), 1.8 * M.tc, 0.6), M.t(c, 0)); M.poe(baixo(quinta(nome), 1.4 * M.tc, 0.45), M.t(c, 2.5))
+    r = [(0, 1.5), (1.5, 0.5), (2, 1), (3, 1), (4, 2), (6, 2)]
+    p = None
+    for c in range(4, 15, 2): p, _ = frase(M, rng, prog, c, 2, r, piano, (67, 84), p, 0.75, 0.5, esc=esc)
+    x = M.mestre(alvo_db=-24.0, sala=1.2)
+    return lp(x, 5200)  # tirando o brilho, como fita velha
+
+def reggae():  # Rasta Gambiarra — Reggae da Rede na Laje (contratempo na guitarra e no órgão, baixo cheio)
+    M = Musica(76, 16); prog = ['G', 'C', 'G', 'D']; rng = np.random.default_rng(108); esc = escala('G', lo=64, hi=84)
+    for c in range(16):
+        nome = prog[c % 4]; fim = c == 15
+        M.poe(kickmacio(0.9), M.t(c, 2)); M.poe(caixa(230, 0.15, 0.6, 6000), M.t(c, 2), 1, 0.3)  # "one drop"
+        if fim: break
+        for k in range(8): M.poe(chimbal(k == 7, 0.2), M.t(c, k / 2 + (0.08 if k % 2 else 0)))
+        for b in (0.5, 1.5, 2.5, 3.5):
+            for i, m in enumerate(notas_acorde(nome, 4)): M.poe(guitarra(mf(m), 0.12), M.t(c, b) + i * 0.006, 0.28, 0.2)
+            for m in notas_acorde(nome, 4): M.poe(orgao(mf(m), 0.2), M.t(c, b) + 0.12, 0.35, 0.2)
+        r0 = acorde(nome)[0]
+        for (b, iv, d) in ((0, 0, 0.8), (1, 7, 0.4), (1.5, 12, 0.4), (2.5, 7, 0.4), (3, 4, 0.8)): M.poe(baixo(mf(36 + r0 + iv), d * M.tc, 0.9), M.t(c, b))
+    r = [(0, 1), (1, 1), (2, 2), (4, 1), (5, 1), (6, 2)]
+    p = None
+    for c in range(4, 14, 2): p, _ = frase(M, rng, prog, c, 2, r, sopro, (62, 79), p, 0.6, 0.4, esc=esc)
+    return M.mestre(sala=1.0)
+
+def piseiro():  # Forrozinho Pé na Tábua — Piseiro do Paralama (teclado, bumbo de piseiro e triângulo)
+    M = Musica(150, 31); prog = ['C', 'G', 'Am', 'F']; rng = np.random.default_rng(109); esc = escala('C', lo=64, hi=86)
+    for c in range(31):
+        nome = prog[(c // 2) % 4]; fim = c == 30
+        for b in (0, 1.5, 2, 3.5):
+            if c >= 1: M.poe(kick(140, 50, 0.3, 0.85 if b in (0, 2) else 0.6), M.t(c, b))
+        if fim: break
+        M.poe(palma(0.6), M.t(c, 1)); M.poe(palma(0.6), M.t(c, 3))
+        for k in range(8): M.poe(triangulo(k % 2 == 1, 0.6 if k % 2 else 0.4), M.t(c, k / 2))
+        M.poe(baixo(baixo_raiz(nome), 0.8 * M.tc, 0.8), M.t(c, 0)); M.poe(baixo(quinta(nome), 0.8 * M.tc, 0.6), M.t(c, 2))
+        for b in (0.5, 1.5, 2.5, 3.5):
+            for m in notas_acorde(nome, 4): M.poe(bipe(mf(m), 0.25), M.t(c, b), 0.22, 0.2)
+    r = [(0, 0.5), (0.5, 0.5), (1, 0.5), (1.5, 0.5), (2, 1), (3, 1), (4, 0.5), (4.5, 0.5), (5, 1), (6, 2)]
+    p = None; p, A = frase(M, rng, prog_dobro(prog), 4, 2, r, sanfona, (64, 84), p, 0.9, 0.3, esc=esc)
+    for c in range(6, 26, 2): p, _ = frase(M, rng, prog_dobro(prog), c, 2, r, sanfona, (64, 84), p, 0.9, 0.3, esc=esc)
+    repete(M, A, 4, 26, sanfona, 0.9, 0.3)
+    return M.mestre(sala=0.8)
+
+def ponteio():  # Tonico da Viola — Ponteio da Estrada de Terra (sertanejo de raiz calmo, viola e violão)
+    M = Musica(72, 15); prog = ['E', 'A', 'B7', 'E']; rng = np.random.default_rng(110); esc = escala('E', lo=62, hi=84)
+    for c in range(15):
+        nome = prog[c % 4]; fim = c == 14
+        M.poe(baixo(baixo_raiz(nome), 1.6 * M.tc, 0.6), M.t(c, 0)); M.poe(baixo(quinta(nome), 1.6 * M.tc, 0.45), M.t(c, 2))
+        for k in range(8):
+            ns = notas_acorde(nome, 3); m = ns[[0, 1, 2, 1, 2, 1, 2, 1][k]] + (12 if k in (2, 4, 6) else 0)
+            M.poe(violao(mf(m), 1.2), M.t(c, k / 2), 0.4, 0.4)
+        if fim: break
+    r = [(0, 1), (1, 1), (2, 1.5), (3.5, 0.5), (4, 2), (6, 2)]
+    p = None; p, A = frase(M, rng, prog, 2, 2, r, viola, (62, 81), p, 0.6, 0.45, esc=esc, duas_vozes=0.55)
+    for c in (4, 6, 8, 10): p, _ = frase(M, rng, prog, c, 2, r, viola, (62, 81), p, 0.6, 0.45, esc=esc, duas_vozes=0.55)
+    repete(M, A, 2, 12, viola, 0.6, 0.45)
+    return M.mestre(alvo_db=-23.5, sala=1.5)
+
+def sambarock():  # Banda Cadê o Freio — Samba-Rock do Fusca Azul (guitarra suingada, órgão e metais)
+    M = Musica(112, 23); prog = ['Dm7', 'G7', 'Cmaj7', 'A7']; rng = np.random.default_rng(111); esc = escala('C', lo=62, hi=86)
+    for c in range(23):
+        nome = prog[c % 4]; fim = c == 22
+        M.poe(kick(130, 50, 0.3, 0.85), M.t(c, 0)); M.poe(kick(130, 50, 0.3, 0.6), M.t(c, 1.5)); M.poe(kick(130, 50, 0.3, 0.7), M.t(c, 2.75))
+        M.poe(caixa(210, 0.15, 0.7), M.t(c, 1)); M.poe(caixa(210, 0.15, 0.7), M.t(c, 3))
+        if fim: break
+        for k in range(16): M.poe(chimbal(False, 0.3 if k % 4 == 2 else 0.18), M.t(c, k / 4))
+        M.poe(pandeiro(False, 0.35), M.t(c, 0.5)); M.poe(pandeiro(True, 0.4), M.t(c, 2.5))
+        r0 = acorde(nome)[0]
+        for (b, iv) in ((0, 0), (0.75, 7), (1.5, 10), (2, 12), (2.75, 7), (3.5, 5)): M.poe(baixo(mf(36 + r0 + iv), 0.4 * M.tc, 0.75), M.t(c, b))
+        for b in (0.5, 1.25, 2.5, 3.25):
+            for i, m in enumerate(notas_acorde(nome, 4)): M.poe(guitarra(mf(m), 0.15), M.t(c, b) + i * 0.006, 0.25, 0.2)
+        if c % 2 == 0: [M.poe(orgao(mf(m), 8 * M.tc * 0.9), M.t(c, 0), 0.4, 0.3) for m in notas_acorde(nome, 4)]
+    r = [(0, 0.5), (0.5, 0.5), (1, 1), (2, 0.5), (2.5, 0.5), (3, 1), (4, 1), (5, 1), (6, 2)]
+    p = None; p, A = frase(M, rng, prog, 4, 2, r, lambda f, d: sopro(f, d, 1.0, 0.004, 1.3), (64, 84), p, 0.75, 0.3, esc=esc)
+    for c in range(6, 18, 2): p, _ = frase(M, rng, prog, c, 2, r, lambda f, d: sopro(f, d, 1.0, 0.004, 1.3), (64, 84), p, 0.75, 0.3, esc=esc)
+    repete(M, A, 4, 18, lambda f, d: sopro(f, d, 1.0, 0.004, 1.3), 0.75)
+    return M.mestre(sala=0.9)
+
+MUSICAS = {'xote': xote, 'funk': funk, 'moda': moda, 'pagode': pagode, 'neon': neon, 'arrocha': arrocha, 'bossa': bossa,  # o axé saiu da rádio (pedido do dono)
+           'trap': trap, 'trapcalmo': trapcalmo, 'funkmelody': funkmelody, 'brega': brega, 'chill': chill, 'deephouse': deephouse,
+           'lofi': lofi, 'reggae': reggae, 'piseiro': piseiro, 'ponteio': ponteio, 'sambarock': sambarock}
 
 if __name__ == '__main__':
     quais = sys.argv[1:] or list(MUSICAS)
@@ -466,6 +689,6 @@ if __name__ == '__main__':
         wav = os.path.join(AQ, 'previa', nome + '.wav')
         subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'f32le', '-ar', str(SR), '-ac', '1', '-i', '-', wav], input=x.astype(np.float32).tobytes(), check=True)
         out = os.path.join(AUDIO, 'mus_' + nome + '.mp3')
-        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav, '-ac', '1', '-ar', '24000', '-b:a', '40k', out], check=True)
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav, '-ac', '1', '-ar', '22050', '-b:a', '24k', out], check=True)
         if not os.environ.get('PREVIA'): os.remove(wav)
         print('%-8s %.1f s  %d KB  rms %.1f dB  pico %.2f' % (nome, len(x) / SR, os.path.getsize(out) // 1024, 20 * np.log10(np.sqrt((x ** 2).mean())), np.abs(x).max()))

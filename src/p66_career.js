@@ -479,6 +479,18 @@ const RADIO_MUSICAS = [
   { clip: 'mus_neon', nome: 'Neon na BR', banda: 'Os Faróis Altos', intro: 'dj_m5' },
   { clip: 'mus_arrocha', nome: 'Arrocha do Coração Rebaixado', banda: 'Kelvin do Arrocha', intro: 'dj_m6' },
   { clip: 'mus_bossa', nome: 'Bossa da Garoa', banda: 'Quarteto Garoa Fina', intro: 'dj_m7', cond: 'chuva' },
+  // (0.2.0) 11 faixas novas, também compostas no código (tools/radio/musicas.py); sem fala do DJ antes: entra uma vinheta
+  { clip: 'mus_trap', nome: 'Trap do Quebra-Molas', banda: 'Lil Retrovisor' },
+  { clip: 'mus_trapcalmo', nome: 'Drip no Painel', banda: 'MC Embreagem' },
+  { clip: 'mus_funkmelody', nome: 'Funk do Farol Alto', banda: 'MC Pisca-Alerta' },
+  { clip: 'mus_brega', nome: 'Brega do Retrovisor', banda: 'Os Insulfilm' },
+  { clip: 'mus_chill', nome: 'Madrugada em São Gambiarra', banda: 'Garoa.wav' },
+  { clip: 'mus_deephouse', nome: 'Deep na Orla', banda: 'DJ Maré Baixa' },
+  { clip: 'mus_lofi', nome: 'Lo-fi do Engarrafamento', banda: 'Sono no Volante' },
+  { clip: 'mus_reggae', nome: 'Reggae da Rede na Laje', banda: 'Rasta Gambiarra' },
+  { clip: 'mus_piseiro', nome: 'Piseiro do Paralama', banda: 'Forrozinho Pé na Tábua' },
+  { clip: 'mus_ponteio', nome: 'Ponteio da Estrada de Terra', banda: 'Tonico da Viola' },
+  { clip: 'mus_sambarock', nome: 'Samba-Rock do Fusca Azul', banda: 'Banda Cadê o Freio' },
 ];
 const RADIO_APRESENTA = [
   { clip: 'dj_m1', tag: 'Agora toca', musica: 'mus_xote', text: 'E agora, pra arrastar o pé no asfalto: Trio Pé de Pano, com Xote do Pneu Furado! Segura o forró, motorista!' },
@@ -529,6 +541,7 @@ Radio.proxMusica = function () {
 Radio.blocoMusica = function (M, out) {
   const A = RADIO_APRESENTA.find((x) => x.clip === M.intro);
   if (A && !out.includes(A)) out.push(A);
+  else if (!A && !out.length) { let V = pick(RADIO_VINHETAS); if (V === this.lastV) V = pick(RADIO_VINHETAS); this.lastV = V; out.push(V); } // música sem apresentação: vinheta antes
   out.push(radioFaixa(M));
   if (Math.random() < 0.45) out.push(pick(RADIO_DEPOIS));
   this.semMusica = 0;
