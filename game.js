@@ -13724,7 +13724,7 @@ function tiraFotoSlot() {
   } catch (e) {}
 }
 // aba Criador: abre o Instagram do criador (no app do Windows, no navegador do computador)
-const CRIADOR_URL = 'https://www.instagram.com/marciomotta.777/';
+const CRIADOR_URL = 'https://www.instagram.com/criattogames/';
 function abreCriador() {
   try { if (window.brnd && window.brnd.abrir) { window.brnd.abrir(CRIADOR_URL); return; } } catch (e) {}
   try { window.open(CRIADOR_URL, '_blank', 'noopener'); } catch (e) {}
