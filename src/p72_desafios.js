@@ -40,7 +40,7 @@ Desafios.d = function () {
   return Profile.des;
 };
 // o desafio está valendo? (se a função ainda está travada pela história, ele espera: aparece com cadeado)
-Desafios.ativo = function (id) { const d = DES_POR_ID[id]; return !d.trava || (typeof liberado !== 'function' || liberado(d.trava)); };
+Desafios.ativo = function () { return true; }; // (as travas da história saíram)
 Desafios.conta = function (tipo, n, abs) {
   if (Game.mode !== 'play' || !Profile) return;
   const D = this.d();

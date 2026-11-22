@@ -21,7 +21,7 @@ function startPlay() {
   UI.region = null; UI.last = {};
   Game.autosaveT = 30;
   updateHudVisibility();
-  Nevoa.carrega(); Historia.h(); if (Apresenta.on) Apresenta.encerra();
+  Nevoa.carrega(); if (Apresenta.on) Apresenta.encerra();
   Profile.welcomed = true; // sem áudio de boas-vindas (o tutorial do Seu Zé já fala)
 }
 // tela de carregamento entre o menu e o jogo, com dica
@@ -56,8 +56,7 @@ function newGame() { withTransit(newGameNow); }
 // carro e teclas travados: carregando, câmera apresentando lugares, ou primeira noite antes da apresentação começar
 function jogoTravado() {
   if (Game.carregando || Apresenta.on) return true;
-  if (navigator.webdriver && !window.__intro) return false; // testes antigos: sem apresentação, sem espera
-  const h = Profile.hist; return !!(h && h.cap === 0 && !h.apres && !h.tudo);
+  return false;
 }
 // coisas que só acontecem depois que a tela de carregamento some (falas, avisos, tutorial)
 const AposCarga = { fila: [] };
@@ -162,13 +161,12 @@ function stepPlay(dt) {
   Particles.update(dt);
   updateActivities(dt);
   Events.update(dt);
-  MissaoAjuda.update(dt); MissaoOpalha.update(dt); Nevoa.update(dt);
+  Nevoa.update(dt);
   CarLife.update(dt);
   Finance.update(dt);
   Som.update(dt);
   Socorro.update(dt);
   Achievements.check(dt);
-  Historia.update(dt);
   Weather.updatePlayer(dt, player);
   Police.update(dt);
   if (CHEATS_ENABLED && Cheats.god && (Profile.damage > 0 || (Profile.zones && (Profile.zones.f || Profile.zones.r || Profile.zones.l || Profile.zones.rt)))) { Profile.damage = 0; Profile.zones = { f: 0, r: 0, l: 0, rt: 0, seed: ((Profile.zones && Profile.zones.seed) || 0) + 1 }; }

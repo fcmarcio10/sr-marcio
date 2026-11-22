@@ -1,4 +1,4 @@
-// t114: nada fala nem reage durante o carregamento, rádio começa desligada, aviso grande do tutorial e história em capítulos
+// t114: nada fala nem reage durante o carregamento, rádio começa desligada, aviso grande do tutorial (a história saiu)
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1400, height: 820 } });
@@ -11,25 +11,8 @@ const { chromium } = require('playwright');
   await p.waitForTimeout(7000);
   const depois = await p.evaluate(() => ({ carregando: Game.carregando, toasts: document.querySelectorAll('.toast').length, tut: !document.getElementById('tutorial').classList.contains('hidden'), pop: (document.getElementById('ms-ajuda') || {}).textContent || '', radio: Radio.isOn(), boasVindas: (Profile.msgs || []).some((m) => m.voice && m.voice.clip === 'boas_vindas'), vozZap: !!VoicePlayer.msg }));
   await p.screenshot({ path: 't114_tutorial.png' });
-  // história: terminar o tutorial fecha o capítulo 1
-  const m0 = await p.evaluate(() => { Profile.tut = TUT_STEPS.length; return Profile.money; });
-  await p.waitForTimeout(1500);
-  const c1 = await p.evaluate(() => ({ cap: Profile.hist.cap, money: Profile.money, passou: document.getElementById('ms-passou').textContent }));
-  await p.screenshot({ path: 't114_passou.png' });
-  await p.waitForTimeout(6500);
-  await p.screenshot({ path: 't114_titulo.png' });
-  await p.waitForTimeout(5500);
-  const abre2 = await p.evaluate(() => ({ pop: (document.getElementById('ms-titulo') || {}).textContent || '', leg: (document.getElementById('ms-legenda') || {}).textContent || '', ajuda: (document.getElementById('ms-ajuda') || {}).textContent || '', tag: document.getElementById('obj-tag').textContent, titulo: document.getElementById('obj-title').textContent, meta: document.getElementById('obj-meta').textContent, msg: (Profile.msgs || []).some((m) => m.voice && m.voice.clip === 'cap_2') }));
-  await p.screenshot({ path: 't114_capitulo.png' });
-  await p.evaluate(() => { Profile.rides = (Profile.rides || 0) + 5; }); await p.waitForTimeout(1500);
-  const c2 = await p.evaluate(() => Profile.hist.cap);
-  // pula até o último e compra o Opalha
-  await p.evaluate(() => { Profile.hist.cap = 6; Profile.hist.base = Profile.rachaWins || 0; Profile.rachaWins = (Profile.rachaWins || 0) + 1; }); await p.waitForTimeout(1500);
-  const fim = await p.evaluate(() => ({ fim: Profile.hist.fim, pop: document.getElementById('ms-passou').textContent }));
-  await p.evaluate(() => { Screens.open && Screens.open('screen-pause'); });
-  console.log(JSON.stringify({ durante, depois, m0, c1, abre2, c2, fim }));
-  const ok = durante.carregando && !durante.toasts && !durante.tut && !durante.voz && !durante.radio && !depois.carregando && depois.tut && /Passo 1/.test(depois.pop) && !depois.radio && !depois.boasVindas && !depois.vozZap
-    && c1.cap === 1 && c1.money >= m0 + 200 && /Missão cumprida/.test(c1.passou) && /Capítulo 2/.test(abre2.pop) && /de 5/.test(abre2.meta) && /online/.test(abre2.ajuda) && /MISSÃO/.test(abre2.tag) && /Ganha-pão/.test(abre2.titulo) && abre2.msg && c2 === 2 && fim.fim && /História concluída/.test(fim.pop);
-  console.log(ok ? 'OK: espera o carregamento, rádio desligada, tutorial e história' : 'FALHOU');
+  console.log(JSON.stringify({ durante, depois }));
+  const ok = durante.carregando && !durante.toasts && !durante.tut && !durante.voz && !durante.radio && !depois.carregando && depois.tut && /Passo 1/.test(depois.pop) && !depois.radio && !depois.boasVindas && !depois.vozZap;
+  console.log(ok ? 'OK: espera o carregamento, rádio desligada e tutorial' : 'FALHOU');
   console.log(errs.join('\n') || 'no errors'); await b.close();
 })();

@@ -236,7 +236,6 @@ function finishRace() {
   v = Math.max(v, 40);
   const record = t < prev.best;
   Profile.races[r.id] = { best: Math.min(prev.best, t), medal: Math.max(prev.medal, medal) };
-  if (r.id === 'fazenda') Profile.histRali = (Profile.histRali || 0) + 1; // capítulo 5 da história
   Act.race = null;
   AudioSys.chime();
   pay(v);
@@ -247,7 +246,6 @@ function abandonActivity() {
   if (Act.race) { Act.race = null; toast('Percurso abandonado', '', 'bad'); return true; }
   if (Act.delivery) { Act.delivery = null; toast('Entrega cancelada', 'O cliente vai ter que esperar…', 'bad'); return true; }
   if (Act.ride) { Act.ride = null; Act.rideT = 8; toast('Corrida cancelada', 'O passageiro chamou outro motorista.', 'bad'); return true; }
-  if (typeof Historia !== 'undefined' && Historia.ativa() && Historia.desiste()) return true; // missão da história: fracassada e recomeça
   if (Act.waypoint) { Act.waypoint = null; toast('Destino do GPS removido', '', 'info'); return true; }
   return false;
 }
@@ -475,11 +473,10 @@ function updateActivities(dt) {
       const verb = { garagem: 'Entrar na garagem', posto: 'Abastecer / lavar — ' + best.name, oficina: 'Oficina — consertar e melhorar' }[best.kind];
       Act.prompt = { text: verb || (best.pickup && !Act.delivery ? 'Pegar entrega — ' + best.name : 'Entrar — ' + best.name), act: () => openShopDialog(best) };
     } else if (!Act.race) {
-      if (rachaOpen() && liberado('racha')) for (const r of World.rachas) {
+      if (rachaOpen()) for (const r of World.rachas) {
         if (Math.hypot(r.start[0] - p.x, r.start[1] - p.y) < 85) { Act.prompt = { text: 'Racha (ilegal): ' + r.name + ' — aposta R$ ' + fmtMoney(r.bet) + ' contra ' + r.rival, act: () => startRacha(r) }; break; }
       }
       if (!Act.prompt) for (const r of World.races) {
-        if (!liberado('percursos') && r.id !== 'fazenda') continue; // percursos abrem no capítulo 5 (o Rali da Vaca Atolada sempre pode)
         if (Math.hypot(r.start[0] - p.x, r.start[1] - p.y) < 85) {
           const rec = Profile.races[r.id];
           Act.prompt = { text: 'Iniciar percurso: ' + r.name + (rec ? ' (recorde ' + fmtTime(rec.best) + ')' : ''), act: () => startRace(r) };
@@ -511,7 +508,7 @@ function freeRoamHint() {
   const vis = Profile.visited.length, totV = World.shops.filter((x) => x.kind !== 'garagem').length;
   if (Profile.fuel < 22) { const s = nearestShop('posto'); return ['Combustível baixo', 'Procure um posto: ' + (s ? s.name : '') + '. Marque no mapa do celular (Q).']; }
   if (Profile.damage > 55) return ['Carro avariado', 'Passe na Oficina do Seu Zé, no Distrito da Gambiarra.'];
-  const cheapest = CARS.filter((c) => !Profile.owned[c.id]).sort((a, b) => precoCarro(a) - precoCarro(b))[0];
+  const cheapest = CARS.filter((c) => !Profile.owned[c.id]).sort((a, b) => a.price - b.price)[0];
   const list = [
     ['Exploração livre', 'Comércios com marcador amarelo oferecem entregas. Pare em frente e aperte E.'],
     ['Exploração livre', 'Pontos de interesse descobertos: ' + disc + '/' + totP + '. O mapa do celular (Q) mostra o que falta perto de você.'],
@@ -524,9 +521,9 @@ function freeRoamHint() {
     ['Cuide do carro', 'Pneus, óleo e bateria gastam. Troque na oficina, no posto (óleo) ou na borracharia (pneus).'],
     ['Farol (H)', 'Parado por muito tempo com o farol aceso, a bateria arria. Aperte H para desligar.'],
   ];
-  if (cheapest && Profile.money >= precoCarro(cheapest)) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
+  if (cheapest && Profile.money >= cheapest.price) list.push(['Carro novo disponível', 'Você já pode comprar o ' + cheapest.name + ' na sua garagem.']);
   // sem dica de coisa que a história ainda não liberou
-  const L2 = list.filter((h) => (liberado('entregas') || !/entrega/i.test(h[1])) && (liberado('percursos') || !/Percursos/.test(h[1])));
+  const L2 = list;
   return L2[Act.hintI % L2.length];
 }
 

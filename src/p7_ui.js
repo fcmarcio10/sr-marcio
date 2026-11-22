@@ -66,7 +66,7 @@ const Screens = {
     if (id === 'screen-phone' && typeof Phone !== 'undefined') { Phone.render(); requestAnimationFrame(ajustaCelular); }
     if (id === 'screen-map') { renderMapDests(); requestAnimationFrame(() => { if (!bigMap) bigMap = new MapView(bigCanvas, MapState.full); if (MapState.full.follow && player) { MapState.full.cx = player.x; MapState.full.cy = player.y; } drawBigMap(); }); }
     if (id === 'screen-pause') renderPauseStats();
-    if (id === 'screen-pause') { const b = $('btn-abandon'); b.disabled = !(Act.race || Act.delivery || Act.ride || Act.waypoint || Historia.ativa()); b.classList.toggle('hidden', b.disabled); }
+    if (id === 'screen-pause') { const b = $('btn-abandon'); b.disabled = !(Act.race || Act.delivery || Act.ride || Act.waypoint); b.classList.toggle('hidden', b.disabled); }
   },
 };
 // tela livre para o jogo: nada aberto ou só o celular (o celular não pausa o jogo)
@@ -211,7 +211,7 @@ const Garage = {
       for (const c of arr) {
         const b = brandOf(c.model), d = document.createElement('div');
         d.className = 'gcard' + (c.id === this.sel ? ' sel' : '');
-        const st = Profile.current === c.id ? '<span class="cur">EM USO</span>' : Profile.owned[c.id] ? '<span class="own">NA GARAGEM</span>' : '<span class="price' + (Profile.money >= precoCarro(c) ? ' ok' : '') + '">' + (descontoCarro(c) ? '<s>R$ ' + fmtMoney(c.price) + '</s> ' : '') + 'R$ ' + fmtMoney(precoCarro(c)) + '</span>';
+        const st = Profile.current === c.id ? '<span class="cur">EM USO</span>' : Profile.owned[c.id] ? '<span class="own">NA GARAGEM</span>' : '<span class="price' + (Profile.money >= c.price ? ' ok' : '') + '">R$ ' + fmtMoney(c.price) + '</span>';
         d.innerHTML = `<div class="gbrand" style="color:${b.color}">${escapeHtml(b.name)}</div><div class="gname">${escapeHtml(c.name)}</div><div class="gsub"><span>${CAR_KIND_TXT[c.model] || ''}</span>${st}</div>`;
         d.addEventListener('click', () => this.select(c.id));
         d.addEventListener('mouseenter', () => AudioSys.hover());
@@ -224,7 +224,7 @@ const Garage = {
     $('garage-tags').innerHTML = carTags(sel).map(([t, k]) => `<span class="gt-${k}">${escapeHtml(t)}</span>`).join('');
     $('garage-car-desc').textContent = sel.desc;
     const mb = $('garage-main-btn'), note = $('garage-main-note');
-    if (!owned) { const pr = precoCarro(sel), dc = descontoCarro(sel); mb.textContent = 'COMPRAR POR R$ ' + fmtMoney(pr); mb.disabled = Profile.money < pr; note.textContent = (dc ? 'Desconto de R$ ' + fmtMoney(dc) + ' por ter ajudado o Juninho (era R$ ' + fmtMoney(sel.price) + '). ' : '') + (Profile.money < pr ? 'Faltam R$ ' + fmtMoney(pr - Profile.money) + '.' : ''); }
+    if (!owned) { const pr = sel.price; mb.textContent = 'COMPRAR POR R$ ' + fmtMoney(pr); mb.disabled = Profile.money < pr; note.textContent = Profile.money < pr ? 'Faltam R$ ' + fmtMoney(pr - Profile.money) + '.' : ''; }
     else if (Profile.current === sel.id) { mb.textContent = 'EM USO'; mb.disabled = true; note.textContent = ''; }
     else { mb.textContent = 'USAR ESTE CARRO'; mb.disabled = false; note.textContent = ''; }
     document.querySelectorAll('[data-gtab]').forEach((b) => b.classList.toggle('on', b.dataset.gtab === this.tab));
@@ -299,7 +299,7 @@ const Garage = {
     const sel = carById(this.sel);
     const prev = Profile.current;
     if (!Profile.owned[sel.id]) {
-      const pr = precoCarro(sel);
+      const pr = sel.price;
       if (Profile.money < pr) { AudioSys.error(); return; }
       Profile.money -= pr;
       Profile.owned[sel.id] = true;
@@ -484,7 +484,6 @@ function openShopDialog(s) {
   if (s.pickup) {
     if (Act.race) B('Termine o percurso antes de pegar entregas', null, true);
     else if (Act.delivery) B('Você já está com uma entrega em andamento', null, true);
-    else if (!liberado('entregas')) B('Entregas: ' + travaTexto('entregas'), null, true);
     else {
       const off = deliveryOffer(s);
       const tags = (off.fragile ? ' · frágil' : '') + (off.hot ? ' · urgente' : '');
@@ -574,7 +573,7 @@ const Tutorial = {
   },
   update(dt) {
     const el = $('tutorial');
-    const vis = Game.mode === 'play' && carregou(1.5) && !Apresenta.on && !!Profile.hist && (Profile.hist.apres || Profile.hist.cap > 0) && (!Screens.current || Screens.current === 'screen-phone' || Screens.current === 'screen-dialog');
+    const vis = Game.mode === 'play' && carregou(1.5) && !Apresenta.on && (!Screens.current || Screens.current === 'screen-phone' || Screens.current === 'screen-dialog');
     if (!el || !vis || Profile.tut === undefined || Profile.tut >= TUT_STEPS.length) { if (el && this.shown !== -2) { el.classList.add('hidden'); if (this.shown >= 0 && Profile.tut >= TUT_STEPS.length) Missao.esconde('ms-ajuda'); this.shown = -2; } return; }
     const st = TUT_STEPS[Profile.tut];
     this.t += dt;
@@ -635,7 +634,6 @@ function renderPauseStats() {
     ['Medalhas de ouro', medals + '/' + World.races.length], ['Carros', Object.keys(Profile.owned).length + '/' + CARS.length],
   ];
   $('pause-stats').innerHTML = rows.map(([a, b]) => `<div>${a} <b>${b}</b></div>`).join('');
-  { const ph = $('pause-hist'); if (ph) ph.innerHTML = Historia.pausaHTML(); }
 }
 
 /* ---------- HUD ---------- */
@@ -680,18 +678,18 @@ function updateHUD(dt) {
     meta = Math.round(dist * 0.09) + ' m · ' + (left > 0 ? 'prazo ' + fmtTime(left).replace(/\.\d$/, '') : 'atrasado') + ' · R$ ' + fmtMoney(d.reward);
   } else if (Events.cur && Events.cur.stage !== 'wait' && Events.hud()) {
     const h = Events.hud(); title = h[0]; desc = h[1]; meta = h[2]; cls = 'event';
-  } else if (Act.waypoint && !(Historia.ativa() && Historia.hud())) {
+  } else if (Act.waypoint) {
     title = 'Destino no GPS'; desc = 'Siga as setas verdes no chão.';
     meta = Math.round((Act.gps ? Act.gps.len : 0) * 0.09) + ' m';
   } else if (Events.hud()) { const h = Events.hud(); title = h[0]; desc = h[1]; meta = h[2]; cls = 'event'; }
-  else { const hs = (Profile.fuel >= 22 && Profile.damage <= 55) && Historia.hud(); if (hs) { title = hs[0]; desc = hs[1]; meta = hs[2] + (Act.gps && Act.waypoint ? ' · ' + Math.round(Act.gps.len * 0.09) + ' m no GPS' : ''); cls = 'historia'; } else { const h = freeRoamHint(); title = h[0]; desc = h[1]; } }
+  else { const h = freeRoamHint(); title = h[0]; desc = h[1]; }
   // quadro de objetivo só em missão, entrega, corrida, percurso ou evento (na exploração livre a tela fica limpa)
-  { const h = Profile.hist, tag = cls === 'historia' ? 'MISSÃO · ' + capNome(h ? h.cap : 0).toUpperCase() : cls === 'race' ? (Act.race && Act.race.racha ? 'RACHA' : 'PERCURSO') : cls === 'event' ? 'EVENTO' : Act.ride ? 'CORRIDA' : Act.delivery ? 'ENTREGA' : 'OBJETIVO';
+  { const tag = cls === 'race' ? (Act.race && Act.race.racha ? 'RACHA' : 'PERCURSO') : cls === 'event' ? 'EVENTO' : Act.ride ? 'CORRIDA' : Act.delivery ? 'ENTREGA' : 'OBJETIVO';
     UI.set('obj-tag', tag); document.body.classList.toggle('obj-on', !!cls && !Apresenta.on); }
   UI.set('obj-title', title); UI.set('obj-desc', desc); UI.set('obj-meta', meta);
   if (UI.last.objcls !== cls) { UI.last.objcls = cls; $('hud-objective').className = 'glass ' + cls; }
   // tela limpa: o quadro de objetivo não aparece mais; quando o objetivo muda, ele vem como legenda embaixo (uma vez)
-  if (cls && cls !== 'historia') {
+  if (cls) {
     const key = cls + '|' + title + '|' + (cls === 'race' ? '' : desc);
     if (key !== UI.last.objKey) { UI.last.objKey = key; } // o quadro de objetivo já mostra (sem legenda repetida)
   } else UI.last.objKey = '';

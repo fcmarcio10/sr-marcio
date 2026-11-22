@@ -151,7 +151,7 @@ function updateJobs(dt) {
     }
   }
   // convite do racha quando chega a madrugada
-  if (rachaOpen() && !Profile.rachaMsg && liberado('racha')) { Profile.rachaMsg = true; addMsg('Zé do Canecão', 'Racha hoje?', 'E aí, parceiro. Hoje tem racha: arrancada na BR-101, pega na Avenida Cara-Pintada e o racha do Centrão. Aposta na hora, quem ganhar leva o dobro. Abre o app Racha que eu te passo o ponto. Só fica esperto com a viatura, que se ela vir, é multa na certa.', false,
+  if (rachaOpen() && !Profile.rachaMsg) { Profile.rachaMsg = true; addMsg('Zé do Canecão', 'Racha hoje?', 'E aí, parceiro. Hoje tem racha: arrancada na BR-101, pega na Avenida Cara-Pintada e o racha do Centrão. Aposta na hora, quem ganhar leva o dobro. Abre o app Racha que eu te passo o ponto. Só fica esperto com a viatura, que se ela vir, é multa na certa.', false,
     [['Tô dentro!', 'Fechou! Abre o app Racha que o ponto tá lá. Chega quieto e sem farol alto.'], ['Hoje não, valeu', 'Tranquilo, parceiro. Até a madrugada acaba, se mudar de ideia é só chegar.']]); }
   if (!rachaOpen()) Profile.rachaMsg = false;
 }
@@ -362,7 +362,6 @@ function cheatDo(k, v) {
   if (k === 'des') { const D = Desafios.d(), id = D.lista[+v]; if (id && !D.feito[id]) { Desafios.cumpre(id); ok('Desafio cumprido: ' + DES_POR_ID[id].txt); } else ok('Esse já foi feito'); }
   if (k === 'desnovo') { const D = Desafios.d(); D.lista = Desafios.sorteia('x' + Math.random()); D.prog = {}; D.feito = {}; D.bonus = false; D.ganho0 = Profile.earned || 0; ok('Três desafios novos'); }
   if (k === 'deszera') { const D = Desafios.d(); D.prog = {}; D.feito = {}; D.bonus = false; D.ganho0 = Profile.earned || 0; ok('Progresso dos desafios zerado'); }
-  if (k === 'missao') { if (Historia.pula()) { Screens.closeAll(); ok('Missão cumprida (trapaça)'); } else ok('A história já terminou'); return; }
   if (k === 'god') { Cheats.god = !Cheats.god; ok('Modo indestrutível ' + (Cheats.god ? 'ligado' : 'desligado')); }
   if (k === 'tab') { Phone.chTab = v; Phone.render(); return; }
   if (k === 'semCarros') { Cheats.semCarros = !Cheats.semCarros; if (Cheats.semCarros) { for (const c of Traffic.cars) if (!c.ze) c.release(); Traffic.cars = Traffic.cars.filter((c) => c.ze); } ok(Cheats.semCarros ? 'Ruas vazias: sem carros do trânsito' : 'O trânsito voltou'); }
@@ -453,7 +452,7 @@ const PH_ICONS = {
 const PH_APPS = { mapa: 'Mapa', msgs: 'Mensagens', pegaai: 'PegaAí', fretes: 'Fretes', racha: 'Racha', carteira: 'Carteira', conquistas: 'Conquistas', trapaca: 'Trapaças', desafios: 'Desafios', ajustes: 'Ajustes', camera: 'Câmera', colecao: 'Coleção' };
 function phIcon(id, badge) {
   const [bg, svg] = PH_ICONS[id];
-  const tr = ['fretes', 'racha', 'camera', 'colecao', 'desafios'].includes(id) && !liberado(id); // PegaAí sempre liberado (faz parte da primeira missão) // ainda não liberado pela história: cadeado
+  const tr = false;
   return `<button class="ph-app${tr ? ' ph-trancado' : ''}" data-app="${id}"><span class="ph-ico" style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg>${badge && !tr ? `<i class="ph-badge">${badge}</i>` : ''}${tr ? '<i class="ph-cadeado"><svg viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3h1v11H6V10h1zm2 0h6V7a3 3 0 0 0-6 0v3z"/></svg></i>' : ''}</span><span class="ph-lbl">${PH_APPS[id]}</span></button>`;
 }
 // papéis de parede: paisagens de São Gambiarra e arredores (e a bandeira), desenhadas em SVG
@@ -675,7 +674,6 @@ const Phone = {
       html = '<div class="ph-head"><button class="ph-back" data-go="home">‹</button>Trapaças</div>' +
         '<div class="ch-tabs">' + abas.map(([id, n]) => `<button class="${tab === id ? 'on' : ''}" data-cheat="tab" data-cv="${id}">${n}</button>`).join('') + '</div>';
       if (tab === 'jogo') html +=
-        card('História', btn('missao', 0, 'Pular missão')) +
         card('Dinheiro', btn('money', 0, '+R$ 10.000') + btn('cars', 0, 'Liberar veículos') + btn('pois', 0, 'Revelar pontos')) +
         card('Desafios do dia', btn('des', 0, 'Cumprir o 1º') + btn('des', 1, 'Cumprir o 2º') + btn('des', 2, 'Cumprir o 3º') + btn('desnovo', 0, 'Outros 3') + btn('deszera', 0, 'Zerar progresso'));
       else if (tab === 'carro') html +=
@@ -712,7 +710,7 @@ const Phone = {
   },
   click(e) {
     const t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.app) { const ap = t.dataset.app; if (['fretes', 'racha', 'camera', 'colecao', 'desafios'].includes(ap) && !liberado(ap)) { AudioSys.error(); toast(PH_APPS[ap], ap === 'pegaai' ? 'O Seu Zé libera no passo a passo.' : travaTexto(ap) + '.', 'info'); return; } this.go(ap); return; }
+    if (t.dataset.app) { const ap = t.dataset.app; this.go(ap); return; }
     if (t.dataset.foto) { Colecao.fotografa(); return; }
     if (t.dataset.mz) { if (phoneMap) mapCtrl(phoneMap, t.dataset.mz); return; }
     if (t.dataset.sos) { if (t.dataset.sos === 'cancel') socorroCancel(); else socorroCall(t.dataset.sos); phoneTone(1760, 0.05, 0.04); this.render(); return; }

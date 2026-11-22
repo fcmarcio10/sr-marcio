@@ -2,7 +2,7 @@
    - 3 espaços de salvamento (brnd_save, brnd_save_2, brnd_save_3); Settings.slot é o espaço em uso.
    - Teclas configuráveis (Settings.teclas, aba Controles > Teclado e mouse); as setas continuam valendo.
    - Controle de videogame (Xbox/PlayStation, padrão do navegador): gatilhos aceleram e freiam, analógico vira.
-   - Legendas de todas as falas (Settings.legendas): zap, passageiros, pedestres e Juninho/Seu Zé. */
+   - Legendas de todas as falas (Settings.legendas): zap, passageiros, pedestres e Seu Zé. */
 
 // ---------- teclas ----------
 const TECLAS_PADRAO = { acelerar: 'KeyW', frear: 'KeyS', esquerda: 'KeyA', direita: 'KeyD', freioMao: 'Space', buzina: 'KeyH', farol: 'KeyJ', farolAlto: 'KeyL', interagir: 'KeyE', celular: 'KeyQ', radio: 'KeyF', paredao: 'KeyB', reposicionar: 'KeyR' };
@@ -107,7 +107,7 @@ function renderSlots() {
   box.innerHTML = [1, 2, 3].map((n) => {
     const p = slotInfo(n);
     if (!p) return `<div class="slot vazio${cur === n ? ' atual' : ''}"><div class="slot-top"><b>Espaço ${n}</b><small>Vazio</small></div><div class="slot-acoes"><button class="mbtn small" data-slot-novo="${n}">Novo jogo</button></div></div>`;
-    const h = p.hist || {}, cap = h.fim ? 'História concluída' : 'Capítulo ' + ((h.cap || 0) + 1) + ' de ' + (typeof CAP_FINAL !== 'undefined' ? CAP_FINAL : 7);
+    const cap = (p.rides || 0) + ' corridas · ' + (p.deliveries || 0) + ' entregas';
     const t = Math.floor((p.time || 0) % 1440), hh = String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
     const quando = p.salvoEm ? new Date(p.salvoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
     const carro = carById(p.current).name;
