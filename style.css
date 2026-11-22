@@ -1607,3 +1607,11 @@ body.cel-aberto #teclas { opacity: 0.35; }
 #pause-carro em { font: 600 12px/1.2 var(--f-body); font-style: normal; color: #ffd23f; }
 @keyframes pausaPulso { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
 @media (max-width: 760px) { #pause-carro span { display: none; } #screen-pause { justify-content: center; padding-left: 0; } }
+/* ---------- botões Rádio e Celular (0.2.0): lado a lado em cima do minimapa, mesmo tamanho, ícone + nome + tecla ---------- */
+#hud-radio-btn.hud-bt, #hud-phone.hud-bt { transform: none; bottom: 250px; width: 104px; height: 30px; padding: 0 8px; gap: 6px; justify-content: flex-start; box-sizing: border-box; border-radius: 4px !important;
+  font: 800 12px/1 var(--f-cond) !important; font-style: normal !important; letter-spacing: 0.06em; text-transform: uppercase; color: #eef1f8; }
+#hud-radio-btn.hud-bt { left: 18px; } #hud-phone.hud-bt { left: 128px; }
+.hud-bt b { flex: 1; text-align: left; font-weight: 800; }
+.hud-bt kbd { margin: 0; font-size: 10px; padding: 0 5px; flex: none; }
+.hud-bt .hrb-ico, .hud-bt .hp-ico { flex: none; }
+@media (max-height: 640px) { #hud-radio-btn.hud-bt, #hud-phone.hud-bt { bottom: 194px; width: 92px; } #hud-phone.hud-bt { left: 116px; } }
