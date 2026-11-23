@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Streamer Life</title>
+<meta name="description" content="Simulador de vida, streaming e influência digital.">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/interface.css">
+<link rel="stylesheet" href="css/apps.css">
+<link rel="stylesheet" href="css/streaming.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+<div id="app">
+  <section id="scr-title" class="screen"></section>
+  <section id="scr-new" class="screen" hidden></section>
+  <section id="scr-load" class="screen" hidden></section>
+  <section id="scr-settings" class="screen" hidden></section>
+  <section id="scr-game" class="screen" hidden>
+    <header id="hud"></header>
+    <div id="game-body">
+      <aside id="side"></aside>
+      <main id="stage">
+        <canvas id="cv-world"></canvas>
+        <div id="stage-ui"></div>
+      </main>
+    </div>
+  </section>
+  <div id="overlay-pc" class="overlay" hidden></div>
+  <div id="overlay-phone" class="overlay" hidden></div>
+  <div id="overlay-live" class="overlay" hidden></div>
+  <div id="modals"></div>
+  <div id="toasts" aria-live="polite"></div>
+  <noscript><p class="noscript">O Streamer Life precisa de JavaScript ativado.</p></noscript>
+</div>
+<script src="js/core/util.js"></script>
+<script src="js/core/icons.js"></script>
+<script src="js/core/audio.js"></script>
+<script src="js/data/catalog.js"></script>
+<script src="js/data/people.js"></script>
+<script src="js/data/chatlines.js"></script>
+<script src="js/data/texts.js"></script>
+<script src="js/systems/state.js"></script>
+<script src="js/systems/gameClock.js"></script>
+<script src="js/systems/notificationSystem.js"></script>
+<script src="js/systems/lifeSystem.js"></script>
+<script src="js/systems/economySystem.js"></script>
+<script src="js/systems/equipmentSystem.js"></script>
+<script src="js/systems/viewerAI.js"></script>
+<script src="js/systems/gameSim.js"></script>
+<script src="js/systems/chatSystem.js"></script>
+<script src="js/systems/algorithmSystem.js"></script>
+<script src="js/systems/liveSystem.js"></script>
+<script src="js/systems/videoSystem.js"></script>
+<script src="js/systems/socialSystem.js"></script>
+<script src="js/systems/streamerAI.js"></script>
+<script src="js/systems/relationshipSystem.js"></script>
+<script src="js/systems/sponsorSystem.js"></script>
+<script src="js/systems/eventSystem.js"></script>
+<script src="js/systems/careerSystem.js"></script>
+<script src="js/systems/saveSystem.js"></script>
+<script src="js/render/avatar.js"></script>
+<script src="js/render/previews.js"></script>
+<script src="js/render/homeScene.js"></script>
+<script src="js/render/cityScene.js"></script>
+<script src="js/ui/uiManager.js"></script>
+<script src="js/ui/screens.js"></script>
+<script src="js/ui/hud.js"></script>
+<script src="js/ui/apps/pulso.js"></script>
+<script src="js/ui/apps/estudio.js"></script>
+<script src="js/ui/apps/social.js"></script>
+<script src="js/ui/apps/mensagens.js"></script>
+<script src="js/ui/apps/banco.js"></script>
+<script src="js/ui/apps/loja.js"></script>
+<script src="js/ui/apps/calendario.js"></script>
+<script src="js/ui/apps/stats.js"></script>
+<script src="js/ui/apps/parcerias.js"></script>
+<script src="js/ui/apps/outros.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

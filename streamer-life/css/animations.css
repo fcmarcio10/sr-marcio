@@ -1,0 +1,25 @@
+/* Animações discretas */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes slideOut { to { opacity: 0; transform: translateX(24px); } }
+@keyframes alertIn { 0% { opacity: 0; transform: translateY(-14px) scale(.9); } 15% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
+@keyframes phoneIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+@keyframes pulseRing { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 94, .55); } 100% { box-shadow: 0 0 0 12px rgba(255, 77, 94, 0); } }
+.toast { animation: slideIn .25s ease-out; }
+.toast.out { animation: slideOut .25s ease-in forwards; }
+.modal { animation: popIn .2s ease-out; }
+.modal-bg { animation: fadeIn .18s ease-out; }
+.win { animation: popIn .16s ease-out; }
+.phone { animation: phoneIn .25s ease-out; }
+.ctx, .notif-panel, .viewer-pop { animation: fadeUp .14s ease-out; }
+.lalert { animation: alertIn 4s ease-in-out forwards; }
+.cm { animation: fadeIn .2s ease-out; }
+.page-in > * { animation: fadeUp .3s ease-out both; }
+.menu .mi { animation: fadeUp .35s ease-out both; }
+.menu .mi:nth-child(2) { animation-delay: .05s; } .menu .mi:nth-child(3) { animation-delay: .1s; } .menu .mi:nth-child(4) { animation-delay: .15s; }
+.btn.live.pulse { animation: pulseRing 1.6s infinite; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; } }
+body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
