@@ -9,7 +9,7 @@
     SL.G = G; SL.Clock.resetHolds();
     if (SL.Live.cur) SL.Live.cur = null;
     SL.LiveUI.close();
-    UI.closePhone(); $('#overlay-pc').hidden = true; $('#overlay-pc').innerHTML = ''; UI.wins.length = 0;
+    UI.closePhone(); $('#overlay-pc').hidden = true; $('#overlay-pc').innerHTML = ''; UI.wins.length = 0; document.body.classList.remove('pc-open', 'live-open');
     $('#stage-ui').innerHTML = ''; $('.notif-panel') && $('.notif-panel').remove(); $('#modals').innerHTML = '';
     SL.Viewers.reindex();
     UI.show('game');
@@ -50,7 +50,7 @@
       <p class="small muted">Os objetivos do painel à esquerda guiam os primeiros passos. Não existe um caminho certo: você decide como viver.</p>`, buttons: [{ label: 'Começar', cls: 'primary', icon: 'play' }] });
   };
   SL.quitToTitle = () => {
-    SL.LiveUI.close(); UI.closePhone(); $('#overlay-pc').hidden = true; $('#overlay-pc').innerHTML = ''; UI.wins.length = 0;
+    SL.LiveUI.close(); UI.closePhone(); $('#overlay-pc').hidden = true; $('#overlay-pc').innerHTML = ''; UI.wins.length = 0; document.body.classList.remove('pc-open', 'live-open');
     $('#modals').innerHTML = ''; SL.Clock.resetHolds(); SL.G = null; SL.Screens.title();
   };
 
@@ -75,6 +75,7 @@
         else SL.City.renderPlace(c, w, h, t);
       }
     }
+    if (SL.HUD.prompt) SL.HUD.prompt();
     if (SL.Live.cur && !liveOpen) SL.LiveUI.open();
     SL.LiveUI.frame(t);
     SL.HUD.update();

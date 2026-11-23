@@ -33,19 +33,20 @@
     },
     transmitir(ctx) {
       const G = SL.G; const st = ctx.st;
-      const f = st.form = st.form || { game: G.ch.catHist && SL.Creators.playerMainGame() || 'conversa', title: '', desc: '', tags: [], quality: '720p', planned: 120, cam: SL.Equip.stats().hasCam, layout: 'classico', announce: true };
+      const f = st.form = st.form || { game: st.pendingGame || G.ch.catHist && SL.Creators.playerMainGame() || 'conversa', title: '', desc: '', tags: [], quality: '720p', planned: 120, cam: SL.Equip.stats().hasCam, layout: 'classico', announce: true };
       if (LV().cur) return `<div class="empty">${ic('live', 40)}<p>Você está ao vivo agora.</p><button class="btn live" data-act="reopen">Voltar para a live</button></div>`;
       const g = D.gameById(f.game); const ts = SL.Algo.titleScore(f.title, { game: f.game, kind: 'live' });
       const q = SL.Equip.streamQuality(g, f.quality, f.cam, {});
       const comp = SL.Algo.competitors(f.game); const pr = predict(f);
       const collab = Object.keys(G.rel).find(id => { const r = G.rel[id]; return r.plan && r.plan.kind === 'collab' && Math.abs(G.time.t - r.plan.t) <= 120; });
       const sched = G.ch.schedule.find(s => !s.done && s.day === SL.Clock.day() && Math.abs(s.hour - SL.Clock.hourF()) <= 1.6);
-      return `<div class="live-setup">
+      return `<div class="go-bar"><div class="grow"><b>${esc(g.name)}</b><small>${f.title ? esc(f.title) : 'Escolha um título para a live'} · ${f.quality} · ${U.dur(f.planned)}</small></div><button class="btn live lg" data-act="start">${ic('live', 18)} Entrar ao vivo</button></div>
+      <div class="live-setup">
         <div class="col gap16">
           ${collab ? `<div class="card" style="border-color:var(--info)"><div class="row"><span class="acc">${ic('users', 18)}</span><b class="grow">Collab agendada com ${esc(SL.Rel.name(collab))}</b><label class="row small"><input type="checkbox" data-act="collab" ${f.collab ? 'checked' : ''}> Fazer agora</label></div></div>` : ''}
           ${sched ? `<div class="card" style="border-color:var(--ok)"><b class="small">${ic('calendar', 14)} Esta live estava agendada: seus seguidores estão esperando.</b></div>` : ''}
           <div class="col"><div class="section-t"><h3>Jogo ou categoria</h3><span class="tiny muted">Tendência e concorrência mudam todo dia</span></div>
-          <div class="game-pick">${D.games.map(x => { const cs = SL.Equip.canStream(x, '480p'); const tm = SL.Algo.trendMul(x.id); const cp = SL.Algo.competitors(x.id); const ql = SL.Equip.streamQuality(x, f.quality, f.cam, {}); return `<button class="gp ${f.game === x.id ? 'on' : ''} ${cs.ok ? '' : 'no'}" data-act="game" data-g="${x.id}" title="${esc(cs.ok ? x.cat : cs.reason)}"><span class="gc" style="background:${x.color}"></span><b>${esc(x.name)}</b><small>${esc(x.cat)} · ${tm > 1.12 ? '<span class="ok">em alta</span>' : tm < 0.88 ? '<span class="bad">em baixa</span>' : 'estável'}</small><small>${cs.ok ? (ql.fps < 0.8 ? '<span class="warn">PC no limite</span>' : 'roda bem') : '<span class="bad">indisponível</span>'}${cp.viewers ? ' · ' + U.num(cp.viewers) + ' em concorrentes' : ''}</small></button>`; }).join('')}</div></div>
+          <div class="game-pick">${D.games.map(x => { const cs = SL.Equip.canStream(x, '480p'); const tm = SL.Algo.trendMul(x.id); const cp = SL.Algo.competitors(x.id); const ql = SL.Equip.streamQuality(x, f.quality, f.cam, {}); return `<button class="gp ${f.game === x.id ? 'on' : ''} ${cs.ok ? '' : 'no'}" data-act="game" data-g="${x.id}" title="${esc(cs.ok ? x.cat : cs.reason)}"><span class="gc" style="background:${x.color}"></span><b>${esc(x.name)}</b><small>${esc(x.cat)} · ${tm > 1.12 ? '<span class="ok">em alta</span>' : tm < 0.88 ? '<span class="bad">em baixa</span>' : 'estável'}</small><small class="gp-pc">${cs.ok ? (ql.fps < 0.8 ? '<i class="dot warn"></i>PC no limite' : '<i class="dot ok"></i>roda bem') : '<i class="dot bad"></i>' + esc(cs.reason || 'indisponível')}</small></button>`; }).join('')}</div></div>
           <div class="field"><label for="lv-title">Título da live</label><div class="row"><input id="lv-title" class="input" maxlength="90" value="${esc(f.title)}" data-f="title" placeholder="Ex.: Primeira vez no ${esc(g.name)}!"><button class="btn sm" data-act="idea">${ic('sparkle', 14)} Ideia</button></div>
             <div class="row small"><div class="bar grow"><i style="width:${ts.score}%;background:${ts.score >= 65 ? 'var(--ok)' : ts.score >= 45 ? 'var(--warn)' : 'var(--bad)'}"></i></div><b class="mono">${ts.score}</b></div><div class="tiny muted">${ts.notes.slice(0, 3).map(esc).join(' · ')}</div></div>
           <div class="field"><label for="lv-desc">Descrição</label><textarea id="lv-desc" class="textarea" data-f="desc" placeholder="Conte o que vai rolar, horário das lives, redes...">${esc(f.desc)}</textarea><div class="tiny muted">Nota da descrição: ${SL.Algo.descScore(f.desc)}</div></div>
@@ -69,7 +70,6 @@
           </div>
           <div class="card col"><h3>Estimativa</h3><div class="stat"><b>${pr ? pr[0] + '–' + pr[1] : '?'}</b><span>pessoas ao mesmo tempo (estimativa incerta)</span></div>
             <div class="tiny muted">Horário: ${SL.Algo.todMul(SL.Clock.hour()) >= 1 ? 'nobre (19h–23h)' : 'fora do horário nobre'} · ${comp.best ? esc(D.creatorById(comp.best.id).name) + ' está ao vivo nesse jogo' : 'sem concorrente grande ao vivo nesse jogo'}</div></div>
-          <button class="btn live lg pulse" data-act="start">${ic('live', 18)} Entrar ao vivo</button>
         </div></div>`;
     },
     painel() {
@@ -133,7 +133,7 @@
       if (a === 'cam') { f.cam = t.checked; return; }
       if (a === 'ann') { f.announce = t.checked; return; }
       if (a === 'collab') { f.collab = t.checked; return; }
-      if (a === 'start') { const err = SL.LiveUI.start(f); if (err) return err; return; }
+      if (a === 'start') { if (!f.title || f.title.trim().length < 3) f.title = U.pick(TITLE_IDEAS).replace('{g}', D.gameById(f.game).name); const err = SL.LiveUI.start(f); if (err) { ctx.render(); return err; } return; }
       if (a === 'cf') { st.cf = ds.v; return ctx.render(); }
       if (a === 'vsel') { st.sel = ds.v; return ctx.render(); }
       if (a === 'mkmod') { const e = SL.Live.makeMod(ds.v); if (e) return e; return ctx.render(); }
@@ -181,7 +181,7 @@
     });
   };
   LUI.open = () => {
-    const ov = $('#overlay-live'); ov.hidden = false; buf = []; pendSig = ''; alertsShown = 0;
+    const ov = $('#overlay-live'); ov.hidden = false; buf = []; pendSig = ''; alertsShown = 0; LUI._aq = []; LUI._aqT = 0; document.body.classList.add('live-open');
     const L = SL.Live.cur; const G = SL.G;
     ov.innerHTML = `<div class="studio">
       <div class="live-main">
@@ -201,7 +201,7 @@
     $('#lv-chat').onclick = e => { const m = e.target.closest('[data-m]'); if (m) LUI.msgPop(m.dataset.m, m); };
     $('#lv-form').onsubmit = e => { e.preventDefault(); const v = $('#lv-in').value.trim(); if (!v) return; $('#lv-in').value = ''; LUI.typed(v); };
   };
-  LUI.close = () => { const ov = $('#overlay-live'); ov.hidden = true; ov.innerHTML = ''; };
+  LUI.close = () => { const ov = $('#overlay-live'); ov.hidden = true; ov.innerHTML = ''; document.body.classList.remove('live-open'); };
   LUI.typed = text => {
     const L = SL.Live.cur; if (!L) return; L.silence = 0;
     const m = SL.Chat.streamer(text); L.chat.push(m); buf.push(m);
@@ -324,8 +324,12 @@
     const al = $('#lv-al');
     if (al && L.alerts.length > alertsShown) {
       const list = L.alerts.slice(alertsShown); alertsShown = L.alerts.length;
-      list.slice(-3).forEach(a => { const d = document.createElement('div'); d.className = 'lalert ' + a.k; d.innerHTML = a.k === 'follow' ? ic('follow', 16) + '@' + esc(a.u) + ' seguiu!' : a.k === 'sub' ? ic('sub', 16) + '@' + esc(a.u) + ' se inscreveu!' : ic('gift', 16) + '@' + esc(a.u) + ' doou ' + U.money(a.amount); al.appendChild(d); setTimeout(() => d.remove(), 4000); });
-      while (al.children.length > 3) al.firstChild.remove();
+      LUI._aq = (LUI._aq || []).concat(list.slice(-4)).slice(-4);
+    }
+    // um alerta por vez, como nos programas de live de verdade
+    if (al && LUI._aq && LUI._aq.length && now > (LUI._aqT || 0)) {
+      LUI._aqT = now + 2600; const a = LUI._aq.shift(); al.innerHTML = '';
+      [a].forEach(a => { const d = document.createElement('div'); d.className = 'lalert ' + a.k; d.innerHTML = a.k === 'follow' ? ic('follow', 16) + '@' + esc(a.u) + ' seguiu!' : a.k === 'sub' ? ic('sub', 16) + '@' + esc(a.u) + ' se inscreveu!' : ic('gift', 16) + '@' + esc(a.u) + ' doou ' + U.money(a.amount); al.appendChild(d); setTimeout(() => d.remove(), 4000); });
     }
     if (now - lastStat > 250) {
       lastStat = now; const G = SL.G;

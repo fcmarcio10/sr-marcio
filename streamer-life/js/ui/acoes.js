@@ -7,25 +7,23 @@
   const $ = UI.$;
   const obj = id => SL.HomeScene.objects().find(o => o.id === id);
 
-  // ---------- menu redondo ----------
+  // ---------- menu de opções do objeto (lista em cima do móvel, sempre com Cancelar) ----------
   UI.pie = (x, y, title, opts) => {
     UI.closeCtx();
     const host = $('#stage-ui'); const el = document.createElement('div'); el.className = 'pie';
     const all = opts.concat([{ label: 'Cancelar', icon: 'x', cancel: true }]);
-    const n = all.length; const R = n <= 2 ? 78 : n <= 4 ? 96 : 112;
-    el.innerHTML = `<div class="pie-c">${U.esc(title)}</div>` + all.map((o, i) => {
-      const a = n === 2 ? (i ? 0.35 : -0.35) * Math.PI - Math.PI / 2 : -Math.PI / 2 + i / n * Math.PI * 2;
-      const why = o.disabled && o.why ? `<small>${U.esc(o.why)}</small>` : o.sub ? `<small>${U.esc(o.sub)}</small>` : '';
-      return `<button class="pie-o ${o.cancel ? 'cancel' : ''}" data-i="${i}" style="--x:${Math.round(Math.cos(a) * R * 1.25)}px;--y:${Math.round(Math.sin(a) * R)}px;--d:${i * 30}ms" ${o.disabled ? 'disabled' : ''}>${UI.ic(o.icon || 'chevR', 16)}<span>${U.esc(o.label)}${why}</span></button>`;
-    }).join('');
+    el.innerHTML = `<div class="pie-c">${U.esc(title)}</div><div class="pie-l">` + all.map((o, i) => {
+      const sub = o.disabled && o.why ? o.why : o.sub || '';
+      return `<button class="pie-o ${o.cancel ? 'cancel' : ''}" data-i="${i}" style="--d:${i * 35}ms" ${o.disabled ? 'disabled' : ''}>${UI.ic(o.icon || 'chevR', 16)}<span>${U.esc(o.label)}${sub ? `<small>${U.esc(sub)}</small>` : ''}</span>${i < 9 && !o.cancel ? `<kbd>${i + 1}</kbd>` : ''}</button>`;
+    }).join('') + '</div>';
     host.appendChild(el);
-    const W0 = host.clientWidth, H0 = host.clientHeight;
-    el.style.left = U.clamp(x, R * 1.25 + 90, W0 - R * 1.25 - 90) + 'px'; el.style.top = U.clamp(y, R + 40, H0 - R - 40) + 'px';
-    el.querySelectorAll('.pie-o').forEach(b => b.onclick = e => {
-      e.stopPropagation(); const o = all[+b.dataset.i]; UI.closeCtx(); SL.audio.play('click');
-      if (o.cancel) return; const r = o.fn && o.fn(); if (typeof r === 'string') UI.err(r);
-    });
-    UI._ctx = el;
+    const W0 = host.clientWidth, H0 = host.clientHeight, w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = Math.round(U.clamp(x - w / 2, 12, W0 - w - 12)) + 'px';
+    el.style.top = Math.round(U.clamp(y - h - 18, 96, H0 - h - 12)) + 'px';
+    el.querySelectorAll('.pie-o').forEach(b => b.onclick = e => { e.stopPropagation(); pick(+b.dataset.i); });
+    const pick = i => { const o = all[i]; if (!o || o.disabled) return; UI.closeCtx(); SL.audio.play('click'); if (o.cancel) return; const r = o.fn && o.fn(); if (typeof r === 'string') UI.err(r); };
+    el._pick = pick; el._n = all.length;
+    UI._ctx = el; document.body.classList.add('menu-open');
     if (SL.audio) SL.audio.play('open');
   };
 
@@ -125,13 +123,25 @@
     const G = SL.G; if (Seq.busy()) return;
     if (G.act && G.act.id !== 'usar_pc') return HUD.busyHint();
     const opts = HUD.objectActions(o); if (!opts.length) return;
-    const sp = SL.HomeScene.charScreen();
-    UI.pie(sp.x, sp.y - 20, o.label, opts);
+    const p = SL.HomeScene.nearPos() || SL.HomeScene.charScreen();
+    UI.pie(p.x, p.y, o.label, opts);
   };
+  // só dá para usar o que está ao alcance: chegue perto e aperte E (ou toque no botão E)
   HUD.interactNear = () => {
     if (UI._ctx) return UI.closeCtx();
     const o = SL.HomeScene.near(); if (!o) return;
     SL.audio.play('click'); HUD.openObjectMenu(o);
+  };
+  // botão E que acompanha o móvel mais perto
+  let promptEl = null;
+  HUD.prompt = () => {
+    const G = SL.G; if (!promptEl) { promptEl = document.createElement('button'); promptEl.className = 'e-prompt'; promptEl.innerHTML = '<kbd>E</kbd><span></span>'; promptEl.onclick = e => { e.stopPropagation(); HUD.interactNear(); }; }
+    const host = $('#stage-ui'); if (promptEl.parentNode !== host) host.appendChild(promptEl);
+    const o = G && G.loc.area === 'casa' && !UI._ctx && !Seq.busy() && !(G.act && G.act.id !== 'usar_pc') ? SL.HomeScene.near() : null;
+    const p = o && SL.HomeScene.nearPos();
+    if (!o || !p) { promptEl.hidden = true; return; }
+    promptEl.hidden = false; const sp = promptEl.querySelector('span'); if (sp.textContent !== o.label) sp.textContent = o.label;
+    promptEl.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px) translate(-50%, -100%)`;
   };
   SL.HomeScene.onExit = () => { const o = obj('porta'); if (o) HUD.openObjectMenu(o); };
 

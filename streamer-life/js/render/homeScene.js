@@ -17,21 +17,21 @@
       w: 22, h: 13,
       rooms: [{ id: 'quarto', name: 'Quarto', x: 1, y: 1, w: 7, h: 5, floor: 'wood' }, { id: 'escritorio', name: 'Escritório', x: 9, y: 1, w: 6, h: 5, floor: 'wood2' }, { id: 'banheiro', name: 'Banheiro', x: 16, y: 1, w: 5, h: 5, floor: 'tile' }, { id: 'sala', name: 'Sala', x: 1, y: 7, w: 11, h: 5, floor: 'wood' }, { id: 'cozinha', name: 'Cozinha', x: 13, y: 7, w: 8, h: 5, floor: 'tile2' }],
       doors: [[4, 6], [10, 6], [18, 6], [12, 9], [8, 3]], entry: [6, 12],
-      objs: { cama: [1, 1, 3, 2, 2, 3], mesa: [10, 1, 4, 1, 11, 2], luz: [14, 1, 1, 1], bike: [14, 4, 1, 1, 13, 4], chuveiro: [19, 1, 2, 2, 19, 3], vaso: [16, 1, 1, 1], pia_b: [16, 4, 1, 1, 17, 4], geladeira: [20, 7, 1, 1, 19, 8], fogao: [17, 7, 2, 1, 17, 8], pia: [15, 7, 2, 1, 15, 8], cafeteira: [14, 7, 1, 1, 14, 8], sofa: [5, 10, 4, 1, 6, 9], tv: [6, 7, 2, 1, 6, 9], armario: [20, 10, 1, 2, 19, 11], porta: [6, 12, 1, 1, 6, 11], guarda: [6, 1, 2, 1], mesa_jantar: [15, 10, 2, 1, 15, 9] },
+      objs: { cama: [1, 1, 3, 2, 2, 3], mesa: [10, 1, 4, 1, 11, 2], luz: [14, 1, 1, 1], bike: [14, 4, 1, 1, 13, 4], chuveiro: [19, 1, 2, 2, 19, 3], vaso: [16, 1, 1, 1], pia_b: [16, 4, 1, 1, 17, 4], geladeira: [20, 7, 1, 1, 20, 8], fogao: [16, 7, 2, 1, 16, 8], pia: [14, 7, 2, 1, 14, 8], cafeteira: [13, 7, 1, 1, 13, 8], sofa: [5, 10, 4, 1, 6, 9], tv: [6, 7, 2, 1, 6, 9], armario: [20, 10, 1, 2, 19, 11], porta: [6, 12, 1, 1, 6, 11], guarda: [6, 1, 2, 1], mesa_jantar: [15, 10, 2, 1, 15, 9] },
       decoWall: [[2, 'quarto'], [12, 'escritorio'], [3, 'sala'], [9, 'sala'], [5, 'quarto']], decoFloor: [[7, 5], [1, 11], [11, 11], [13, 11], [9, 5], [1, 5]], windows: [[3, 0], [17, 0], [8, 6, 'x'], [2, 6, 'x']], start: [5, 4],
     },
     B: {
       w: 28, h: 15,
       rooms: [{ id: 'quarto', name: 'Quarto', x: 1, y: 1, w: 9, h: 6, floor: 'wood' }, { id: 'escritorio', name: 'Escritório', x: 11, y: 1, w: 8, h: 6, floor: 'wood2' }, { id: 'banheiro', name: 'Banheiro', x: 20, y: 1, w: 7, h: 5, floor: 'tile' }, { id: 'sala', name: 'Sala', x: 1, y: 8, w: 14, h: 6, floor: 'wood' }, { id: 'cozinha', name: 'Cozinha', x: 16, y: 7, w: 11, h: 7, floor: 'tile2' }],
       doors: [[5, 7], [13, 7], [23, 6], [15, 10], [10, 3], [14, 7]], entry: [8, 14],
-      objs: { cama: [1, 1, 3, 2, 2, 3], mesa: [12, 1, 5, 1, 14, 2], luz: [18, 1, 1, 1], bike: [17, 5, 1, 1, 16, 5], chuveiro: [24, 1, 2, 2, 24, 3], vaso: [20, 1, 1, 1], pia_b: [20, 4, 1, 1, 21, 4], geladeira: [26, 7, 1, 1, 25, 8], fogao: [22, 7, 2, 1, 22, 8], pia: [19, 7, 2, 1, 19, 8], cafeteira: [18, 7, 1, 1, 18, 8], sofa: [5, 12, 5, 1, 7, 11], tv: [6, 8, 3, 1, 7, 11], armario: [26, 12, 1, 2, 25, 13], porta: [8, 14, 1, 1, 8, 13], guarda: [7, 1, 2, 1], mesa_jantar: [20, 11, 3, 1, 20, 10] },
+      objs: { cama: [1, 1, 3, 2, 2, 3], mesa: [12, 1, 5, 1, 14, 2], luz: [18, 1, 1, 1], bike: [17, 5, 1, 1, 16, 5], chuveiro: [24, 1, 2, 2, 24, 3], vaso: [20, 1, 1, 1], pia_b: [20, 4, 1, 1, 21, 4], geladeira: [26, 7, 1, 1, 26, 8], fogao: [20, 7, 2, 1, 20, 8], pia: [18, 7, 2, 1, 18, 8], cafeteira: [17, 7, 1, 1, 17, 8], sofa: [5, 12, 5, 1, 7, 11], tv: [6, 8, 3, 1, 7, 11], armario: [26, 12, 1, 2, 25, 13], porta: [8, 14, 1, 1, 8, 13], guarda: [7, 1, 2, 1], mesa_jantar: [20, 11, 3, 1, 20, 10] },
       decoWall: [[3, 'quarto'], [15, 'escritorio'], [3, 'sala'], [11, 'sala'], [6, 'quarto'], [17, 'escritorio'], [18, 'cozinha']], decoFloor: [[9, 6], [1, 13], [13, 13], [16, 13], [11, 6], [1, 6], [10, 9], [26, 10], [18, 6], [3, 13]], windows: [[4, 0], [21, 0], [12, 0, 'x'], [10, 7, 'x'], [3, 7, 'x']], start: [6, 4],
     },
     C: {
       w: 34, h: 17,
       rooms: [{ id: 'quarto', name: 'Quarto', x: 1, y: 1, w: 9, h: 7, floor: 'wood' }, { id: 'escritorio', name: 'Escritório', x: 11, y: 1, w: 8, h: 7, floor: 'wood2' }, { id: 'estudio', name: 'Estúdio', x: 20, y: 1, w: 13, h: 7, floor: 'studio' }, { id: 'banheiro', name: 'Banheiro', x: 1, y: 9, w: 6, h: 7, floor: 'tile' }, { id: 'sala', name: 'Sala', x: 8, y: 9, w: 13, h: 7, floor: 'wood' }, { id: 'cozinha', name: 'Cozinha', x: 22, y: 9, w: 11, h: 7, floor: 'tile2' }],
       doors: [[10, 4], [19, 4], [5, 8], [14, 8], [26, 8], [7, 12], [21, 12]], entry: [14, 16],
-      objs: { cama: [1, 1, 3, 2, 2, 3], mesa: [12, 1, 5, 1, 14, 2], luz: [18, 1, 1, 1], bike: [11, 6, 1, 1, 12, 6], chuveiro: [3, 9, 2, 2, 3, 11], vaso: [1, 9, 1, 1], pia_b: [1, 13, 1, 1, 2, 13], geladeira: [32, 9, 1, 1, 31, 10], fogao: [28, 9, 2, 1, 28, 10], pia: [25, 9, 2, 1, 25, 10], cafeteira: [24, 9, 1, 1, 24, 10], sofa: [11, 14, 5, 1, 13, 13], tv: [12, 9, 3, 1, 13, 13], armario: [32, 14, 1, 2, 31, 15], porta: [14, 16, 1, 1, 14, 15], guarda: [7, 1, 2, 1], mesa_jantar: [26, 13, 3, 1, 26, 12], estudio: [22, 2, 9, 4, 26, 6] },
+      objs: { cama: [1, 1, 3, 2, 2, 3], mesa: [12, 1, 5, 1, 14, 2], luz: [18, 1, 1, 1], bike: [11, 6, 1, 1, 12, 6], chuveiro: [3, 9, 2, 2, 3, 11], vaso: [1, 9, 1, 1], pia_b: [1, 13, 1, 1, 2, 13], geladeira: [32, 9, 1, 1, 32, 10], fogao: [28, 9, 2, 1, 28, 10], pia: [23, 9, 2, 1, 23, 10], cafeteira: [22, 9, 1, 1, 22, 10], sofa: [14, 14, 5, 1, 16, 13], tv: [15, 9, 3, 1, 16, 13], armario: [32, 14, 1, 2, 31, 15], porta: [14, 16, 1, 1, 14, 15], guarda: [7, 1, 2, 1], mesa_jantar: [26, 13, 3, 1, 26, 12], estudio: [22, 2, 9, 4, 26, 6] },
       decoWall: [[3, 'quarto'], [15, 'escritorio'], [10, 'sala'], [17, 'sala'], [6, 'quarto'], [24, 'estudio'], [29, 'estudio'], [25, 'cozinha']], decoFloor: [[9, 7], [8, 15], [20, 15], [22, 15], [18, 7], [1, 7], [9, 10], [32, 12], [6, 15], [1, 15], [20, 10], [11, 10], [19, 15], [8, 10]], windows: [[4, 0], [14, 0, 'x'], [24, 0], [29, 0], [3, 8, 'x'], [27, 8, 'x']], start: [6, 5],
     },
   };
@@ -44,6 +44,7 @@
   const FACE = { S: -0.07, N: -0.34, E: -0.24, W: -0.14 };
 
   let grid = null, lay = null, objs = [], walls = [], wallEdges = [], doors = [], props = [], ch = null, hover = null, onArrive = null;
+  let nearPos = null, labels = [];
   let floorCv = null, floorKey = '', lastT = 0, lastRoom = null, banner = { name: '', t: -9 }, near = null, hits = [], lastAct = null, lc = null, grassPat = null;
   const V = { cx: 0, cy: 0, s: 2, W: 800, H: 600, zoom: 1, snap: true };
   H.cam = V;
@@ -237,6 +238,7 @@
   H.clearKeys = () => { for (const k in keys) keys[k] = false; };
   H.moving = () => !!(ch && ch.moving);
   H.near = () => near;
+  H.nearPos = () => nearPos;
   H.focus = () => { V.snap = true; };
   H.zoomBy = d => { V.zoom = U.clamp(V.zoom * (d > 0 ? 0.9 : 1.11), 0.72, 1.45); };
 
@@ -930,14 +932,21 @@
       for (let i = 0; i < 3; i++) { const ph = (t * 0.5 + i / 3) % 1; const p = P(bx + ph * 18, by - ph * 10, 26 + ph * 40); c.globalAlpha = 1 - ph; c.font = '800 ' + Math.round(9 + ph * 8) + 'px Sora, Arial'; c.fillStyle = '#d8d0ff'; c.fillText('z', p[0], p[1]); }
       c.globalAlpha = 1;
     }
-    // tecla E perto de um objeto
-    if (near && !G.act && !(SL.UI && SL.UI._ctx)) {
-      const p = P((near.x + near.w / 2) * T, (near.y + near.h / 2) * T, Math.min(near.z, 56) + 12);
-      c.font = '700 12px Inter, Arial'; const label = near.label || ''; const tw = c.measureText(label).width;
-      const w = tw + 34, h = 24, x = Math.round(p[0] - w / 2), y = Math.round(p[1] - h - 6);
-      c.fillStyle = 'rgba(12,14,20,.86)'; rr(c, x, y, w, h, 7); c.fill(); c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 1; c.stroke();
-      c.fillStyle = '#f4f1ff'; rr(c, x + 5, y + 4, 16, 16, 4); c.fill(); c.fillStyle = '#14121f'; c.font = '800 11px Inter, Arial'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('E', x + 13, y + 12.5);
-      c.fillStyle = '#ece9f7'; c.font = '700 12px Inter, Arial'; c.textAlign = 'left'; c.fillText(label, x + 27, y + 12.5);
+    // nome dos móveis por perto (o mais perto ganha o botão E, desenhado fora do canvas)
+    nearPos = null; labels = [];
+    if (!G.act || G.act.id === 'usar_pc') {
+      const used = [];
+      const tag = (o, main) => {
+        const p = P((o.x + o.w / 2) * T, (o.y + o.h / 2) * T, Math.min(o.z, 56) + 10);
+        if (main) { nearPos = { x: p[0], y: p[1] }; return; }
+        c.font = '600 11px Inter, Arial'; const tw = c.measureText(o.label).width + 14; const x = Math.round(p[0] - tw / 2), y = Math.round(p[1] - 22);
+        if (used.some(r => x < r[2] && x + tw > r[0] && y < r[3] && y + 19 > r[1])) return; used.push([x, y, x + tw, y + 19]);
+        const d = Math.hypot((o.x + o.w / 2) * T - ch.x, (o.y + o.h / 2) * T - ch.y); c.globalAlpha = U.clamp(1.25 - d / 150, 0.25, 0.9);
+        c.fillStyle = 'rgba(12,14,20,.82)'; rr(c, x, y, tw, 19, 9); c.fill(); c.fillStyle = '#e9e6f6'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(o.label, x + tw / 2, y + 10); c.globalAlpha = 1;
+      };
+      if (near) tag(near, true);
+      objs.filter(o => o !== near && !o.glow && !o.flat && Math.hypot((o.x + o.w / 2) * T - ch.x, (o.y + o.h / 2) * T - ch.y) < 150 + Math.max(o.w, o.h) * 12).forEach(o => tag(o, false));
+      c.textBaseline = 'alphabetic';
     }
     // nome do cômodo ao entrar
     const room = H.currentRoom();

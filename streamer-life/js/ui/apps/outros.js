@@ -36,16 +36,15 @@
     title: 'Udemy', short: 'Udemy', icon: 'briefcase', color: 'linear-gradient(135deg,#b55cff,#7b23c7)', order: 11, pc: true, phone: false, w: 760, h: 600, watch: ['skills', 'activity'],
     render(el) {
       const G = SL.G; const rate = 14 + G.player.skills.edicao * 0.9;
-      el.innerHTML = `<div class="app"><div class="app-head"><h2>${ic('briefcase', 16)} Trabalho e cursos</h2></div><div class="app-body">
+      el.innerHTML = `<div class="app"><div class="app-head"><h2>${ic('briefcase', 16)} Udemy · cursos e freelas</h2></div><div class="app-body">
         <div class="card col"><h3>Freela de edição</h3><p class="small muted">Edite vídeos de outras pessoas por hora. Paga cerca de ${U.money(rate)}/h (sobe com sua habilidade de edição) e treina edição. Também dá para trabalhar no Café Grão Fino.</p><div class="row wrap">${[1, 2, 4].map(h => `<button class="btn sm" data-act="freela" data-h="${h}">Trabalhar ${h}h (~${U.money0(rate * h)})</button>`).join('')}</div></div>
         <div class="card col"><h3>Cursos online</h3>${D.courses.map(c => { const done = G.courses[c.id] != null; return `<div class="row"><div class="grow"><b class="small">${esc(c.name)}</b><div class="tiny muted">${c.hours}h · melhora ${({ edicao: 'edição', marketing: 'marketing', carisma: 'carisma', culinaria: 'culinária' })[c.skill]}${c.desc ? ' · ' + esc(c.desc) : ''}</div></div>${done ? '<span class="tag ok">concluído</span>' : `<button class="btn sm" data-act="course" data-v="${c.id}">${c.price ? U.money0(c.price) : 'Grátis'}</button>`}</div>`; }).join('')}</div>
-        <div class="card col"><h3>Jogar por diversão</h3><p class="small muted">Sem câmera: relaxa e treina a habilidade em jogos.</p><button class="btn sm" data-act="play">Jogar 1h</button></div></div></div>`;
+</div></div>`;
     },
     act(a, ds) {
       const G = SL.G;
       if (a === 'freela') return SL.Life.start('freela', { hours: +ds.h });
       if (a === 'course') { const c = D.courses.find(x => x.id === ds.v); if (c.price && !SL.Econ.spend(c.price, 'outros', 'Curso: ' + c.name)) return 'Dinheiro insuficiente.'; return SL.Life.start('estudar', { course: c.id, hours: c.hours }, { label: 'Estudando: ' + c.name }); }
-      if (a === 'play') return SL.Life.start('pc_lazer');
       void G;
     },
   };
@@ -104,6 +103,26 @@
       const G = SL.G;
       if (a === 'readall') { SL.Notify.readAll(); ctx.render(); }
       if (a === 'open') { const n = G.notifs.find(x => x.id === ds.n); if (!n) return; n.read = true; SL.bus.emit('notif'); if (n.app) UI.openApp(n.app, n.args); else ctx.render(); }
+    },
+  };
+})(window.SL);
+
+// Steam: biblioteca de jogos do computador (jogar para treinar e abrir a live já no jogo)
+(function (SL) {
+  const U = SL.U, D = SL.D, UI = SL.UI; const ic = UI.ic, esc = U.esc;
+  SL.Apps.steam = {
+    title: 'Steam', short: 'Steam', icon: 'gamepad', color: 'linear-gradient(135deg,#2a475e,#171a21)', order: 3, pc: true, phone: false, w: 900, h: 620, watch: ['activity', 'equip'],
+    render(el) {
+      const G = SL.G; const a = G.act; const playing = a && a.id === 'pc_lazer';
+      el.innerHTML = `<div class="app"><div class="app-head"><h2>${ic('gamepad', 16)} Biblioteca</h2><span class="tiny muted">Jogar sozinho treina a habilidade em jogos (sem câmera, sem público).</span></div><div class="app-body">
+        ${playing ? `<div class="card row"><span class="acc">${ic('gamepad', 20)}</span><div class="grow"><b>${esc(a.label)}</b><div class="bar thin"><i style="width:${SL.Life.progress() * 100}%"></i></div></div><button class="btn sm" data-act="stop">Parar</button></div>` : ''}
+        <div class="lib">${D.games.map(g => { const cs = SL.Equip.canStream(g, '480p'); return `<div class="lib-g ${cs.ok ? '' : 'no'}"><span class="lib-c" style="background:${g.color}"></span><div class="grow"><b>${esc(g.name)}</b><small>${esc(g.cat)}${cs.ok ? '' : ' · ' + esc(cs.reason || 'indisponível')}</small></div>
+          <button class="btn sm" data-act="play" data-g="${g.id}" ${cs.ok && !playing ? '' : 'disabled'}>${ic('play', 14)} Jogar 1h</button><button class="btn sm live" data-act="stream" data-g="${g.id}" ${cs.ok ? '' : 'disabled'}>${ic('live', 14)} Live</button></div>`; }).join('')}</div></div></div>`;
+    },
+    act(a, ds, ctx) {
+      if (a === 'stop') { SL.Life.stop(false); ctx.render(); return; }
+      if (a === 'play') { const g = D.gameById(ds.g); const r = SL.Life.start('pc_lazer', { game: g.id }, { label: 'Jogando ' + g.name }); if (r) return r; ctx.render(); return; }
+      if (a === 'stream') { UI.openApp('pulso'); const w = UI.wins.find(x => x.app === 'pulso'); if (w) { w.ctx.st.tab = 'transmitir'; if (w.ctx.st.form) w.ctx.st.form.game = ds.g; else w.ctx.st.pendingGame = ds.g; w.ctx.render(); } }
     },
   };
 })(window.SL);

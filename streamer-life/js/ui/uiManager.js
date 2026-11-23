@@ -17,6 +17,7 @@
     const box = $('#toasts'); if (!box) return;
     if (UI.screen !== 'game') return;
     [...box.children].forEach(c => { if (c.dataset.title === n.title) c.remove(); });
+    if (document.body.classList.contains('live-open') && !n.err) return; // ao vivo: só erros das ações; o resto fica guardado no celular
     const el = document.createElement('div'); el.className = 'toast'; el.dataset.title = n.title;
     const col = CATC(n.cat); const life = quick ? 2800 : 6000; el.style.borderLeftColor = col;
     el.innerHTML = `<div class="ti" style="background:${U.rgba(col, 0.16)};color:${col}">${UI.ic(n.icon || 'info', 16)}</div><div class="grow"><b>${U.esc(n.title)}</b>${n.text ? '<p>' + U.esc(n.text) + '</p>' : ''}</div><button class="tx" aria-label="Fechar aviso" title="Fechar">${UI.ic('x', 14)}</button><i class="tbar" style="color:${col};animation-duration:${life}ms"></i>`;
@@ -24,7 +25,8 @@
     el.querySelector('.tx').onclick = e => { e.stopPropagation(); n.read = true; kill(); SL.bus.emit('notif'); };
     el.onclick = () => { if (n.app) UI.openApp(n.app, n.args); n.read = true; kill(); SL.bus.emit('notif'); };
     box.prepend(el);
-    while (box.children.length > 3) box.lastChild.remove();
+    const maxT = document.body.classList.contains('pc-open') || document.body.classList.contains('live-open') ? 1 : 3;
+    while (box.children.length > maxT) box.lastChild.remove();
     if (SL.audio && !quick) SL.audio.play(sound || 'notif');
     setTimeout(kill, life);
   };
@@ -46,7 +48,7 @@
   };
   UI.alert = (title, text, icon) => UI.modal({ title, icon: icon || 'info', html: '<p>' + U.esc(text) + '</p>', buttons: [{ label: 'Ok', cls: 'primary' }] });
   UI.confirm = (title, text, fn, okLabel, danger) => UI.modal({ title, icon: danger ? 'alert' : 'info', html: '<p>' + U.esc(text) + '</p>', buttons: [{ label: 'Cancelar' }, { label: okLabel || 'Confirmar', cls: danger ? 'danger' : 'primary', fn }] });
-  UI.err = msg => { if (!msg) return false; UI.toast({ title: 'Não deu', text: msg, icon: 'alert', cat: 'sistema' }, 'error'); return true; };
+  UI.err = msg => { if (!msg) return false; UI.toast({ title: 'Não deu', text: msg, icon: 'alert', cat: 'sistema', err: true }, 'error'); return true; };
 
   // decisões pendentes (eventos): uma por vez, pausa o tempo
   let decisionOpen = false;
@@ -76,7 +78,7 @@
     $$('.opt', el).forEach(b => b.onclick = e => { e.stopPropagation(); const o = opts[+b.dataset.i]; UI.closeCtx(); const r = o.fn && o.fn(); if (typeof r === 'string') UI.err(r); });
     UI._ctx = el;
   };
-  UI.closeCtx = () => { if (UI._ctx) { UI._ctx.remove(); UI._ctx = null; } };
+  UI.closeCtx = () => { document.body.classList.remove('menu-open'); if (UI._ctx) { UI._ctx.remove(); UI._ctx = null; } };
 
   // ---------- apps: computador e celular ----------
   const wins = []; let zTop = 10; UI.wins = wins;
@@ -92,7 +94,7 @@
     if (!G.act) SL.Life.start('usar_pc');
     G.flags.pcOpened = 1;
     UI.closePhone();
-    const ov = $('#overlay-pc'); ov.hidden = false;
+    const ov = $('#overlay-pc'); ov.hidden = false; document.body.classList.add('pc-open');
     if (!ov.firstChild) UI.buildDesktop(ov);
     UI.renderDesktopIcons();
     if (SL.audio) SL.audio.play('open');
@@ -101,7 +103,7 @@
   UI.closePC = () => {
     const ov = $('#overlay-pc'); if (ov.hidden) return;
     if (SL.Live && SL.Live.cur) return UI.err('Encerre a live antes de desligar o computador.');
-    ov.hidden = true; wins.slice().forEach(w => UI.closeWin(w, true));
+    ov.hidden = true; document.body.classList.remove('pc-open'); wins.slice().forEach(w => UI.closeWin(w, true));
     const G = SL.G; if (G.act && G.act.id === 'usar_pc') SL.Life.stop(false);
     if (SL.audio) SL.audio.play('close');
   };
@@ -167,14 +169,14 @@
     const W0 = area.clientWidth, H0 = area.clientHeight;
     const w = Math.min(a.w || 900, W0 - 40), h = Math.min(a.h || 600, H0 - 30);
     const off = (wins.length % 5) * 26;
-    el.style.width = w + 'px'; el.style.height = h + 'px'; el.style.left = Math.max(110, Math.min(W0 - w - 10, (W0 - w) / 2 + off)) + 'px'; el.style.top = Math.max(8, Math.min(H0 - h - 8, (H0 - h) / 2 + off - 10)) + 'px';
+    el.style.width = w + 'px'; el.style.height = h + 'px'; el.style.left = Math.round(U.clamp((W0 - w) / 2 + off, 8, Math.max(8, W0 - w - 8))) + 'px'; el.style.top = Math.round(U.clamp((H0 - h) / 2 + off - 10, 8, Math.max(8, H0 - h - 8))) + 'px';
     el.innerHTML = `<div class="wh"><div class="wi" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 13)}</div><b>${U.esc(a.title)}</b><button class="ibtn" data-min title="Minimizar">${UI.ic('minimize', 15)}</button><button class="ibtn" data-max title="Maximizar">${UI.ic('maximize', 14)}</button><button class="ibtn" data-close title="Fechar">${UI.ic('x', 15)}</button></div><div class="wb"></div><div class="resize"></div>`;
     area.appendChild(el);
     const body = $('.wb', el);
     const win = { id: U.uid('w'), app: id, el, min: false, focus: false, unsub: [] };
     win.ctx = makeCtx(id, body, args, 'pc'); win.ctx.win = win;
     wins.push(win);
-    if (a.max || W0 < 760) el.classList.add('max');
+    if (a.max || W0 < 760 || (a.w || 900) > W0 - 120 || (a.h || 600) > H0 - 20) el.classList.add('max');
     $('[data-close]', el).onclick = () => UI.closeWin(win);
     $('[data-min]', el).onclick = () => { win.min = true; el.hidden = true; win.focus = false; UI.renderTaskbar(); };
     $('[data-max]', el).onclick = () => el.classList.toggle('max');

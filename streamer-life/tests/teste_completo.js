@@ -45,7 +45,12 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await ev(() => { SL.HomeScene.placeAt('mesa_jantar'); SL.HomeScene.focus(); }); await page.waitForTimeout(300);
   const fr = await ev(() => { const o = SL.HomeScene.objects().find(x => x.id === 'geladeira'); const r = document.getElementById('cv-world').getBoundingClientRect(); const p = SL.HomeScene.tileToScreen(o.x + 0.5, o.y + 0.6); return { x: r.left + p.x, y: r.top + p.y }; });
   await page.mouse.click(fr.x, fr.y);
-  const menu = await page.waitForSelector('.pie-o', { timeout: 9000 }).catch(() => null); ok('personagem anda até a geladeira e o menu aparece', !!menu);
+  ok('clicar no móvel de longe não abre o menu (precisa ir até lá)', await ev(() => !document.querySelector('.pie')));
+  const perto = await page.waitForFunction(() => SL.HomeScene.near() && SL.HomeScene.near().id === 'geladeira', null, { timeout: 9000 }).catch(() => null);
+  await page.waitForTimeout(200);
+  ok('chegando perto aparece o nome do móvel com a tecla E', !!perto && await ev(() => { const e = document.querySelector('.e-prompt'); return e && !e.hidden && /Frigobar|Geladeira/.test(e.textContent); }));
+  await page.keyboard.press('e');
+  const menu = await page.waitForSelector('.pie-o', { timeout: 3000 }).catch(() => null); ok('apertar E abre as opções do móvel', !!menu);
   const pieTxt = await ev(() => [...document.querySelectorAll('.pie-o')].map(b => b.textContent.trim()));
   ok('menu da geladeira: ver geladeira e cancelar', pieTxt.length === 2 && /Ver geladeira/.test(pieTxt[0]) && /Cancelar/.test(pieTxt[1]), pieTxt);
   if (menu) await shot('05_menu_geladeira');
@@ -78,7 +83,8 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await page.click('.win [data-act="start"]'); await page.waitForTimeout(600);
   ok('live começa e estúdio abre', await ev(() => !!SL.Live.cur && !document.getElementById('overlay-live').hidden));
   let answered = 0, welcomed = 0;
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 24; i++) {
+    if (i >= 12 && answered + welcomed > 0) break;
     await ev(() => { SL.debug.skip(8); SL.G.needs.sono = Math.max(SL.G.needs.sono, 60); });
     await page.waitForTimeout(350);
     const ans = await page.$('#lv-pend [data-pa="ans"]'); if (ans) { await ans.click(); answered++; }

@@ -24,7 +24,14 @@
       ctx.fillStyle = team ? '#ff5a36' : '#3b82f6'; ctx.beginPath(); ctx.arc(px, py, h * 0.017, 0, 7); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
     }
     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx, by, h * 0.011, 0, 7); ctx.fill();
-    if (s) { ctx.fillStyle = 'rgba(8,10,16,.85)'; rr(ctx, w * 0.03, h * 0.03, w * 0.34, h * 0.08, 6); ctx.fill(); txt(ctx, (s.teamA || 'Casa').slice(0, 12) + '  ' + s.a + ' x ' + s.b + '  ' + (s.teamB || 'Fora').slice(0, 12), w * 0.045, h * 0.07, Math.round(h * 0.034), '#fff', 'left', 700, 'Inter, Arial'); txt(ctx, Math.min(90, s.min) + "'", w * 0.355, h * 0.07, Math.round(h * 0.03), '#ffe066', 'right', 700, 'JetBrains Mono, monospace'); }
+    if (s) { // placar de TV: siglas dos times, gols e o minuto em caixinhas separadas (nada encavalado)
+      const fs = Math.round(h * 0.038); const sig = n => (n || '???').normalize('NFD').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
+      const label = sig(s.teamA) + '  ' + s.a + ' x ' + s.b + '  ' + sig(s.teamB); ctx.font = '800 ' + fs + 'px Inter, Arial'; const tw = ctx.measureText(label).width;
+      const x0 = w * 0.03, y0 = h * 0.03, bh = fs * 1.9; ctx.fillStyle = 'rgba(8,10,16,.88)'; rr(ctx, x0, y0, tw + fs * 1.4, bh, 6); ctx.fill();
+      txt(ctx, label, x0 + fs * 0.7, y0 + bh * 0.68, fs, '#fff', 'left', 800, 'Inter, Arial');
+      const mx = x0 + tw + fs * 1.4 + 4; ctx.fillStyle = '#ffe066'; rr(ctx, mx, y0, fs * 2.6, bh, 6); ctx.fill();
+      txt(ctx, Math.min(90, s.min) + "'", mx + fs * 1.3, y0 + bh * 0.68, Math.round(fs * 0.9), '#14121f', 'center', 800, 'JetBrains Mono, monospace');
+    }
   };
   G.br = (ctx, w, h, s, t) => {
     ctx.fillStyle = grad(ctx, 0, 0, 0, h * 0.6, ['#7fb3e0', '#e9c8a0']); ctx.fillRect(0, 0, w, h);
@@ -87,10 +94,38 @@
     ctx.fillStyle = '#ffe066'; rr(ctx, w * 0.05, h * 0.06, w * 0.38 * (0.4 + (Math.sin(t * 0.7) + 1) * 0.3), h * 0.04, 4); ctx.fill(); ctx.fillStyle = '#ff5a36'; rr(ctx, w * 0.57, h * 0.06, w * 0.38 * (0.3 + (Math.cos(t * 0.6) + 1) * 0.3), h * 0.04, 4); ctx.fill();
     if (s) txt(ctx, s.r[0] + ' x ' + s.r[1], w / 2, h * 0.08, Math.round(h * 0.045), '#fff', 'center', 800);
   };
+  // peças de xadrez desenhadas (rei, dama, torre, bispo, cavalo e peão) numa posição que muda com os lances
+  const PECAS = ['t', 'c', 'b', 'd', 'r', 'b', 'c', 't'];
+  const peca = (ctx, k, cx, cy, sz, white) => {
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(sz, sz);
+    ctx.fillStyle = white ? '#f7f3ea' : '#1b1b1f'; ctx.strokeStyle = white ? '#3a3328' : '#9a9aa6'; ctx.lineWidth = 0.045;
+    ctx.beginPath(); ctx.moveTo(-0.32, 0.4); ctx.lineTo(0.32, 0.4); ctx.lineTo(0.26, 0.3); ctx.lineTo(-0.26, 0.3); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    if (k === 'p') { ctx.moveTo(-0.17, 0.3); ctx.lineTo(-0.09, 0.02); ctx.lineTo(0.09, 0.02); ctx.lineTo(0.17, 0.3); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(0, -0.06, 0.13, 0, 7); }
+    else if (k === 't') { ctx.rect(-0.18, -0.12, 0.36, 0.42); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-0.24, -0.12); ctx.lineTo(-0.24, -0.3); ctx.lineTo(-0.13, -0.3); ctx.lineTo(-0.13, -0.22); ctx.lineTo(-0.05, -0.22); ctx.lineTo(-0.05, -0.3); ctx.lineTo(0.05, -0.3); ctx.lineTo(0.05, -0.22); ctx.lineTo(0.13, -0.22); ctx.lineTo(0.13, -0.3); ctx.lineTo(0.24, -0.3); ctx.lineTo(0.24, -0.12); ctx.closePath(); }
+    else if (k === 'c') { ctx.moveTo(-0.2, 0.3); ctx.lineTo(-0.12, 0); ctx.quadraticCurveTo(-0.26, -0.08, -0.12, -0.3); ctx.lineTo(0.06, -0.38); ctx.quadraticCurveTo(0.3, -0.25, 0.26, -0.04); ctx.lineTo(0.08, -0.08); ctx.lineTo(0.2, 0.3); ctx.closePath(); }
+    else if (k === 'b') { ctx.moveTo(-0.16, 0.3); ctx.quadraticCurveTo(-0.22, -0.1, 0, -0.32); ctx.quadraticCurveTo(0.22, -0.1, 0.16, 0.3); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(0, -0.38, 0.06, 0, 7); }
+    else if (k === 'd') { ctx.moveTo(-0.22, 0.3); ctx.lineTo(-0.28, -0.24); ctx.lineTo(-0.12, -0.08); ctx.lineTo(0, -0.32); ctx.lineTo(0.12, -0.08); ctx.lineTo(0.28, -0.24); ctx.lineTo(0.22, 0.3); ctx.closePath(); }
+    else { ctx.moveTo(-0.22, 0.3); ctx.quadraticCurveTo(-0.3, -0.12, 0, -0.18); ctx.quadraticCurveTo(0.3, -0.12, 0.22, 0.3); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.rect(-0.03, -0.42, 0.06, 0.22); ctx.rect(-0.1, -0.35, 0.2, 0.06); }
+    ctx.fill(); ctx.stroke(); ctx.restore();
+  };
   G.xadrez = (ctx, w, h, s, t) => {
-    ctx.fillStyle = '#2a241c'; ctx.fillRect(0, 0, w, h);
-    const bs = h * 0.105, ox = (w - bs * 8) / 2, oy = h * 0.08; const r = U.mulberry(Math.floor((s ? s.mv : 0) / 6) + 3);
-    for (let x = 0; x < 8; x++) for (let y = 0; y < 8; y++) { ctx.fillStyle = (x + y) % 2 ? '#8a6a4a' : '#e8d8b8'; ctx.fillRect(ox + x * bs, oy + y * bs, bs, bs); if (r() < 0.32) { ctx.fillStyle = r() < 0.5 ? '#f5f5f5' : '#151515'; ctx.beginPath(); ctx.arc(ox + x * bs + bs / 2, oy + y * bs + bs * 0.55, bs * 0.28, 0, 7); ctx.fill(); ctx.fillRect(ox + x * bs + bs * 0.38, oy + y * bs + bs * 0.18, bs * 0.24, bs * 0.25); } }
+    ctx.fillStyle = '#231e17'; ctx.fillRect(0, 0, w, h);
+    const bs = h * 0.105, ox = (w - bs * 8) / 2, oy = h * 0.08; const mv = s ? s.mv : 0; const r = U.mulberry(Math.floor(mv / 4) + 3);
+    ctx.fillStyle = '#5a4430'; ctx.fillRect(ox - bs * 0.12, oy - bs * 0.12, bs * 8.24, bs * 8.24);
+    for (let x = 0; x < 8; x++) for (let y = 0; y < 8; y++) { ctx.fillStyle = (x + y) % 2 ? '#a07850' : '#ecdcbc'; ctx.fillRect(ox + x * bs, oy + y * bs, bs, bs); }
+    // posição: começa a inicial e, a cada lance, peças saem do lugar (algumas são capturadas)
+    const board = {}; for (let x = 0; x < 8; x++) { board[x + ',0'] = [PECAS[x], 0]; board[x + ',1'] = ['p', 0]; board[x + ',6'] = ['p', 1]; board[x + ',7'] = [PECAS[x], 1]; }
+    const moves = Math.min(28, Math.floor(mv / 2));
+    for (let i = 0; i < moves; i++) {
+      const keys = Object.keys(board).filter(k => board[k][1] === i % 2 && board[k][0] !== 'r'); if (!keys.length) break;
+      const from = keys[Math.floor(r() * keys.length)]; const [fx, fy] = from.split(',').map(Number);
+      const dir = i % 2 ? -1 : 1; const tx = U.clamp(fx + Math.round((r() - 0.5) * 3), 0, 7), ty = U.clamp(fy + dir * (1 + Math.floor(r() * 2)), 0, 7);
+      const to = tx + ',' + ty; if (board[to] && (board[to][1] === i % 2 || board[to][0] === 'r')) continue;
+      board[to] = board[from]; delete board[from];
+    }
+    Object.keys(board).forEach(k => { const [x, y] = k.split(',').map(Number); peca(ctx, board[k][0], ox + x * bs + bs / 2, oy + y * bs + bs * 0.52, bs * 0.9, board[k][1] === 1); });
+    if (s && s.last && s.last[0]) { const lx = Math.floor(r() * 8), ly = Math.floor(r() * 8); ctx.strokeStyle = 'rgba(255,214,102,.85)'; ctx.lineWidth = 3; ctx.strokeRect(ox + lx * bs + 1.5, oy + ly * bs + 1.5, bs - 3, bs - 3); }
     if (s) { txt(ctx, 'Rating ' + s.rating, w * 0.03, h * 0.5, Math.round(h * 0.03), '#e8d8b8', 'left', 700, 'JetBrains Mono, monospace'); txt(ctx, '0' + Math.max(0, 9 - Math.floor(s.mv / 6)) + ':' + String(59 - (s.mv * 7) % 60).padStart(2, '0'), w * 0.97, h * 0.5, Math.round(h * 0.04), '#fff', 'right', 700, 'JetBrains Mono, monospace'); }
   };
   G.fazenda = (ctx, w, h, s, t) => {
