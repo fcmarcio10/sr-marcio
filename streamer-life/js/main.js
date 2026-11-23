@@ -41,10 +41,10 @@
     SL.Save.write(G.slot);
     SL.notify({ cat: 'sistema', icon: 'home', title: 'Bem-vindo(a) à sua nova casa', text: 'Comece explorando: clique nos objetos para usar.' });
     UI.modal({ title: 'Bem-vindo(a) a Streamer Life', icon: 'pulso', hold: true, wide: true, html: `<p>Você acabou de se mudar para um apartamento simples na Vila Esperança, com um notebook velho emprestado e ${U.money0(G.money)} na conta. O sonho: viver de internet.</p>
-      <div class="grid2"><div class="card flat col gap4"><b class="small">${SL.icon('home', 15)} Sua casa</b><span class="small muted">Clique nos objetos para usar: cama, geladeira, chuveiro, fogão, sofá. Ande com o mouse ou WASD.</span></div>
-      <div class="card flat col gap4"><b class="small">${SL.icon('laptop', 15)} Computador</b><span class="small muted">Clique na mesa do escritório: Pulso Studio (lives), Estúdio de Vídeo, redes sociais, loja e banco.</span></div>
+      <div class="grid2"><div class="card flat col gap4"><b class="small">${SL.icon('home', 15)} Sua casa</b><span class="small muted">Clique num objeto: o personagem vai até ele e aparecem as opções. Ande com WASD ou clicando no chão.</span></div>
+      <div class="card flat col gap4"><b class="small">${SL.icon('laptop', 15)} Computador</b><span class="small muted">Clique na mesa do escritório: OBS Studio para as lives na Twitch, Premiere Pro para editar, YouTube, TikTok, Instagram, Bank e mais.</span></div>
       <div class="card flat col gap4"><b class="small">${SL.icon('phone', 15)} Celular</b><span class="small muted">Tecla C ou botão no topo. Mensagens, redes, banco, mapa e comida, de qualquer lugar.</span></div>
-      <div class="card flat col gap4"><b class="small">${SL.icon('heart', 15)} Necessidades</b><span class="small muted">Fome, sono e humor mudam seu desempenho nas lives e na edição. Sem exagero, mas cuide de você.</span></div>
+      <div class="card flat col gap4"><b class="small">${SL.icon('heart', 15)} Necessidades</b><span class="small muted">Fome, sede e cansaço (as barrinhas no canto). Cansado demais, você fica com sono e rende menos.</span></div>
       <div class="card flat col gap4"><b class="small">${SL.icon('money', 15)} Contas</b><span class="small muted">Aluguel dia 10, internet dia 15, energia dia 20. Freelas e turnos no café ajudam no começo.</span></div>
       <div class="card flat col gap4"><b class="small">${SL.icon('clock', 15)} Tempo</b><span class="small muted">Espaço pausa. 1, 2 e 3 mudam a velocidade. Dormir e editar passam o tempo mais rápido.</span></div></div>
       <p class="small muted">Os objetivos do painel à esquerda guiam os primeiros passos. Não existe um caminho certo: você decide como viver.</p>`, buttons: [{ label: 'Começar', cls: 'primary', icon: 'play' }] });
@@ -82,8 +82,7 @@
       lastSlow = now;
       UI.checkDecisions(); SL.HUD.placePanel(); SL.HUD.stageOverlay();
       if (pcOpen) {
-        const tc = $('#overlay-pc .tb-clock'); if (tc) tc.textContent = SL.Clock.fmtTime(G.time.t) + ' · ' + SL.Clock.fmtDate(G.time.t);
-        const ta = $('#overlay-pc .tb-act'); if (ta) ta.textContent = G.act && G.act.id !== 'usar_pc' ? G.act.label + (G.act.dur ? ' ' + Math.round(SL.Life.progress() * 100) + '%' : '') : '';
+        const tc = $('#overlay-pc .tb-clock'); if (tc) { tc.textContent = SL.Clock.fmtTime(G.time.t); tc.title = SL.Clock.fmtFull(G.time.t); }
         if (now - lastWall > 1000) { lastWall = now; const wcv = $('#overlay-pc canvas.wall'); if (wcv) SL.Preview.wallpaper(wcv, now); SL.UI.renderDesktopIcons(); }
       }
       if (UI.phoneOpen()) { const pc = $('#overlay-phone .ph-clock'); if (pc) pc.textContent = SL.Clock.fmtTime(G.time.t); const pb = $('#overlay-phone .ph-bat'); if (pb) pb.textContent = Math.round(Math.max(5, 100 - (G.time.t % 1440) / 1440 * 80)) + '%'; }

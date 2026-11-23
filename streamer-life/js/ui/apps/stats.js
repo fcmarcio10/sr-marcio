@@ -4,7 +4,7 @@
   const U = SL.U, D = SL.D, UI = SL.UI;
   const ic = UI.ic, esc = U.esc;
   SL.Apps.stats = {
-    title: 'Estatísticas', short: 'Carreira', icon: 'stats', color: 'linear-gradient(135deg,#c084fc,#7c3aed)', pc: true, phone: true, w: 960, h: 680,
+    title: 'Carreira', short: 'Carreira', icon: 'stats', color: 'linear-gradient(135deg,#c084fc,#7c3aed)', order: 14, pc: true, phone: true, w: 960, h: 680,
     watch: ['career', 'goals', 'rep', 'tick:day'],
     render(el, ctx) {
       const st = ctx.st; if (ctx.args && ctx.args.tab && !st.used) { st.used = 1; st.tab = ctx.args.tab; }
@@ -24,7 +24,7 @@
     },
     seguidores() {
       const G = SL.G; const c = G.ch;
-      return `<div class="statrow"><div class="card stat"><b style="color:#b49dff">${U.num(c.pulso.f)}</b><span>Pulso (lives)</span></div><div class="card stat"><b style="color:#ff8a6a">${U.num(c.vision.f)}</b><span>Vision (vídeos)</span></div><div class="card stat"><b style="color:#19d3c5">${U.num(c.clipz.f)}</b><span>Clipz (shorts)</span></div><div class="card stat"><b style="color:#6aa8ff">${U.num(c.connect.f)}</b><span>Connect (posts)</span></div></div>
+      return `<div class="statrow"><div class="card stat"><b style="color:#b49dff">${U.num(c.pulso.f)}</b><span>Twitch (lives)</span></div><div class="card stat"><b style="color:#ff8a6a">${U.num(c.vision.f)}</b><span>YouTube (vídeos)</span></div><div class="card stat"><b style="color:#19d3c5">${U.num(c.clipz.f)}</b><span>TikTok (shorts)</span></div><div class="card stat"><b style="color:#6aa8ff">${U.num(c.connect.f)}</b><span>Instagram (posts)</span></div></div>
         <div class="card"><h3>Evolução (60 dias)</h3>${G.stats.days.length > 1 ? '<canvas class="chart" id="st-f" style="height:200px"></canvas>' : '<div class="small muted">Disponível depois do primeiro dia.</div>'}</div>
         <div class="card"><h3>Renda das plataformas e trabalho por mês</h3>${Object.keys(G.month).length ? '<canvas class="chart" id="st-inc"></canvas>' : ''}</div>
         <div class="card"><h3>Momentos marcantes do canal</h3>${G.ch.moments.length ? `<div class="list">${G.ch.moments.slice().reverse().slice(0, 12).map(m => `<div class="li small"><span class="acc">${ic('star', 14)}</span><span class="grow">${esc(m.txt)}</span><span class="tiny muted">${SL.Clock.fmtDay(m.d)}</span></div>`).join('')}</div>` : '<div class="small muted">Os momentos mais fortes das lives ficam na memória do público.</div>'}</div>`;
@@ -36,7 +36,7 @@
     },
     ranking() {
       const list = SL.Creators.ranking();
-      return `<div class="card"><div class="tablewrap"><table class="table"><tr><th>#</th><th>Criador</th><th>Pulso</th><th>Vision</th><th>Clipz</th><th>Total</th><th>Agora</th></tr>${list.map((c, i) => `<tr class="${c.me ? 'rank-me' : ''}"><td class="n">${i + 1}</td><td><b class="small">${esc(c.name)}</b><div class="tiny muted">@${esc(c.handle)}</div></td><td class="n">${U.num(c.f.pulso)}</td><td class="n">${U.num(c.f.vision)}</td><td class="n">${U.num(c.f.clipz)}</td><td class="n"><b>${U.num(c.total)}</b></td><td>${c.live ? '<span class="tag live">ao vivo</span>' : c.me ? '<span class="tag acc">você</span>' : c.mom > 0.25 ? '<span class="tag ok">crescendo</span>' : c.mom < -0.25 ? '<span class="tag bad">caindo</span>' : ''}</td></tr>`).join('')}</table></div></div>`;
+      return `<div class="card"><div class="tablewrap"><table class="table"><tr><th>#</th><th>Criador</th><th>Twitch</th><th>YouTube</th><th>TikTok</th><th>Total</th><th>Agora</th></tr>${list.map((c, i) => `<tr class="${c.me ? 'rank-me' : ''}"><td class="n">${i + 1}</td><td><b class="small">${esc(c.name)}</b><div class="tiny muted">@${esc(c.handle)}</div></td><td class="n">${U.num(c.f.pulso)}</td><td class="n">${U.num(c.f.vision)}</td><td class="n">${U.num(c.f.clipz)}</td><td class="n"><b>${U.num(c.total)}</b></td><td>${c.live ? '<span class="tag live">ao vivo</span>' : c.me ? '<span class="tag acc">você</span>' : c.mom > 0.25 ? '<span class="tag ok">crescendo</span>' : c.mom < -0.25 ? '<span class="tag bad">caindo</span>' : ''}</td></tr>`).join('')}</table></div></div>`;
     },
     objetivos() {
       const groups = {}; SL.Goals.LIST.forEach(g => { (groups[g.g] = groups[g.g] || []).push(g); });

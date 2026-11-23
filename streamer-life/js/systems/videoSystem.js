@@ -9,8 +9,8 @@
   VS.TYPES = {
     tradicional: { label: 'Vídeo tradicional', plat: 'vision', len: [480, 1080], raws: ['gameplay', 'react', 'vlog', 'opiniao', 'desafio', 'colab', 'live'], work: 180, icon: 'video' },
     corte: { label: 'Corte de transmissão', plat: 'vision', len: [300, 720], raws: ['live'], work: 90, icon: 'scissors' },
-    short: { label: 'Short (Clipz)', plat: 'clipz', len: [15, 60], raws: 'any', work: 30, icon: 'clip', short: true },
-    reel: { label: 'Reel (Connect)', plat: 'connect', len: [15, 90], raws: 'any', work: 35, icon: 'connect', short: true },
+    short: { label: 'Short (TikTok)', plat: 'clipz', len: [15, 60], raws: 'any', work: 30, icon: 'clip', short: true },
+    reel: { label: 'Reel (Instagram)', plat: 'connect', len: [15, 90], raws: 'any', work: 35, icon: 'connect', short: true },
     gameplay: { label: 'Gameplay', plat: 'vision', len: [720, 1500], raws: ['gameplay', 'live'], work: 120, icon: 'gamepad' },
     reacao: { label: 'Reação', plat: 'vision', len: [480, 1080], raws: ['react'], work: 140, icon: 'eye' },
     opiniao: { label: 'Vídeo de opinião', plat: 'vision', len: [360, 900], raws: ['opiniao'], work: 150, icon: 'megaphone' },
@@ -194,7 +194,7 @@
     if (v.sponsor && SL.Sponsors) SL.Sponsors.deliver(v.sponsor, 'video', { video: v.id });
     if (v.plat === 'vision' && SL.Social) SL.Social.autoPostVideo(v);
     if (v.rawKind === 'opiniao' && SL.Events) SL.Events.opinionRisk(v);
-    SL.notify({ cat: 'canal', icon: v.plat === 'clipz' ? 'clip' : v.plat === 'connect' ? 'connect' : 'vision', title: 'Publicado no ' + ({ vision: 'Vision', clipz: 'Clipz', connect: 'Connect' })[v.plat], text: '"' + v.title + '"', app: v.plat === 'clipz' ? 'clipz' : v.plat === 'connect' ? 'connect' : 'vision' });
+    SL.notify({ cat: 'canal', icon: v.plat === 'clipz' ? 'clip' : v.plat === 'connect' ? 'connect' : 'vision', title: 'Publicado no ' + ({ vision: 'YouTube', clipz: 'TikTok', connect: 'Instagram' })[v.plat], text: '"' + v.title + '"', app: v.plat === 'clipz' ? 'clipz' : v.plat === 'connect' ? 'connect' : 'vision' });
     SL.bus.emit('video:published', v);
     if (SL.Goals) SL.Goals.check();
   };
@@ -254,8 +254,8 @@
   });
   SL.bus.on('tick:day', () => {
     const G0 = G(); if (!G0) return; const ch = G0.ch;
-    if (!ch.vision.mon && ch.vision.f >= 1000 && ch.vision.wh >= 4000) { ch.vision.mon = true; SL.notify({ cat: 'carreira', icon: 'money', title: 'Canal monetizado no Vision!', text: 'Você entrou no Programa de Parceiros: seus vídeos agora rendem dinheiro.' }); if (SL.audio) SL.audio.play('levelup'); }
-    if (!ch.clipz.mon && ch.clipz.f >= 10000 && ch.clipz.views >= 100000) { ch.clipz.mon = true; SL.notify({ cat: 'carreira', icon: 'money', title: 'Fundo de criadores do Clipz', text: 'Seus shorts agora pagam (pouco, mas pagam).' }); }
+    if (!ch.vision.mon && ch.vision.f >= 1000 && ch.vision.wh >= 4000) { ch.vision.mon = true; SL.notify({ cat: 'carreira', icon: 'money', title: 'Canal monetizado no YouTube!', text: 'Você entrou no Programa de Parceiros: seus vídeos agora rendem dinheiro.' }); if (SL.audio) SL.audio.play('levelup'); }
+    if (!ch.clipz.mon && ch.clipz.f >= 10000 && ch.clipz.views >= 100000) { ch.clipz.mon = true; SL.notify({ cat: 'carreira', icon: 'money', title: 'Fundo de criadores do TikTok', text: 'Seus shorts agora pagam (pouco, mas pagam).' }); }
     // vídeo antigo volta a ser recomendado
     const old = G0.videos.filter(v => v.status === 'publicado' && G0.time.t - v.t > 20 * 1440 && v.quality >= 55);
     if (old.length && U.chance(0.04)) { const v = U.pick(old); v.boost = { until: G0.time.t + U.ri(2, 5) * 1440, mul: U.rf(4, 12) }; SL.notify({ cat: 'canal', icon: 'trend', title: 'Vídeo antigo voltando', text: '"' + v.title + '" voltou a ser recomendado do nada.', app: 'vision' }); }

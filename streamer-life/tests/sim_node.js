@@ -22,6 +22,8 @@ for (let d = 0; d < DAYS; d++) {
   if (d === 10 && G.money > 2600) SL.Equip.buy('pc_entrada');
   if (d === 20) { SL.Equip.buy('mic_usb'); SL.Equip.buy('cam_hd'); }
   const game = d < 10 ? 'xeque' : U.pick(['xeque', 'golplaca', 'corredor13']);
+  // computador quebrado: manda consertar (como um jogador faria)
+  const pcId = G.equip.setup.computador; if (pcId && SL.Equip.isBroken(pcId)) { SL.Equip.repair(pcId); delete G.equip.broken[pcId]; }
   if (d % 7 !== 6) {
     const err = SL.Live.start({ game, title: 'Desafio: ' + SL.D.gameById(game).name + ' até vencer! Primeira vez', desc: 'Lives todo dia às 20h. Segue no Connect!', quality: '720p', planned: 120, announce: d % 2 === 0, tags: ['desafio'] });
     if (err) { console.log('erro live', err); }
@@ -37,7 +39,7 @@ for (let d = 0; d < DAYS; d++) {
       if (m % 13 === 0) keep();
     }
     const sum = SL.Live.end();
-    if (d % 5 === 0 || d === DAYS - 1) console.log(`dia ${d} ${game} pico ${sum.peak} média ${sum.avg} seg+${sum.fol} msgs ${sum.msgs} don R$${sum.don} q${sum.q} | Pulso ${G.ch.pulso.f} Vision ${G.ch.vision.f} Clipz ${G.ch.clipz.f} Connect ${G.ch.connect.f} | conhecidos ${G.viewers.list.length} | R$ ${Math.round(G.money)}`);
+    if (sum && (d % 5 === 0 || d === DAYS - 1)) console.log(`dia ${d} ${game} pico ${sum.peak} média ${sum.avg} seg+${sum.fol} msgs ${sum.msgs} don R$${sum.don} q${sum.q} | Pulso ${G.ch.pulso.f} Vision ${G.ch.vision.f} Clipz ${G.ch.clipz.f} Connect ${G.ch.connect.f} | conhecidos ${G.viewers.list.length} | R$ ${Math.round(G.money)}`);
   }
   // vídeo a cada 3 dias (corte da live) e short todo dia
   const raw = G.raw[G.raw.length - 1];

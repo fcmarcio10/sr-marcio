@@ -106,7 +106,7 @@
   D.creatorLinks = [['c_mestre', 'c_gabs', 40], ['c_mestre', 'c_pedrao', -30], ['c_lua', 'c_vovo', 60], ['c_lua', 'c_jp', 45], ['c_cha', 'c_mestre', -40], ['c_cha', 'c_lua', -20], ['c_fred', 'c_gabs', 30], ['c_bruno', 'c_vovo', 50], ['c_kai', 'c_ana', 35], ['c_nando', 'c_lari', 20], ['c_noturno', 'c_lari', 25], ['c_tia', 'c_jp', 30], ['c_mila', 'c_pedrao', -15]];
 
   D.newsAccounts = [
-    { id: 'n_pulso', name: 'Pulso Notícias', handle: 'pulsonoticias', color: '#8b5cf6' },
+    { id: 'n_pulso', name: 'Twitch Notícias', handle: 'pulsonoticias', color: '#8b5cf6' },
     { id: 'n_fofoca', name: 'Fofoca Digital', handle: 'fofocadigital', color: '#ff3d81' },
     { id: 'n_games', name: 'Mundo dos Games', handle: 'mundodosgames', color: '#35d39a' },
   ];

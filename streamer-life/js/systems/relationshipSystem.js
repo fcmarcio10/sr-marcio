@@ -215,7 +215,7 @@
   R.orderFood = id => {
     const it = D.delivery.find(x => x.id === id); if (!it) return 'Item inválido.';
     if (G().loc.area !== 'casa') return 'O entregador só leva na sua casa.';
-    if (!SL.Econ.spend(it.price + 6, 'comida', 'Pedido no Rangô: ' + it.name)) return 'Dinheiro insuficiente.';
+    if (!SL.Econ.spend(it.price + 6, 'comida', 'Pedido no iFood: ' + it.name)) return 'Dinheiro insuficiente.';
     G().equip.deliveries.push({ id, at: G().time.t + U.ri(30, 55), kind: 'food' });
     return null;
   };
@@ -299,7 +299,7 @@
         updateStage(id);
       }
       if (p.kind !== 'collab' && Math.abs(G0.time.t - p.t) < 60 && !p.reminded) { p.reminded = 1; SL.notify({ cat: 'pessoas', icon: 'calendar', title: 'Compromisso agora', text: (R.INVITES[p.kind] || { label: 'Encontro' }).label + ' com ' + R.name(id) + (p.place === 'pc' ? ' (no computador)' : ' em ' + (D.placeById(p.place) || { name: '' }).name) }); }
-      if (p.kind === 'collab' && Math.abs(G0.time.t - p.t) < 60 && !p.reminded) { p.reminded = 1; SL.notify({ cat: 'canal', icon: 'users', title: 'Collab agora', text: 'Abra a Pulso no computador e comece a live com ' + R.name(id) + '.', app: 'pulso' }); }
+      if (p.kind === 'collab' && Math.abs(G0.time.t - p.t) < 60 && !p.reminded) { p.reminded = 1; SL.notify({ cat: 'canal', icon: 'users', title: 'Collab agora', text: 'Abra a Twitch no computador e comece a live com ' + R.name(id) + '.', app: 'pulso' }); }
     }
   });
   SL.bus.on('tick:day', day => {

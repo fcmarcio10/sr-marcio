@@ -1,4 +1,4 @@
-/* App Pulso Studio: preparar a live, estúdio ao vivo, painel do canal, comunidade, agenda e monetização. */
+/* App OBS Studio: preparar a live, estúdio ao vivo, painel do canal, comunidade, agenda e monetização. */
 'use strict';
 (function (SL) {
   const U = SL.U, D = SL.D, UI = SL.UI;
@@ -23,12 +23,12 @@
   };
 
   SL.Apps.pulso = {
-    title: 'Pulso Studio', short: 'Pulso', icon: 'pulso', color: 'linear-gradient(135deg,#8b5cf6,#5b3fd6)', pc: true, phone: false, w: 1040, h: 680,
+    title: 'OBS Studio', short: 'OBS', icon: 'pulso', color: 'linear-gradient(135deg,#4a4658,#1c1a24)', order: 1, pc: true, phone: false, w: 1040, h: 680,
     watch: ['live:end', 'promises', 'tick:hour', 'equip', 'videos'],
     render(el, ctx) {
       const st = ctx.st; st.tab = st.tab || (ctx.args && ctx.args.tab) || 'transmitir';
       const tabs = [['transmitir', 'Transmitir', 'live'], ['painel', 'Painel', 'stats'], ['comunidade', 'Comunidade', 'users'], ['agenda', 'Agenda', 'calendar'], ['monetizacao', 'Monetização', 'money']];
-      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#8b5cf6">${ic('pulso', 15)}</span>Pulso Studio</div><div class="tabs">${tabs.map(([k, l, i]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${ic(i, 14)}${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
+      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#8b5cf6">${ic('pulso', 15)}</span>OBS Studio</div><div class="tabs">${tabs.map(([k, l, i]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${ic(i, 14)}${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
       if (st.tab === 'painel') { const cv = $('#pl-chart', el); if (cv) UI.chart(cv, [{ data: SL.G.lives.slice(-20).map(l => l.avg), color: '#8b5cf6' }, { data: SL.G.lives.slice(-20).map(l => l.peak), color: '#ff4d5e', fill: false }], { labels: SL.G.lives.slice(-20).map(l => SL.Clock.fmtDay(SL.Clock.day(l.t0)).slice(5)) }); }
     },
     transmitir(ctx) {
@@ -57,7 +57,7 @@
             <div class="field"><label>Duração planejada</label><div class="row wrap">${[60, 120, 180, 240].map(m => `<button class="chip ${f.planned === m ? 'on' : ''}" data-act="dur" data-v="${m}">${U.dur(m)}</button>`).join('')}</div></div>
             <div class="field"><label>Layout</label><div class="row wrap">${[['classico', 'Câmera no canto'], ['camera', 'Câmera grande'], ['dividida', 'Tela dividida'], ['sem', 'Sem câmera']].map(([k, l]) => `<button class="chip ${f.layout === k ? 'on' : ''}" data-act="layout" data-v="${k}">${l}</button>`).join('')}</div></div>
             <label class="row small"><input type="checkbox" data-act="cam" ${f.cam ? 'checked' : ''} ${SL.Equip.stats().hasCam ? '' : 'disabled'}> Webcam ligada ${SL.Equip.stats().hasCam ? '' : '<span class="muted">(sem webcam)</span>'}</label>
-            <label class="row small"><input type="checkbox" data-act="ann" ${f.announce ? 'checked' : ''}> Divulgar no Connect ao começar</label>
+            <label class="row small"><input type="checkbox" data-act="ann" ${f.announce ? 'checked' : ''}> Divulgar no Instagram ao começar</label>
           </div>
           <div class="card col"><h3>Teste técnico</h3>
             <div class="attr">Imagem<div class="bar"><i style="width:${q.img}%"></i></div><b>${Math.round(q.img)}</b></div>
@@ -75,7 +75,7 @@
     painel() {
       const G = SL.G; const P = G.ch.pulso; const lives = G.lives.slice().reverse();
       const av = G.ch.avgViewers.slice(-10); const avg = av.length ? av.reduce((a, b) => a + b, 0) / av.length : 0;
-      return `<div class="statrow"><div class="card stat"><b>${U.num(P.f)}</b><span>Seguidores na Pulso</span></div><div class="card stat"><b>${U.num(P.subs)}</b><span>Inscritos ativos</span></div><div class="card stat"><b>${U.int(avg * 10) / 10 || 0}</b><span>Média (últimas 10 lives)</span></div><div class="card stat"><b>${U.num(P.peak)}</b><span>Recorde de público</span></div><div class="card stat"><b>${Math.round(P.hours)}h</b><span>Horas transmitidas</span></div><div class="card stat"><b>${P.parc ? 'Parceiro' : P.afil ? 'Afiliado' : 'Iniciante'}</b><span>Status na Pulso</span></div></div>
+      return `<div class="statrow"><div class="card stat"><b>${U.num(P.f)}</b><span>Seguidores na Twitch</span></div><div class="card stat"><b>${U.num(P.subs)}</b><span>Inscritos ativos</span></div><div class="card stat"><b>${U.int(avg * 10) / 10 || 0}</b><span>Média (últimas 10 lives)</span></div><div class="card stat"><b>${U.num(P.peak)}</b><span>Recorde de público</span></div><div class="card stat"><b>${Math.round(P.hours)}h</b><span>Horas transmitidas</span></div><div class="card stat"><b>${P.parc ? 'Parceiro' : P.afil ? 'Afiliado' : 'Iniciante'}</b><span>Status na Twitch</span></div></div>
         <div class="card"><div class="section-t"><h3>Público por live</h3><span class="tiny muted"><span style="color:#8b5cf6">média</span> · <span style="color:#ff4d5e">pico</span></span></div>${G.lives.length ? '<canvas class="chart" id="pl-chart"></canvas>' : '<div class="empty">Faça sua primeira live para ver o gráfico.</div>'}</div>
         <div class="card"><h3>Histórico de lives</h3>${lives.length ? `<div class="tablewrap"><table class="table"><tr><th>Data</th><th>Jogo</th><th>Duração</th><th>Pico</th><th>Média</th><th>Seguidores</th><th>Doações</th><th>Qualidade</th></tr>${lives.slice(0, 40).map(l => `<tr><td>${SL.Clock.fmtDay(SL.Clock.day(l.t0))}</td><td>${esc(D.gameById(l.game).name)}</td><td class="n">${U.dur(l.dur)}</td><td class="n">${U.int(l.peak)}</td><td class="n">${l.avg}</td><td class="n ok">+${U.int(l.fol)}</td><td class="n">${U.money(l.don)}</td><td class="n">${l.q}</td></tr>`).join('')}</table></div>` : '<div class="empty">Nenhuma live ainda.</div>'}</div>`;
     },
@@ -106,7 +106,7 @@
       const sch = G.ch.schedule.filter(s => s.day >= day - 1).sort((a, b) => a.day - b.day || a.hour - b.hour);
       const prom = G.promises.slice().reverse().slice(0, 20);
       const kindL = p => p.kind === 'live' ? 'Live ' + SL.Clock.fmtDay(p.day) + ' às ' + p.hour + 'h' : p.kind === 'jogo' ? 'Jogar ' + D.gameById(p.game).name + ' até ' + SL.Clock.fmtDay(p.until) : 'Jogar com o chat até ' + SL.Clock.fmtDay(p.until);
-      return `<div class="card col"><h3>Agendar uma live</h3><p class="small muted">Agendar avisa os seguidores (post no Connect) e aumenta o público. Faltar quebra a confiança.</p>
+      return `<div class="card col"><h3>Agendar uma live</h3><p class="small muted">Agendar avisa os seguidores (post no Instagram) e aumenta o público. Faltar quebra a confiança.</p>
         <div class="row wrap">${[0, 1, 2, 3].map(d => `<button class="chip" data-act="schd" data-v="${d}" ${d === (G.st_schd || 0) ? '' : ''}>${d === 0 ? 'Hoje' : d === 1 ? 'Amanhã' : SL.Clock.fmtDay(day + d)}</button>`).join('')}</div>
         <div class="row wrap">${[14, 16, 18, 19, 20, 21, 22, 23].map(h => `<button class="btn sm" data-act="sch" data-h="${h}">${h}h</button>`).join('')}</div><div class="tiny muted" id="sch-day">Dia escolhido: ${this._schd ? SL.Clock.fmtDay(day + this._schd) : 'hoje'}</div></div>
         <div class="card"><h3>Lives agendadas</h3>${sch.length ? `<div class="list">${sch.map(s => `<div class="li"><span class="acc">${ic('live', 15)}</span><b class="grow small">${SL.Clock.fmtDay(s.day)} às ${s.hour}h</b><span class="tag ${s.done ? 'ok' : s.missed ? 'bad' : 'warn'}">${s.done ? 'aconteceu' : s.missed ? 'perdida' : 'pendente'}</span></div>`).join('')}</div>` : '<div class="empty">Nenhuma live agendada.</div>'}</div>
@@ -118,7 +118,7 @@
       const nextMon = (() => { for (let d = SL.Clock.day() + 1; d < SL.Clock.day() + 8; d++) if (SL.Clock.dowOfDay(d) === 1) return d; return SL.Clock.day() + 7; })();
       return `<div class="statrow"><div class="card stat"><b class="ok">${U.money(P.bal)}</b><span>Saldo a receber (repasse segunda, ${SL.Clock.fmtDay(nextMon)})</span></div><div class="card stat"><b>${U.money(m.in.doacoes || 0)}</b><span>Repasses de doações no mês</span></div><div class="card stat"><b>${U.num(P.subs)}</b><span>Inscrições ativas (R$ 3,95 cada por mês)</span></div></div>
         <div class="card col"><h3>${P.afil ? ic('check', 16) + ' Você é afiliado(a)' : 'Programa de afiliados'}</h3>${P.afil ? '<p class="small muted">Seus espectadores podem se inscrever e você pode rodar anúncios durante a live (cada anúncio rende pela quantidade de pessoas, mas cansa o público).</p>' : req.map(([a, b, l]) => `<div class="attr">${l}<div class="bar"><i style="width:${Math.min(100, a / b * 100)}%"></i></div><b>${Math.floor(a)}/${b}</b></div>`).join('')}</div>
-        <div class="card col"><h3>Parceria Pulso</h3><p class="small muted">Exige 15 mil seguidores, 150 horas de live e média de 75 pessoas. Libera 1440p e o selo de parceiro.</p>${[[P.f, 15000, 'seguidores'], [P.hours, 150, 'horas'], [G.ch.avgViewers.slice(-10).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(10, G.ch.avgViewers.length)), 75, 'média']].map(([a, b, l]) => `<div class="attr">${l}<div class="bar"><i style="width:${Math.min(100, a / b * 100)}%"></i></div><b>${U.num(a)}</b></div>`).join('')}</div>`;
+        <div class="card col"><h3>Parceria Twitch</h3><p class="small muted">Exige 15 mil seguidores, 150 horas de live e média de 75 pessoas. Libera 1440p e o selo de parceiro.</p>${[[P.f, 15000, 'seguidores'], [P.hours, 150, 'horas'], [G.ch.avgViewers.slice(-10).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(10, G.ch.avgViewers.length)), 75, 'média']].map(([a, b, l]) => `<div class="attr">${l}<div class="bar"><i style="width:${Math.min(100, a / b * 100)}%"></i></div><b>${U.num(a)}</b></div>`).join('')}</div>`;
     },
     act(a, ds, ctx, ev, t) {
       const st = ctx.st; const f = st.form; const G = SL.G;
@@ -140,7 +140,7 @@
       if (a === 'unmod') { SL.Viewers.byId(ds.v).mod = 0; return ctx.render(); }
       if (a === 'unban') { SL.Viewers.byId(ds.v).ban = 0; return ctx.render(); }
       if (a === 'schd') { this._schd = +ds.v; $$('[data-act="schd"]', ctx.host).forEach(b => b.classList.toggle('on', b === t)); $('#sch-day', ctx.host).textContent = 'Dia escolhido: ' + SL.Clock.fmtDay(SL.Clock.day() + this._schd); return; }
-      if (a === 'sch') { const d = this._schd || 0; const h = +ds.h; if (d === 0 && h <= SL.Clock.hour()) return 'Esse horário já passou hoje.'; SL.Social.scheduleLivePost(d, h); UI.toast({ title: 'Live agendada', text: SL.Clock.fmtDay(SL.Clock.day() + d) + ' às ' + h + 'h · anunciada no Connect', icon: 'calendar', cat: 'canal' }, 'success'); return ctx.render(); }
+      if (a === 'sch') { const d = this._schd || 0; const h = +ds.h; if (d === 0 && h <= SL.Clock.hour()) return 'Esse horário já passou hoje.'; SL.Social.scheduleLivePost(d, h); UI.toast({ title: 'Live agendada', text: SL.Clock.fmtDay(SL.Clock.day() + d) + ' às ' + h + 'h · anunciada no Instagram', icon: 'calendar', cat: 'canal' }, 'success'); return ctx.render(); }
       void G;
     },
     input(target, ctx) {
@@ -350,7 +350,7 @@
       <div class="card"><div class="section-t"><h3>Público e empolgação</h3><span class="tiny muted"><span style="color:#ff4d5e">pessoas</span> · <span style="color:#ffb547">empolgação</span></span></div><canvas class="chart" id="sum-ch"></canvas></div>
       <div class="card col"><h3>Melhores momentos</h3>${s.best.length ? s.best.map((b, i) => `<div class="row"><span class="acc">${ic('scissors', 15)}</span><span class="grow small">${esc(b.txt)}</span><div class="bar" style="width:70px"><i style="width:${b.clip * 100}%"></i></div>${raw ? `<button class="btn sm" data-cut="${i}">Criar corte</button>` : ''}</div>`).join('') : '<div class="small muted">Nenhum momento forte o bastante para virar corte.</div>'}
       ${s.adRev ? `<div class="small muted">Anúncios renderam ${U.money(s.adRev)}.</div>` : ''}${s.promises ? `<div class="small warn">${s.promises} promessa(s) feita(s) nesta live. Cumpra para manter a confiança.</div>` : ''}${s.raid ? `<div class="small acc">${U.int(s.raid)} pessoas chegaram por raid ou vídeo bombando.</div>` : ''}</div>
-      <p class="tiny muted">Doações, inscrições e anúncios caem no saldo da Pulso e são repassados toda segunda-feira.</p>`, buttons: [{ label: 'Fechar', cls: 'primary' }] });
+      <p class="tiny muted">Doações, inscrições e anúncios caem no saldo da Twitch e são repassados toda segunda-feira.</p>`, buttons: [{ label: 'Fechar', cls: 'primary' }] });
     UI.chart($('#sum-ch', m.el), [{ data: s.graph, color: '#ff4d5e' }, { data: s.hype, color: '#ffb547', fill: false }]);
     $$('[data-cut]', m.el).forEach(b => b.onclick = () => { m.close(); UI.openApp('estudio', { raw: raw.id, moment: +b.dataset.cut, type: 'short' }); });
   };

@@ -4,7 +4,7 @@
   const U = SL.U, UI = SL.UI;
   const ic = UI.ic, esc = U.esc;
   SL.Apps.calendario = {
-    title: 'Calendário', short: 'Agenda', icon: 'calendar', color: 'linear-gradient(135deg,#ffb547,#e07a1a)', pc: true, phone: true, w: 900, h: 660,
+    title: 'Agenda', short: 'Agenda', icon: 'calendar', color: 'linear-gradient(135deg,#ffb547,#e07a1a)', order: 13, pc: true, phone: true, w: 900, h: 660,
     watch: ['calendar', 'tick:day', 'bills', 'promises'],
     render(el, ctx) {
       const st = ctx.st; const today = SL.Clock.day();

@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/apps.css">
 <link rel="stylesheet" href="css/streaming.css">
 <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/hud.css">
 </head>
 <body>
 <div id="app">
@@ -18,14 +19,11 @@
   <section id="scr-load" class="screen" hidden></section>
   <section id="scr-settings" class="screen" hidden></section>
   <section id="scr-game" class="screen" hidden>
-    <header id="hud"></header>
-    <div id="game-body">
-      <aside id="side"></aside>
-      <main id="stage">
-        <canvas id="cv-world"></canvas>
-        <div id="stage-ui"></div>
-      </main>
-    </div>
+    <main id="stage">
+      <canvas id="cv-world"></canvas>
+      <div id="stage-ui"></div>
+      <div id="hud"></div>
+    </main>
   </section>
   <div id="overlay-pc" class="overlay" hidden></div>
   <div id="overlay-phone" class="overlay" hidden></div>
@@ -67,6 +65,7 @@
 <script src="js/ui/uiManager.js"></script>
 <script src="js/ui/screens.js"></script>
 <script src="js/ui/hud.js"></script>
+  <script src="js/ui/acoes.js"></script>
 <script src="js/ui/apps/pulso.js"></script>
 <script src="js/ui/apps/estudio.js"></script>
 <script src="js/ui/apps/social.js"></script>

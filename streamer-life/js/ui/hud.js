@@ -8,90 +8,55 @@
 
   HUD.build = () => {
     const hud = $('#hud');
-    hud.innerHTML = `<div class="hud-me" data-h="me" title="Estatísticas e carreira"><canvas></canvas><div><b class="ellipsis"></b><small></small></div></div>
-      <div class="hud-clock"><div><div class="t mono"></div><div class="d"></div></div><div class="speeds">${[['pause', 0, 'Pausar (espaço)'], ['speed1', 1, 'Normal (1)'], ['speed2', 2, 'Rápido (2)'], ['speed3', 3, 'Muito rápido (3)']].map(([ic, v, t]) => `<button class="ibtn" data-speed="${v}" title="${t}">${UI.ic(ic, 15)}</button>`).join('')}</div></div>
-      <div class="hud-right"><span class="pill money" data-h="bank" title="Banco">${UI.ic('money', 15)}<span class="mv"></span></span><span class="pill fol" data-h="stats" title="Seguidores somados em todas as redes">${UI.ic('users', 15)}<span class="fv"></span><span class="lbl small">seguidores</span></span>
-      <button class="ibtn" data-h="phone" title="Celular (C)">${UI.ic('phone')}</button><button class="ibtn" data-h="pc" title="Computador (P)">${UI.ic('laptop')}</button><button class="ibtn bell" data-h="notif" title="Notificações">${UI.ic('bell')}<span class="badge" hidden></span></button><button class="ibtn" data-h="menu" title="Menu (Esc)">${UI.ic('more')}</button></div>`;
-    refs = { cv: $('.hud-me canvas', hud), name: $('.hud-me b', hud), tier: $('.hud-me small', hud), t: $('.hud-clock .t', hud), d: $('.hud-clock .d', hud), money: $('.pill.money', hud), mv: $('.mv', hud), fv: $('.fv', hud), badge: $('.bell .badge', hud) };
+    hud.innerHTML = `<div class="hud-tl">
+        <button class="hud-me" data-h="me" title="Sua carreira"><canvas></canvas><span class="hm-t"><b class="ellipsis"></b><small></small></span></button>
+        <button class="hud-money" data-h="bank" title="Bank"><span class="mv"></span></button>
+        <div class="hud-needs">${SL.Life.NEEDS.map(nd => `<div class="hn" data-k="${nd.k}" title="${nd.label}"><span class="hn-i" style="color:${nd.color}">${UI.ic(nd.icon, 14)}</span><span class="hn-l">${nd.label}</span><div class="hn-b"><i style="background:${nd.color}"></i></div></div>`).join('')}</div>
+      </div>
+      <div class="hud-tc">
+        <div class="hud-clock"><div class="hc-time"><div class="t mono"></div><div class="d"></div></div><div class="speeds">${[['pause', 0, 'Pausar (espaço)'], ['speed1', 1, 'Normal (1)'], ['speed2', 2, 'Rápido (2)'], ['speed3', 3, 'Muito rápido (3)']].map(([ic, v, t]) => `<button class="sbtn" data-speed="${v}" title="${t}">${UI.ic(ic, 15)}</button>`).join('')}</div></div>
+        <div class="hud-act" hidden></div>
+      </div>
+      <div class="hud-tr">
+        <button class="gbtn" data-h="phone" title="Celular (C)">${UI.ic('phone', 20)}<span>Celular</span><i class="badge" hidden></i></button>
+        <button class="gbtn" data-h="pc" title="Computador (P)">${UI.ic('laptop', 20)}<span>PC</span></button>
+        <button class="gbtn" data-h="menu" title="Menu (Esc)">${UI.ic('more', 20)}<span>Menu</span></button>
+      </div>`;
+    refs = { cv: $('.hud-me canvas', hud), name: $('.hud-me b', hud), tier: $('.hud-me small', hud), t: $('.hud-clock .t', hud), d: $('.hud-clock .d', hud), money: $('.hud-money', hud), mv: $('.mv', hud), badge: $('[data-h="phone"] .badge', hud), act: $('.hud-act', hud), pc: $('[data-h="pc"]', hud), bars: SL.Life.NEEDS.map(nd => ({ nd, el: $('.hn[data-k="' + nd.k + '"]', hud) })) };
     hud.onclick = e => {
-      const b = e.target.closest('[data-h],[data-speed]'); if (!b) return; SL.audio.play('click');
+      if (HUD.locked()) return;
+      const b = e.target.closest('[data-h],[data-speed],[data-actstop]'); if (!b) return; SL.audio.play('click');
       if (b.dataset.speed != null) { SL.G.time.speed = +b.dataset.speed; HUD.update(true); return; }
+      if (b.dataset.actstop != null) { SL.Life.stop(false); HUD.update(true); return; }
       const h = b.dataset.h;
-      if (h === 'phone') UI.phoneOpen() ? UI.closePhone() : UI.openPhone();
-      if (h === 'pc') UI.pcOpen() ? UI.closePC() : HUD.goToPC();
-      if (h === 'notif') UI.toggleNotifs();
+      if (h === 'phone') { if (UI.phoneOpen()) UI.closePhone(); else UI.openPhone(); }
+      if (h === 'pc') { if (UI.pcOpen()) UI.closePC(); else HUD.goToPC(); }
       if (h === 'menu') SL.Screens.pauseMenu();
       if (h === 'bank') UI.openApp('banco');
-      if (h === 'stats' || h === 'me') UI.openApp('stats');
+      if (h === 'me') UI.openApp('stats');
     };
     HUD.paintPortrait();
-    $('#side').onclick = HUD.sideClick;
   };
   HUD.paintPortrait = () => { if (refs.cv) SL.Avatar.toCanvas(refs.cv, SL.G.player.look, { scale: 1.05 }); };
-  let lastSide = 0;
+  // durante uma sequência (cozinhar e levar à mesa, por exemplo) nada pode interromper
+  HUD.locked = () => !!(SL.Seq && SL.Seq.busy());
+  let lastAct = '';
   HUD.update = force => {
     const G = SL.G; if (!G || !refs.t) return;
     refs.t.textContent = SL.Clock.fmtTime(G.time.t); refs.d.textContent = SL.Clock.period(G.time.t) + ' · ' + SL.Clock.fmtDate(G.time.t);
     refs.name.textContent = G.player.channel; refs.tier.textContent = SL.Career.tierName();
     refs.mv.textContent = U.money0(G.money); refs.money.classList.toggle('neg', G.money < 0);
-    refs.fv.textContent = U.num(SL.Social.totalFollowers());
     const un = SL.Notify.unread(); refs.badge.hidden = !un; refs.badge.textContent = un > 99 ? '99+' : un;
-    $$('#hud [data-speed]').forEach(b => b.classList.toggle('on', +b.dataset.speed === G.time.speed));
-    const now = performance.now();
-    if (force || now - lastSide > 450) { lastSide = now; HUD.side(); }
-  };
-
-  // ---------- painel lateral ----------
-  HUD.side = () => {
-    const G = SL.G; const el = $('#side'); if (!el) return;
-    const n = G.needs; const perf = SL.Life.perf(); const L = SL.Life;
-    const a = G.act;
-    const room = G.loc.area === 'casa' ? (SL.HomeScene.LAY[D.homeById(G.home.id).layout].rooms.find(r => r.id === SL.HomeScene.currentRoom()) || {}).name : null;
-    const where = G.loc.area === 'casa' ? (room || D.homeById(G.home.id).name) : G.loc.area === 'cidade' ? 'Na rua' : (D.placeById(G.loc.place) || {}).name;
-    const upcoming = SL.Calendar.upcoming(3);
-    const goals = SL.Goals.next(2);
-    const tl = L.tiredLevel();
-    const sig = JSON.stringify([NEEDS_SIG(n), Math.round(perf * 100), a && [a.id, a.label, Math.round(L.progress() * 50)], where, upcoming.map(e => e.title + e.day + e.hour), goals.map(g => g.id + JSON.stringify(SL.Goals.status(g))), G.flags.mealReady, tl, L.awakeHours(), G.life && G.life.pcRun > 100, SL.Clock.hour()]);
-    if (el.dataset.sig === sig) return; el.dataset.sig = sig;
-    const need = nd => {
-      const raw = n[nd.k]; const v = nd.tired ? 100 - raw : raw; const good = nd.inv ? 100 - raw : raw; const low = good < 25;
-      return `<div class="need ${low ? 'low' : ''}" title="${nd.label}: ${Math.round(v)}${nd.tired ? '% de cansaço' : ''}"><span class="ni" style="color:${low ? 'var(--bad)' : nd.color}">${UI.ic(nd.icon, 14)}</span><div class="grow"><div class="nl">${nd.label}<b>${Math.round(v)}</b></div><div class="bar"><i style="width:${v}%;background:${low ? 'var(--bad)' : nd.color}"></i></div></div></div>`;
-    };
-    const tiredCls = ['ok', 'warn', 'bad', 'bad'][tl];
-    el.innerHTML = `
-      <div class="side-card">
-        <div class="side-h"><div class="upper">Como você está</div><span class="tag ${perf >= 0.95 ? 'ok' : perf >= 0.75 ? 'warn' : 'bad'}" title="Desempenho: afeta lives, edição e conversas">${Math.round(perf * 100)}%</span></div>
-        <div class="needs">${L.NEEDS.map(need).join('')}</div>
-        <div class="tired-line"><span class="tag ${tiredCls}">${UI.ic('energy', 12)} ${L.TIRED[tl]}</span><span class="muted tiny">acordado(a) há ${L.awakeHours()}h${G.life && G.life.pcRun > 100 ? ' · faça uma pausa do PC' : ''}</span></div>
-      </div>
-      ${a && a.id !== 'usar_pc' ? `<div class="act-card"><div class="row"><span class="acc">${UI.ic(L.ACT[a.id].icon, 16)}</span><b class="grow small">${U.esc(a.label)}</b>${a.id !== 'live' ? `<button class="btn sm ghost" data-s="stop" title="Parar">${UI.ic('x', 14)}</button>` : ''}</div>${a.dur ? `<div class="bar thin"><i style="width:${L.progress() * 100}%"></i></div><div class="tiny muted">Termina às <b class="mono">${SL.Clock.fmtTime(a.t0 + a.dur)}</b></div>` : ''}</div>` : ''}
-      <div class="side-card">
-        <div class="row small"><span class="acc">${UI.ic('location', 15)}</span><b class="grow ellipsis">${U.esc(where || '')}</b></div>
-        <div class="quick">${G.loc.area === 'casa' ? `<button class="btn" data-s="pc">${UI.ic('laptop', 15)} Computador</button><button class="btn" data-s="sair">${UI.ic('door', 15)} Sair</button>` : G.loc.area === 'local' ? `<button class="btn" data-s="rua">${UI.ic('map', 15)} Rua</button><button class="btn" data-s="casa">${UI.ic('home', 15)} Casa</button>` : `<button class="btn" data-s="casa">${UI.ic('home', 15)} Casa</button><button class="btn" data-s="entrar">${UI.ic('door', 15)} Entrar</button>`}</div>
-        ${G.flags.mealReady ? `<button class="btn ok" data-s="comerpedido">${UI.ic('food', 15)} Comer o pedido que chegou</button>` : ''}
-      </div>
-      <div class="side-card"><div class="side-h"><div class="upper">Agenda</div><button class="btn sm ghost" data-s="cal" title="Calendário">${UI.ic('calendar', 14)}</button></div>
-        <div class="list agenda">${upcoming.length ? upcoming.map(e => { const k = SL.Calendar.KINDS[e.kind] || SL.Calendar.KINDS.especial; return `<div class="li"><span class="dot" style="background:${k.color}"></span><span class="grow ellipsis">${U.esc(e.title)}</span><span class="muted tiny mono">${e.day === SL.Clock.day() ? (e.hour != null ? e.hour + 'h' : 'hoje') : SL.Clock.fmtDay(e.day).slice(5)}</span></div>`; }).join('') : '<div class="li muted small">Agenda livre</div>'}</div></div>
-      <div class="side-card"><div class="side-h"><div class="upper">Próximo objetivo</div><button class="btn sm ghost" data-s="goals" title="Todos os objetivos">${UI.ic('trophy', 14)}</button></div>
-        <div class="list">${goals.map(g => { const st = SL.Goals.status(g); return `<div class="li goal-li"><b class="small">${U.esc(g.title)}</b>${g.hint ? `<div class="tiny muted">${U.esc(g.hint)}</div>` : ''}${st.b ? `<div class="bar thin"><i style="width:${st.p * 100}%"></i></div>` : ''}</div>`; }).join('')}</div></div>`;
-  };
-  const NEEDS_SIG = n => Object.keys(n).map(k => Math.round(n[k])).join(',');
-  HUD.sideClick = e => {
-    const b = e.target.closest('[data-s]'); if (!b) return; SL.audio.play('click');
-    const G = SL.G; const s = b.dataset.s;
-    if (s === 'stop') SL.Life.stop(false);
-    if (s === 'pc') HUD.goToPC();
-    if (s === 'sair') HUD.leaveHome();
-    if (s === 'rua') SL.City.goOutside();
-    if (s === 'casa') { if (G.loc.area === 'cidade' && G.loc.place === 'casa') SL.City.enter('casa'); else HUD.travelDialog('casa'); }
-    if (s === 'entrar') SL.City.enter(G.loc.place);
-    if (s === 'phone') UI.openPhone();
-    if (s === 'rango') UI.openApp('rango');
-    $('#side').dataset.sig = '';
-    if (s === 'cal') UI.openApp('calendario');
-    if (s === 'goals') UI.openApp('stats', { tab: 'objetivos' });
-    if (s === 'comerpedido') { const err = SL.Rel.eatDelivery(); UI.err(err); G.flags.ate = 1; }
-    HUD.update(true);
+    refs.bars.forEach(({ nd, el }) => { const raw = G.needs[nd.k]; const v = nd.tired ? 100 - raw : raw; const bad = nd.tired ? v > 75 : v < 22; const i = el.querySelector('i'); i.style.width = v + '%'; el.classList.toggle('low', bad); });
+    refs.pc.hidden = G.loc.area !== 'casa';
+    UI.$$('#hud [data-speed]').forEach(b => b.classList.toggle('on', +b.dataset.speed === G.time.speed));
+    $('#hud').classList.toggle('locked', HUD.locked());
+    const a = G.act; const show = !!(a && a.id !== 'usar_pc' && a.id !== 'live');
+    const key = show ? [a.id, a.label, Math.round(SL.Life.progress() * 100), HUD.locked()].join('|') : '';
+    if (force || key !== lastAct) {
+      lastAct = key; refs.act.hidden = !show;
+      if (show) refs.act.innerHTML = `<span class="ha-i">${UI.ic(SL.Life.ACT[a.id].icon, 16)}</span><div class="grow"><b>${U.esc(a.label)}</b>${a.dur ? `<div class="ha-b"><i style="width:${SL.Life.progress() * 100}%"></i></div><small>até ${SL.Clock.fmtTime(a.t0 + a.dur)}</small>` : ''}</div>${HUD.locked() ? '' : `<button class="sbtn" data-actstop title="Parar">${UI.ic('x', 14)}</button>`}`;
+    }
   };
   HUD.goToPC = () => {
     const G = SL.G;
@@ -103,53 +68,6 @@
     const o = SL.HomeScene.objects().find(x => x.id === 'porta');
     if (SL.G.act && SL.G.act.id !== 'usar_pc') return UI.err('Termine o que está fazendo primeiro.');
     SL.HomeScene.goToObject(o, () => SL.City.goOutside());
-  };
-
-  // ---------- ações dos objetos da casa ----------
-  HUD.objectActions = o => {
-    const G = SL.G; const L = SL.Life; const it = G.home.items; const out = [];
-    const busy = G.act && G.act.id !== 'usar_pc';
-    const life = (id, data, label) => () => { const r = L.start(id, data, label ? { label } : undefined); if (!r && id === 'comer') G.flags.ate = 1; return r; };
-    const why = !busy ? null : 'Termine: ' + G.act.label;
-    const add = (label, icon, fn, sub, dis, w) => out.push({ label, icon, fn, sub, disabled: dis || !!why, why: w || why });
-    switch (o.kind) {
-      case 'cama': {
-        add('Dormir até descansar', 'sleep', life('dormir', {}), 'até o sono encher');
-        const h = SL.Clock.hour(); [7, 9].forEach(hh => { const day = SL.Clock.day() + (h >= hh ? 1 : 0); add('Dormir até ' + hh + 'h', 'clock', life('dormir', { until: day * 1440 + hh * 60 }, 'Dormindo até ' + hh + 'h')); });
-        add('Cochilar', 'sleep', life('cochilar'), '1h'); add('Ler um livro', 'book', life('ler'), '1h');
-        break;
-      }
-      case 'mesa': out.push({ label: 'Usar o computador', icon: 'laptop', fn: () => UI.openPC() }); break;
-      case 'bike': add('Pedalar', 'bike', life('bike'), '40 min'); break;
-      case 'chuveiro': add('Banho rápido', 'shower', life('banho'), '15 min'); add('Banho demorado', 'shower', life('banho_longo'), '35 min · relaxa'); break;
-      case 'pia_b': add('Escovar os dentes e se arrumar', 'hygiene', life('escovar'), '6 min'); break;
-      case 'vaso': out.push({ label: 'Nada para fazer aqui', icon: 'info', disabled: true }); break;
-      case 'geladeira': {
-        const stock = L.stockList().filter(s => !s.food.cook && !s.food.coffee);
-        stock.forEach(s => add('Comer ' + s.food.name.toLowerCase(), 'food', life('comer', { food: s.food.id }), s.n + 'x'));
-        if (!stock.length) out.push({ label: 'Geladeira vazia: vá ao mercado', icon: 'cart', disabled: true });
-        out.push({ label: 'Ver o que tem em casa', icon: 'fridge', fn: HUD.stockDialog });
-        break;
-      }
-      case 'fogao': add('Cozinhar uma refeição', 'stove', life('cozinhar'), L.foodCount('ingredientes') + ' ingredientes', !L.foodCount('ingredientes'), 'Compre ingredientes no mercado'); add('Passar café', 'coffee', life('cafe'), L.foodCount('cafe') + ' doses', !L.foodCount('cafe'), 'Compre café no mercado'); break;
-      case 'pia': add('Beber água', 'drink', life('beber'), '2 min'); break;
-      case 'cafeteira': add('Passar café', 'coffee', life('cafe'), L.foodCount('cafe') + ' doses', !L.foodCount('cafe'), 'Compre café no mercado'); break;
-      case 'sofa': add('Descansar', 'sofa', life('descansar'), '30 min'); add('Ler um livro', 'book', life('ler'), '1h'); if (it.tv) add('Assistir TV', 'tv', life('tv'), '1h'); break;
-      case 'tv': if (it.tv) add('Assistir TV', 'tv', life('tv'), '1h · descobre tendências'); if (G.equip.setup.console && it.tv) add('Jogar videogame', 'gamepad', life('videogame'), '1h'); if (!it.tv) out.push({ label: 'Compre uma TV para usar o console', icon: 'tv', disabled: true }); break;
-      case 'armario': add('Limpar a casa', 'broom', life('limpar'), 'sujeira ' + Math.round(G.home.dirt) + '%'); break;
-      case 'porta': out.push({ label: 'Sair de casa', icon: 'door', fn: () => SL.City.goOutside() }); out.push({ label: 'Pedir comida (Rangô)', icon: 'food', fn: () => UI.openApp('rango') }); break;
-      case 'guarda': out.push({ label: 'Trocar de roupa', icon: 'user', fn: () => HUD.lookDialog(false) }); break;
-      case 'mesa_jantar': if (G.flags.mealReady) out.push({ label: 'Comer o pedido', icon: 'food', fn: () => { G.flags.ate = 1; return SL.Rel.eatDelivery(); } }); else out.push({ label: 'Mesa vazia', icon: 'info', disabled: true }); break;
-      case 'estudio': if (!G.home.studio) out.push({ label: 'Construir o estúdio', icon: 'sparkle', sub: U.money0(D.STUDIO_COST), fn: () => UI.confirm('Construir estúdio', 'A obra custa ' + U.money(D.STUDIO_COST) + ' e deixa o cenário, o som e a imagem das suas lives muito melhores.', () => UI.err(SL.Home.buildStudio()), 'Construir') }); else out.push({ label: 'Usar o estúdio (computador)', icon: 'live', fn: () => UI.openPC() }); break;
-      case 'planta': add('Regar a planta', 'plant', life('regar'), '3 min'); out.push({ label: 'Vender (25%)', icon: 'coin', fn: () => SL.Home.removeDeco(o.deco) }); break;
-      case 'luz': out.push({ label: 'Iluminação do setup', icon: 'light', disabled: true }); break;
-      default: if (o.deco != null) { out.push({ label: 'Decoração (melhora o cenário)', icon: 'sparkle', disabled: true }); out.push({ label: 'Vender (25%)', icon: 'coin', fn: () => SL.Home.removeDeco(o.deco) }); }
-    }
-    return out;
-  };
-  HUD.stockDialog = () => {
-    const L = SL.Life; const list = L.stockList(); const day = SL.Clock.day();
-    UI.modal({ title: 'Comida em casa', icon: 'fridge', sub: 'Geladeira: ' + L.fridgeUsed() + '/' + L.fridgeCap() + ' porções perecíveis', html: list.length ? `<div class="list">${list.map(s => `<div class="li"><b class="grow">${U.esc(s.food.name)}</b><span class="mono">${s.n}x</span><span class="tiny muted">${s.exp > 9000 ? 'não estraga' : s.exp - day <= 1 ? '<span class="bad">vence amanhã</span>' : 'vence em ' + (s.exp - day) + ' dias'}</span></div>`).join('')}</div>` : '<div class="empty">Nada em casa. Compre no Mercado Bom Preço ou peça no Rangô.</div>', buttons: [{ label: 'Fechar' }] });
   };
 
   // ---------- visual (roupas) ----------
@@ -262,6 +180,7 @@
     const pos = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
     cv.addEventListener('mousemove', e => {
       const G = SL.G; if (!G) return; const p = pos(e); let label = null;
+      if (UI._ctx || HUD.locked()) { tip.hidden = true; SL.HomeScene.setHover(null); cv.style.cursor = 'default'; return; }
       if (G.loc.area === 'casa') { const o = SL.HomeScene.objectAt(p.x, p.y); SL.HomeScene.setHover(o); label = o ? o.label : null; }
       else if (G.loc.area === 'cidade') { const id = SL.City.placeAtScreen(p.x, p.y); SL.City.setHover(id); label = id ? (D.placeById(id).name + (SL.City.isOpen(id) ? '' : ' (fechado)')) : null; }
       else if (G.loc.area === 'local') { const id = SL.City.personAtScreen(p.x, p.y); label = id ? (SL.Rel.get(id).met ? SL.Rel.def(id).name + ' · conversar' : 'Puxar conversa') : null; }
@@ -270,8 +189,10 @@
     });
     cv.addEventListener('mouseleave', () => { tip.hidden = true; SL.HomeScene.setHover(null); });
     cv.addEventListener('click', e => {
-      const G = SL.G; if (!G) return; const p = pos(e); UI.closeCtx(); $('.notif-panel') && $('.notif-panel').remove();
+      const G = SL.G; if (!G) return; const p = pos(e);
       SL.audio.init();
+      if (HUD.locked()) return;
+      UI.closeCtx();
       if (G.loc.area === 'casa') {
         const o = SL.HomeScene.objectAt(p.x, p.y);
         if (o) { SL.HomeScene.goToObject(o, () => HUD.openObjectMenu(o)); return; }
@@ -288,11 +209,12 @@
     window.addEventListener('keydown', e => {
       if (UI.screen !== 'game' || /input|textarea|select/i.test(document.activeElement.tagName)) return;
       const G = SL.G;
+      if (HUD.locked()) { if (G.loc.area === 'casa' && SL.HomeScene.keyDown(e.key)) e.preventDefault(); return; }
       if (e.key === ' ') { e.preventDefault(); G.time.speed = G.time.speed === 0 ? (HUD._lastSpeed || 1) : (HUD._lastSpeed = G.time.speed, 0); HUD.update(true); }
       if (['1', '2', '3'].includes(e.key)) { G.time.speed = +e.key; HUD.update(true); }
       if (e.key === 'Escape') { if ($('.modal-bg')) return; if (UI._ctx) return UI.closeCtx(); if (UI.phoneOpen()) return UI.closePhone(); if (UI.pcOpen() && !(SL.Live && SL.Live.cur)) return UI.closePC(); SL.Screens.pauseMenu(); }
-      if ((e.key === 'c' || e.key === 'C') && !UI.pcOpen()) UI.phoneOpen() ? UI.closePhone() : UI.openPhone();
-      if ((e.key === 'p' || e.key === 'P') && G.loc.area === 'casa') UI.pcOpen() ? UI.closePC() : HUD.goToPC();
+      if ((e.key === 'c' || e.key === 'C') && !UI.pcOpen()) { if (UI.phoneOpen()) UI.closePhone(); else UI.openPhone(); }
+      if ((e.key === 'p' || e.key === 'P') && G.loc.area === 'casa') { if (UI.pcOpen()) UI.closePC(); else HUD.goToPC(); }
       if (G.loc.area === 'casa' && !UI.pcOpen() && !UI.phoneOpen() && !$('.modal-bg')) {
         if (SL.HomeScene.keyDown(e.key)) { e.preventDefault(); if (G.act && G.act.id !== 'usar_pc') HUD.busyHint(); }
         if ((e.key === 'e' || e.key === 'E') && !e.repeat) HUD.interactNear();
@@ -303,26 +225,15 @@
     cv.addEventListener('wheel', e => { if (SL.G && SL.G.loc.area === 'casa') { e.preventDefault(); SL.HomeScene.zoomBy(e.deltaY); } }, { passive: false });
     SL.HomeScene.onExit = () => { const o = SL.HomeScene.objects().find(x => x.id === 'porta'); if (o) HUD.openObjectMenu(o); };
   };
-  // menu do objeto ao lado do personagem (o computador abre direto)
-  HUD.openObjectMenu = o => {
-    const opts = HUD.objectActions(o); const sp = SL.HomeScene.charScreen();
-    if (opts.length === 1 && !opts[0].disabled && o.kind === 'mesa') { opts[0].fn(); return; }
-    UI.ctxMenu(sp.x + 24, sp.y - 60, o.label, opts[0] ? opts[0].icon : 'info', opts);
-  };
-  HUD.interactNear = () => {
-    const G = SL.G; if (UI._ctx) return UI.closeCtx();
-    const o = SL.HomeScene.near(); if (!o) return;
-    if (G.act && G.act.id !== 'usar_pc') return HUD.busyHint();
-    SL.audio.play('click'); HUD.openObjectMenu(o);
-  };
   let busyT = 0;
-  HUD.busyHint = () => { const now = performance.now(); if (now - busyT < 2500) return; busyT = now; const G = SL.G; UI.toast({ title: 'Ocupado(a)', text: G.act.label + '. Pare pelo painel ao lado para andar.', icon: 'clock', cat: 'vida' }, null, true); };
+  HUD.busyHint = () => { const now = performance.now(); if (now - busyT < 2500) return; busyT = now; const G = SL.G; UI.toast({ title: 'Ocupado(a)', text: G.act.label + '. Toque no X lá em cima para parar.', icon: 'clock', cat: 'vida' }, null, true); };
+  // dica curta embaixo: some sozinha depois de um tempo em cada lugar
+  let hintAt = 0, hintKey = '';
   HUD.stageOverlay = () => {
-    const G = SL.G; const host = $('#stage-ui'); let b = $('.stage-badge', host), h = $('.stage-hint', host);
-    if (!b) { b = document.createElement('div'); b.className = 'stage-badge'; host.appendChild(b); h = document.createElement('div'); h.className = 'stage-hint'; host.appendChild(h); }
-    const txt = G.loc.area === 'casa' ? [UI.ic('home', 15) + ' ' + U.esc(D.homeById(G.home.id).name), 'WASD anda · Shift corre · E usa · clique para ir · roda do mouse aproxima'] : G.loc.area === 'cidade' ? [UI.ic('map', 15) + ' ' + (G.act && G.act.id === 'viagem' ? U.esc(G.act.label) : 'Você está em: ' + U.esc((D.placeById(G.loc.place) || {}).name || '')), 'Clique num lugar para ir até lá'] : [UI.ic('location', 15) + ' ' + U.esc((D.placeById(G.loc.place) || {}).name || ''), 'Clique nas pessoas para conversar'];
-    if (b.dataset.t !== txt[0]) { b.innerHTML = txt[0]; b.dataset.t = txt[0]; }
-    if (h.dataset.t !== txt[1]) { h.textContent = txt[1]; h.dataset.t = txt[1]; }
-    h.hidden = G.loc.area === 'local'; b.hidden = G.loc.area === 'local';
+    const G = SL.G; const host = $('#stage-ui'); let h = $('.stage-hint', host);
+    if (!h) { h = document.createElement('div'); h.className = 'stage-hint'; host.appendChild(h); }
+    const txt = G.loc.area === 'casa' ? 'WASD anda · Shift corre · E usa · clique nos objetos' : G.loc.area === 'cidade' ? (G.act && G.act.id === 'viagem' ? '' : 'Clique num lugar para ir até lá') : '';
+    if (txt !== hintKey) { hintKey = txt; hintAt = performance.now(); h.textContent = txt; }
+    h.classList.toggle('gone', !txt || performance.now() - hintAt > 14000 || (G.loc.area === 'casa' && SL.HomeScene.moving()));
   };
 })(window.SL);

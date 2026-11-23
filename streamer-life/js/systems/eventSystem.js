@@ -45,9 +45,9 @@
 
   DEF.corte_viraliza = {
     title: 'Um corte da sua live viralizou', icon: 'fire',
-    text: d => 'Um fã postou no Clipz o momento "' + d.txt + '" e ele já passou de ' + U.num(d.views) + ' visualizações.',
+    text: d => 'Um fã postou no TikTok o momento "' + d.txt + '" e ele já passou de ' + U.num(d.views) + ' visualizações.',
     choices: [
-      { id: 'repostar', label: 'Repostar oficialmente no seu Clipz', desc: 'Você aproveita a onda e leva o crédito.', fn: d => { const gain = Math.round(d.views * 0.004) + 20; G().ch.clipz.f += gain; G().ch.pulso.f += Math.round(gain * 0.3); Rep.mod({ popularidade: 2 }); return '+' + U.int(gain) + ' seguidores no Clipz.'; } },
+      { id: 'repostar', label: 'Repostar oficialmente no seu TikTok', desc: 'Você aproveita a onda e leva o crédito.', fn: d => { const gain = Math.round(d.views * 0.004) + 20; G().ch.clipz.f += gain; G().ch.pulso.f += Math.round(gain * 0.3); Rep.mod({ popularidade: 2 }); return '+' + U.int(gain) + ' seguidores no TikTok.'; } },
       { id: 'agradecer', label: 'Agradecer o fã publicamente', desc: 'Seu público adora quando você valoriza a comunidade.', fn: d => { const gain = Math.round(d.views * 0.002) + 10; G().ch.connect.f += gain; G().ch.pulso.f += Math.round(gain * 0.4); Rep.mod({ confianca: 2, imagem: 1, popularidade: 1 }); return 'A comunidade ficou orgulhosa.'; } },
       { id: 'ignorar', label: 'Deixar rolar', desc: 'Sem esforço, menos retorno.', fn: d => { G().ch.pulso.f += Math.round(d.views * 0.0008); return 'Alguns seguidores chegaram mesmo assim.'; } },
     ],
@@ -66,7 +66,7 @@
     text: d => 'Um trecho de "' + d.title + '" foi cortado fora de contexto e está circulando.',
     choices: [
       { id: 'video', label: 'Gravar vídeo explicando', desc: 'Resolve melhor, mas custa tempo e energia.', fn: () => { Rep.mod({ imagem: 3, confianca: 3 }); SL.Life.mod({ energia: -10, estresse: 6 }); return 'O vídeo de explicação foi bem recebido.'; } },
-      { id: 'post', label: 'Postar um esclarecimento no Connect', desc: 'Rápido, efeito médio.', fn: () => { Rep.mod({ imagem: 1, confianca: 1 }); return 'Parte do público entendeu.'; } },
+      { id: 'post', label: 'Postar um esclarecimento no Instagram', desc: 'Rápido, efeito médio.', fn: () => { Rep.mod({ imagem: 1, confianca: 1 }); return 'Parte do público entendeu.'; } },
       { id: 'ignorar', label: 'Ignorar', desc: 'Pode passar... ou crescer.', fn: () => { if (U.chance(0.5)) { Rep.mod({ imagem: -4, credibilidade: -2 }); polemic(4); SL.Social.newsAboutPlayer('bad'); return 'Cresceu. Agora todo mundo está comentando.'; } return 'Passou sem grandes estragos.'; } },
     ],
   };
@@ -93,7 +93,7 @@
     text: d => d.name + ' (' + U.num(d.f) + ' seguidores) publicou um vídeo ' + (d.hard ? 'criticando você e o seu conteúdo.' : 'comentando o seu crescimento com ironia.'),
     choices: [
       { id: 'responder', label: 'Responder em vídeo', desc: 'Muita audiência, risco de briga longa.', fn: d => { Rep.mod({ popularidade: 5, imagem: -2, profissional: -2 }); SL.Rel.get(d.id).aff -= 20; G().ch.vision.f += U.ri(50, 500); polemic(6); SL.Social.news('gossip', { h: G().player.user, h2: D.creatorById(d.id).handle }); return 'A treta rendeu views e dor de cabeça.'; } },
-      { id: 'classe', label: 'Responder com classe no Connect', desc: 'Pega bem com marcas e com o público.', fn: d => { Rep.mod({ imagem: 3, profissional: 2, credibilidade: 1 }); SL.Rel.get(d.id).aff += 5; G().ch.connect.f += U.ri(20, 200); return 'Muita gente elogiou sua postura.'; } },
+      { id: 'classe', label: 'Responder com classe no Instagram', desc: 'Pega bem com marcas e com o público.', fn: d => { Rep.mod({ imagem: 3, profissional: 2, credibilidade: 1 }); SL.Rel.get(d.id).aff += 5; G().ch.connect.f += U.ri(20, 200); return 'Muita gente elogiou sua postura.'; } },
       { id: 'ignorar', label: 'Ignorar', fn: () => { Rep.mod({ popularidade: 1, imagem: -1 }); return 'O assunto morreu em alguns dias.'; } },
     ],
   };
@@ -115,7 +115,7 @@
   };
   DEF.seguidores_comprados = {
     title: 'Proposta tentadora', icon: 'coin',
-    text: 'Uma conta te mandou: "10 mil seguidores na Pulso por R$ 199. Ninguém percebe, garantido."',
+    text: 'Uma conta te mandou: "10 mil seguidores na Twitch por R$ 199. Ninguém percebe, garantido."',
     choices: [
       { id: 'comprar', label: 'Comprar (R$ 199)', desc: 'Números maiores agora. Se descobrirem...', fn: () => { if (!SL.Econ.spend(199, 'outros', 'Pacote de seguidores')) return 'Sem dinheiro.'; G().ch.pulso.f += 10000; G().ch.pulso.fake = (G().ch.pulso.fake || 0) + 10000; return '10 mil seguidores apareceram do nada. Nenhum deles assiste.'; } },
       { id: 'recusar', label: 'Recusar e denunciar', fn: () => { Rep.mod({ credibilidade: 1 }); return 'Você bloqueou a conta.'; } },
@@ -202,7 +202,7 @@
     if (G0.needs.estresse > 82) G0.flags.stressDays = (G0.flags.stressDays || 0) + 1; else G0.flags.stressDays = 0;
     if (G0.flags.stressDays >= 2 && cool('esgotamento', 10)) E.trigger('esgotamento', {});
     // seguidores comprados podem ser descobertos
-    if (G0.ch.pulso.fake && U.chance(0.03)) { const n = G0.ch.pulso.fake; G0.ch.pulso.f = Math.max(0, G0.ch.pulso.f - n); G0.ch.pulso.fake = 0; Rep.mod({ confianca: -12, credibilidade: -10, imagem: -6 }); SL.Social.news('player_bad', { u: G0.player.user }); SL.notify({ cat: 'carreira', icon: 'alert', title: 'Descobriram os seguidores comprados', text: 'A Pulso removeu ' + U.int(n) + ' contas falsas e a notícia se espalhou.' }); }
+    if (G0.ch.pulso.fake && U.chance(0.03)) { const n = G0.ch.pulso.fake; G0.ch.pulso.f = Math.max(0, G0.ch.pulso.f - n); G0.ch.pulso.fake = 0; Rep.mod({ confianca: -12, credibilidade: -10, imagem: -6 }); SL.Social.news('player_bad', { u: G0.player.user }); SL.notify({ cat: 'carreira', icon: 'alert', title: 'Descobriram os seguidores comprados', text: 'A Twitch removeu ' + U.int(n) + ' contas falsas e a notícia se espalhou.' }); }
     // convites para eventos fixos
     const tier = SL.Career ? SL.Career.tier() : 0;
     D.expoEvents.forEach(x => {

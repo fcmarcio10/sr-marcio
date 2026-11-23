@@ -6,7 +6,7 @@
   const avatarFor = id => { const d = SL.Rel.def(id); return d && d.look ? d.look : null; };
 
   SL.Apps.mensagens = {
-    title: 'Mensagens', short: 'Mensagens', icon: 'chat', color: 'linear-gradient(135deg,#35d39a,#1f8f63)', pc: true, phone: true, w: 860, h: 620,
+    title: 'WhatsApp', short: 'WhatsApp', icon: 'chat', color: 'linear-gradient(135deg,#2fe07a,#128c7e)', order: 6, pc: true, phone: true, w: 860, h: 620,
     watch: ['dm', 'rel'],
     badge: () => SL.Social.unreadDMs(),
     render(el, ctx) {

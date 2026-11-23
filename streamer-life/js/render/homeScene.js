@@ -40,7 +40,7 @@
   // cores
   const PAINT = { quarto: '#8d84ad', escritorio: '#5d6b8a', banheiro: '#93bcc6', sala: '#c19c78', cozinha: '#d3be93', estudio: '#3b4057' };
   const PAINT_MAE = { quarto: '#d4a49c', escritorio: '#a3b386', banheiro: '#a2cbcb', sala: '#dbb98d', cozinha: '#e2cc9e', estudio: '#8a8a8a' };
-  const EXT = '#b3a796', WALL_TOP = '#232733', WALL_EDGE = '#454c60';
+  const EXT = '#b3a796', WALL_TOP = '#474b57', WALL_EDGE = '#6b7184';
   const FACE = { S: -0.07, N: -0.34, E: -0.24, W: -0.14 };
 
   let grid = null, lay = null, objs = [], walls = [], wallEdges = [], doors = [], props = [], ch = null, hover = null, onArrive = null;
@@ -65,10 +65,16 @@
     for (const d of ['N', 'E', 'W', 'S']) {
       if (!vis(d, x0, y0, x1, y1)) continue;
       const [ax, ay, bx, by] = FACE_AB(d, x0, y0, x1, y1);
-      c.fillStyle = sh((o.faces && o.faces[d]) || side, FACE[d]); quad(c, P(ax, ay, z0), P(bx, by, z0), P(bx, by, z1), P(ax, ay, z1)); c.fill();
+      const col = sh((o.faces && o.faces[d]) || side, FACE[d]); const a0 = P(ax, ay, z0), b0 = P(bx, by, z0), b1 = P(bx, by, z1), a1 = P(ax, ay, z1);
+      if (z1 - z0 > 14) { const g = c.createLinearGradient((a1[0] + b1[0]) / 2, (a1[1] + b1[1]) / 2, (a0[0] + b0[0]) / 2, (a0[1] + b0[1]) / 2); g.addColorStop(0, sh(col, 0.05)); g.addColorStop(1, sh(col, z0 < 1 ? -0.28 : -0.12)); c.fillStyle = g; } else c.fillStyle = col;
+      quad(c, a0, b0, b1, a1); c.fill();
       if (o.ff && (o.front === d || o.front === '*')) o.ff(c, (u, z) => P(ax + (bx - ax) * u, ay + (by - ay) * u, z), d);
     }
-    if (top) atZ(c, z1, () => { c.fillStyle = top; c.fillRect(x0, y0, x1 - x0, y1 - y0); if (o.tf) o.tf(c, x0, y0, x1 - x0, y1 - y0); });
+    if (top) atZ(c, z1, () => {
+      const w = x1 - x0, h = y1 - y0; c.fillStyle = top; c.fillRect(x0, y0, w, h);
+      if (w > 6 && h > 6) { c.fillStyle = 'rgba(255,255,255,.13)'; c.fillRect(x0, y0, w, 1.1); c.fillRect(x0, y0, 1.1, h); c.fillStyle = 'rgba(0,0,0,.16)'; c.fillRect(x0, y1 - 1.1, w, 1.1); c.fillRect(x1 - 1.1, y0, 1.1, h); }
+      if (o.tf) o.tf(c, x0, y0, w, h);
+    });
   };
   // prisma de base qualquer (portas abrindo, vasos redondos)
   const prism = (c, pts, z0, z1, side, top, tf) => {
@@ -244,7 +250,7 @@
     if (['tv', 'videogame', 'descansar', 'ler'].includes(a.id)) { const s = ob('sofa'); if (s) return { host: 'sofa', stand: s.use, x: (s.x + s.w / 2) * T, y: s.y * T + 14, ang: -Math.PI / 2, sit: true }; if (a.id === 'ler') { const b = ob('cama'); if (b) return { host: 'cama', stand: b.use, sleep: true, reading: true }; } }
     if (/banho/.test(a.id)) { const s = ob('chuveiro'); if (s) return { host: 'chuveiro', stand: s.use, x: (s.x + s.w / 2) * T, y: (s.y + s.h / 2) * T, ang: Math.PI / 2 }; }
     if (a.id === 'bike') { const b = ob('bike'); if (b) return { host: 'bike', stand: b.use, x: (b.x + 0.5) * T, y: (b.y + 0.62) * T, ang: -Math.PI / 2, sit: true, pedal: true }; }
-    if (a.id === 'comer') { const m = ob('mesa_jantar'); if (m && m.use) return { host: 'mesa_jantar', stand: m.use, x: (m.use[0] + 0.5) * T, y: (m.use[1] + 0.62) * T, ang: Math.PI / 2, sit: true }; }
+    if (a.id === 'comer_pedido' || (a.id === 'comer' && a.data && a.data.where === 'mesa')) { const m = ob('mesa_jantar'); if (m && m.use) return { host: 'mesa_jantar', stand: m.use, x: (m.use[0] + 0.5) * T, y: (m.use[1] + 0.62) * T, ang: Math.PI / 2, sit: true }; }
     if (a.id === 'cozinhar') return at(ob('fogao'));
     if (a.id === 'cafe') return at(ob('cafeteira') || ob('fogao'));
     if (a.id === 'beber') return at(ob('pia'));
@@ -259,17 +265,18 @@
     // começou uma atividade: o personagem vai para o lugar dela
     const ak = act ? act.id + ':' + act.t0 : null;
     if (ak !== lastAct) { lastAct = ak; if (act) { const p = pose(); if (p && p.stand) { ch.x = (p.stand[0] + 0.5) * T; ch.y = (p.stand[1] + 0.5) * T; ch.path = []; onArrive = null; } } }
+    if (act) { const p0 = pose(); if (p0 && !p0.host && p0.ang != null) ch.tang = p0.ang; }
     const tired = SL.Life.tiredLevel ? SL.Life.tiredLevel() : 0;
-    const blocked = !!document.querySelector('.modal-bg') || (SL.UI && (SL.UI.pcOpen() || SL.UI.phoneOpen()));
+    const blocked = !!document.querySelector('.modal-bg') || (SL.UI && (SL.UI.pcOpen() || SL.UI.phoneOpen())) || (SL.Seq && SL.Seq.busy());
     let mx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0), my = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
     const sp = (keys.run ? 168 : 108) * [1, 0.9, 0.76, 0.62][tired] * (busy ? 0 : 1);
     ch.moving = false;
-    if ((mx || my) && !busy && !blocked) {
-      if (ch.path.length) { ch.path = []; onArrive = null; }
-      const l = Math.hypot(mx, my); mx /= l; my /= l;
-      if (move(mx * sp * dt, my * sp * dt)) ch.moving = true;
-      ch.tang = Math.atan2(my, mx);
-      if (SL.UI && SL.UI._ctx) SL.UI.closeCtx();
+    const wantKeys = (mx || my) && !busy && !blocked;
+    if (wantKeys) { if (ch.path.length) { ch.path = []; onArrive = null; } const l = Math.hypot(mx, my); mx /= l; my /= l; ch.tang = Math.atan2(my, mx); if (SL.UI && SL.UI._ctx) SL.UI.closeCtx(); }
+    const kv = 1 - Math.exp(-dt * (wantKeys ? 14 : 18));
+    ch.vx += ((wantKeys ? mx * sp : 0) - ch.vx) * kv; ch.vy += ((wantKeys ? my * sp : 0) - ch.vy) * kv;
+    if (Math.hypot(ch.vx, ch.vy) > 6 && !ch.path.length) {
+      if (move(ch.vx * dt, ch.vy * dt)) ch.moving = true; else { ch.vx *= 0.5; ch.vy *= 0.5; }
     } else if (ch.path.length && (!busy || (act && act.id === 'limpar'))) {
       const s2 = (busy ? 60 : 124) * [1, 0.9, 0.76, 0.62][tired] * dt;
       while (ch.path.length > 1 && clear(ch.x, ch.y, (ch.path[1][0] + 0.5) * T, (ch.path[1][1] + 0.5) * T)) ch.path.shift();
@@ -285,7 +292,7 @@
       const tx = r.x + Math.floor(Math.random() * r.w), ty = r.y + Math.floor(Math.random() * r.h); if (walkable(tx, ty)) { const p = bfs(...tileOf(), tx, ty); if (p) ch.path = p; }
     }
     if (ch.moving) {
-      const before = ch.ph; ch.ph += dt * (keys.run ? 15 : 11);
+      const before = ch.ph; ch.ph += dt * U.clamp((ch.path.length ? 124 : Math.hypot(ch.vx, ch.vy)) / 10, 6, 17);
       if (Math.floor(ch.ph / Math.PI) !== Math.floor(before / Math.PI) && SL.audio) SL.audio.play('step');
       const [tx, ty] = tileOf(); G.loc.tx = tx; G.loc.ty = ty;
     } else ch.ph *= 0.8;
@@ -421,7 +428,9 @@
       if (w.skip[d] || !vis(d, x0, y0, x1, y1)) continue;
       const [ax, ay, bx, by] = FACE_AB(d, x0, y0, x1, y1); const fp = (u, z) => P(ax + (bx - ax) * u, ay + (by - ay) * u, z);
       const col = w.col[d];
-      c.fillStyle = sh(col, FACE[d]); quad(c, P(ax, ay, 0), P(bx, by, 0), P(bx, by, WALLZ), P(ax, ay, WALLZ)); c.fill();
+      const a0 = P(ax, ay, 0), b0 = P(bx, by, 0), b1 = P(bx, by, WALLZ), a1 = P(ax, ay, WALLZ);
+      const g = c.createLinearGradient((a1[0] + b1[0]) / 2, (a1[1] + b1[1]) / 2, (a0[0] + b0[0]) / 2, (a0[1] + b0[1]) / 2); g.addColorStop(0, sh(col, FACE[d] + 0.06)); g.addColorStop(1, sh(col, FACE[d] - 0.16));
+      c.fillStyle = g; quad(c, a0, b0, b1, a1); c.fill();
       fq(c, fp, 0, 1, 0, 3.5, sh(col, FACE[d] - 0.3));
       fq(c, fp, 0, 1, WALLZ - 2, WALLZ, sh(col, FACE[d] + 0.12));
       w.dec.forEach(dc => { if (dc.face === d || dc.face === '*') { dc.fn(c, fp, d); if (dc.obj) hits.push(bboxOf(x0, y1, x1, y1, 18, 48).concat(dc.obj)); } });
@@ -458,7 +467,8 @@
         const mx0 = tier ? x0 + 6 : x0;
         box(c, mx0, y0 + 1, x1 - 1, y1 - 1, tier ? 12 : 0, mz, '#d6dae3', '#eef1f6', { tf: (c2, x, y, w, h) => {
           c2.fillStyle = '#ffffff'; rr(c2, x + 3, y + 4, 15, h / (tier >= 2 ? 2 : 1) - 8, 4); c2.fill(); if (tier >= 2) { rr(c2, x + 3, y + h / 2 + 4, 15, h / 2 - 8, 4); c2.fill(); }
-          c2.fillStyle = blanket; rr(c2, x + w * 0.3, y + 1, w * 0.7 - 1, h - 2, 4); c2.fill(); c2.fillStyle = sh(blanket, 0.2); c2.fillRect(x + w * 0.3, y + 1, 5, h - 2);
+          c2.fillStyle = blanket; rr(c2, x + w * 0.3, y + 1, w * 0.7 - 1, h - 2, 4); c2.fill(); c2.fillStyle = sh(blanket, 0.28); rr(c2, x + w * 0.3, y + 1, 7, h - 2, 3); c2.fill();
+          c2.strokeStyle = 'rgba(255,255,255,.12)'; c2.lineWidth = 0.7; c2.setLineDash([2, 2]); for (let i = 1; i < 3; i++) { c2.beginPath(); c2.moveTo(x + w * 0.3 + 8, y + i * h / 3); c2.lineTo(x + w - 3, y + i * h / 3); c2.stroke(); } c2.setLineDash([]);
           c2.fillStyle = 'rgba(0,0,0,.08)'; for (let i = 1; i < 4; i++) c2.fillRect(x + w * 0.3 + i * w * 0.17, y + 2, 1, h - 4);
         } });
         if (host && ps.sleep) { const hx = mx0 + 11, hy = (y0 + y1) / 2 + (tier >= 2 ? -8 : 0); atZ(c, mz + 3, () => { c.fillStyle = sh(blanket, 0.1); c.beginPath(); c.ellipse(hx + 26, hy, 20, 10, 0, 0, 7); c.fill(); lyingHead(c, G.player.look, hx, hy, ps.reading); }); }
@@ -554,7 +564,7 @@
         break;
       }
       case 'tv': {
-        box(c, X - 4, Y + 2, X + W + 4, Y + 16, 0, 16, '#3d2c22', '#523d2f');
+        box(c, X - 4, Y + 2, X + W + 4, Y + 16, 0, 16, '#3d2c22', '#523d2f', { tf: (c2, x, y, w, h) => grain(c2, x, y, w, h, 3) });
         if (G.equip.setup.console) box(c, X + W / 2 - 10, Y + 8, X + W / 2 + 10, Y + 15, 16, 19, '#ececf2', '#f6f6fa');
         if (fb.id) {
           const big = tier === 2; const tw = big ? W + 10 : W - 6; const tx0 = X + (W - tw) / 2;
@@ -575,7 +585,7 @@
       }
       case 'guarda': {
         const r = inset(o, 2, 6);
-        box(c, r[0], r[1], r[2], r[3], 0, 54, '#5a4030', '#6d4f3c', { front: o.front, ff: (c2, fp) => { for (let i = 1; i < 3; i++) fq(c2, fp, i / 3 - 0.004, i / 3 + 0.004, 2, 52, 'rgba(0,0,0,.35)'); for (let i = 0; i < 3; i++) fq(c2, fp, i / 3 + 0.26, i / 3 + 0.29, 22, 32, '#d9b56a'); } });
+        box(c, r[0], r[1], r[2], r[3], 0, 54, '#5a4030', '#6d4f3c', { tf: (c2, x, y, w, h) => grain(c2, x, y, w, h, 7), front: o.front, ff: (c2, fp) => { for (let i = 1; i < 3; i++) fq(c2, fp, i / 3 - 0.004, i / 3 + 0.004, 2, 52, 'rgba(0,0,0,.35)'); for (let i = 0; i < 3; i++) fq(c2, fp, i / 3 + 0.26, i / 3 + 0.29, 22, 32, '#d9b56a'); } });
         break;
       }
       case 'mesa_jantar': {
@@ -586,6 +596,7 @@
         legs.forEach(([lx, ly]) => box(c, lx, ly, lx + 4, ly + 4, 0, 18, '#5a4230', '#6d5039'));
         if (host) person(c, G.player.look, ps.x, ps.y, ps.ang, { sit: true, eat: true });
         box(c, X + 3, Y + 5, X + W - 3, Y + Hh - 5, 18, 22, '#7a5a40', '#9a7652', { tf: (c2, x, y, w, h) => {
+          grain(c2, x, y, w, h, o.x);
           if (G.flags.mealReady || host) { c2.fillStyle = '#f4f4f4'; c2.beginPath(); c2.arc(x + 16, y + 7, 7, 0, 7); c2.fill(); c2.fillStyle = host ? '#c86f3c' : '#d8432f'; c2.beginPath(); c2.arc(x + 16, y + 7, 4.5, 0, 7); c2.fill(); }
           c2.fillStyle = 'rgba(255,255,255,.08)'; c2.fillRect(x + 2, y + 2, w - 4, 1.2);
         } });
@@ -626,6 +637,8 @@
     const hl = (hover && hover.id === o.id) || (near && near.id === o.id && !SL.G.act);
     if (hl && !o.wall && o.kind !== 'porta') atZ(c, Math.min(o.z, 56) + 0.5, () => { c.strokeStyle = 'rgba(196,181,253,.95)'; c.lineWidth = 1.6; c.setLineDash([5, 4]); rr(c, X - 2, Y - 2, W + 4, Hh + 4, 5); c.stroke(); c.setLineDash([]); });
   };
+  // veios de madeira num tampo
+  const grain = (c, x, y, w, h, seed) => { c.strokeStyle = 'rgba(0,0,0,.12)'; c.lineWidth = 0.6; for (let i = 0; i < Math.max(2, h / 4); i++) { const yy = y + 2 + i * 4 + hv(seed, i) * 2; c.beginPath(); c.moveTo(x + 1, yy); c.bezierCurveTo(x + w * 0.3, yy + (hv(i, seed) - 0.5) * 3, x + w * 0.7, yy - (hv(seed + 1, i) - 0.5) * 3, x + w - 1, yy); c.stroke(); } };
   const inset = (o, a, b) => { const X = o.x * T, Y = o.y * T, W = o.w * T, Hh = o.h * T; const s = { N: [a, a, a, b], S: [a, b, a, a], W: [a, a, b, a], E: [b, a, a, a] }[o.back] || [a, a, a, a]; return [X + s[0], Y + s[1], X + W - s[2], Y + Hh - s[3]]; };
 
   const drawDesk = (c, o, t, X, Y, W) => {
@@ -634,7 +647,7 @@
     const broken = pcIt && SL.Equip.isBroken(pcIt.id);
     const top = tier === 0 ? '#c9ad84' : tier === 1 ? '#1d1f26' : '#2a2d38', side = tier === 0 ? '#a48a64' : tier === 1 ? '#15161b' : '#202330';
     const dz = 25;
-    box(c, X + 2, Y + 3, X + W - 2, Y + 29, dz - 3, dz, side, top, { front: 'S', ff: (c2, fp) => { if (tier === 1) fq(c2, fp, 0, 1, dz - 1.6, dz - 0.6, '#d8432f'); } });
+    box(c, X + 2, Y + 3, X + W - 2, Y + 29, dz - 3, dz, side, top, { tf: (c2, x, y, w, h) => { if (tier === 0) grain(c2, x, y, w, h, 5); else { c2.fillStyle = 'rgba(255,255,255,.04)'; c2.fillRect(x + 4, y + 4, w - 8, h - 8); } }, front: 'S', ff: (c2, fp) => { if (tier === 1) fq(c2, fp, 0, 1, dz - 1.6, dz - 0.6, '#d8432f'); } });
     [[X + 4, Y + 5], [X + W - 8, Y + 5], [X + 4, Y + 23], [X + W - 8, Y + 23]].forEach(([lx, ly]) => box(c, lx, ly, lx + 4, ly + 4, 0, dz - 3, side, side));
     if (tier === 2) box(c, X + W - 30, Y + 29, X + W - 2, Y + 54, dz - 3, dz, side, top);
     const a = G.act; const on = a && SL.Life.ACT[a.id] && SL.Life.ACT[a.id].pc;
@@ -667,8 +680,8 @@
   const drawChair = (c, o, ps) => {
     const G = SL.G; const chair = D.furnById(G.home.items.cadeira) || { tier: 0 }; const tr = chair.tier || 0;
     const col = ['#e4e4ea', '#5a6070', '#1d1d24', '#3a3f4f'][tr];
-    const cx = (o.use[0] + 0.5) * T, cy = (o.use[1] + 0.5) * T + 2;
     const sitting = ps && ps.host === 'mesa';
+    const cx = (o.use[0] + 0.5) * T, cy = (o.use[1] + 0.5) * T + (sitting ? 2 : 13);
     if (tr) cyl(c, cx, cy, 10, 0, 2, '#1b1b1f', '#2a2a30');
     box(c, cx - 2, cy - 2, cx + 2, cy + 2, 0, 13, '#222222', '#2a2a2a');
     box(c, cx - 11, cy - 9, cx + 11, cy + 8, 13, 17, sh(col, -0.1), col);
@@ -704,7 +717,10 @@
       const arm = sit ? 0 : -sw * 6.5;
       const hand = (hx, hy) => { c.fillStyle = L.skin; c.beginPath(); c.arc(hx, hy, 2.9, 0, 7); c.fill(); };
       c.fillStyle = L.shirt;
-      if (sit && (o.type || o.eat || o.pedal)) {
+      if (o.hold) {
+        c.beginPath(); c.ellipse(4, -8.5, 5.5, 3.4, 0.4, 0, 7); c.fill(); c.beginPath(); c.ellipse(4, 8.5, 5.5, 3.4, -0.4, 0, 7); c.fill();
+        hand(9.5, -5.5); hand(9.5, 5.5); holdItem(c, o.hold);
+      } else if (sit && (o.type || o.eat || o.pedal)) {
         c.beginPath(); c.ellipse(4, -9.5, 5.5, 3.4, 0.35, 0, 7); c.fill(); c.beginPath(); c.ellipse(4, 9.5, 5.5, 3.4, -0.35, 0, 7); c.fill();
         hand(10 + typing, -6.5); hand(10 - typing, 6.5);
       } else {
@@ -716,6 +732,13 @@
       c.fillStyle = 'rgba(255,255,255,.1)'; c.beginPath(); c.ellipse(-1, -3, 3, 5, 0, 0, 7); c.fill();
     });
     atZ(c, zs + 7, () => { c.translate(x, y); c.rotate(ang); head(c, L); });
+  };
+  // o que o personagem leva nas mãos durante uma sequência
+  const holdItem = (c, k) => {
+    if (k === 'prato') { c.fillStyle = '#f4f4f4'; c.beginPath(); c.arc(13, 0, 6.2, 0, 7); c.fill(); c.fillStyle = '#c86f3c'; c.beginPath(); c.arc(13, 0, 3.8, 0, 7); c.fill(); c.fillStyle = '#7fb04a'; c.beginPath(); c.arc(11.6, -1.4, 1.4, 0, 7); c.fill(); }
+    else if (k === 'copo') { c.fillStyle = '#d8eef8'; c.beginPath(); c.arc(12, 0, 3.4, 0, 7); c.fill(); c.fillStyle = '#e07a3a'; c.beginPath(); c.arc(12, 0, 2.4, 0, 7); c.fill(); }
+    else if (k === 'caneca') { c.fillStyle = '#efe9e0'; c.beginPath(); c.arc(12, 0, 3.6, 0, 7); c.fill(); c.fillStyle = '#5a3420'; c.beginPath(); c.arc(12, 0, 2.6, 0, 7); c.fill(); }
+    else { c.fillStyle = '#c9a26a'; rr(c, 8.5, -5, 9, 10, 1.5); c.fill(); c.fillStyle = '#e74c3c'; c.fillRect(8.5, -1, 9, 2); }
   };
   const head = (c, L) => {
     const hc = L.hairColor;
@@ -860,7 +883,7 @@
     const G = SL.G;
     const dt = Math.min(0.1, Math.max(0, t - lastT)); lastT = t;
     V.W = cw; V.H = chh;
-    V.s = U.clamp(Math.min(cw / (15 * T), chh / (9.6 * T)), 1.05, 2.7) * V.zoom;
+    V.s = U.clamp(Math.min(cw / (17 * T), chh / (10.5 * T)), 1, 2.5) * V.zoom;
     // câmera
     const ps = pose();
     const fx = ps && ps.x != null ? ps.x : ch.x, fy = ps && ps.y != null ? ps.y : ch.y;
@@ -887,7 +910,7 @@
     const desk = ob('mesa'); if (desk && desk.use) { const cx = (desk.use[0] + 0.5) * T, cy = (desk.use[1] + 0.5) * T; list.push({ d: dist(cx - 11, cy - 7, cx + 11, cy + 14), chair: desk }); }
     const hosted = ps && ps.host && ps.host !== 'chao';
     const showChar = !hosted && !(ps && ps.floor);
-    if (showChar) list.push({ d: dist(ch.x - 6, ch.y - 6, ch.x + 6, ch.y + 6) - 30, me: true });
+    if (showChar) { const dd = Math.sqrt(dist(ch.x - 6, ch.y - 6, ch.x + 6, ch.y + 6)); list.push({ d: Math.max(0, dd - 16) ** 2, me: true }); }
     list.sort((a, b) => b.d - a.d);
     if (ps && ps.floor) drawCollapsed(c, G.player.look, ps.x, ps.y);
     list.forEach(e => {
@@ -895,7 +918,7 @@
       else if (e.door) drawDoor(c, e.door);
       else if (e.o) { drawObj(c, e.o, t, ps); const o = e.o; hits.push(bboxOf(o.x * T, o.y * T, (o.x + o.w) * T, (o.y + o.h) * T, 0, Math.min(o.z, 56)).concat(o)); }
       else if (e.chair) { drawChair(c, e.chair, ps); const cx = (e.chair.use[0] + 0.5) * T, cy = (e.chair.use[1] + 0.5) * T; hits.push(bboxOf(cx - 11, cy - 9, cx + 11, cy + 12, 0, 40).concat(e.chair)); }
-      else if (e.me) person(c, G.player.look, ch.x, ch.y, ch.ang, { walk: ch.moving ? ch.ph : 0 });
+      else if (e.me) person(c, G.player.look, ch.x, ch.y, ch.ang, { walk: ch.moving ? ch.ph : 0, hold: SL.Seq && SL.Seq.holding });
     });
     drawWallTops(c);
     // árvores, postes e carros (mais altos que as paredes)

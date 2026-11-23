@@ -5,59 +5,51 @@
   const L = SL.Life = {};
   const G = () => SL.G;
 
+  // Só três necessidades: fome, sede e cansaço (cansaço alto = sono). As antigas (saúde, sono, higiene,
+  // humor e estresse) ficam com valor fixo no salvamento só para os outros sistemas continuarem funcionando.
   L.NEEDS = [
     { k: 'fome', label: 'Fome', icon: 'food', color: '#ffb547' },
     { k: 'sede', label: 'Sede', icon: 'drink', color: '#4cc3ff' },
-    { k: 'sono', label: 'Sono', icon: 'sleep', color: '#9d8cff' },
-    { k: 'higiene', label: 'Higiene', icon: 'hygiene', color: '#19d3c5' },
-    { k: 'energia', label: 'Cansaço', icon: 'energy', color: '#ffb547', tired: true }, // guardado como disposição (100 = descansado); na tela aparece como cansaço
-    { k: 'saude', label: 'Saúde', icon: 'health', color: '#35d39a' },
-    { k: 'humor', label: 'Humor', icon: 'mood', color: '#ff8fc1' },
-    { k: 'estresse', label: 'Estresse', icon: 'stress', color: '#ff5a5a', inv: true },
+    { k: 'energia', label: 'Cansaço', icon: 'sleep', color: '#a78bfa', tired: true }, // guardado como disposição (100 = descansado)
   ];
-
+  const LIVE_KEYS = { fome: 1, sede: 1, energia: 1 };
+  L.fixed = n => { n.sono = n.energia; n.saude = 100; n.higiene = 100; n.humor = 70; n.estresse = 10; };
   L.mod = delta => {
     const n = G().needs;
-    for (const k in delta) if (k in n) n[k] = U.clamp(n[k] + delta[k], 0, 100);
+    for (const k in delta) if (LIVE_KEYS[k]) n[k] = U.clamp(n[k] + delta[k], 0, 100);
+    L.fixed(n);
     SL.bus.emit('needs');
   };
 
   L.perf = () => {
     const n = G().needs; let p = 1;
-    if (n.sono < 30) p -= (30 - n.sono) * 0.012;
-    if (n.energia < 30) p -= (30 - n.energia) * 0.01;
+    if (n.energia < 35) p -= (35 - n.energia) * 0.011;
     if (n.energia < 10) p -= (10 - n.energia) * 0.012;
-    if (n.fome < 25) p -= (25 - n.fome) * 0.008;
-    if (n.sede < 25) p -= (25 - n.sede) * 0.008;
-    if (n.estresse > 60) p -= (n.estresse - 60) * 0.006;
-    if (n.saude < 40) p -= (40 - n.saude) * 0.01;
-    if (n.humor > 70) p += (n.humor - 70) * 0.004;
-    if (n.humor < 25) p -= (25 - n.humor) * 0.005;
-    return U.clamp(p, 0.35, 1.15);
+    if (n.fome < 25) p -= (25 - n.fome) * 0.009;
+    if (n.sede < 25) p -= (25 - n.sede) * 0.009;
+    if (n.fome > 60 && n.sede > 60 && n.energia > 60) p += 0.05;
+    return U.clamp(p, 0.35, 1.1);
   };
   // carisma efetivo na câmera (0-100)
   L.charisma = () => {
-    const G0 = G(), n = G0.needs;
+    const G0 = G();
     let c = 22 + G0.player.skills.carisma * 0.7;
     c *= L.perf();
-    if (n.higiene < 25) c -= (25 - n.higiene) * 0.3;
     if (G0.rel && SL.Rel && SL.Rel.partner()) c += 3;
     return U.clamp(c, 5, 100);
   };
 
   L.warnings = () => {
     const n = G().needs, w = [];
-    if (n.fome < 20) w.push('Com fome'); if (n.sede < 20) w.push('Com sede'); if (n.sono < 20) w.push('Com muito sono');
-    if (n.higiene < 20) w.push('Precisa de um banho'); const tl = L.tiredLevel(); if (tl >= 2) w.push(tl >= 3 ? 'Exausto(a)' : 'Muito cansado(a)'); if (n.saude < 30) w.push('Saúde fraca');
-    if (G().life && G().life.pcRun > 100) w.push('Muito tempo no PC');
-    if (n.estresse > 75) w.push('Muito estressado(a)'); if (n.humor < 20) w.push('Desanimado(a)');
+    if (n.fome < 20) w.push('Com fome'); if (n.sede < 20) w.push('Com sede');
+    const tl = L.tiredLevel(); if (tl >= 2) w.push(tl >= 3 ? 'Morrendo de sono' : 'Com sono');
     return w;
   };
 
   // ---------- cansaço ----------
   // 0 descansado, 1 cansado, 2 muito cansado, 3 exausto. Anda mais devagar, rende menos e pode cochilar na cadeira.
   L.tiredLevel = () => { const e = G().needs.energia; return e >= 45 ? 0 : e >= 25 ? 1 : e >= 10 ? 2 : 3; };
-  L.TIRED = ['Descansado(a)', 'Cansado(a)', 'Muito cansado(a)', 'Exausto(a)'];
+  L.TIRED = ['Descansado(a)', 'Cansado(a)', 'Com sono', 'Morrendo de sono'];
   L.tiredValue = () => Math.round(100 - G().needs.energia);
   L.awakeHours = () => Math.floor(((G().life && G().life.awake) || 0) / 60);
   const PHYS = ['academia', 'bike', 'caminhar', 'limpar', 'turno_cafe'];
@@ -112,23 +104,32 @@
   def('cochilar', { label: 'Cochilando', icon: 'sleep', speed: 10, sleep: true, dur: 60, fx: { sono: 10, energia: 12, estresse: -3 },
     minute: () => { L.mod({ sono: 10 * bed() / 60 }); },
     end: () => { const lf = G().life; if (lf) lf.awake = Math.max(0, lf.awake - 90); } });
-  def('banho', { label: 'Tomando banho', icon: 'shower', speed: 2.5, dur: 15, fx: { humor: 6 },
-    end: (a, ok) => { if (ok) { L.mod({ higiene: 100, humor: 2 }); } } });
+  def('banho', { label: 'Tomando banho', icon: 'shower', speed: 2.5, dur: 15,
+    end: (a, ok) => { if (ok) L.mod({ energia: 4 }); } });
   def('banho_longo', { label: 'Banho demorado', icon: 'shower', speed: 3.5, dur: 35, fx: { estresse: -12, humor: 8 },
     end: (a, ok) => { if (ok) { L.mod({ higiene: 100, humor: 3 }); } } });
   def('escovar', { label: 'Se arrumando', icon: 'hygiene', speed: 1.5, dur: 6, end: (a, ok) => { if (ok) L.mod({ higiene: 14, humor: 1 }); } });
   def('beber', { label: 'Bebendo água', icon: 'drink', speed: 1, dur: 2, end: (a, ok) => { if (ok) L.mod({ sede: 42 }); } });
-  def('comer', { label: 'Comendo', icon: 'food', speed: 2, fx: { estresse: -2 },
-    dur: a => (D.foodById(a.data.food) || { time: 10 }).time,
-    start: a => { if (!L.takeFood(a.data.food)) return 'Não tem ' + (D.foodById(a.data.food) || {}).name + ' em casa.'; },
-    end: (a) => { const fd = D.foodById(a.data.food); if (fd) { L.mod(fd.eat); if (fd.med) G().flags.medDay = SL.Clock.day(); if (fd.coffee || fd.id === 'energetico') G().life.caf = 180; } G().home.dirt = U.clamp(G().home.dirt + 1, 0, 100); } });
-  def('cozinhar', { label: 'Cozinhando', icon: 'stove', speed: 4, fx: { estresse: -3, humor: 3 },
-    dur: () => Math.round(45 / (0.8 + G().player.skills.culinaria / 200)),
-    start: () => { if (!L.takeFood('ingredientes')) return 'Você precisa de ingredientes de refeição (compre no mercado).'; },
+  // comer/beber: data.food; data.taken = já tirou da geladeira; data.q = qualidade do preparo; data.where = 'mesa' para sentar
+  def('comer', { label: 'Comendo', icon: 'food', speed: 2,
+    dur: a => a.data.dur || Math.min(20, (D.foodById(a.data.food) || { time: 10 }).time),
+    start: a => { if (!a.data.taken && !L.takeFood(a.data.food)) return 'Não tem ' + (D.foodById(a.data.food) || {}).name + ' em casa.'; G().flags.ate = 1; },
+    end: (a, ok) => {
+      const fd = D.foodById(a.data.food); if (!fd) return;
+      const q = a.data.q || 1; const part = ok ? 1 : U.clamp((G().time.t - a.t0) / (a.dur || 1), 0.3, 1);
+      const fx = {}; for (const k in fd.eat) fx[k] = fd.eat[k] * (fd.eat[k] > 0 ? q : 1) * part;
+      L.mod(fx); if (fd.coffee || fd.id === 'energetico') G().life.caf = 180;
+      G().home.dirt = U.clamp(G().home.dirt + 1, 0, 100);
+    } });
+  // cozinhar: com data.food prepara aquele item (já tirado da geladeira) e guarda a qualidade em data.q
+  def('cozinhar', { label: 'Cozinhando', icon: 'stove', speed: 4,
+    dur: a => { const fd = D.foodById(a.data.food || 'ingredientes') || { time: 40 }; return Math.round((fd.cook ? 45 : fd.time) / (0.8 + G().player.skills.culinaria / 200)); },
+    start: a => { if (a.data.food) return; if (!L.takeFood('ingredientes')) return 'Você precisa de ingredientes de refeição (compre no mercado).'; },
     end: (a, ok) => {
       const q = (D.furnById(G().home.items.fogao) || { cook: 0.85 }).cook * (0.75 + G().player.skills.culinaria / 140);
-      if (ok) { L.mod({ fome: 62 * q, saude: 2 * q, humor: 5 * q }); L.skillUp('culinaria', 1.4); }
-      else L.mod({ fome: 20 });
+      a.data.q = ok ? q : 0.6;
+      if (!a.data.food) { if (ok) L.mod({ fome: 62 * q }); else L.mod({ fome: 20 }); }
+      if (ok) L.skillUp('culinaria', 1.4);
       G().home.dirt = U.clamp(G().home.dirt + 4, 0, 100);
     } });
   def('cafe', { label: 'Passando café', icon: 'coffee', speed: 1.5, dur: 6,
@@ -233,75 +234,43 @@
     const n = G0.needs, a = G0.act, def0 = a ? ACT[a.id] : null;
     const k = SL.State.DIFF[G0.player.diff].needs;
     const sleeping = def0 && def0.sleep;
-    const d = {
-      fome: -(sleeping ? 2.3 : 5) / 60 * k,
-      sede: -(sleeping ? 2.8 : 7) / 60 * k,
-      sono: sleeping ? 0 : -4.3 / 60 * k,
-      higiene: -2.3 / 60 * k,
-      energia: sleeping ? 0 : -1.4 / 60,
-      estresse: def0 ? 0 : -0.8 / 60,
-    };
+    const d = { fome: -(sleeping ? 2.3 : 5) / 60 * k, sede: -(sleeping ? 2.8 : 7) / 60 * k, energia: sleeping ? 0 : -3.8 / 60 * k };
     if (def0 && def0.fx) for (const key in def0.fx) d[key] = (d[key] || 0) + def0.fx[key] / 60;
-    if (def0 && def0.work) d.estresse = (d.estresse || 0) + 0.6 / 60 * k;
-    if (!sleeping && n.energia > n.sono + 35) d.energia = (d.energia || 0) - 3 / 60;
-    // cansaço: horas acordado, computador sem pausa e café
+    // cansaço: horas acordado, computador sem pausa, café, fome e sede
     const lf = G0.life || (G0.life = { awake: 0, pcRun: 0, offPc: 0, caf: 0, warnT: -9999 });
     if (sleeping) { lf.pcRun = 0; } else {
       lf.awake++;
       if (lf.awake > 16 * 60) d.energia -= (lf.awake - 16 * 60) / 60 * 0.6 / 60;
       const atPc = def0 && def0.pc;
       if (atPc) { lf.pcRun++; lf.offPc = 0; } else if (++lf.offPc >= 10) lf.pcRun = 0;
-      if (lf.pcRun > 90) { d.energia -= 2 / 60; d.estresse = (d.estresse || 0) + 1 / 60; }
+      if (lf.pcRun > 90) d.energia -= 2 / 60;
+      if (n.fome < 8 || n.sede < 8) d.energia -= 6 / 60;
       if (lf.caf > 0) { if (d.energia < 0) d.energia *= 0.5; if (--lf.caf === 0) d.energia -= 6; }
     }
-    if (G0.home.dirt > 60 && G0.loc.area === 'casa') d.humor = (d.humor || 0) - 1 / 60;
-    // contas atrasadas pesam
-    if (SL.Econ && SL.Econ.overdueCount() > 0) d.estresse = (d.estresse || 0) + 1.2 / 60;
     L.mod(d);
-    // humor tende a um alvo ligado às outras necessidades
-    const target = (n.fome + n.sede + n.sono + n.higiene + n.energia + (100 - n.estresse) + n.saude) / 7 * 0.75 + 12 + (SL.Rel ? SL.Rel.socialBonus() : 0);
-    n.humor = U.clamp(n.humor + (target - n.humor) * 0.0012, 0, 100);
-    // saúde
-    let ds = 0;
-    if (n.fome < 12) ds -= 1.4; if (n.sede < 12) ds -= 2; if (n.sono < 12) ds -= 1; if (n.estresse > 85) ds -= 0.6;
-    if (n.fome > 45 && n.sede > 45 && n.sono > 45 && n.estresse < 60) ds += 0.25;
-    n.saude = U.clamp(n.saude + ds / 60, 0, 100);
-
     // atividade
     if (a) {
       let r = null;
       if (def0 && def0.minute) r = def0.minute(a);
       if (r === 'fim' || (a.dur && G0.time.t - a.t0 >= a.dur)) L.stop(true);
     }
-    // sono extremo ou cansaço total: apaga onde estiver
-    if ((n.sono <= 0.5 || n.energia <= 0.5) && !(G0.act && ACT[G0.act.id].sleep)) {
-      const byTired = n.sono > 0.5;
+    // cansaço total: dorme onde estiver
+    if (n.energia <= 0.5 && !(G0.act && ACT[G0.act.id].sleep)) {
       if (G0.act && G0.act.id === 'live' && SL.Live) SL.Live.forceEnd('sono');
+      if (SL.Seq) SL.Seq.cancel();
       L.stop(false);
-      L.start('dormir', { until: G0.time.t + (byTired ? 150 : 360), floor: G0.loc.area === 'casa' }, { label: byTired ? 'Desabou de cansaço' : 'Apagou de sono' });
-      SL.notify({ cat: 'vida', icon: 'sleep', title: byTired ? 'Você desabou de cansaço' : 'Você apagou de sono', text: 'O corpo cobrou a conta. Vai dormir umas horas onde está.' });
+      L.start('dormir', { until: G0.time.t + 360, floor: G0.loc.area === 'casa' }, { label: 'Apagou de sono' });
+      SL.notify({ cat: 'vida', icon: 'sleep', title: 'Você apagou de sono', text: 'O corpo cobrou a conta. Vai dormir umas horas onde está.' });
     }
-    // exausto no computador: cochila na cadeira
+    // morrendo de sono no computador: cochila na cadeira
     if (!sleeping && L.tiredLevel() >= 3 && def0 && def0.pc && def0.id !== 'live' && U.rand() < 0.006) {
       L.stop(false); L.start('cochilar', { dur: 25 }, { label: 'Cochilou na cadeira' });
-      SL.notify({ cat: 'vida', icon: 'sleep', title: 'Você cochilou na cadeira', text: 'Exausto(a), apagou uns minutos na frente do computador. Durma de verdade.' });
-    }
-    // avisos de cansaço (no máximo a cada 4 horas)
-    if (!sleeping && G0.time.t - lf.warnT > 240) {
-      if (L.tiredLevel() >= 2) { lf.warnT = G0.time.t; SL.notify({ cat: 'vida', icon: 'energy', title: L.tiredLevel() >= 3 ? 'Você está exausto(a)' : 'Você está muito cansado(a)', text: 'Acordado(a) há ' + L.awakeHours() + 'h. Anda mais devagar e rende menos. Durma, descanse no sofá ou tome um café.' }); }
-      else if (lf.pcRun === 120) { lf.warnT = G0.time.t; SL.notify({ cat: 'vida', icon: 'monitor', title: 'Duas horas sem sair do computador', text: 'Levante, beba água e dê uma volta pela casa. Pausas de 10 minutos tiram o cansaço da vista.' }); }
-    }
-    if (n.saude <= 6 && !(G0.act && G0.act.id === 'hospital')) {
-      if (G0.act && G0.act.id === 'live' && SL.Live) SL.Live.forceEnd('saude');
-      L.stop(false);
-      L.start('hospital', { min: 360 });
-      SL.notify({ cat: 'vida', icon: 'health', title: 'Você passou mal', text: 'Foi levado(a) ao posto de saúde. Coma, beba água e durma direito.' });
-      SL.Econ.spend(0, 'saude', 'Atendimento no posto');
+      SL.notify({ cat: 'vida', icon: 'sleep', title: 'Você cochilou na cadeira', text: 'Apagou uns minutos na frente do computador. Vá dormir na cama.' });
     }
     // avisos (no máximo um a cada 3 horas por necessidade)
     const now = G0.time.t;
-    [['fome', 15, 'Você está com fome', 'Coma algo: geladeira, mercado ou pedido no app Rangô.'], ['sede', 15, 'Você está com sede', 'Beba água na pia da cozinha.'],
-     ['sono', 12, 'Você está com muito sono', 'Durma um pouco. Sem sono o desempenho cai.'], ['higiene', 12, 'Precisa de um banho', 'Higiene baixa atrapalha na câmera e com as pessoas.']].forEach(([key, lim, t, tx]) => {
+    if (!sleeping && now - lf.warnT > 240 && L.tiredLevel() >= 2) { lf.warnT = now; SL.notify({ cat: 'vida', icon: 'sleep', title: L.tiredLevel() >= 3 ? 'Você está morrendo de sono' : 'Você está com sono', text: 'Acordado(a) há ' + L.awakeHours() + 'h. Anda mais devagar e rende menos. Durma ou tome um café.' }); }
+    [['fome', 15, 'Você está com fome', 'Abra a geladeira ou peça comida pelo celular.'], ['sede', 15, 'Você está com sede', 'Beba água na pia da cozinha.']].forEach(([key, lim, t, tx]) => {
       if (n[key] < lim && (!warnCd[key] || now - warnCd[key] > 180)) { warnCd[key] = now; SL.notify({ cat: 'vida', icon: L.NEEDS.find(x => x.k === key).icon, title: t, text: tx }); }
     });
   });

@@ -84,7 +84,7 @@
 
   // memória curta de cada pessoa: guarda só o tipo (e um número), o texto é montado na hora
   V.NOTES = { ign: 'perguntou várias vezes e não foi respondido(a)', volta: 'voltou depois de {p} dias', boasvindas: 'foi bem recebido(a) na primeira live', ban: 'foi banido(a)', unf: 'deixou de seguir',
-    semobrigado: 'doou e não foi agradecido(a)', promessa: 'ficou esperando uma promessa que não foi cumprida', dm: 'recebeu resposta carinhosa no Connect' };
+    semobrigado: 'doou e não foi agradecido(a)', promessa: 'ficou esperando uma promessa que não foi cumprida', dm: 'recebeu resposta carinhosa no Instagram' };
   V.note = (v, k, p) => { const n = v.m.notes; const i = n.findIndex(o => o.k === k); if (i >= 0) n.splice(i, 1); const o = { d: SL.Clock.day(), k }; if (typeof p === 'number') o.p = p; n.push(o); if (n.length > 6) n.shift(); };
   V.noteText = o => (V.NOTES[o.k] || o.x || o.k).replace('{p}', o.p);
 
@@ -214,7 +214,7 @@
     });
     G0.ch.subCohorts = keep;
     P.subs = V.list().filter(v => v.sub).length + keep.reduce((s, c) => s + c.n, 0);
-    if (unf + lost >= 5) SL.notify({ cat: 'canal', icon: 'trendDown', title: 'Você perdeu seguidores', text: U.int(unf + lost) + ' pessoas deixaram de seguir o canal na Pulso' + (inactive > 4 ? ' (o canal está parado há ' + inactive + ' dias).' : '.'), silent: unf + lost < 20 });
+    if (unf + lost >= 5) SL.notify({ cat: 'canal', icon: 'trendDown', title: 'Você perdeu seguidores', text: U.int(unf + lost) + ' pessoas deixaram de seguir o canal na Twitch' + (inactive > 4 ? ' (o canal está parado há ' + inactive + ' dias).' : '.'), silent: unf + lost < 20 });
     // quem veio uma vez e não voltou vira parte do público agregado (é esquecido)
     G0.viewers.list = G0.viewers.list.filter(v => v.npc || v.fol || v.sub || v.mod || v.ban || v.m.v >= 2 || v.m.don > 0 || v.int >= 15 || (v.m.l >= 0 && day - v.m.l < 7));
     // limpeza: mantém os mais relevantes

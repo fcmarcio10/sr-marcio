@@ -215,10 +215,10 @@
 
   // ---------- Moderador ----------
   C.mod = ['calma aí pessoal, respeito no chat', 'sem ofensa, galera', 'quem continuar provocando vai ser silenciado', 'chat, foco na live', 'regras no painel do canal'];
-  C.bot = ['Siga o canal para não perder as próximas lives!', 'Tem Connect? Segue lá: @{canal}', 'Respeite todos no chat. Mensagens ofensivas serão removidas.'];
+  C.bot = ['Siga o canal para não perder as próximas lives!', 'Tem Instagram? Segue lá: @{canal}', 'Respeite todos no chat. Mensagens ofensivas serão removidas.'];
 
   // ---------- Celebridade e raid ----------
   C.celeb = ['h|MEU DEUS O {u} TÁ AQUI', 'h|É O {u} MESMO??', 'h|{u} NA LIVE :hype: :hype:', 'n|olha quem chegou: {u}', 'q|{u} é você mesmo?', 'h|print print print'];
   C.raid = ['h|viemos da live do {u}!', 'h|RAID DO {u} :hype:', 'n|o {u} mandou a gente aqui', 'h|salve, galera do {u} chegando'];
-  C.viral = ['n|vim do vídeo que tá bombando', 'h|o vídeo viralizou! vim por ele', 'n|vi o corte no Clipz e vim'];
+  C.viral = ['n|vim do vídeo que tá bombando', 'h|o vídeo viralizou! vim por ele', 'n|vi o corte no TikTok e vim'];
 })(window.SL);

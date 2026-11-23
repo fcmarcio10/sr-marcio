@@ -56,7 +56,7 @@
     if (game.console && !s.console) return { ok: false, reason: game.name + ' é exclusivo de console. Compre o VortexStation 5.' };
     if (game.console && !s.cap) return { ok: false, reason: 'Para transmitir do console você precisa de uma placa de captura.' };
     const p = Q.PRESETS[preset];
-    if (p && p.need === 'parc' && !G().ch.pulso.parc) return { ok: false, reason: '1440p só para parceiros da Pulso.' };
+    if (p && p.need === 'parc' && !G().ch.pulso.parc) return { ok: false, reason: '1440p só para parceiros da Twitch.' };
     return { ok: true };
   };
 

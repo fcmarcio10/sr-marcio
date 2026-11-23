@@ -5,7 +5,7 @@
   const ic = UI.ic, esc = U.esc;
   const SP = () => SL.Sponsors;
   SL.Apps.parcerias = {
-    title: 'Parcerias', icon: 'brief', color: 'linear-gradient(135deg,#c084fc,#ff5a36)', pc: true, phone: true, w: 900, h: 640,
+    title: 'Gmail', short: 'Gmail', icon: 'brief', color: 'linear-gradient(135deg,#f0584b,#c5221f)', order: 7, pc: true, phone: true, w: 900, h: 640,
     watch: ['offers', 'money', 'tick:day'],
     badge: () => SL.G.offers.length,
     render(el, ctx) {
@@ -27,7 +27,7 @@
     contratos() {
       const G = SL.G; const act = G.contracts.filter(c => c.state === 'ativo'); const old = G.contracts.filter(c => c.state !== 'ativo').slice().reverse();
       const day = SL.Clock.day();
-      return `${act.length ? act.map(c => { const b = D.brandById(c.brand); return `<div class="card col" style="border-left:3px solid ${b.color}"><div class="row"><b class="grow">${esc(b.name)}</b><span class="tag ${c.deadline - day <= 2 ? 'bad' : 'warn'}">${c.deadline - day} dias restantes</span></div>${c.deliv.map(d => `<div class="attr" style="grid-template-columns:170px 1fr 40px">${SP().KIND[d.k]}<div class="bar"><i style="width:${d.done / d.n * 100}%;background:var(--ok)"></i></div><b>${d.done}/${d.n}</b></div>`).join('')}<div class="tiny muted">${c.deliv.some(d => d.k === 'live') ? 'Menção: botão "Mencionar patrocinador" durante a live. ' : ''}${c.deliv.some(d => d.k === 'video') ? 'Vídeo: marque a publi no passo "Publicar". ' : ''}${c.deliv.some(d => d.k === 'post') ? 'Post: use o botão abaixo.' : ''}</div>${c.deliv.some(d => d.k === 'post' && d.done < d.n) ? `<button class="btn sm" data-act="post" data-v="${c.id}">${ic('connect', 14)} Postar publi no Connect</button>` : ''}<div class="small">Recebido: ${U.money(c.paid)} de ${U.money(c.value * (1 - c.cut))}</div></div>`; }).join('') : '<div class="empty">Nenhum contrato ativo.</div>'}
+      return `${act.length ? act.map(c => { const b = D.brandById(c.brand); return `<div class="card col" style="border-left:3px solid ${b.color}"><div class="row"><b class="grow">${esc(b.name)}</b><span class="tag ${c.deadline - day <= 2 ? 'bad' : 'warn'}">${c.deadline - day} dias restantes</span></div>${c.deliv.map(d => `<div class="attr" style="grid-template-columns:170px 1fr 40px">${SP().KIND[d.k]}<div class="bar"><i style="width:${d.done / d.n * 100}%;background:var(--ok)"></i></div><b>${d.done}/${d.n}</b></div>`).join('')}<div class="tiny muted">${c.deliv.some(d => d.k === 'live') ? 'Menção: botão "Mencionar patrocinador" durante a live. ' : ''}${c.deliv.some(d => d.k === 'video') ? 'Vídeo: marque a publi no passo "Publicar". ' : ''}${c.deliv.some(d => d.k === 'post') ? 'Post: use o botão abaixo.' : ''}</div>${c.deliv.some(d => d.k === 'post' && d.done < d.n) ? `<button class="btn sm" data-act="post" data-v="${c.id}">${ic('connect', 14)} Postar publi no Instagram</button>` : ''}<div class="small">Recebido: ${U.money(c.paid)} de ${U.money(c.value * (1 - c.cut))}</div></div>`; }).join('') : '<div class="empty">Nenhum contrato ativo.</div>'}
         ${old.length ? `<div class="card"><h3>Histórico</h3><div class="list">${old.map(c => `<div class="li small"><b class="grow">${esc(D.brandById(c.brand).name)}</b><span class="tag ${c.state === 'cumprido' ? 'ok' : 'bad'}">${c.state}</span><span class="mono">${U.money0(c.paid)}</span></div>`).join('')}</div></div>` : ''}`;
     },
     loja() {

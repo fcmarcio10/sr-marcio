@@ -10,26 +10,23 @@ Também existe a versão de arquivo único: `node tools/bundle.js` gera `dist/st
 
 ### Controles
 
-- **Mouse**: clique nos objetos da casa para usar, nos lugares do mapa para viajar e nas pessoas para conversar.
-- **WASD / setas**: andar dentro de casa.
+- **Clique num objeto da casa**: o personagem vai até ele e aparece um menu redondo com as opções (e Cancelar). Ações de várias etapas, como preparar comida (pegar na geladeira, cozinhar, levar à mesa e comer), travam os botões até terminar.
+- **WASD / setas**: andar. **Shift**: correr. **E**: usar o objeto mais perto. **Roda do mouse**: aproximar.
 - **Espaço**: pausa. **1, 2, 3**: velocidade do tempo.
 - **C**: celular. **P**: computador (em casa). **Esc**: fecha janelas e abre o menu.
 
 ## O que tem no jogo
 
-- **Vida**: fome, sede, sono, higiene, energia, saúde, humor e estresse; elas mudam o desempenho nas lives, na edição e nas conversas. Comida estraga, a casa suja, planta morre sem água.
-- **Casa em 2D** (3 casas possíveis + estúdio): tudo que você compra aparece no cômodo (cama, geladeira, PC, monitores, microfone, luz, LED, letreiro neon...).
-- **Cidade**: mercado, restaurante, loja de eletrônicos, academia, shopping, parque, cafeteria, casas de amigos e centro de eventos, com horários; viagem a pé, de bicicleta, ônibus, carro por app ou carro próprio.
-- **Lives (Pulso Studio)**: preparação (jogo, título com nota, descrição, tags, qualidade, layout, divulgação), prévia do jogo desenhada, câmera que mostra seu cenário, chat em tempo real e ações (conversar, piada, enquete, desafio, pausa, trocar de jogo, patrocinador, anúncio, moderação).
-- **Espectadores com inteligência própria**: cada pessoa conhecida tem nome, idade, personalidade (silencioso, comunicativo, fã fiel, novato, engraçado, crítico, competitivo, casual, apoiador, troll, especialista, criador), gostos, horário, paciência, dinheiro, fidelidade e **memória** (visitas, respostas, perguntas ignoradas, doações, momentos marcantes que presenciou, promessas). O público grande é simulado em números; até 1.000 pessoas ficam guardadas com memória.
-- **Vídeos (Estúdio de Vídeo)**: 10 passos (tipo, assunto, jogo, gravação, momentos, edição, título e descrição, thumbnail, tags, publicar ou agendar). Edição por você ou por editor contratado.
-- **Redes**: Vision (vídeos longos), Clipz (curtos e trends) e Connect (posts, fotos, enquetes, anúncios de live), com algoritmos diferentes, feed vivo e comentários.
-- **Outros criadores**: 16 criadores com carreira própria (fazem live no horário deles, publicam, crescem, caem, brigam, viralizam, mandam raid, convidam para collab ou criticam você).
-- **Pessoas**: família, amigos, romance opcional, editores, moderadores e empresários; convites viram compromissos no calendário e faltar tem consequência.
-- **Dinheiro**: contas do mês, impostos (carnê-leão ou MEI), repasses das plataformas, empréstimo, patrimônio, patrocínios com exigências e multa, loja do canal.
-- **Eventos e reputação**: corte viraliza, notícia falsa, crítica de outro criador, equipamento quebra, proposta duvidosa, vizinho reclama, esgotamento, entrevista na TV, eventos no centro de eventos.
-- **Carreira**: Desconhecido, Iniciante, Pequeno criador, Criador em crescimento, Influenciador conhecido, Influenciador de grande porte e Celebridade digital (por resultado e reputação, pode subir e cair) + objetivos.
-- **Salvamento**: 3 espaços + automático (comprimido), exportar/importar, com versão e migração dos dados.
+- **Casa vista de cima**: câmera que segue o personagem, paredes e móveis com volume, portas que abrem, sol pelas janelas e luzes à noite. Tudo que você compra aparece no cômodo.
+- **Vida**: só fome, sede e cansaço (as barrinhas do canto). Cansado demais, você fica com sono, anda mais devagar e rende menos.
+- **Tempo calmo**: na velocidade normal, 1 minuto do jogo passa a cada 2 segundos; banho, sono e live levam o tempo de verdade (e dá para acelerar).
+- **Computador**: OBS Studio (lives na Twitch), Premiere Pro (edição), YouTube, TikTok, Instagram, WhatsApp, Gmail (parcerias), Bank, Mercado Livre, iFood, Udemy, LinkedIn, Agenda e Carreira.
+- **Celular**: redes, WhatsApp, Gmail, Bank, Mercado Livre, iFood, Agenda, Carreira, Contatos, Maps e Notificações (a central de avisos fica só aqui).
+- **Cidade**: mercado, restaurante, loja de eletrônicos, academia, shopping, parque, cafeteria, casas de amigos e centro de eventos, com horários.
+- **Lives**: preparação no OBS Studio, chat em tempo real com espectadores que têm personalidade e **memória** (visitas, perguntas, doações, promessas).
+- **Vídeos** em 10 passos no Premiere Pro, **redes** com algoritmos diferentes, **outros criadores** com carreira própria, **pessoas**, **dinheiro**, **eventos e reputação**, **carreira** e **salvamento** em 3 espaços + automático.
+
+Os nomes de aplicativos são só nomes: os ícones e o visual são do jogo.
 
 ## Organização
 
@@ -64,6 +61,6 @@ node tests/estresse_node.js 150
 node tests/sim_node.js 60
 ```
 
-- `teste_completo.js` (Playwright): cria personagem, passa o tempo, come, compra, faz 3 lives (público, chat, perguntas, memória), cria e publica vídeo, posta, paga conta, viaja, conversa, decide um evento, abre o celular, renderiza todos os apps, salva, fecha o navegador e carrega de novo.
+- `teste_completo.js` (Playwright): cria personagem, passa o tempo, abre a geladeira pelo menu redondo e prepara comida (com os botões travados), compra, faz 3 lives (público, chat, perguntas, memória), cria e publica vídeo, posta, paga conta, viaja, conversa, decide um evento, abre o celular, renderiza todos os apps, salva, fecha o navegador e carrega de novo.
 - `estresse_node.js`: joga muitos dias com ações aleatórias em todos os sistemas e procura erros e números inválidos.
 - `sim_node.js`: mede o crescimento do canal com uma rotina "boa" (para calibrar a economia).

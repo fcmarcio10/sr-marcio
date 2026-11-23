@@ -1,9 +1,15 @@
 # Streamer Life (projeto separado, pasta `streamer-life/`)
 
 - Simulador de vida de streamer em HTML/CSS/JS puro, abre direto pelo `streamer-life/index.html` (scripts clássicos, sem módulos, para funcionar em `file://`). Tudo fica no global `SL`; o estado salvo é só `SL.G` (`js/systems/state.js`, `SAVE_VERSION` + `Save.MIGRATIONS` em `saveSystem.js`; salvamento comprimido com `U.lzPack`).
-- Sistemas em `js/systems/` conversam pelo barramento `SL.bus` (`tick:minute/hour/day`, `live:end`, `videos`, `money`...). Interface em `js/ui/` (apps registrados em `SL.Apps`, cada um com `render/act/watch`), desenhos em `js/render/`.
+- Sistemas em `js/systems/` conversam pelo barramento `SL.bus` (`tick:minute/hour/day`, `live:end`, `videos`, `money`...). Interface em `js/ui/` (apps registrados em `SL.Apps`, cada um com `render/act/watch`, `order`, `pc`/`phone`), desenhos em `js/render/`.
+- **Casa vista de cima** (`js/render/homeScene.js`): câmera segue o personagem (roda do mouse aproxima), paredes e móveis em blocos com perspectiva (`box`/`prism`, `WALLZ`, `CAMZ`), piso pré-desenhado, portas que abrem, sol pelas janelas, luzes à noite. WASD/setas andam (Shift corre), E usa o objeto perto, clique no chão anda.
+- **Ações estilo jogo de simulação** (`js/ui/acoes.js`): clicar num objeto faz o personagem ir até ele e abre o menu redondo (`UI.pie`) com as opções e Cancelar. Geladeira: Ver geladeira → lista com Preparar/Comer/Beber/Passar café (`UI.fridge`, `UI.consume`). Sequências (`SL.Seq`: andar, pegar, cozinhar no fogão, levar à mesa, comer) travam todos os botões até terminar (`HUD.locked`).
+- **Necessidades**: só fome, sede e cansaço (`energia`: 100 = descansado; cansaço baixo = sono). Saúde, sono, higiene, humor e estresse ficam com valor fixo (`Life.fixed`) só para compatibilidade.
+- **Tempo**: 1x = 1 minuto do jogo a cada 2 segundos (`Clock.SPEEDS`); atividades têm ritmo próprio (`speed` em `lifeSystem.js`) multiplicado pela velocidade (`ACT_MULT`).
+- **HUD** (`js/ui/hud.js`, `css/hud.css`): sem painel lateral; canto esquerdo com retrato, dinheiro e as 3 barrinhas; relógio com velocidades no meio; botões Celular, PC e Menu; chip da atividade atual. Avisos com X; a central de notificações fica só no app Notificações do celular.
+- **Apps com nomes reais** (só o nome, ícones próprios): OBS Studio (lives na Twitch), Premiere Pro, YouTube, TikTok, Instagram, WhatsApp, Gmail (parcerias), Bank, Mercado Livre, iFood, Udemy, LinkedIn (equipe), Agenda, Carreira; no celular também Contatos, Maps e Notificações. Internamente as plataformas continuam `pulso`/`vision`/`clipz`/`connect`.
 - Espectadores: até `Viewers.CAP` (1000) pessoas com memória; o resto é público agregado. Falas em `js/data/chatlines.js` (prefixo de tom `h|`, `z|`, `c|`, `t|`, `q|`, `n|`).
-- Testes: `node tests/teste_completo.js` (Playwright, 37 verificações), `node tests/estresse_node.js 150` (meses de jogo sem tela), `node tests/sim_node.js 60` (curva de crescimento). Calibragem atual: 5 meses de live diária ≈ 6 mil seguidores na Pulso e R$ 20 mil.
+- Testes: `node tests/teste_completo.js` (Playwright, 39 verificações), `node tests/estresse_node.js 150` (meses de jogo sem tela), `node tests/sim_node.js 150` (curva de crescimento). Calibragem atual: 5 meses de live diária ≈ 2,6 mil seguidores na Twitch, 9 mil no TikTok e R$ 17 mil.
 - Página publicada: https://claude.ai/artifact/JVMSerVwchvRYQZbX5N9Ad — gerar com `node tools/bundle.js` e publicar sempre `streamer-life/dist/artifact.html` nesse mesmo link.
 
 # BR Night Drive — guia para o Claude

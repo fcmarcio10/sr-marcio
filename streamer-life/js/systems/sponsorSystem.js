@@ -4,7 +4,7 @@
   const U = SL.U, D = SL.D;
   const SP = SL.Sponsors = {};
   const G = () => SL.G;
-  SP.KIND = { live: 'Menção ao vivo', video: 'Vídeo com publicidade', post: 'Post no Connect' };
+  SP.KIND = { live: 'Menção ao vivo', video: 'Vídeo com publicidade', post: 'Post no Instagram' };
 
   SP.reach = () => {
     const G0 = G(); const av = G0.ch.avgViewers.slice(-10); const avgV = av.length ? av.reduce((a, b) => a + b, 0) / av.length : 0;

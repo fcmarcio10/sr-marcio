@@ -132,9 +132,11 @@
       c.strokeStyle = 'rgba(180,157,255,.7)'; c.lineWidth = 3; c.setLineDash([6, 6]); c.beginPath(); pts.forEach((p0, i) => i ? c.lineTo(p0.x, p0.y) : c.moveTo(p0.x, p0.y)); c.stroke(); c.setLineDash([]);
       const tr = act.data.tr;
       if (tr === 'onibus' || tr === 'app' || tr === 'carro') { c.fillStyle = tr === 'onibus' ? '#f5c542' : '#ffffff'; A.rr(c, px - 10, py - 6, 20, 12, 3); c.fill(); c.fillStyle = '#4cc3ff'; c.fillRect(px - 7, py - 4, 14, 4); }
-      else A.sprite(c, G.player.look, px, py + 6, 0.55, { walk: t * 10, dir: 'down' });
+      else A.sprite(c, G.player.look, px, py + 6, 0.78, { walk: t * 10, dir: px > (pts[pts.length - 1].x) ? 'left' : 'right' });
     } else {
-      const p = D.placeById(here); px = p.x; py = p.y; A.sprite(c, G.player.look, px + 18, py + 10, 0.55, {});
+      const p = D.placeById(here); px = p.x + 20; py = p.y + 10;
+      const pr = 9 + Math.sin(t * 3) * 1.5; c.strokeStyle = 'rgba(180,157,255,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(px, py, pr, pr * 0.45, 0, 0, 7); c.stroke();
+      A.sprite(c, G.player.look, px, py, 0.78, {});
     }
     c.restore();
   };
@@ -157,7 +159,8 @@
   C.renderPlace = (c, cw, ch, t) => {
     const G = SL.G; const p = D.placeById(G.loc.place); if (!p) return;
     const s = SCN[p.kind] || SCN.parque; const VW = 660, VH = 400;
-    const sc = Math.min(cw / VW, ch / VH); const ox = (cw - VW * sc) / 2, oy = (ch - VH * sc) / 2;
+    const left = cw > 900 ? 370 : 0; const aw = cw - left;
+    const sc = Math.min(aw / VW, ch / VH); const ox = left + (aw - VW * sc) / 2, oy = (ch - VH * sc) / 2;
     cam.ps = sc; cam.pox = ox; cam.poy = oy;
     c.fillStyle = '#07080c'; c.fillRect(0, 0, cw, ch);
     c.save(); c.translate(ox, oy); c.scale(sc, sc);
@@ -169,20 +172,20 @@
     C._people = [];
     const spots = [[150, 330], [260, 300], [380, 335], [470, 300], [560, 340], [90, 280]];
     const r = U.mulberry(U.hash(p.id + SL.Clock.day()));
-    for (let i = 0; i < 4; i++) { const sp = [40 + r() * 580, 220 + r() * 160]; A.sprite(c, A.randomLook(r), sp[0], sp[1], 1.1, { dir: r() < 0.5 ? 'left' : 'right', walk: Math.sin(t + i) > 0.6 ? t * 6 : 0 }); }
+    for (let i = 0; i < 4; i++) { const sp = [40 + r() * 580, 220 + r() * 150]; A.sprite(c, A.randomLook(r), sp[0], sp[1], 0.72, { dir: r() < 0.5 ? 'left' : 'right', walk: Math.sin(t + i) > 0.6 ? t * 6 : 0 }); }
     people.forEach((id, i) => {
       const def = SL.Rel.def(id); if (!def) return; const sp = spots[i % spots.length];
-      A.sprite(c, def.look, sp[0], sp[1], 1.25, { dir: 'down' });
+      A.sprite(c, def.look, sp[0], sp[1], 0.8, { dir: 'down' });
       const met = SL.Rel.get(id).met;
       c.font = '700 12px Inter, Arial'; c.textAlign = 'center'; const label = met ? def.short || def.name : '?'; const tw = c.measureText(label).width + 12;
-      c.fillStyle = 'rgba(10,12,18,.85)'; A.rr(c, sp[0] - tw / 2, sp[1] - 66, tw, 18, 9); c.fill(); c.fillStyle = met ? '#ffd1e6' : '#cfd3e0'; c.fillText(label, sp[0], sp[1] - 53);
+      c.fillStyle = 'rgba(10,12,18,.85)'; A.rr(c, sp[0] - tw / 2, sp[1] - 52, tw, 18, 9); c.fill(); c.fillStyle = met ? '#ffd1e6' : '#cfd3e0'; c.fillText(label, sp[0], sp[1] - 39);
       C._people.push({ id, x: sp[0], y: sp[1] });
     });
-    A.sprite(c, G.player.look, 330, 385, 1.3, { dir: 'up' });
+    A.sprite(c, G.player.look, 330, 372, 0.85, { dir: 'up' });
     const h = SL.Clock.hourF(); if (p.kind === 'parque' && (h >= 18.5 || h < 6)) { c.fillStyle = 'rgba(8,10,30,.45)'; c.fillRect(0, 0, VW, VH); }
     c.restore();
   };
-  C.personAtScreen = (sx, sy) => { if (!C._people || !cam.ps) return null; const x = (sx - cam.pox) / cam.ps, y = (sy - cam.poy) / cam.ps; const hit = C._people.find(pp => Math.abs(pp.x - x) < 18 && y > pp.y - 62 && y < pp.y + 6); return hit ? hit.id : null; };
+  C.personAtScreen = (sx, sy) => { if (!C._people || !cam.ps) return null; const x = (sx - cam.pox) / cam.ps, y = (sy - cam.poy) / cam.ps; const hit = C._people.find(pp => Math.abs(pp.x - x) < 16 && y > pp.y - 50 && y < pp.y + 6); return hit ? hit.id : null; };
 
   // atividades de cada lugar: { id, label, desc, icon, price, min, can() -> erro|null, run() }
   C.activities = placeId => {
@@ -238,7 +241,7 @@
       }
     }
     if (p.kind !== 'amigos') act({ id: 'vlog', label: 'Gravar vlog aqui', desc: 'Material bruto para vídeo', icon: 'cam', ui: 'vlog' });
-    act({ id: 'foto', label: 'Tirar foto para o Connect', desc: 'Postar onde você está', icon: 'image', ui: 'foto' });
+    act({ id: 'foto', label: 'Tirar foto para o Instagram', desc: 'Postar onde você está', icon: 'image', ui: 'foto' });
     return L;
   };
 })(window.SL);

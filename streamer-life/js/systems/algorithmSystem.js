@@ -111,7 +111,7 @@
     const top = Object.entries(G0.trends.games).sort((a, b) => b[1] - a[1])[0];
     const tag = G0.trends.tags[0];
     const g = D.gameById(top[0]);
-    if (src === 'tv' && U.chance(0.6)) SL.notify({ cat: 'mundo', icon: 'trend', title: 'Você ficou por dentro', text: g.name + ' está em alta' + (tag ? ' e a trend ' + tag.tag + ' domina o Clipz.' : '.'), silent: false });
+    if (src === 'tv' && U.chance(0.6)) SL.notify({ cat: 'mundo', icon: 'trend', title: 'Você ficou por dentro', text: g.name + ' está em alta' + (tag ? ' e a trend ' + tag.tag + ' domina o TikTok.' : '.'), silent: false });
   };
   A.hotGames = () => D.games.map(g => ({ g, m: A.trendMul(g.id), pop: A.gamePop(g) })).sort((a, b) => b.pop - a.pop);
 

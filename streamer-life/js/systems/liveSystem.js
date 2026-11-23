@@ -44,7 +44,7 @@
 
   LV.ctx = () => {
     const L = LV.cur; const g = D.gameById(L.game);
-    return { s: G().player.name, g: g.name, p: SL.GameSim.answer(L.sim), cat: g.cat, canal: G().player.user, via: U.pick(['diretório', 'diretório', 'Clipz', 'Vision', 'Connect']), gameId: g.id, sim: g.sim, nongame: !!g.nongame, late: L.min > 40 };
+    return { s: G().player.name, g: g.name, p: SL.GameSim.answer(L.sim), cat: g.cat, canal: G().player.user, via: U.pick(['diretório', 'diretório', 'TikTok', 'YouTube', 'Instagram']), gameId: g.id, sim: g.sim, nongame: !!g.nongame, late: L.min > 40 };
   };
 
   // ---------- início ----------
@@ -404,7 +404,7 @@
     // criador no chat propõe parceria
     if (U.chance(0.004)) {
       const cr = [...L.present.keys()].map(id => SL.Viewers.byId(id)).find(v => v && v.cr && !v.m.collabAsked);
-      if (cr) { cr.m.collabAsked = 1; pushMsg(SL.Chat.msg(cr, 'curti muito a live! também tenho canal (' + cr.cr.h + '), bora fazer uma collab um dia? te chamo no Connect', { intent: 'collab' })); if (SL.Rel) SL.Rel.viewerCollabOffer(cr); }
+      if (cr) { cr.m.collabAsked = 1; pushMsg(SL.Chat.msg(cr, 'curti muito a live! também tenho canal (' + cr.cr.h + '), bora fazer uma collab um dia? te chamo no Instagram', { intent: 'collab' })); if (SL.Rel) SL.Rel.viewerCollabOffer(cr); }
     }
   };
 
@@ -629,7 +629,7 @@
     if (b.ethics < 0.3) { SL.Rep.mod({ confianca: -1.5, imagem: -1 }); for (const st of L.present.values()) st.sat = U.clamp(st.sat - 0.05, 0, 1); }
   };
   LV.ad = () => {
-    const L = LV.cur; const P = G().ch.pulso; if (!P.afil) return 'Anúncios só para afiliados da Pulso.';
+    const L = LV.cur; const P = G().ch.pulso; if (!P.afil) return 'Anúncios só para afiliados da Twitch.';
     touch(); L.stats.ads++;
     const rev = L.viewers * 0.018 * U.rf(0.8, 1.2); L.stats.adRev += rev; P.bal += rev;
     sys('alert', 'Intervalo comercial de 60 segundos');
@@ -697,8 +697,8 @@
       graph: sample(L.graph, 60), hype: sample(L.hypeG, 60), best: L.best.slice(0, 5).map(m => ({ txt: m.txt, clip: m.clip, type: m.type })), reason: reason || 'normal', record, promises: L.promisesMade.length };
     G0.lives.push(sum); U.cap_list(G0.lives, 120);
     // afiliado
-    if (!P.afil && P.f >= 50 && P.livesN >= 7 && avg >= 3) { P.afil = true; SL.notify({ cat: 'carreira', icon: 'star', title: 'Você virou afiliado(a) da Pulso!', text: 'Agora seus espectadores podem se inscrever e você pode rodar anúncios.' }); if (SL.audio) SL.audio.play('levelup'); }
-    if (P.afil && !P.parc && P.f >= 15000 && P.hours >= 150 && G0.ch.avgViewers.slice(-10).reduce((a, b) => a + b, 0) / Math.min(10, G0.ch.avgViewers.length) >= 75) { P.parc = true; SL.notify({ cat: 'carreira', icon: 'crown', title: 'Parceria Pulso aprovada!', text: 'Selo de parceiro, 1440p e repasse maior.' }); }
+    if (!P.afil && P.f >= 50 && P.livesN >= 7 && avg >= 3) { P.afil = true; SL.notify({ cat: 'carreira', icon: 'star', title: 'Você virou afiliado(a) da Twitch!', text: 'Agora seus espectadores podem se inscrever e você pode rodar anúncios.' }); if (SL.audio) SL.audio.play('levelup'); }
+    if (P.afil && !P.parc && P.f >= 15000 && P.hours >= 150 && G0.ch.avgViewers.slice(-10).reduce((a, b) => a + b, 0) / Math.min(10, G0.ch.avgViewers.length) >= 75) { P.parc = true; SL.notify({ cat: 'carreira', icon: 'crown', title: 'Parceria Twitch aprovada!', text: 'Selo de parceiro, 1440p e repasse maior.' }); }
     if (record) SL.notify({ cat: 'canal', icon: 'trophy', title: 'Recorde de público!', text: 'Pico de ' + U.int(L.peak) + ' pessoas ao mesmo tempo.' });
     SL.bus.emit('live:end', sum);
     if (SL.Goals) SL.Goals.check();

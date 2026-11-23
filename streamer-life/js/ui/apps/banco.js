@@ -1,16 +1,16 @@
-/* App Banco Nuvem: saldo, contas, extrato, resumo do mês, empréstimo, patrimônio e MEI. */
+/* App Bank: saldo, contas, extrato, resumo do mês, empréstimo, patrimônio e MEI. */
 'use strict';
 (function (SL) {
   const U = SL.U, D = SL.D, UI = SL.UI;
   const ic = UI.ic, esc = U.esc;
   SL.Apps.banco = {
-    title: 'Banco Nuvem', short: 'Banco', icon: 'bank', color: 'linear-gradient(135deg,#35d39a,#0f766e)', pc: true, phone: true, w: 900, h: 660,
+    title: 'Bank', short: 'Bank', icon: 'bank', color: 'linear-gradient(135deg,#35d39a,#0f766e)', order: 8, pc: true, phone: true, w: 900, h: 660,
     watch: ['money', 'bills'],
     badge: () => SL.Econ.overdueCount() || 0,
     render(el, ctx) {
       const st = ctx.st; st.tab = st.tab || 'inicio';
       const tabs = [['inicio', 'Início'], ['contas', 'Contas'], ['extrato', 'Extrato'], ['credito', 'Crédito'], ['patrimonio', 'Patrimônio']];
-      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#0f766e">${ic('bank', 15)}</span>Banco Nuvem</div><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
+      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#0f766e">${ic('bank', 15)}</span>Bank</div><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
       const cv = el.querySelector('#bk-ch'); if (cv) { const days = SL.G.stats.days.slice(-30); UI.chart(cv, [{ data: days.map(d => d.m), color: '#35d39a' }, { data: days.map(d => d.nw), color: '#4cc3ff', fill: false }], { labels: days.map(d => SL.Clock.fmtDay(d.d).slice(5)) }); }
     },
     inicio() {

@@ -1,4 +1,4 @@
-/* Redes sociais: feed vivo (Connect, Vision, Clipz, Pulso), publicações do jogador, comentários, notícias e mensagens diretas. */
+/* Redes sociais: feed vivo (Instagram, YouTube, TikTok, Twitch), publicações do jogador, comentários, notícias e mensagens diretas. */
 'use strict';
 (function (SL) {
   const U = SL.U, D = SL.D;
@@ -38,7 +38,7 @@
   const totalFollowers = () => { const c = G().ch; return c.pulso.f + c.vision.f + c.clipz.f + c.connect.f; };
   S.totalFollowers = totalFollowers;
 
-  // ---------- publicações do jogador no Connect ----------
+  // ---------- publicações do jogador no Instagram ----------
   S.post = o => {
     const G0 = G();
     if (G0.flags.lastPostT && G0.time.t - G0.flags.lastPostT < 20) return 'Espere um pouco antes de postar de novo.';

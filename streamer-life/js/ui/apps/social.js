@@ -1,4 +1,4 @@
-/* Redes sociais: Vision (vídeos longos), Clipz (vídeos curtos) e Connect (publicações). */
+/* Redes sociais: YouTube (vídeos longos), TikTok (vídeos curtos) e Instagram (publicações). */
 'use strict';
 (function (SL) {
   const U = SL.U, D = SL.D, UI = SL.UI;
@@ -16,13 +16,13 @@
 
   // ---------- VISION ----------
   SL.Apps.vision = {
-    title: 'Vision', icon: 'vision', color: 'linear-gradient(135deg,#ff5a36,#d8306a)', pc: true, phone: true, w: 1000, h: 660,
+    title: 'YouTube', short: 'YouTube', icon: 'vision', color: 'linear-gradient(135deg,#ff4136,#c4161c)', order: 3, pc: true, phone: true, w: 1000, h: 660,
     watch: ['videos', 'tick:hour', 'feed'],
     render(el, ctx) {
       const st = ctx.st; if (ctx.args && ctx.args.video && !st.used) { st.used = 1; st.tab = 'canal'; st.vid = ctx.args.video; }
       st.tab = st.tab || 'inicio';
       const tabs = [['inicio', 'Início'], ['canal', 'Seu canal'], ['tendencias', 'Tendências']];
-      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#ff5a36">${ic('vision', 15)}</span>Vision</div><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
+      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#ff5a36">${ic('vision', 15)}</span>YouTube</div><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
       paintAvatars(el); paintThumbs(el);
       const cv = $('#vi-ch', el); if (cv) { const s = this.dailyViews(30); UI.chart(cv, [{ data: s.data, color: '#ff5a36' }], { labels: s.labels }); }
       const cv2 = $('#vd-ch', el); if (cv2) { const v = SL.G.videos.find(x => x.id === st.vid); UI.chart(cv2, [{ data: v.hist.length ? v.hist.map(x => x || 0) : [0], color: '#ff5a36' }]); }
@@ -44,7 +44,7 @@
       return `<div class="statrow"><div class="card stat"><b>${U.num(ch.f)}</b><span>Inscritos</span></div><div class="card stat"><b>${U.num(ch.views)}</b><span>Visualizações</span></div><div class="card stat"><b>${U.num(ch.wh)}</b><span>Horas assistidas</span></div><div class="card stat"><b class="ok">${U.money(rev)}</b><span>Receita acumulada</span></div><div class="card stat"><b>${ch.mon ? 'Monetizado' : 'Não monetizado'}</b><span>${ch.mon ? 'A receita cai no dia 21' : 'Precisa 1.000 inscritos e 4.000 horas'}</span></div></div>
         ${!ch.mon ? `<div class="card col"><div class="attr">Inscritos<div class="bar"><i style="width:${Math.min(100, ch.f / 10)}%"></i></div><b>${U.num(ch.f)}</b></div><div class="attr">Horas<div class="bar"><i style="width:${Math.min(100, ch.wh / 40)}%"></i></div><b>${U.num(ch.wh)}</b></div></div>` : ''}
         <div class="card"><h3>Visualizações por dia (30 dias)</h3><canvas class="chart" id="vi-ch"></canvas></div>
-        <div class="card"><h3>Seus vídeos</h3>${vids.length ? `<div class="tablewrap"><table class="table"><tr><th>Vídeo</th><th>Situação</th><th>Views</th><th>CTR</th><th>Retenção</th><th>Inscritos</th><th>Receita</th></tr>${vids.map(v => `<tr class="click" data-act="vid" data-v="${v.id}"><td><b class="small">${esc(v.title)}</b><div class="tiny muted">${SL.Clock.fmtStamp(v.t)} · qualidade ${v.quality}</div></td><td>${trendTag(v)}</td><td class="n">${U.num(v.views)}</td><td class="n">${U.pct(v.ctr, 1)}</td><td class="n">${U.pct(v.ret)}</td><td class="n">+${U.int(v.newSubs)}</td><td class="n">${U.money(v.rev)}</td></tr>`).join('')}</table></div>` : '<div class="empty">Publique pelo Estúdio de Vídeo (no computador).</div>'}</div>
+        <div class="card"><h3>Seus vídeos</h3>${vids.length ? `<div class="tablewrap"><table class="table"><tr><th>Vídeo</th><th>Situação</th><th>Views</th><th>CTR</th><th>Retenção</th><th>Inscritos</th><th>Receita</th></tr>${vids.map(v => `<tr class="click" data-act="vid" data-v="${v.id}"><td><b class="small">${esc(v.title)}</b><div class="tiny muted">${SL.Clock.fmtStamp(v.t)} · qualidade ${v.quality}</div></td><td>${trendTag(v)}</td><td class="n">${U.num(v.views)}</td><td class="n">${U.pct(v.ctr, 1)}</td><td class="n">${U.pct(v.ret)}</td><td class="n">+${U.int(v.newSubs)}</td><td class="n">${U.money(v.rev)}</td></tr>`).join('')}</table></div>` : '<div class="empty">Publique pelo Premiere Pro (no computador).</div>'}</div>
         ${this.recentComments(vids)}`;
     },
     recentComments(vids) {
@@ -84,12 +84,12 @@
 
   // ---------- CLIPZ ----------
   SL.Apps.clipz = {
-    title: 'Clipz', icon: 'clip', color: 'linear-gradient(135deg,#19d3c5,#ff3d81)', pc: true, phone: true, w: 900, h: 660,
+    title: 'TikTok', short: 'TikTok', icon: 'clip', color: 'linear-gradient(135deg,#1f1f27 45%,#fe2c55)', order: 4, pc: true, phone: true, w: 900, h: 660,
     watch: ['videos', 'tick:hour', 'feed'],
     render(el, ctx) {
       const st = ctx.st; st.tab = st.tab || 'foryou';
       const tabs = [['foryou', 'Para você'], ['trends', 'Desafios e trends'], ['perfil', 'Seu perfil']];
-      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:linear-gradient(135deg,#19d3c5,#ff3d81)">${ic('clip', 15)}</span>Clipz</div><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
+      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:linear-gradient(135deg,#19d3c5,#ff3d81)">${ic('clip', 15)}</span>TikTok</div><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
       $$('canvas[data-short]', el).forEach(cv => this.paintShort(cv));
     },
     paintShort(cv) {
@@ -109,11 +109,11 @@
     },
     trends() {
       const G = SL.G;
-      return `<div class="col">${G.trends.tags.map(t => `<div class="card row"><span class="acc">${ic('fire', 20)}</span><div class="grow"><b>${esc(t.tag)}</b><div class="tiny muted">Em alta desde ${SL.Clock.fmtDay(t.since)} · calor ${Math.round(t.heat * 100)}</div><div class="bar" style="margin-top:6px"><i style="width:${Math.min(100, t.heat * 80)}%;background:var(--clipz2)"></i></div></div><button class="btn sm" data-act="trend" data-v="${esc(t.tag.slice(1))}">${ic('plus', 14)} Fazer um short</button></div>`).join('') || '<div class="empty">Nenhuma trend agora.</div>'}<p class="small muted">Shorts com a tag da trend ganham um empurrão enquanto ela estiver quente. Use no Estúdio de Vídeo, passo "Tags".</p></div>`;
+      return `<div class="col">${G.trends.tags.map(t => `<div class="card row"><span class="acc">${ic('fire', 20)}</span><div class="grow"><b>${esc(t.tag)}</b><div class="tiny muted">Em alta desde ${SL.Clock.fmtDay(t.since)} · calor ${Math.round(t.heat * 100)}</div><div class="bar" style="margin-top:6px"><i style="width:${Math.min(100, t.heat * 80)}%;background:var(--clipz2)"></i></div></div><button class="btn sm" data-act="trend" data-v="${esc(t.tag.slice(1))}">${ic('plus', 14)} Fazer um short</button></div>`).join('') || '<div class="empty">Nenhuma trend agora.</div>'}<p class="small muted">Shorts com a tag da trend ganham um empurrão enquanto ela estiver quente. Use no Premiere Pro, passo "Tags".</p></div>`;
     },
     perfil() {
       const G = SL.G; const ch = G.ch.clipz; const vids = G.videos.filter(v => v.plat === 'clipz').slice().reverse();
-      return `<div class="statrow"><div class="card stat"><b>${U.num(ch.f)}</b><span>Seguidores no Clipz</span></div><div class="card stat"><b>${U.num(ch.views)}</b><span>Visualizações</span></div><div class="card stat"><b>${ch.mon ? 'Ativo' : 'Inativo'}</b><span>Fundo de criadores (10 mil seguidores e 100 mil views)</span></div></div>
+      return `<div class="statrow"><div class="card stat"><b>${U.num(ch.f)}</b><span>Seguidores no TikTok</span></div><div class="card stat"><b>${U.num(ch.views)}</b><span>Visualizações</span></div><div class="card stat"><b>${ch.mon ? 'Ativo' : 'Inativo'}</b><span>Fundo de criadores (10 mil seguidores e 100 mil views)</span></div></div>
         <div class="card">${vids.length ? `<div class="tablewrap"><table class="table"><tr><th>Short</th><th>Situação</th><th>Views</th><th>Curtidas</th><th>Compart.</th><th>Seguidores</th></tr>${vids.map(v => `<tr><td class="small">${esc(v.title)}</td><td>${trendTag(v)}</td><td class="n">${U.num(v.views)}</td><td class="n">${U.num(v.likes)}</td><td class="n">${U.num(v.shares)}</td><td class="n">+${U.int(v.newSubs)}</td></tr>`).join('')}</table></div>` : '<div class="empty">Nenhum short ainda. Cortes de live viram ótimos shorts.</div>'}</div>`;
     },
     act(a, ds, ctx) {
@@ -125,13 +125,13 @@
 
   // ---------- CONNECT ----------
   SL.Apps.connect = {
-    title: 'Connect', icon: 'connect', color: 'linear-gradient(135deg,#3b82f6,#2a55c8)', pc: true, phone: true, w: 760, h: 680,
+    title: 'Instagram', short: 'Instagram', icon: 'connect', color: 'linear-gradient(135deg,#f9a03f,#d62976 55%,#7b3fe4)', order: 5, pc: true, phone: true, w: 760, h: 680,
     watch: ['feed', 'posts', 'tick:hour'],
     render(el, ctx) {
       const st = ctx.st; if (ctx.args && ctx.args.compose && !st.used) { st.used = 1; st.tab = 'publicar'; st.kind = 'foto'; st.photo = ctx.args.photo; }
       st.tab = st.tab || 'feed';
       const tabs = [['feed', 'Feed'], ['publicar', 'Publicar'], ['perfil', 'Seu perfil']];
-      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#3b82f6">${ic('connect', 15)}</span>Connect</div><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
+      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#3b82f6">${ic('connect', 15)}</span>Instagram</div><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
       paintAvatars(el);
       $$('canvas[data-photo]', el).forEach(cv => { const p = SL.G.posts.find(x => x.id === cv.dataset.photo) || (ctx.st.preview && ctx.st.preview.id === cv.dataset.photo ? ctx.st.preview : null); if (p && p.photo) SL.Preview.photo(cv, p.photo); });
       $$('canvas[data-th]', el).forEach(cv => { const v = SL.G.videos.find(x => x.id === cv.dataset.th); if (v) SL.Preview.thumbTo(cv, { game: v.game, th: v.thumb, title: v.title, seed: v.id }); });
@@ -141,7 +141,7 @@
       const vid = f.plat === 'vision' && f.author === 'me' ? G.videos.find(v => v.id === f.ref) : null;
       const poll = f.poll || (p && p.poll);
       const comments = (p ? p.comments : f.comments || []).slice(-3);
-      return `<div class="post ${f.author === 'me' ? 'me' : ''} ${f.aboutMe ? 'about' : ''}"><div class="ph">${avatarCanvas(f.author)}<div class="grow"><b>${esc(a.name)}</b> ${a.creator ? '<span class="tag">criador(a)</span>' : a.news ? '<span class="tag info">notícias</span>' : ''}<div><small>@${esc(a.handle)} · ${SL.Clock.ago(f.t)}${f.plat !== 'connect' ? ' · ' + ({ pulso: 'ao vivo na Pulso', vision: 'vídeo no Vision', clipz: 'short no Clipz' })[f.plat] : ''}</small></div></div></div>
+      return `<div class="post ${f.author === 'me' ? 'me' : ''} ${f.aboutMe ? 'about' : ''}"><div class="ph">${avatarCanvas(f.author)}<div class="grow"><b>${esc(a.name)}</b> ${a.creator ? '<span class="tag">criador(a)</span>' : a.news ? '<span class="tag info">notícias</span>' : ''}<div><small>@${esc(a.handle)} · ${SL.Clock.ago(f.t)}${f.plat !== 'connect' ? ' · ' + ({ pulso: 'ao vivo na Twitch', vision: 'vídeo no YouTube', clipz: 'short no TikTok' })[f.plat] : ''}</small></div></div></div>
         <div class="txt">${f.plat === 'pulso' ? ic('live', 14) + ' ' : ''}${esc(f.text)}</div>
         ${f.photo ? `<canvas class="photo" data-photo="${f.ref}"></canvas>` : ''}${vid ? `<canvas class="thumb" data-th="${vid.id}"></canvas>` : ''}
         ${poll ? (() => { const tot = poll.votes.reduce((x, y) => x + y, 0) || 1; return `<div class="col gap4"><b class="small">${esc(poll.q)}</b>${poll.opts.map((o, i) => `<div class="pollbar"><i style="width:${poll.votes[i] / tot * 100}%"></i><span>${esc(o)} · ${Math.round(poll.votes[i] / tot * 100)}%</span></div>`).join('')}<span class="tiny muted">${U.int(tot)} votos</span></div>`; })() : ''}
@@ -165,7 +165,7 @@
       }
       if (st.kind === 'enquete') body = `<div class="field"><label>Pergunta</label><input class="input" data-f="pq" maxlength="80" value="${esc(st.pq || 'Qual jogo vocês querem na próxima live?')}"></div><div class="grid3">${[0, 1, 2].map(i => `<input class="input" data-f="po${i}" maxlength="30" value="${esc((st.po || [])[i] || ['Zona Final', 'Corredor 13', 'Gol de Placa 27'][i])}">`).join('')}</div>`;
       if (st.kind === 'anuncio') body = `<p class="small muted">O anúncio vira compromisso: quem vir vai esperar a live nesse horário.</p><div class="row wrap">${[[0, 20], [0, 22], [1, 19], [1, 20], [1, 21], [2, 20]].filter(([d, h]) => d > 0 || h > SL.Clock.hour()).map(([d, h]) => `<button class="chip ${st.ann === d + ',' + h ? 'on' : ''}" data-act="ann" data-v="${d},${h}">${d === 0 ? 'Hoje' : d === 1 ? 'Amanhã' : SL.Clock.fmtDay(SL.Clock.day() + d)} ${h}h</button>`).join('')}</div>`;
-      return `<div class="feed"><div class="card col"><div class="row wrap">${kinds.map(([k, l, i]) => `<button class="chip ${st.kind === k ? 'on' : ''}" data-act="kind" data-v="${k}">${ic(i, 13)} ${l}</button>`).join('')}</div>${body}<div class="row end"><span class="tiny muted grow">${U.num(G.ch.connect.f)} seguidores no Connect</span><button class="btn primary" data-act="post">${ic('send', 14)} Publicar</button></div></div></div>`;
+      return `<div class="feed"><div class="card col"><div class="row wrap">${kinds.map(([k, l, i]) => `<button class="chip ${st.kind === k ? 'on' : ''}" data-act="kind" data-v="${k}">${ic(i, 13)} ${l}</button>`).join('')}</div>${body}<div class="row end"><span class="tiny muted grow">${U.num(G.ch.connect.f)} seguidores no Instagram</span><button class="btn primary" data-act="post">${ic('send', 14)} Publicar</button></div></div></div>`;
     },
     perfil() {
       const G = SL.G; const posts = G.posts.slice().reverse();
@@ -194,7 +194,7 @@
         if (st.kind === 'enquete') { const opts = [0, 1, 2].map(i => ($('[data-f="po' + i + '"]', ctx.host) || {}).value).filter(Boolean); o = { kind: 'enquete', text: '', poll: { q: ($('[data-f="pq"]', ctx.host) || {}).value || 'Enquete', opts }, eng: 1.3 }; }
         if (st.kind === 'anuncio') { if (!st.ann) return 'Escolha o dia e a hora da live.'; const [d, h] = st.ann.split(',').map(Number); SL.Social.scheduleLivePost(d, h); st.ann = null; st.tab = 'perfil'; UI.toast({ title: 'Live anunciada', text: 'Seus seguidores foram avisados.', icon: 'megaphone', cat: 'social' }, 'success'); return ctx.render(); }
         const err = SL.Social.post(o); if (err) return err;
-        st.text = ''; st.topic = null; st.tab = 'perfil'; SL.Goals.check(); UI.toast({ title: 'Publicado no Connect', icon: 'check', cat: 'social' }, 'success', true);
+        st.text = ''; st.topic = null; st.tab = 'perfil'; SL.Goals.check(); UI.toast({ title: 'Publicado no Instagram', icon: 'check', cat: 'social' }, 'success', true);
         return ctx.render();
       }
       void ev;

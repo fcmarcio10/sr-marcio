@@ -29,7 +29,7 @@
     video: ['Vídeo novo no ar: {t}', 'Saiu vídeo! {t}', 'Esse vídeo deu trabalho, espero que gostem: {t}'],
     life: ['Dia de folga, ninguém me chama', 'Comprei uma cadeira nova, minhas costas agradecem', 'Gravando muita coisa pra semana que vem', 'Às vezes a gente precisa de uma pausa', 'Café, edição e chuva lá fora', 'Saudade das lives pequenas, todo mundo se conhecia'],
     milestone: ['Chegamos a {n} seguidores! Obrigado demais', 'Recorde de público ontem: {n} pessoas na live', 'Não acredito que bateu {n} no vídeo novo'],
-    opinion: ['A nova atualização do {g} deixou o jogo pior. Pronto, falei', 'Criador pequeno precisa de mais espaço nas plataformas', 'Live de 12 horas faz mal pra saúde, gente', 'O algoritmo do Clipz anda muito estranho'],
+    opinion: ['A nova atualização do {g} deixou o jogo pior. Pronto, falei', 'Criador pequeno precisa de mais espaço nas plataformas', 'Live de 12 horas faz mal pra saúde, gente', 'O algoritmo do TikTok anda muito estranho'],
     trend: ['Entrei na trend {tag}, ficou uma vergonha', 'Quem mais tá fazendo o {tag}?', 'Desafio aceito: {tag}'],
     drama: ['Tem gente que cresce copiando os outros e acha que ninguém percebe', 'Não vou citar nomes, mas tem criador fingindo número de público', 'Treta resolvida, bola pra frente'],
     praise: ['Fica a dica: sigam o @{h}, conteúdo muito bom', 'Que live incrível do @{h} ontem', 'Collab com @{h} saindo em breve'],
@@ -39,7 +39,7 @@
     update: ['{g} recebe atualização grande e volta a ganhar jogadores', 'Nova temporada de {g} começa hoje', 'Desenvolvedores de {g} anunciam modo novo'],
     decline: ['{g} perde jogadores pelo terceiro mês seguido', 'Comunidade de {g} reclama de bugs'],
     record: ['@{h} bate recorde com {n} espectadores ao vivo', '@{h} passa de {n} seguidores'],
-    trend: ['Trend do momento no Clipz: {tag}', '{tag} domina as redes nesta semana'],
+    trend: ['Trend do momento no TikTok: {tag}', '{tag} domina as redes nesta semana'],
     gossip: ['Clima tenso entre @{h} e @{h2} nas redes', '@{h} some das redes e fãs ficam preocupados', '@{h} anuncia pausa nas lives'],
     player_good: ['Criador em ascensão: @{u} chama atenção com {n} seguidores', 'O vídeo de @{u} é um dos mais vistos da semana', 'Corte da live de @{u} viraliza'],
     player_bad: ['@{u} recebe críticas depois de comentário polêmico', 'Fãs de @{u} reclamam de publi excessiva', 'Boato sobre @{u} circula nas redes'],
@@ -67,7 +67,7 @@
     polemica: ['Discordo de você', 'Que opinião ruim', 'Finalmente alguém falou', 'Vai dar treta', 'Respeito, mas não concordo'],
   };
 
-  // Postagens prontas do jogador no Connect (assuntos)
+  // Postagens prontas do jogador no Instagram (assuntos)
   T.playerPostTopics = [
     { id: 'bomdia', label: 'Bom dia, seguidores', kind: 'texto', text: 'Bom dia! Hoje o dia vai ser produtivo. E vocês, o que vão fazer?', eng: 1 },
     { id: 'bastidores', label: 'Bastidores da edição', kind: 'texto', text: 'Editando o próximo vídeo. Esse aqui tá ficando especial.', eng: 1.1 },
@@ -153,7 +153,7 @@
   T.npcMsgs = {
     mae: ['Filho(a), você está se alimentando direito?', 'Vi sua live ontem! Não entendi nada, mas fiquei orgulhosa.', 'Liga pra sua mãe de vez em quando, viu?', 'Fiz aquele bolo que você gosta. Passa aqui?', 'Não fica acordado(a) até tarde, isso faz mal.', 'Minhas amigas da costura agora te seguem, haha'],
     duda: ['Bora tomar um café essa semana?', 'Vi teu último vídeo! A thumbnail podia ser melhor, posso te ajudar.', 'Tô com saudade das nossas conversas', 'Tem um show sábado, topa?'],
-    rafa: ['Bora jogar Zona Final hoje à noite?', 'Chegou peça nova na loja, se quiser trocar o PC te faço preço', 'Tua live ontem travou um pouco, quer que eu dê uma olhada no PC?', 'Vi um corte teu no Clipz, kkkkk'],
+    rafa: ['Bora jogar Zona Final hoje à noite?', 'Chegou peça nova na loja, se quiser trocar o PC te faço preço', 'Tua live ontem travou um pouco, quer que eu dê uma olhada no PC?', 'Vi um corte teu no TikTok, kkkkk'],
     partner: ['Tô com saudade. A gente se vê hoje?', 'Pensando em você', 'Você tá trabalhando demais, sabia?', 'Bora sair esse fim de semana?'],
     crush: ['Oi! Foi bom conversar com você aquele dia.', 'Vi seu canal, muito legal!', 'Tá fazendo o quê de bom?'],
   };

@@ -18,19 +18,21 @@
     if (UI.screen !== 'game') return;
     [...box.children].forEach(c => { if (c.dataset.title === n.title) c.remove(); });
     const el = document.createElement('div'); el.className = 'toast'; el.dataset.title = n.title;
-    const col = CATC(n.cat); el.style.borderLeftColor = col;
-    el.innerHTML = `<div class="ti" style="background:${U.rgba(col, 0.16)};color:${col}">${UI.ic(n.icon || 'info', 16)}</div><div class="grow"><b>${U.esc(n.title)}</b>${n.text ? '<p>' + U.esc(n.text) + '</p>' : ''}</div>`;
-    el.onclick = () => { if (n.app) UI.openApp(n.app, n.args); n.read = true; el.remove(); SL.bus.emit('notif'); };
+    const col = CATC(n.cat); const life = quick ? 2800 : 6000; el.style.borderLeftColor = col;
+    el.innerHTML = `<div class="ti" style="background:${U.rgba(col, 0.16)};color:${col}">${UI.ic(n.icon || 'info', 16)}</div><div class="grow"><b>${U.esc(n.title)}</b>${n.text ? '<p>' + U.esc(n.text) + '</p>' : ''}</div><button class="tx" aria-label="Fechar aviso" title="Fechar">${UI.ic('x', 14)}</button><i class="tbar" style="color:${col};animation-duration:${life}ms"></i>`;
+    const kill = () => { if (!el.isConnected) return; el.classList.add('out'); setTimeout(() => el.remove(), 260); };
+    el.querySelector('.tx').onclick = e => { e.stopPropagation(); n.read = true; kill(); SL.bus.emit('notif'); };
+    el.onclick = () => { if (n.app) UI.openApp(n.app, n.args); n.read = true; kill(); SL.bus.emit('notif'); };
     box.prepend(el);
     while (box.children.length > 3) box.lastChild.remove();
     if (SL.audio && !quick) SL.audio.play(sound || 'notif');
-    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 260); }, quick ? 2600 : 4300);
+    setTimeout(kill, life);
   };
 
   // ---------- modais ----------
   UI.modal = o => {
     const root = $('#modals'); const bg = document.createElement('div'); bg.className = 'modal-bg';
-    bg.innerHTML = `<div class="modal ${o.wide ? 'wide' : ''}" role="dialog" aria-modal="true"><div class="mh">${o.icon ? '<div class="mi">' + UI.ic(o.icon, 20) + '</div>' : ''}<div class="grow"><h3>${U.esc(o.title || '')}</h3>${o.sub ? '<div class="muted small">' + U.esc(o.sub) + '</div>' : ''}</div>${o.noClose ? '' : '<button class="ibtn" data-x aria-label="Fechar">' + UI.ic('x') + '</button>'}</div><div class="mb">${o.html || ''}</div>${(o.buttons && o.buttons.filter(Boolean).length) ? '<div class="mf"></div>' : ''}</div>`;
+    bg.innerHTML = `<div class="modal ${o.wide ? 'wide' : ''} ${o.cls || ''}" role="dialog" aria-modal="true"><div class="mh">${o.icon ? '<div class="mi">' + UI.ic(o.icon, 20) + '</div>' : ''}<div class="grow"><h3>${U.esc(o.title || '')}</h3>${o.sub ? '<div class="muted small">' + U.esc(o.sub) + '</div>' : ''}</div>${o.noClose ? '' : '<button class="ibtn" data-x aria-label="Fechar">' + UI.ic('x') + '</button>'}</div><div class="mb">${o.html || ''}</div>${(o.buttons && o.buttons.filter(Boolean).length) ? '<div class="mf"></div>' : ''}</div>`;
     root.appendChild(bg);
     const m = { el: bg, body: $('.mb', bg), closed: false };
     m.close = () => { if (m.closed) return; m.closed = true; bg.remove(); if (o.hold) SL.Clock.release(); if (o.onClose) o.onClose(); };
@@ -104,13 +106,13 @@
     if (SL.audio) SL.audio.play('close');
   };
   UI.buildDesktop = ov => {
-    ov.innerHTML = `<div class="desktop"><canvas class="wall"></canvas><div class="desk-area"><div class="desk-icons"></div></div><div class="taskbar"><button class="tb-app" data-off title="Desligar">${UI.ic('exit', 16)} Desligar</button><div class="tb-wins row gap4"></div><div class="tray"><span class="tb-act"></span>${UI.ic('wifi', 15)}<span class="tb-clock mono"></span></div></div></div>`;
+    ov.innerHTML = `<div class="desktop"><canvas class="wall"></canvas><div class="desk-area"><div class="desk-icons"></div></div><div class="taskbar"><button class="tb-app" data-off title="Desligar">${UI.ic('exit', 16)} Desligar</button><div class="tb-wins row gap4"></div><div class="tray">${UI.ic('wifi', 15)}<span class="tb-clock mono"></span></div></div></div>`;
     $('[data-off]', ov).onclick = () => UI.closePC();
   };
-  UI.appList = mode => Object.keys(SL.Apps).filter(id => { const a = SL.Apps[id]; return mode === 'pc' ? a.pc !== false : a.phone; });
+  UI.appList = mode => Object.keys(SL.Apps).filter(id => { const a = SL.Apps[id]; return mode === 'pc' ? a.pc !== false : a.phone; }).sort((a, b) => (SL.Apps[a].order || 50) - (SL.Apps[b].order || 50));
   UI.renderDesktopIcons = () => {
     const box = $('#overlay-pc .desk-icons'); if (!box) return;
-    box.innerHTML = UI.appList('pc').map(id => { const a = SL.Apps[id]; const b = a.badge ? a.badge() : 0; return `<button class="dicon" data-app="${id}"><div class="ai" style="background:${a.color}">${UI.ic(a.icon, 22)}${b ? '<span class="badge">' + b + '</span>' : ''}</div><span>${U.esc(a.title)}</span></button>`; }).join('');
+    box.innerHTML = UI.appList('pc').map(id => { const a = SL.Apps[id]; const b = a.badge ? a.badge() : 0; return `<button class="dicon" data-app="${id}"><div class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 22)}${b ? '<span class="dot"></span>' : ''}</div><span>${U.esc(a.title)}</span></button>`; }).join('');
     $$('[data-app]', box).forEach(b => b.onclick = () => UI.openApp(b.dataset.app));
   };
   UI.renderTaskbar = () => {
@@ -166,7 +168,7 @@
     const w = Math.min(a.w || 900, W0 - 40), h = Math.min(a.h || 600, H0 - 30);
     const off = (wins.length % 5) * 26;
     el.style.width = w + 'px'; el.style.height = h + 'px'; el.style.left = Math.max(110, Math.min(W0 - w - 10, (W0 - w) / 2 + off)) + 'px'; el.style.top = Math.max(8, Math.min(H0 - h - 8, (H0 - h) / 2 + off - 10)) + 'px';
-    el.innerHTML = `<div class="wh"><div class="wi" style="background:${a.color}">${UI.ic(a.icon, 13)}</div><b>${U.esc(a.title)}</b><button class="ibtn" data-min title="Minimizar">${UI.ic('minimize', 15)}</button><button class="ibtn" data-max title="Maximizar">${UI.ic('maximize', 14)}</button><button class="ibtn" data-close title="Fechar">${UI.ic('x', 15)}</button></div><div class="wb"></div><div class="resize"></div>`;
+    el.innerHTML = `<div class="wh"><div class="wi" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 13)}</div><b>${U.esc(a.title)}</b><button class="ibtn" data-min title="Minimizar">${UI.ic('minimize', 15)}</button><button class="ibtn" data-max title="Maximizar">${UI.ic('maximize', 14)}</button><button class="ibtn" data-close title="Fechar">${UI.ic('x', 15)}</button></div><div class="wb"></div><div class="resize"></div>`;
     area.appendChild(el);
     const body = $('.wb', el);
     const win = { id: U.uid('w'), app: id, el, min: false, focus: false, unsub: [] };
@@ -204,7 +206,7 @@
   let phoneCtx = null, phoneUnsub = [];
   UI.openPhone = (appId, args) => {
     if (UI.pcOpen() && appId && SL.Apps[appId] && SL.Apps[appId].pc !== false) return UI.openApp(appId, args);
-    const ov = $('#overlay-phone'); ov.hidden = false;
+    const ov = $('#overlay-phone'); ov.hidden = false; document.body.classList.add('phone-open');
     if (!ov.firstChild) {
       ov.innerHTML = `<div class="phone-wrap"><div class="phone"><div class="screen-in"><div class="sbar"><span class="ph-clock"></span><span class="row gap4">${UI.ic('wifi', 13)}<span class="ph-bat"></span></span></div><div class="pbody"></div><div class="nav"><button class="ibtn" data-pback aria-label="Voltar">${UI.ic('left', 18)}</button><button class="ibtn" data-phome aria-label="Início">${UI.ic('home', 18)}</button><button class="ibtn" data-pclose aria-label="Guardar celular">${UI.ic('x', 18)}</button></div></div></div></div>`;
       $('.phone-wrap', ov).addEventListener('mousedown', e => { if (e.target.classList.contains('phone-wrap')) UI.closePhone(); });
@@ -215,14 +217,14 @@
     UI.phoneApp(appId || null, args);
     if (SL.audio) SL.audio.play('open');
   };
-  UI.closePhone = () => { const ov = $('#overlay-phone'); if (ov.hidden) return; ov.hidden = true; phoneUnsub.forEach(([e, f]) => SL.bus.off(e, f)); phoneUnsub = []; phoneCtx = null; };
+  UI.closePhone = () => { const ov = $('#overlay-phone'); document.body.classList.remove('phone-open'); if (ov.hidden) return; ov.hidden = true; phoneUnsub.forEach(([e, f]) => SL.bus.off(e, f)); phoneUnsub = []; phoneCtx = null; };
   UI.phoneApp = (id, args) => {
     const body = $('#overlay-phone .pbody'); phoneUnsub.forEach(([e, f]) => SL.bus.off(e, f)); phoneUnsub = [];
     const fresh = body.cloneNode(false); body.replaceWith(fresh);
     if (!id) {
       phoneCtx = null;
       const G = SL.G;
-      fresh.innerHTML = `<div class="phone-home"><div><div class="big-t">${SL.Clock.fmtTime(G.time.t)}</div><div class="muted">${SL.Clock.fmtFull(G.time.t)}</div></div><div class="app-grid">${UI.appList('phone').map(k => { const a = SL.Apps[k]; const b = a.badge ? a.badge() : 0; return `<button class="dicon" data-app="${k}"><div class="ai" style="background:${a.color}">${UI.ic(a.icon, 22)}${b ? '<span class="badge">' + b + '</span>' : ''}</div><span>${U.esc(a.short || a.title)}</span></button>`; }).join('')}</div><div class="card flat small"><div class="upper">Agora</div><div>${U.esc(SL.G.act ? SL.G.act.label : 'Sem atividade')}</div></div></div>`;
+      fresh.innerHTML = `<div class="phone-home"><div><div class="big-t">${SL.Clock.fmtTime(G.time.t)}</div><div class="muted">${SL.Clock.fmtFull(G.time.t)}</div></div><div class="app-grid">${UI.appList('phone').map(k => { const a = SL.Apps[k]; const b = a.badge ? a.badge() : 0; return `<button class="dicon" data-app="${k}"><div class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 22)}${b ? '<span class="badge">' + (b > 99 ? '99+' : b) + '</span>' : ''}</div><span>${U.esc(a.short || a.title)}</span></button>`; }).join('')}</div></div>`;
       $$('[data-app]', fresh).forEach(b => b.onclick = () => UI.phoneApp(b.dataset.app));
       return;
     }
@@ -233,17 +235,8 @@
     phoneCtx.render();
   };
 
-  // ---------- central de notificações ----------
-  UI.toggleNotifs = () => {
-    const ex = $('.notif-panel'); if (ex) { ex.remove(); return; }
-    const G = SL.G; const el = document.createElement('div'); el.className = 'notif-panel';
-    const items = G.notifs.slice().reverse().slice(0, 60);
-    el.innerHTML = `<div class="np-h"><b>Notificações</b><div class="row"><button class="btn sm ghost" data-ra>Marcar como lidas</button><button class="ibtn" data-cl>${UI.ic('x', 16)}</button></div></div><div class="np-b">${items.length ? items.map(n => { const col = CATC(n.cat); return `<div class="nitem ${n.read ? '' : 'unread'}" data-n="${n.id}"><div class="ti" style="background:${U.rgba(col, 0.16)};color:${col}">${UI.ic(n.icon, 15)}</div><div class="grow"><b>${U.esc(n.title)}</b><p>${U.esc(n.text)}</p><time>${SL.Clock.fmtStamp(n.t)}</time></div></div>`; }).join('') : '<div class="empty">Nada por aqui ainda.</div>'}</div>`;
-    $('#app').appendChild(el);
-    $('[data-cl]', el).onclick = () => el.remove();
-    $('[data-ra]', el).onclick = () => { SL.Notify.readAll(); el.remove(); };
-    $$('[data-n]', el).forEach(d => d.onclick = () => { const n = G.notifs.find(x => x.id === d.dataset.n); if (n) { n.read = true; if (n.app) UI.openApp(n.app, n.args); } el.remove(); SL.bus.emit('notif'); });
-  };
+  // ---------- central de notificações: fica no celular ----------
+  UI.toggleNotifs = () => UI.openPhone('notificacoes');
 
   // ---------- confete (subida de nível) ----------
   UI.confetti = () => {

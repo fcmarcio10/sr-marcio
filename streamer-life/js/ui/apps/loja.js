@@ -8,7 +8,7 @@
   const priceHTML = it => { const p = SL.Equip.price(it); return p < it.price ? `<span class="price"><s>${U.money0(it.price)}</s>${U.money0(p)}</span>` : `<span class="price">${it.price ? U.money0(it.price) : 'Grátis'}</span>`; };
 
   SL.Apps.loja = {
-    title: 'Loja', icon: 'shop', color: 'linear-gradient(135deg,#4cc3ff,#2a7ad8)', pc: true, phone: true, w: 1000, h: 680,
+    title: 'Mercado Livre', short: 'Mercado Livre', icon: 'shop', color: 'linear-gradient(135deg,#ffe14d,#f5b800)', fg: '#2d2a1a', order: 9, pc: true, phone: true, w: 1000, h: 680,
     watch: ['equip', 'home', 'money'],
     render(el, ctx) {
       const st = ctx.st; const phys = ctx.args && ctx.args.physical;

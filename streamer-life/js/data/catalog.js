@@ -83,7 +83,7 @@
   D.software = [
     { id: 'editor_pro', name: 'Editor Corte Pro (assinatura)', price: 59, monthly: true, desc: 'Edição 15% melhor e 25% mais rápida.' },
     { id: 'overlays', name: 'Pacote de overlays animados', price: 140, monthly: false, desc: 'Visual da live mais profissional (+5 de qualidade visual).' },
-    { id: 'bot_chat', name: 'Bot de moderação Vigia', price: 29, monthly: true, desc: 'Silencia trolls automaticamente e lembra do seu Connect no chat.' },
+    { id: 'bot_chat', name: 'Bot de moderação Vigia', price: 29, monthly: true, desc: 'Silencia trolls automaticamente e lembra do seu Instagram no chat.' },
   ];
 
   // Móveis e decoração da casa
@@ -139,7 +139,6 @@
     { id: 'suco', name: 'Suco natural', price: 9, portions: 2, perish: 4, eat: { sede: 35, saude: 1 }, time: 2 },
     { id: 'energetico', name: 'Energético', price: 9.5, portions: 1, perish: 0, eat: { energia: 24, sono: 8, estresse: 3, saude: -1.5 }, time: 2 },
     { id: 'cafe', name: 'Pacote de café', price: 16, portions: 10, perish: 0, eat: { energia: 12, sono: 6, humor: 1 }, time: 6, coffee: true },
-    { id: 'remedio', name: 'Remédio para gripe', price: 22, portions: 1, perish: 0, eat: { saude: 16 }, time: 1, med: true },
   ];
   D.foodById = id => D.foods.find(f => f.id === id);
 
@@ -192,7 +191,7 @@
 
   // Cursos online (estudar no computador)
   D.courses = [
-    { id: 'c_edicao1', name: 'Edição de vídeo do zero', skill: 'edicao', price: 0, hours: 3, gain: 4, desc: 'Curso gratuito no Vision.' },
+    { id: 'c_edicao1', name: 'Edição de vídeo do zero', skill: 'edicao', price: 0, hours: 3, gain: 4, desc: 'Curso gratuito no YouTube.' },
     { id: 'c_edicao2', name: 'Edição dinâmica para retenção', skill: 'edicao', price: 190, hours: 6, gain: 9, min: 20 },
     { id: 'c_mkt1', name: 'Títulos e thumbnails que funcionam', skill: 'marketing', price: 0, hours: 2, gain: 4 },
     { id: 'c_mkt2', name: 'Estratégia de conteúdo e algoritmo', skill: 'marketing', price: 240, hours: 6, gain: 9, min: 20 },
@@ -227,7 +226,7 @@
   D.expoEvents = [
     { md: '04-17', name: 'Encontro de Criadores Iniciantes', minTier: 0, fee: 40, days: 1 },
     { md: '06-19', name: 'GameFest Norte', minTier: 1, fee: 90, days: 2 },
-    { md: '08-14', name: 'Conferência Pulso Criadores', minTier: 2, fee: 0, days: 1 },
+    { md: '08-14', name: 'Conferência Twitch Criadores', minTier: 2, fee: 0, days: 1 },
     { md: '10-09', name: 'Feira de Tecnologia MegaByte', minTier: 1, fee: 60, days: 2 },
     { md: '12-04', name: 'Prêmio Criadores do Ano', minTier: 3, fee: 0, days: 1 },
     { md: '02-20', name: 'Encontro de Streamers de Verão', minTier: 1, fee: 50, days: 1 },

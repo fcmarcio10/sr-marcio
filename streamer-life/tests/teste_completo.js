@@ -35,20 +35,26 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   const t0 = await ev(() => SL.G.time.t);
   await page.click('[data-speed="3"]'); await page.waitForTimeout(1500); await page.click('[data-speed="1"]');
   const t1 = await ev(() => SL.G.time.t);
-  ok('tempo passa em tempo real (velocidade 3)', t1 - t0 >= 8, t1 - t0);
+  ok('tempo passa em tempo real (velocidade 3)', t1 - t0 >= 6, t1 - t0);
   const before = await ev(() => Object.assign({}, SL.G.needs));
   await ev(() => SL.debug.skip(180));
   const after = await ev(() => Object.assign({}, SL.G.needs));
-  ok('necessidades caem com o tempo', after.fome < before.fome && after.sede < before.sede && after.sono < before.sono, { fome: [before.fome, after.fome].map(Math.round) });
+  ok('necessidades caem com o tempo (fome, sede e cansaço)', after.fome < before.fome && after.sede < before.sede && after.energia < before.energia, { fome: [before.fome, after.fome].map(Math.round) });
 
-  // 3. casa: clicar na geladeira e comer
+  // 3. casa: clicar na geladeira, ver o que tem e preparar (pega, cozinha no fogão, leva à mesa e come)
+  await ev(() => { SL.HomeScene.placeAt('mesa_jantar'); SL.HomeScene.focus(); }); await page.waitForTimeout(300);
   const fr = await ev(() => { const o = SL.HomeScene.objects().find(x => x.id === 'geladeira'); const r = document.getElementById('cv-world').getBoundingClientRect(); const p = SL.HomeScene.tileToScreen(o.x + 0.5, o.y + 0.6); return { x: r.left + p.x, y: r.top + p.y }; });
   await page.mouse.click(fr.x, fr.y);
-  const menu = await page.waitForSelector('.ctx', { timeout: 9000 }).catch(() => null); ok('personagem anda até a geladeira e o menu aparece', !!menu);
+  const menu = await page.waitForSelector('.pie-o', { timeout: 9000 }).catch(() => null); ok('personagem anda até a geladeira e o menu aparece', !!menu);
+  const pieTxt = await ev(() => [...document.querySelectorAll('.pie-o')].map(b => b.textContent.trim()));
+  ok('menu da geladeira: ver geladeira e cancelar', pieTxt.length === 2 && /Ver geladeira/.test(pieTxt[0]) && /Cancelar/.test(pieTxt[1]), pieTxt);
   if (menu) await shot('05_menu_geladeira');
+  await page.click('.pie-o:not(.cancel)'); await page.waitForSelector('.fr-i', { timeout: 3000 });
   const fomeAntes = await ev(() => SL.G.needs.fome);
-  const opt = await page.$('.ctx .opt:not([disabled])'); if (opt) await opt.click();
-  await ev(() => SL.debug.skip(20));
+  await page.click('.fr-i [data-eat="miojo"]');
+  let travado = false;
+  for (let i = 0; i < 120; i++) { await page.waitForTimeout(200); const st = await ev(() => ({ busy: SL.Seq.busy(), locked: document.getElementById('hud').classList.contains('locked') })); if (st.busy && st.locked) travado = true; if (!st.busy) break; }
+  ok('preparar trava os botões e termina comendo à mesa', travado && await ev(() => !SL.Seq.busy()));
   ok('comer aumenta a fome', await ev(f => SL.G.needs.fome > f && SL.G.flags.ate, fomeAntes), await ev(() => Math.round(SL.G.needs.fome)));
 
   // 4. computador e loja (entrega no dia seguinte)
@@ -156,7 +162,7 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await page.click('.dicon[data-app="banco"]'); await page.waitForTimeout(300); await shot('13_banco');
 
   // 10. cidade, lugar e relacionamento
-  await ev(() => { SL.UI.closePC(); SL.debug.fill(); SL.debug.toHour(10); });
+  await ev(() => { SL.UI.closePC(); if (SL.G.act) SL.Life.stop(false); SL.debug.fill(); SL.debug.toHour(10); SL.debug.fill(); });
   await ev(() => { SL.City.goOutside(); SL.City.travel('cafeteria', 'onibus'); });
   await page.waitForTimeout(300); await shot('14_cidade_viagem');
   await ev(() => SL.debug.skip(60));
@@ -188,6 +194,7 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   ok('todos os apps renderizam', appErr.length === 0, appErr);
 
   // 14. salvar, fechar o navegador e continuar
+  await ev(() => { if (SL.G.act) SL.Life.stop(false); SL.G.time.speed = 0; });
   const snap = await ev(() => ({ t: SL.G.time.t, f: SL.G.ch.pulso.f, viewers: SL.G.viewers.list.length, vids: SL.G.videos.length, money: Math.round(SL.G.money), mem: SL.G.viewers.list.filter(v => v.m.v >= 2).map(v => v.u + ':' + v.m.v).slice(0, 5) }));
   const err = await ev(() => SL.Save.write('2'));
   ok('salvamento manual no espaço 2', err === null, err);

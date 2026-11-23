@@ -5,7 +5,7 @@
   const E = SL.Econ = {};
   const G = () => SL.G;
 
-  E.IN = { doacoes: 'Doações', inscricoes: 'Inscrições', anuncios: 'Anúncios em live', vision: 'Monetização Vision', clipz: 'Fundo de criadores Clipz', patrocinio: 'Patrocínios', eventos: 'Eventos', produtos: 'Produtos próprios', trabalho: 'Trabalho e freelas', familia: 'Família', emprestimo: 'Empréstimo', venda: 'Vendas', outros: 'Outros' };
+  E.IN = { doacoes: 'Doações', inscricoes: 'Inscrições', anuncios: 'Anúncios em live', vision: 'Monetização YouTube', clipz: 'Fundo de criadores TikTok', patrocinio: 'Patrocínios', eventos: 'Eventos', produtos: 'Produtos próprios', trabalho: 'Trabalho e freelas', familia: 'Família', emprestimo: 'Empréstimo', venda: 'Vendas', outros: 'Outros' };
   E.OUT = { aluguel: 'Aluguel e moradia', energia: 'Energia', internet: 'Internet', comida: 'Alimentação', equipamentos: 'Equipamentos', casa: 'Casa e móveis', software: 'Softwares', equipe: 'Funcionários', transporte: 'Transporte', impostos: 'Impostos', lazer: 'Lazer', saude: 'Saúde', dividas: 'Dívidas e juros', manutencao: 'Manutenção', outros: 'Outros' };
   E.PLATFORM_INCOME = ['doacoes', 'inscricoes', 'anuncios', 'vision', 'clipz', 'patrocinio', 'eventos', 'produtos'];
 
@@ -120,7 +120,7 @@
     if (amount > E.creditLimit() || amount <= 0) return false;
     const r = 0.035; const inst = amount * r / (1 - Math.pow(1 + r, -months));
     G().loans.push({ id: U.uid('l'), amount, n: months, left: months, inst: Math.round(inst * 100) / 100, t: G().time.t });
-    E.add(amount, 'emprestimo', 'Empréstimo do Banco Nuvem');
+    E.add(amount, 'emprestimo', 'Empréstimo do Bank');
     return true;
   };
 
@@ -172,10 +172,10 @@
     G0.bills = G0.bills.filter(b => !b.paid || day - SL.Clock.day(b.paidT || 0) < 45);
     // repasses das plataformas
     const P = G0.ch;
-    if (SL.Clock.dowOfDay(day) === 1 && P.pulso.bal >= 50) { const v = P.pulso.bal; P.pulso.bal = 0; E.add(v, 'doacoes', 'Repasse semanal da Pulso'); SL.notify({ cat: 'dinheiro', icon: 'money', title: 'Repasse da Pulso', text: U.money(v) + ' caiu na conta (doações, inscrições e anúncios).', app: 'banco' }); }
+    if (SL.Clock.dowOfDay(day) === 1 && P.pulso.bal >= 50) { const v = P.pulso.bal; P.pulso.bal = 0; E.add(v, 'doacoes', 'Repasse semanal da Twitch'); SL.notify({ cat: 'dinheiro', icon: 'money', title: 'Repasse da Twitch', text: U.money(v) + ' caiu na conta (doações, inscrições e anúncios).', app: 'banco' }); }
     const dom = SL.Clock.dayOfMonth(day * 1440);
-    if (dom === 21 && P.vision.bal >= 100) { const v = P.vision.bal; P.vision.bal = 0; E.add(v, 'vision', 'Pagamento mensal do Vision'); SL.notify({ cat: 'dinheiro', icon: 'vision', title: 'Pagamento do Vision', text: U.money(v) + ' pela monetização dos vídeos.', app: 'banco' }); }
-    if (dom === 25 && P.clipz.bal >= 100) { const v = P.clipz.bal; P.clipz.bal = 0; E.add(v, 'clipz', 'Fundo de criadores do Clipz'); SL.notify({ cat: 'dinheiro', icon: 'clip', title: 'Pagamento do Clipz', text: U.money(v) + ' do fundo de criadores.', app: 'banco' }); }
+    if (dom === 21 && P.vision.bal >= 100) { const v = P.vision.bal; P.vision.bal = 0; E.add(v, 'vision', 'Pagamento mensal do YouTube'); SL.notify({ cat: 'dinheiro', icon: 'vision', title: 'Pagamento do YouTube', text: U.money(v) + ' pela monetização dos vídeos.', app: 'banco' }); }
+    if (dom === 25 && P.clipz.bal >= 100) { const v = P.clipz.bal; P.clipz.bal = 0; E.add(v, 'clipz', 'Fundo de criadores do TikTok'); SL.notify({ cat: 'dinheiro', icon: 'clip', title: 'Pagamento do TikTok', text: U.money(v) + ' do fundo de criadores.', app: 'banco' }); }
     // registro diário
     const st = G0.stats;
     st.days.push({ d: day, f: { p: P.pulso.f, v: P.vision.f, c: P.clipz.f, n: P.connect.f }, m: Math.round(G0.money), nw: Math.round(E.netWorth()), subs: P.pulso.subs, views: P.vision.views + P.clipz.views });

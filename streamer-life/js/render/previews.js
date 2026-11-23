@@ -1,4 +1,4 @@
-/* Desenhos das telas de jogo (prévia da live), câmera do streamer, thumbnails, fotos do Connect e papel de parede. */
+/* Desenhos das telas de jogo (prévia da live), câmera do streamer, thumbnails, fotos do Instagram e papel de parede. */
 'use strict';
 (function (SL) {
   const U = SL.U, D = SL.D, A = SL.Avatar;
@@ -253,7 +253,7 @@
     if (th.circle) { c.strokeStyle = '#ff3b3b'; c.lineWidth = Math.max(3, h * 0.025); c.beginPath(); c.ellipse(w * 0.82, h * 0.72, w * 0.1, h * 0.16, 0, 0, 7); c.stroke(); }
   };
 
-  // ---------- fotos do Connect ----------
+  // ---------- fotos do Instagram ----------
   P.photo = (cv, ph) => {
     const dpr = Math.min(2, window.devicePixelRatio || 1); const w = cv.clientWidth || 300, h = cv.clientHeight || 190;
     cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
