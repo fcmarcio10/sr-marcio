@@ -26,6 +26,7 @@
         skills: { carisma: 8, jogo: 14, edicao: 4, marketing: 3, culinaria: 6, fisico: 12 },
       },
       needs: { fome: 72, sede: 70, sono: 86, higiene: 68, energia: 80, saude: 92, humor: 64, estresse: 22 },
+      life: { awake: 120, pcRun: 0, offPc: 0, caf: 0, warnT: -9999 },
       loc: { area: 'casa', tx: 5, ty: 4, place: null, dir: 1 },
       act: null,
       home: {

@@ -31,7 +31,7 @@
   let lastSide = 0;
   HUD.update = force => {
     const G = SL.G; if (!G || !refs.t) return;
-    refs.t.textContent = SL.Clock.fmtTime(G.time.t); refs.d.textContent = SL.Clock.fmtDate(G.time.t);
+    refs.t.textContent = SL.Clock.fmtTime(G.time.t); refs.d.textContent = SL.Clock.period(G.time.t) + ' · ' + SL.Clock.fmtDate(G.time.t);
     refs.name.textContent = G.player.channel; refs.tier.textContent = SL.Career.tierName();
     refs.mv.textContent = U.money0(G.money); refs.money.classList.toggle('neg', G.money < 0);
     refs.fv.textContent = U.num(SL.Social.totalFollowers());
@@ -44,26 +44,38 @@
   // ---------- painel lateral ----------
   HUD.side = () => {
     const G = SL.G; const el = $('#side'); if (!el) return;
-    const n = G.needs; const perf = SL.Life.perf();
+    const n = G.needs; const perf = SL.Life.perf(); const L = SL.Life;
     const a = G.act;
-    const where = G.loc.area === 'casa' ? (D.homeById(G.home.id).name + (SL.HomeScene.currentRoom() ? ' · ' + (SL.HomeScene.LAY[D.homeById(G.home.id).layout].rooms.find(r => r.id === SL.HomeScene.currentRoom()) || {}).name : '')) : G.loc.area === 'cidade' ? 'Na rua' : (D.placeById(G.loc.place) || {}).name;
-    const upcoming = SL.Calendar.upcoming(4);
-    const goals = SL.Goals.next(3);
-    const warns = SL.Life.warnings();
+    const room = G.loc.area === 'casa' ? (SL.HomeScene.LAY[D.homeById(G.home.id).layout].rooms.find(r => r.id === SL.HomeScene.currentRoom()) || {}).name : null;
+    const where = G.loc.area === 'casa' ? (room || D.homeById(G.home.id).name) : G.loc.area === 'cidade' ? 'Na rua' : (D.placeById(G.loc.place) || {}).name;
+    const upcoming = SL.Calendar.upcoming(3);
+    const goals = SL.Goals.next(2);
+    const tl = L.tiredLevel();
+    const sig = JSON.stringify([NEEDS_SIG(n), Math.round(perf * 100), a && [a.id, a.label, Math.round(L.progress() * 50)], where, upcoming.map(e => e.title + e.day + e.hour), goals.map(g => g.id + JSON.stringify(SL.Goals.status(g))), G.flags.mealReady, tl, L.awakeHours(), G.life && G.life.pcRun > 100, SL.Clock.hour()]);
+    if (el.dataset.sig === sig) return; el.dataset.sig = sig;
+    const need = nd => {
+      const raw = n[nd.k]; const v = nd.tired ? 100 - raw : raw; const good = nd.inv ? 100 - raw : raw; const low = good < 25;
+      return `<div class="need ${low ? 'low' : ''}" title="${nd.label}: ${Math.round(v)}${nd.tired ? '% de cansaço' : ''}"><span class="ni" style="color:${low ? 'var(--bad)' : nd.color}">${UI.ic(nd.icon, 14)}</span><div class="grow"><div class="nl">${nd.label}<b>${Math.round(v)}</b></div><div class="bar"><i style="width:${v}%;background:${low ? 'var(--bad)' : nd.color}"></i></div></div></div>`;
+    };
+    const tiredCls = ['ok', 'warn', 'bad', 'bad'][tl];
     el.innerHTML = `
-      <div class="side-h"><div class="upper">Necessidades</div><span class="tag ${perf >= 0.95 ? 'ok' : perf >= 0.75 ? 'warn' : 'bad'}" title="Desempenho geral: afeta lives, edição e conversas">${UI.ic('energy', 12)} ${Math.round(perf * 100)}%</span></div>
-      <div class="needs">${SL.Life.NEEDS.map(nd => { const v = n[nd.k]; const good = nd.inv ? 100 - v : v; return `<div class="need ${good < 25 ? 'low' : ''}" title="${nd.label}: ${Math.round(v)}"><div class="nl">${UI.ic(nd.icon, 13)}${nd.label}<b>${Math.round(v)}</b></div><div class="bar"><i style="width:${v}%;background:${good < 25 ? 'var(--bad)' : nd.color}"></i></div></div>`; }).join('')}</div>
-      ${warns.length ? `<div class="warns">${warns.map(w => `<span class="tag bad">${U.esc(w)}</span>`).join('')}</div>` : ''}
-      ${a && a.id !== 'usar_pc' ? `<div class="act-card"><div class="row"><span class="acc">${UI.ic(SL.Life.ACT[a.id].icon, 16)}</span><b class="grow small">${U.esc(a.label)}</b>${a.id !== 'live' ? `<button class="btn sm ghost" data-s="stop" title="Parar">${UI.ic('x', 14)}</button>` : ''}</div>${a.dur ? `<div class="bar thin"><i style="width:${SL.Life.progress() * 100}%"></i></div><div class="tiny muted">${U.dur(Math.max(0, a.dur - (G.time.t - a.t0)))} restantes · o tempo passa mais rápido</div>` : ''}</div>` : ''}
-      <div class="card flat col gap4" style="padding:10px"><div class="row small"><span class="acc">${UI.ic('location', 15)}</span><b class="grow ellipsis">${U.esc(where || '')}</b></div>
-        <div class="quick">${G.loc.area === 'casa' ? `<button class="btn" data-s="pc">${UI.ic('laptop', 15)} Computador</button><button class="btn" data-s="sair">${UI.ic('door', 15)} Sair de casa</button>` : G.loc.area === 'local' ? `<button class="btn" data-s="rua">${UI.ic('map', 15)} Voltar à rua</button><button class="btn" data-s="casa">${UI.ic('home', 15)} Ir para casa</button>` : `<button class="btn" data-s="casa">${UI.ic('home', 15)} Ir para casa</button><button class="btn" data-s="entrar">${UI.ic('door', 15)} Entrar aqui</button>`}
-        <button class="btn" data-s="phone">${UI.ic('phone', 15)} Celular</button><button class="btn" data-s="rango">${UI.ic('food', 15)} Pedir comida</button></div></div>
-      ${G.flags.mealReady ? `<button class="btn ok" data-s="comerpedido">${UI.ic('food', 15)} Comer o pedido que chegou</button>` : ''}
-      <div><div class="side-h"><div class="upper">Próximos compromissos</div><button class="btn sm ghost" data-s="cal">${UI.ic('calendar', 14)}</button></div>
+      <div class="side-card">
+        <div class="side-h"><div class="upper">Como você está</div><span class="tag ${perf >= 0.95 ? 'ok' : perf >= 0.75 ? 'warn' : 'bad'}" title="Desempenho: afeta lives, edição e conversas">${Math.round(perf * 100)}%</span></div>
+        <div class="needs">${L.NEEDS.map(need).join('')}</div>
+        <div class="tired-line"><span class="tag ${tiredCls}">${UI.ic('energy', 12)} ${L.TIRED[tl]}</span><span class="muted tiny">acordado(a) há ${L.awakeHours()}h${G.life && G.life.pcRun > 100 ? ' · faça uma pausa do PC' : ''}</span></div>
+      </div>
+      ${a && a.id !== 'usar_pc' ? `<div class="act-card"><div class="row"><span class="acc">${UI.ic(L.ACT[a.id].icon, 16)}</span><b class="grow small">${U.esc(a.label)}</b>${a.id !== 'live' ? `<button class="btn sm ghost" data-s="stop" title="Parar">${UI.ic('x', 14)}</button>` : ''}</div>${a.dur ? `<div class="bar thin"><i style="width:${L.progress() * 100}%"></i></div><div class="tiny muted">Termina às <b class="mono">${SL.Clock.fmtTime(a.t0 + a.dur)}</b></div>` : ''}</div>` : ''}
+      <div class="side-card">
+        <div class="row small"><span class="acc">${UI.ic('location', 15)}</span><b class="grow ellipsis">${U.esc(where || '')}</b></div>
+        <div class="quick">${G.loc.area === 'casa' ? `<button class="btn" data-s="pc">${UI.ic('laptop', 15)} Computador</button><button class="btn" data-s="sair">${UI.ic('door', 15)} Sair</button>` : G.loc.area === 'local' ? `<button class="btn" data-s="rua">${UI.ic('map', 15)} Rua</button><button class="btn" data-s="casa">${UI.ic('home', 15)} Casa</button>` : `<button class="btn" data-s="casa">${UI.ic('home', 15)} Casa</button><button class="btn" data-s="entrar">${UI.ic('door', 15)} Entrar</button>`}</div>
+        ${G.flags.mealReady ? `<button class="btn ok" data-s="comerpedido">${UI.ic('food', 15)} Comer o pedido que chegou</button>` : ''}
+      </div>
+      <div class="side-card"><div class="side-h"><div class="upper">Agenda</div><button class="btn sm ghost" data-s="cal" title="Calendário">${UI.ic('calendar', 14)}</button></div>
         <div class="list agenda">${upcoming.length ? upcoming.map(e => { const k = SL.Calendar.KINDS[e.kind] || SL.Calendar.KINDS.especial; return `<div class="li"><span class="dot" style="background:${k.color}"></span><span class="grow ellipsis">${U.esc(e.title)}</span><span class="muted tiny mono">${e.day === SL.Clock.day() ? (e.hour != null ? e.hour + 'h' : 'hoje') : SL.Clock.fmtDay(e.day).slice(5)}</span></div>`; }).join('') : '<div class="li muted small">Agenda livre</div>'}</div></div>
-      <div><div class="side-h"><div class="upper">Objetivos</div><button class="btn sm ghost" data-s="goals">${UI.ic('trophy', 14)}</button></div>
-        <div class="list">${goals.map(g => { const s = SL.Goals.status(g); return `<div class="li" style="flex-direction:column;align-items:stretch;gap:4px"><div class="small"><b>${U.esc(g.title)}</b></div>${g.hint ? `<div class="tiny muted">${U.esc(g.hint)}</div>` : ''}${s.b ? `<div class="bar thin"><i style="width:${s.p * 100}%"></i></div><div class="tiny muted mono">${U.num(s.a)} / ${U.num(s.b)}</div>` : ''}</div>`; }).join('')}</div></div>`;
+      <div class="side-card"><div class="side-h"><div class="upper">Próximo objetivo</div><button class="btn sm ghost" data-s="goals" title="Todos os objetivos">${UI.ic('trophy', 14)}</button></div>
+        <div class="list">${goals.map(g => { const st = SL.Goals.status(g); return `<div class="li goal-li"><b class="small">${U.esc(g.title)}</b>${g.hint ? `<div class="tiny muted">${U.esc(g.hint)}</div>` : ''}${st.b ? `<div class="bar thin"><i style="width:${st.p * 100}%"></i></div>` : ''}</div>`; }).join('')}</div></div>`;
   };
+  const NEEDS_SIG = n => Object.keys(n).map(k => Math.round(n[k])).join(',');
   HUD.sideClick = e => {
     const b = e.target.closest('[data-s]'); if (!b) return; SL.audio.play('click');
     const G = SL.G; const s = b.dataset.s;
@@ -75,6 +87,7 @@
     if (s === 'entrar') SL.City.enter(G.loc.place);
     if (s === 'phone') UI.openPhone();
     if (s === 'rango') UI.openApp('rango');
+    $('#side').dataset.sig = '';
     if (s === 'cal') UI.openApp('calendario');
     if (s === 'goals') UI.openApp('stats', { tab: 'objetivos' });
     if (s === 'comerpedido') { const err = SL.Rel.eatDelivery(); UI.err(err); G.flags.ate = 1; }
@@ -261,12 +274,8 @@
       SL.audio.init();
       if (G.loc.area === 'casa') {
         const o = SL.HomeScene.objectAt(p.x, p.y);
-        if (o) {
-          const opts = HUD.objectActions(o);
-          SL.HomeScene.goToObject(o, () => { const sp = SL.HomeScene.charScreen(); if (opts.length === 1 && !opts[0].disabled && (o.kind === 'mesa')) { opts[0].fn(); return; } UI.ctxMenu(sp.x + 20, sp.y - 70, o.label, opts[0] ? opts[0].icon : 'info', opts); });
-          return;
-        }
-        if (G.act && G.act.id !== 'usar_pc') { UI.toast({ title: 'Ocupado(a)', text: G.act.label + '. Pare a atividade no painel ao lado para andar.', icon: 'clock', cat: 'vida' }, null, true); return; }
+        if (o) { SL.HomeScene.goToObject(o, () => HUD.openObjectMenu(o)); return; }
+        if (G.act && G.act.id !== 'usar_pc') { HUD.busyHint(); return; }
         const t = SL.HomeScene.screenToTile(p.x, p.y); SL.HomeScene.walkTo(t.tx, t.ty);
       } else if (G.loc.area === 'cidade') {
         const id = SL.City.placeAtScreen(p.x, p.y); if (!id) return;
@@ -284,16 +293,34 @@
       if (e.key === 'Escape') { if ($('.modal-bg')) return; if (UI._ctx) return UI.closeCtx(); if (UI.phoneOpen()) return UI.closePhone(); if (UI.pcOpen() && !(SL.Live && SL.Live.cur)) return UI.closePC(); SL.Screens.pauseMenu(); }
       if ((e.key === 'c' || e.key === 'C') && !UI.pcOpen()) UI.phoneOpen() ? UI.closePhone() : UI.openPhone();
       if ((e.key === 'p' || e.key === 'P') && G.loc.area === 'casa') UI.pcOpen() ? UI.closePC() : HUD.goToPC();
-      if (G.loc.area === 'casa' && !UI.pcOpen() && !UI.phoneOpen()) {
-        const d = { ArrowUp: [0, -1], w: [0, -1], ArrowDown: [0, 1], s: [0, 1], ArrowLeft: [-1, 0], a: [-1, 0], ArrowRight: [1, 0], d: [1, 0] }[e.key];
-        if (d && (!G.act || G.act.id === 'usar_pc')) { e.preventDefault(); const sp = SL.HomeScene.charScreen(); const t = SL.HomeScene.screenToTile(sp.x, sp.y - 4); SL.HomeScene.walkTo(t.tx + d[0], t.ty + d[1]); }
+      if (G.loc.area === 'casa' && !UI.pcOpen() && !UI.phoneOpen() && !$('.modal-bg')) {
+        if (SL.HomeScene.keyDown(e.key)) { e.preventDefault(); if (G.act && G.act.id !== 'usar_pc') HUD.busyHint(); }
+        if ((e.key === 'e' || e.key === 'E') && !e.repeat) HUD.interactNear();
       }
     });
+    window.addEventListener('keyup', e => SL.HomeScene.keyUp(e.key));
+    window.addEventListener('blur', () => SL.HomeScene.clearKeys());
+    cv.addEventListener('wheel', e => { if (SL.G && SL.G.loc.area === 'casa') { e.preventDefault(); SL.HomeScene.zoomBy(e.deltaY); } }, { passive: false });
+    SL.HomeScene.onExit = () => { const o = SL.HomeScene.objects().find(x => x.id === 'porta'); if (o) HUD.openObjectMenu(o); };
   };
+  // menu do objeto ao lado do personagem (o computador abre direto)
+  HUD.openObjectMenu = o => {
+    const opts = HUD.objectActions(o); const sp = SL.HomeScene.charScreen();
+    if (opts.length === 1 && !opts[0].disabled && o.kind === 'mesa') { opts[0].fn(); return; }
+    UI.ctxMenu(sp.x + 24, sp.y - 60, o.label, opts[0] ? opts[0].icon : 'info', opts);
+  };
+  HUD.interactNear = () => {
+    const G = SL.G; if (UI._ctx) return UI.closeCtx();
+    const o = SL.HomeScene.near(); if (!o) return;
+    if (G.act && G.act.id !== 'usar_pc') return HUD.busyHint();
+    SL.audio.play('click'); HUD.openObjectMenu(o);
+  };
+  let busyT = 0;
+  HUD.busyHint = () => { const now = performance.now(); if (now - busyT < 2500) return; busyT = now; const G = SL.G; UI.toast({ title: 'Ocupado(a)', text: G.act.label + '. Pare pelo painel ao lado para andar.', icon: 'clock', cat: 'vida' }, null, true); };
   HUD.stageOverlay = () => {
     const G = SL.G; const host = $('#stage-ui'); let b = $('.stage-badge', host), h = $('.stage-hint', host);
     if (!b) { b = document.createElement('div'); b.className = 'stage-badge'; host.appendChild(b); h = document.createElement('div'); h.className = 'stage-hint'; host.appendChild(h); }
-    const txt = G.loc.area === 'casa' ? [UI.ic('home', 15) + ' ' + U.esc(D.homeById(G.home.id).name), 'Clique nos objetos para usar · WASD/setas para andar · Espaço pausa'] : G.loc.area === 'cidade' ? [UI.ic('map', 15) + ' ' + (G.act && G.act.id === 'viagem' ? U.esc(G.act.label) : 'Você está em: ' + U.esc((D.placeById(G.loc.place) || {}).name || '')), 'Clique num lugar para ir até lá'] : [UI.ic('location', 15) + ' ' + U.esc((D.placeById(G.loc.place) || {}).name || ''), 'Clique nas pessoas para conversar'];
+    const txt = G.loc.area === 'casa' ? [UI.ic('home', 15) + ' ' + U.esc(D.homeById(G.home.id).name), 'WASD anda · Shift corre · E usa · clique para ir · roda do mouse aproxima'] : G.loc.area === 'cidade' ? [UI.ic('map', 15) + ' ' + (G.act && G.act.id === 'viagem' ? U.esc(G.act.label) : 'Você está em: ' + U.esc((D.placeById(G.loc.place) || {}).name || '')), 'Clique num lugar para ir até lá'] : [UI.ic('location', 15) + ' ' + U.esc((D.placeById(G.loc.place) || {}).name || ''), 'Clique nas pessoas para conversar'];
     if (b.dataset.t !== txt[0]) { b.innerHTML = txt[0]; b.dataset.t = txt[0]; }
     if (h.dataset.t !== txt[1]) { h.textContent = txt[1]; h.dataset.t = txt[1]; }
     h.hidden = G.loc.area === 'local'; b.hidden = G.loc.area === 'local';

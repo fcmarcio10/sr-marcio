@@ -218,3 +218,15 @@
   #toasts { top: 62px; }
   .place-panel { top: auto; height: 55%; }
 }
+
+/* painel lateral mais limpo */
+#side { gap: 10px; }
+.side-card { display: flex; flex-direction: column; gap: 9px; padding: 11px; border-radius: var(--r); background: var(--panel); border: 1px solid var(--line); }
+.needs { grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+.need { flex-direction: row; align-items: center; gap: 7px; }
+.need .ni { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; background: rgba(255,255,255,.04); flex: none; }
+.need .nl { font-size: .74em; margin-bottom: 3px; }
+.need .bar { height: 4px; }
+.tired-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.goal-li { flex-direction: column; align-items: stretch !important; gap: 4px; }
+.act-card .tiny b { color: var(--text); }

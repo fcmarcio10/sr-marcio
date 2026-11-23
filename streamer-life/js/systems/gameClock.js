@@ -3,7 +3,8 @@
 (function (SL) {
   const U = SL.U;
   const C = SL.Clock = {};
-  C.SPEEDS = [0, 1, 3, 8];          // minutos de jogo por segundo real (em casa e na rua)
+  C.SPEEDS = [0, 0.5, 2, 6];        // minutos de jogo por segundo real: 1x é calmo (1 hora do jogo = 2 minutos)
+  C.ACT_MULT = [0, 1, 2, 4];        // atividades (dormir, banho...) andam no ritmo delas, multiplicado pela velocidade escolhida
   C.LIVE_SPEEDS = [0, 0.5, 1, 2.5]; // durante a live
   C.MAX_STEPS_FRAME = 400;          // limite de minutos simulados por quadro (evita travar)
   let acc = 0, holds = 0;
@@ -32,6 +33,7 @@
   C.fmtDay = d => C.fmtDate(d * 1440);
   C.fmtFull = t => { const d = C.date(t); return DOW[d.getUTCDay()] + ', ' + d.getUTCDate() + ' de ' + MON[d.getUTCMonth()] + ' de ' + d.getUTCFullYear(); };
   C.fmtStamp = t => C.fmtDate(t) + ' ' + C.fmtTime(t);
+  C.period = t => { const h = C.hour(t); return h < 5 ? 'Madrugada' : h < 12 ? 'Manhã' : h < 18 ? 'Tarde' : 'Noite'; };
   C.ago = t => {
     const d = SL.G.time.t - t;
     if (d < 60) return 'há ' + Math.max(1, Math.round(d)) + ' min';
@@ -61,7 +63,7 @@
     if (G.act) {
       if (G.act.id === 'live') return C.LIVE_SPEEDS[SL.Live && SL.Live.cur ? SL.Live.cur.speed : 1] || 0;
       if (G.time.speed === 0) return 0;
-      return G.act.speed || C.SPEEDS[G.time.speed];
+      return Math.max(C.SPEEDS[G.time.speed], (G.act.speed || 0) * C.ACT_MULT[G.time.speed]);
     }
     return C.SPEEDS[G.time.speed] || 0;
   };
