@@ -16,7 +16,7 @@
   };
 
   SL.Apps.estudio = {
-    title: 'Premiere Pro', short: 'Premiere', icon: 'scissors', color: 'linear-gradient(135deg,#3b2a8a,#1a1044)', order: 2, pc: true, phone: false, w: 1000, h: 680,
+    title: 'Premiere Pro', short: 'Premiere', icon: 'scissors', color: 'linear-gradient(135deg,#3b2a8a,#1a1044)', order: 2, pc: false, phone: false, w: 1000, h: 680,
     watch: ['videos', 'activity'],
     badge: () => SL.G.edits.filter(e => e.status === 'pronto').length,
     render(el, ctx) {

@@ -116,8 +116,10 @@
   UI.appList = mode => Object.keys(SL.Apps).filter(id => { const a = SL.Apps[id]; return mode === 'pc' ? a.pc !== false : a.phone; }).sort((a, b) => (SL.Apps[a].order || 50) - (SL.Apps[b].order || 50));
   UI.renderDesktopIcons = () => {
     const box = $('#overlay-pc .desk-icons'); if (!box) return;
-    box.innerHTML = UI.appList('pc').map(id => { const a = SL.Apps[id]; const b = a.badge ? a.badge() : 0; return `<button class="dicon" data-app="${id}"><div class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 22)}${b ? '<span class="dot"></span>' : ''}</div><span>${U.esc(a.title)}</span></button>`; }).join('');
-    $$('[data-app]', box).forEach(b => b.onclick = () => UI.openApp(b.dataset.app));
+    // só redesenha quando algo muda (antes era a cada segundo e um clique podia se perder)
+    const html = UI.appList('pc').map(id => { const a = SL.Apps[id]; const b = a.badge ? a.badge() : 0; return `<button class="dicon" data-app="${id}"><div class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 22)}${b ? '<span class="dot"></span>' : ''}</div><span>${U.esc(a.title)}</span></button>`; }).join('');
+    if (box._html === html) return; box._html = html; box.innerHTML = html;
+    if (!box._click) { box._click = true; box.addEventListener('click', e => { const b = e.target.closest('[data-app]'); if (b) UI.openApp(b.dataset.app); }); }
   };
   // menu Iniciar com todos os apps do PC
   UI.renderStart = () => {

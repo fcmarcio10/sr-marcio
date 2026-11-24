@@ -22,7 +22,7 @@
       const st = ctx.st; if (ctx.args && ctx.args.video && !st.used) { st.used = 1; st.tab = 'canal'; st.vid = ctx.args.video; }
       st.tab = st.tab || 'inicio';
       const tabs = [['inicio', 'Início'], ['canal', 'Seu canal'], ['tendencias', 'Tendências']];
-      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#ff5a36">${ic('vision', 15)}</span>YouTube</div><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
+      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#ff3b30">${ic('vision', 15)}</span>YouTube</div><div class="criar-bar"><button class="btn red sm" data-act="criar" data-k="video">${ic('video', 15)} Gravar vídeo</button><button class="btn sm" data-act="criar" data-k="reels">${ic('clip', 15)} Gravar Reels</button></div><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
       paintAvatars(el); paintThumbs(el);
       const cv = $('#vi-ch', el); if (cv) { const s = this.dailyViews(30); UI.chart(cv, [{ data: s.data, color: '#ff5a36' }], { labels: s.labels }); }
       const cv2 = $('#vd-ch', el); if (cv2) { const v = SL.G.videos.find(x => x.id === st.vid); UI.chart(cv2, [{ data: v.hist.length ? v.hist.map(x => x || 0) : [0], color: '#ff5a36' }]); }
@@ -41,7 +41,8 @@
       if (st.vid) { const v = G.videos.find(x => x.id === st.vid); if (v) return this.detail(v); st.vid = null; }
       const vids = G.videos.filter(v => v.plat === 'vision').slice().reverse();
       const rev = vids.reduce((s, v) => s + v.rev, 0);
-      return `<div class="statrow"><div class="card stat"><b>${U.num(ch.f)}</b><span>Inscritos</span></div><div class="card stat"><b>${U.num(ch.views)}</b><span>Visualizações</span></div><div class="card stat"><b>${U.num(ch.wh)}</b><span>Horas assistidas</span></div><div class="card stat"><b class="ok">${U.money(rev)}</b><span>Receita acumulada</span></div><div class="card stat"><b>${ch.mon ? 'Monetizado' : 'Não monetizado'}</b><span>${ch.mon ? 'A receita cai no dia 21' : 'Precisa 1.000 inscritos e 4.000 horas'}</span></div></div>
+      const drafts = G.edits.filter(e => ['editando', 'renderizando', 'pronto'].includes(e.status));
+      return (drafts.length ? `<div class="card col"><h3>Rascunhos</h3>${drafts.map(e => `<div class="row"><span class="grow small"><b>${esc((SL.Videos.TYPES[e.type] || {}).label || 'Vídeo')}</b> · ${esc((D.gameById(e.game) || {}).name || '')} · ${e.status === 'pronto' ? 'pronto para publicar' : e.status}</span><button class="btn sm primary" data-act="rascunho" data-e="${e.id}">Continuar</button></div>`).join('')}</div>` : '') + `<div class="statrow"><div class="card stat"><b>${U.num(ch.f)}</b><span>Inscritos</span></div><div class="card stat"><b>${U.num(ch.views)}</b><span>Visualizações</span></div><div class="card stat"><b>${U.num(ch.wh)}</b><span>Horas assistidas</span></div><div class="card stat"><b class="ok">${U.money(rev)}</b><span>Receita acumulada</span></div><div class="card stat"><b>${ch.mon ? 'Monetizado' : 'Não monetizado'}</b><span>${ch.mon ? 'A receita cai no dia 21' : 'Precisa 1.000 inscritos e 4.000 horas'}</span></div></div>
         ${!ch.mon ? `<div class="card col"><div class="attr">Inscritos<div class="bar"><i style="width:${Math.min(100, ch.f / 10)}%"></i></div><b>${U.num(ch.f)}</b></div><div class="attr">Horas<div class="bar"><i style="width:${Math.min(100, ch.wh / 40)}%"></i></div><b>${U.num(ch.wh)}</b></div></div>` : ''}
         <div class="card"><h3>Visualizações por dia (30 dias)</h3><canvas class="chart" id="vi-ch"></canvas></div>
         <div class="card"><h3>Seus vídeos</h3>${vids.length ? `<div class="tablewrap"><table class="table"><tr><th>Vídeo</th><th>Situação</th><th>Views</th><th>CTR</th><th>Retenção</th><th>Inscritos</th><th>Receita</th></tr>${vids.map(v => `<tr class="click" data-act="vid" data-v="${v.id}"><td><b class="small">${esc(v.title)}</b><div class="tiny muted">${SL.Clock.fmtStamp(v.t)} · qualidade ${v.quality}</div></td><td>${trendTag(v)}</td><td class="n">${U.num(v.views)}</td><td class="n">${U.pct(v.ctr, 1)}</td><td class="n">${U.pct(v.ret)}</td><td class="n">+${U.int(v.newSubs)}</td><td class="n">${U.money(v.rev)}</td></tr>`).join('')}</table></div>` : '<div class="empty">Publique pelo Premiere Pro (no computador).</div>'}</div>
@@ -66,6 +67,8 @@
     },
     act(a, ds, ctx) {
       const st = ctx.st;
+      if (a === 'criar') return UI.criarVideo(ds.k);
+      if (a === 'rascunho') return UI.criarVideo(null, ds.e);
       if (a === 'tab') { st.tab = ds.t; st.vid = null; ctx.resetScroll = true; return ctx.render(); }
       if (a === 'vid') { st.vid = ds.v; ctx.resetScroll = true; return ctx.render(); }
       if (a === 'back') { st.vid = null; return ctx.render(); }
@@ -89,7 +92,7 @@
     render(el, ctx) {
       const st = ctx.st; st.tab = st.tab || 'foryou';
       const tabs = [['foryou', 'Para você'], ['trends', 'Desafios e trends'], ['perfil', 'Seu perfil']];
-      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:linear-gradient(135deg,#19d3c5,#ff3d81)">${ic('clip', 15)}</span>TikTok</div><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
+      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#111">${ic('clip', 15)}</span>TikTok</div><div class="criar-bar"><button class="btn pink sm" data-act="criar" data-k="corte">${ic('scissors', 15)} Gravar corte</button></div><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
       $$('canvas[data-short]', el).forEach(cv => this.paintShort(cv));
     },
     paintShort(cv) {
@@ -117,8 +120,9 @@
         <div class="card">${vids.length ? `<div class="tablewrap"><table class="table"><tr><th>Short</th><th>Situação</th><th>Views</th><th>Curtidas</th><th>Compart.</th><th>Seguidores</th></tr>${vids.map(v => `<tr><td class="small">${esc(v.title)}</td><td>${trendTag(v)}</td><td class="n">${U.num(v.views)}</td><td class="n">${U.num(v.likes)}</td><td class="n">${U.num(v.shares)}</td><td class="n">+${U.int(v.newSubs)}</td></tr>`).join('')}</table></div>` : '<div class="empty">Nenhum short ainda. Cortes de live viram ótimos shorts.</div>'}</div>`;
     },
     act(a, ds, ctx) {
+      if (a === 'criar') return UI.criarVideo(ds.k);
       if (a === 'tab') { ctx.st.tab = ds.t; return ctx.render(); }
-      if (a === 'trend') { if (!UI.canUsePC()) return 'Para editar o short, use o computador de casa.'; UI.openApp('estudio'); const w = UI.wins.find(x => x.app === 'estudio'); if (w) { w.ctx.st.tab = 'novo'; w.ctx.st.w = { step: 4, type: 'short', raw: null, moments: [], level: 'rapida', editor: 'eu', topic: ds.v, game: SL.Creators.playerMainGame() || 'conversa' }; w.ctx.render(); } }
+      if (a === 'trend') return UI.criarVideo('corte');
       if (a === 'see') { const f = SL.G.feed.find(x => x.id === ds.f); if (f) { f.views = (f.views || 0) + 1; SL.Life.mod({ humor: 1 }); SL.Clock.skip(3); if (D.creatorById(f.author)) SL.Rel.touchCreator(f.author, 0.2, 'visualização'); UI.toast({ title: '@' + author(f.author).handle, text: f.text, icon: 'clip', cat: 'social' }, null, true); } }
     },
   };

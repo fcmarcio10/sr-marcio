@@ -49,27 +49,18 @@
           <div class="game-pick">${D.games.map(x => { const cs = SL.Equip.canStream(x, '480p'); const tm = SL.Algo.trendMul(x.id); const cp = SL.Algo.competitors(x.id); const ql = SL.Equip.streamQuality(x, f.quality, f.cam, {}); return `<button class="gp ${f.game === x.id ? 'on' : ''} ${cs.ok ? '' : 'no'}" data-act="game" data-g="${x.id}" title="${esc(cs.ok ? x.cat : cs.reason)}"><span class="gc" style="background:${x.color}"></span><b>${esc(x.name)}</b><small>${esc(x.cat)} · ${tm > 1.12 ? '<span class="ok">em alta</span>' : tm < 0.88 ? '<span class="bad">em baixa</span>' : 'estável'}</small><small class="gp-pc">${cs.ok ? (ql.fps < 0.8 ? '<i class="dot warn"></i>PC no limite' : '<i class="dot ok"></i>roda bem') : '<i class="dot bad"></i>' + esc(cs.reason || 'indisponível')}</small></button>`; }).join('')}</div></div>
           <div class="field"><label for="lv-title">Título da live</label><div class="row"><input id="lv-title" class="input" maxlength="90" value="${esc(f.title)}" data-f="title" placeholder="Ex.: Primeira vez no ${esc(g.name)}!"><button class="btn sm" data-act="idea">${ic('sparkle', 14)} Ideia</button></div>
             <div class="row small"><div class="bar grow"><i style="width:${ts.score}%;background:${ts.score >= 65 ? 'var(--ok)' : ts.score >= 45 ? 'var(--warn)' : 'var(--bad)'}"></i></div><b class="mono">${ts.score}</b></div><div class="tiny muted">${ts.notes.slice(0, 3).map(esc).join(' · ')}</div></div>
-          <div class="field"><label for="lv-desc">Descrição</label><textarea id="lv-desc" class="textarea" data-f="desc" placeholder="Conte o que vai rolar, horário das lives, redes...">${esc(f.desc)}</textarea><div class="tiny muted">Nota da descrição: ${SL.Algo.descScore(f.desc)}</div></div>
-          <div class="field"><label>Tags (até 6)</label><div class="row wrap">${SL.Algo.suggestTags(f.game).map(t => `<button class="chip ${f.tags.includes(t) ? 'on' : ''}" data-act="tag" data-v="${esc(t)}">#${esc(t)}</button>`).join('')}</div></div>
         </div>
         <div class="col gap16">
           <div class="card col"><h3>Transmissão</h3>
             <div class="field"><label>Qualidade</label><div class="row wrap">${Object.keys(SL.Equip.PRESETS).map(k => `<button class="chip ${f.quality === k ? 'on' : ''}" data-act="q" data-v="${k}">${k}</button>`).join('')}</div></div>
             <div class="field"><label>Duração planejada</label><div class="row wrap">${[60, 120, 180, 240].map(m => `<button class="chip ${f.planned === m ? 'on' : ''}" data-act="dur" data-v="${m}">${U.dur(m)}</button>`).join('')}</div></div>
-            <div class="field"><label>Layout</label><div class="row wrap">${[['classico', 'Câmera no canto'], ['camera', 'Câmera grande'], ['dividida', 'Tela dividida'], ['sem', 'Sem câmera']].map(([k, l]) => `<button class="chip ${f.layout === k ? 'on' : ''}" data-act="layout" data-v="${k}">${l}</button>`).join('')}</div></div>
             <label class="row small"><input type="checkbox" data-act="cam" ${f.cam ? 'checked' : ''} ${SL.Equip.stats().hasCam ? '' : 'disabled'}> Webcam ligada ${SL.Equip.stats().hasCam ? '' : '<span class="muted">(sem webcam)</span>'}</label>
             <label class="row small"><input type="checkbox" data-act="ann" ${f.announce ? 'checked' : ''}> Divulgar no Instagram ao começar</label>
           </div>
-          <div class="card col"><h3>Teste técnico</h3>
-            <div class="attr">Imagem<div class="bar"><i style="width:${q.img}%"></i></div><b>${Math.round(q.img)}</b></div>
-            <div class="attr">Fluidez<div class="bar"><i style="width:${q.fps * 100}%;background:${q.fps < 0.8 ? 'var(--warn)' : 'var(--ok)'}"></i></div><b>${Math.round(q.fps * 100)}</b></div>
-            <div class="attr">Áudio<div class="bar"><i style="width:${q.audio}%"></i></div><b>${Math.round(q.audio)}</b></div>
-            <div class="attr">Câmera<div class="bar"><i style="width:${q.video}%"></i></div><b>${Math.round(q.video)}</b></div>
-            <div class="attr">Internet<div class="bar"><i style="width:${q.netOk * 100}%;background:${q.netOk < 0.85 ? 'var(--bad)' : 'var(--ok)'}"></i></div><b>${Math.round(q.netOk * 100)}</b></div>
-            ${q.issues.length ? `<div class="tiny warn">${q.issues.map(i => ({ lag: 'O computador não dá conta: vai travar.', rede: 'Sua internet não aguenta essa qualidade.', cam: 'Câmera escura ou ruim.', mic: 'Sem microfone.' })[i]).join(' ')}</div>` : '<div class="tiny ok">Tudo certo para transmitir.</div>'}
+          <div class="card col"><h3>Antes de entrar</h3>
+            <div class="row small"><span class="dot ${q.fps < 0.8 || q.netOk < 0.85 ? 'warn' : 'ok'}"></span><span class="grow">${q.issues.length ? q.issues.map(i => ({ lag: 'Seu PC está no limite: pode travar.', rede: 'Sua internet não aguenta essa qualidade.', cam: 'Câmera escura ou ruim.', mic: 'Sem microfone.' })[i]).join(' ') : 'Tudo certo para transmitir.'}</span></div>
+            <div class="row small"><span class="dot ok"></span><span class="grow">Público esperado: <b>${pr ? pr[0] + ' a ' + pr[1] : '?'}</b> pessoas</span></div>
           </div>
-          <div class="card col"><h3>Estimativa</h3><div class="stat"><b>${pr ? pr[0] + '–' + pr[1] : '?'}</b><span>pessoas ao mesmo tempo (estimativa incerta)</span></div>
-            <div class="tiny muted">Horário: ${SL.Algo.todMul(SL.Clock.hour()) >= 1 ? 'nobre (19h–23h)' : 'fora do horário nobre'} · ${comp.best ? esc(D.creatorById(comp.best.id).name) + ' está ao vivo nesse jogo' : 'sem concorrente grande ao vivo nesse jogo'}</div></div>
         </div></div>`;
     },
     painel() {
@@ -294,32 +285,52 @@
     if (b.dataset.pa === 'thankall') LVs.thank('all');
     pendSig = ''; LUI.pending();
   };
-  // clicar num comentário: as opções de resposta aparecem logo acima dele
-  const QUICK = [['Valeu, @{u}!', 'heart'], ['Kkkkk boa, @{u}', 'joke'], ['Concordo, @{u}', 'check']];
+  // clicar num comentário: logo acima dele aparece UMA resposta de acordo com o que a pessoa escreveu
+  // (botão curto, ex.: "Obrigado, Luis"; no chat sai "Obrigado, @luisgameplays43!") e a moderação
+  const primeiroNome = v => { const p = (v.n || '').split(' ').filter(x => x && !/^(dona|seu|sr\.?|sra\.?|tio|tia|dr\.?|dra\.?|v[óô])$/i.test(x)); const n = p[0] || ((v.u.match(/[a-zA-Z]+/) || ['você'])[0]); return n.charAt(0).toUpperCase() + n.slice(1, 12); };
+  LUI.respostaPara = (m, v) => {
+    const L = SL.Live.cur; const LVs = SL.Live; const low = (m.raw || '').toLowerCase(); const nome = primeiroNome(v); const u = '@' + v.u;
+    const ob = SL.G.player.gender === 'f' ? 'Obrigada' : 'Obrigado';
+    const q = L.questions.find(x => x.msgId === m.id && !x.done); const don = L.donations.find(d => d.msgId === m.id && !d.thanked);
+    const isNew = L.newcomers.some(n => n.vid === v.id) && !(L.att.get(v.id) || {}).welcomed;
+    // quem acabou de chegar: a resposta também dá as boas-vindas (conta como recebido)
+    const diz = t => isNew ? () => LVs.welcome(v.id, t + ' Seja bem-vindo(a)!') : () => LUI.typed(t);
+    if (q) { const o = (SL.Chat.ANSWERS[q.type] || [])[0]; if (o) return { label: 'Responder ' + nome, fn: () => LVs.answer(m.id, o.id) }; }
+    if (don) return { label: 'Valeu, ' + nome, fn: () => LVs.thank(m.id) };
+    if (m.intent === 'leave' || /tchau|vou (sair|nessa|dormir)|\bfui\b|at[eé] amanh[aã]/.test(low)) return { label: 'Tchau, ' + nome, fn: () => LUI.typed('Valeu por ter vindo, ' + u + '! Até a próxima!') };
+    if (m.tone === 't' || /\b(lixo|fraco|ruim|chato|horr[ií]vel|desiste)\b/.test(low)) return { label: 'Calma, ' + nome, fn: () => LUI.typed('Calma, ' + u + ', aqui o clima é de boa.') };
+    const oi = { label: 'Oi, ' + nome, fn: isNew ? () => LVs.welcome(v.id) : () => LUI.typed('Fala, ' + u + '! Seja bem-vindo(a)!') };
+    if (/\b(oi+|ol[aá]|eae|e a[ií]|salve|cheguei|chegando|boa (noite|tarde)|bom dia)\b/.test(low)) return oi;
+    if (/k{3,}|haha|\brs\b/.test(low)) return { label: 'Kkkk, ' + nome, fn: diz('Kkkkk ' + u + '!') };
+    if (/\b(boa|top|brabo|mito|amo|melhor|parab[eé]ns|gg|demais|massa|show|lind[oa]|orgulh\w*|bora|vai)\b/.test(low)) return { label: ob + ', ' + nome, fn: diz(ob + ', ' + u + '!') };
+    if (/\b(conta|mostra|faz|joga|tenta|explica|testa)\b/.test(low)) return { label: 'Pode deixar, ' + nome, fn: diz('Pode deixar, ' + u + '!') };
+    if (m.intent === 'greet') return oi;
+    if (m.tone === 'c') return { label: 'Valeu, ' + nome, fn: diz('Valeu pela dica, ' + u + ', vou melhorar!') };
+    if (m.tone === 'z') return { label: 'Kkkk, ' + nome, fn: diz('Kkkkk ' + u + '!') };
+    if (m.intent === 'moment' || m.intent === 'react') return { label: 'Né, ' + nome, fn: diz('Né, ' + u + '? Foi demais!') };
+    if (m.tone === 'h' || m.intent === 'compliment') return { label: ob + ', ' + nome, fn: diz(ob + ', ' + u + '!') };
+    if (isNew) return oi;
+    return { label: 'Valeu, ' + nome, fn: diz('Valeu, ' + u + '!') };
+  };
   LUI.msgPop = (mid, node) => {
     const L = SL.Live.cur; if (!L) return; const m = L.chat.find(x => x.id === mid);
     document.querySelectorAll('.viewer-pop').forEach(x => x.remove());
     document.querySelectorAll('#lv-chat .cm.sel').forEach(x => x.classList.remove('sel'));
     if (!m || !m.vid) return; const v = SL.Viewers.byId(m.vid); if (!v) return;
     node.classList.add('sel');
+    const rep = LUI.respostaPara(m, v);
     const pop = document.createElement('div'); pop.className = 'viewer-pop'; const side = $('.live-side');
-    const q = L.questions.find(x => x.msgId === mid && !x.done); const isNew = L.newcomers.some(n => n.vid === v.id) && !(L.att.get(v.id) || {}).welcomed; const don = L.donations.find(d => d.msgId === mid && !d.thanked);
-    const note = v.m.notes.length ? esc(SL.Chat.fill(SL.Viewers.noteText(v.m.notes[v.m.notes.length - 1]), v, {})) : '';
-    pop.innerHTML = `<div class="vp-h"><span class="ava" style="background:${v.c}">${esc(v.u[0].toUpperCase())}</span><div class="grow"><b style="color:${v.c}">@${esc(v.u)}</b><div class="tiny muted">${esc(SL.Viewers.label(v))} · ${v.m.v} visita${v.m.v === 1 ? '' : 's'} · fidelidade ${Math.round(v.loy)}</div></div><button class="ibtn" data-x title="Fechar">${ic('x', 14)}</button></div>
-      ${note ? `<div class="memo tiny">${note}</div>` : ''}
-      <div class="vp-r">${q ? (SL.Chat.ANSWERS[q.type] || []).map(o => `<button class="rbtn hot" data-p="ans" data-o="${o.id}">${esc(o.label)}</button>`).join('') : ''}${don ? `<button class="rbtn ok" data-p="thank">Agradecer a doação</button>` : ''}${isNew ? `<button class="rbtn hot" data-p="welcome">Dar boas-vindas</button>` : ''}${QUICK.map(([t, i], n) => `<button class="rbtn" data-p="quick" data-n="${n}">${ic(i, 13)}${esc(t.replace('{u}', v.u))}</button>`).join('')}<button class="rbtn" data-p="read">${ic('mic', 13)}Ler em voz alta</button></div>
-      <form class="vp-f"><input class="input" maxlength="110" value="@${esc(v.u)} " aria-label="Responder"><button class="btn primary sm" title="Responder">${ic('send', 14)}</button></form>
-      <div class="vp-m"><button class="rbtn" data-p="timeout">Silenciar 10 min</button><button class="rbtn bad" data-p="ban">Banir</button>${v.mod ? '' : `<button class="rbtn" data-p="mod">${ic('shield', 12)} Moderador</button>`}</div>`;
+    pop.innerHTML = `<div class="vp-h"><span class="ava" style="background:${v.c}">${esc(v.u[0].toUpperCase())}</span><div class="grow"><b style="color:${v.c}">@${esc(v.u)}</b><div class="tiny muted">${esc(SL.Viewers.label(v))}</div></div><button class="ibtn" data-x title="Fechar">${ic('x', 14)}</button></div>
+      <div class="vp-r"><button class="rbtn reply" data-p="rep">${ic('send', 13)} ${esc(rep.label)}</button></div>
+      <div class="vp-m"><button class="rbtn warn" data-p="timeout">${ic('micOff', 12)} Silenciar</button><button class="rbtn bad" data-p="ban">${ic('ban', 12)} Banir</button>${v.mod ? '<span class="tiny muted">Já é moderador(a)</span>' : `<button class="rbtn hot" data-p="mod">${ic('shield', 12)} Moderador</button>`}</div>`;
     side.appendChild(pop);
     const r = node.getBoundingClientRect(), sr = side.getBoundingClientRect(); const ph = pop.offsetHeight;
     let top = r.top - sr.top - ph - 8, below = false; if (top < 6) { top = r.bottom - sr.top + 8; below = true; }
     pop.style.top = Math.max(6, Math.min(top, side.clientHeight - ph - 6)) + 'px'; pop.classList.toggle('below', below);
     const done = () => { pop.remove(); node.classList.remove('sel'); pendSig = ''; LUI.pending(); };
-    pop.querySelector('.vp-f').onsubmit = ev => { ev.preventDefault(); const t = pop.querySelector('.vp-f input').value.trim(); if (t.length > v.u.length + 2) LUI.typed(t); done(); };
     pop.onclick = ev => {
       const b = ev.target.closest('[data-p],[data-x]'); if (!b) return; const k = b.dataset.p; const LVs = SL.Live; SL.audio.play('click');
-      if (k === 'ans') LVs.answer(mid, b.dataset.o); if (k === 'thank') LVs.thank(mid); if (k === 'welcome') LVs.welcome(v.id); if (k === 'read') LVs.read(mid);
-      if (k === 'quick') LUI.typed(QUICK[+b.dataset.n][0].replace('{u}', v.u));
+      if (k === 'rep') rep.fn();
       if (k === 'timeout') LVs.ban(v.id, true); if (k === 'ban') LVs.ban(v.id, false); if (k === 'mod') UI.err(LVs.makeMod(v.id));
       done();
     };
@@ -382,6 +393,6 @@
       ${s.adRev ? `<div class="small muted">Anúncios renderam ${U.money(s.adRev)}.</div>` : ''}${s.promises ? `<div class="small warn">${s.promises} promessa(s) feita(s) nesta live. Cumpra para manter a confiança.</div>` : ''}${s.raid ? `<div class="small acc">${U.int(s.raid)} pessoas chegaram por raid ou vídeo bombando.</div>` : ''}</div>
       <p class="tiny muted">Doações, inscrições e anúncios caem no saldo da Twitch e são repassados toda segunda-feira.</p>`, buttons: [{ label: 'Fechar', cls: 'primary' }] });
     UI.chart($('#sum-ch', m.el), [{ data: s.graph, color: '#ff4d5e' }, { data: s.hype, color: '#ffb547', fill: false }]);
-    $$('[data-cut]', m.el).forEach(b => b.onclick = () => { m.close(); UI.openApp('estudio', { raw: raw.id, moment: +b.dataset.cut, type: 'short' }); });
+    $$('[data-cut]', m.el).forEach(b => b.onclick = () => { m.close(); UI.criarVideo('corte'); });
   };
 })(window.SL);

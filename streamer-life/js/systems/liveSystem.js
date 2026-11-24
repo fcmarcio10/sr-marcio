@@ -525,9 +525,9 @@
     if (st) { st.sat = U.clamp(st.sat + 0.15, 0, 1); st.replied = true; st.repliedAt = L.min; if (U.chance(0.45)) pushMsg(SL.Chat.say(v, 'react', LV.ctx(), { kind: 'read' })); }
     L.hype = U.clamp(L.hype + 1.5 * dim('read'), 0, 100);
   };
-  LV.welcome = vid => {
+  LV.welcome = (vid, txt) => {
     const L = LV.cur; const v = SL.Viewers.byId(vid); if (!v) return; touch();
-    say('Seja muito bem-vindo(a), @' + v.u + '! Fica à vontade');
+    say(txt || 'Seja muito bem-vindo(a), @' + v.u + '! Fica à vontade');
     const st = L.present.get(vid) || L.att.get(vid);
     if (st) { st.welcomed = true; st.sat = U.clamp(st.sat + 0.28, 0, 1); }
     v.int = U.clamp(v.int + 8, 0, 100);

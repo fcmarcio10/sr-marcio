@@ -163,8 +163,9 @@
       const pay = Math.round(h * rate * (ok ? 1 : 0.6));
       if (pay > 0) SL.Econ.add(pay, 'trabalho', 'Freela de edição (' + U.dur(h * 60) + ')');
     } });
-  def('editar', { label: 'Editando vídeo', icon: 'scissors', speed: 8, pc: true, work: true, fx: { energia: -5, estresse: 2 },
+  def('editar', { label: 'Editando vídeo', icon: 'scissors', speed: 16, pc: true, work: true, fx: { energia: -5, estresse: 2 },
     dur: a => a.data.minutes, minute: a => SL.Videos.workMinute(a.data.edit) });
+  def('renderizar', { label: 'Renderizando vídeo', icon: 'video', speed: 8, pc: true, dur: a => a.data.dur || 10 });
   def('gravar', { label: 'Gravando', icon: 'video', speed: 6, pc: true, work: true, fx: { energia: -5, estresse: 1.5 },
     dur: a => a.data.minutes, minute: a => SL.Videos.recordMinute(a), end: (a, ok) => SL.Videos.recordEnd(a, ok) });
   def('live', { label: 'Ao vivo', icon: 'live', speed: 1, pc: true, work: true, fx: { energia: -6, estresse: 2.5, sede: -2 } });

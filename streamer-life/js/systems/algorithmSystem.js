@@ -42,19 +42,21 @@
   A.descScore = desc => {
     const d = (desc || '').trim(); let s = 30;
     if (d.length >= 40) s += 25; if (d.length >= 120) s += 15; if (d.length > 700) s -= 10;
-    if (/connect|segue|siga|inscreva|horário|todo dia|agenda|lives? (às|toda)/i.test(d)) s += 15;
+    if (/instagram|tiktok|twitch|segue|siga|inscreve|inscreva|horário|todo dia|agenda|lives? (às|toda|de)/i.test(d)) s += 15;
     if (/#\w+/.test(d)) s += 8;
     return U.clamp(s, 0, 100);
   };
+  // até 3 hashtags: as que combinam com o vídeo valem mais
   A.tagScore = (tags, gameId) => {
-    const g = gameId ? D.gameById(gameId) : null; let s = 20;
-    (tags || []).forEach(t => {
-      const tt = t.toLowerCase().replace('#', '');
-      if (g && (g.tags.includes(tt) || g.name.toLowerCase().includes(tt))) s += 15;
-      else if (G().trends.tags.some(x => x.tag.toLowerCase() === '#' + tt)) s += 18;
-      else s += 4;
+    const g = gameId ? D.gameById(gameId) : null; let s = 20; const norm = x => String(x).toLowerCase().replace(/[#\s]/g, '');
+    (tags || []).slice(0, 3).forEach(t => {
+      const tt = norm(t);
+      if (g && (g.tags.some(x => norm(x) === tt) || norm(g.name) === tt)) s += 25;
+      else if (G().trends.tags.some(x => norm(x.tag) === tt)) s += 27;
+      else if (['gameplay', 'shorts', 'corte', 'reels', 'opiniao', 'papo'].includes(tt)) s += 18;
+      else s += 6;
     });
-    if ((tags || []).length > 8) s -= 10;
+    if ((tags || []).length > 3) s -= 12;
     return U.clamp(s, 0, 100);
   };
   A.suggestTags = gameId => {

@@ -79,7 +79,6 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await page.click('.dicon[data-app="pulso"]'); await page.waitForTimeout(400);
   await page.click('.win [data-act="game"][data-g="xeque"]');
   await page.fill('#lv-title', 'Primeira live! Desafio de Xeque Rápido até vencer');
-  await page.fill('#lv-desc', 'Lives todo dia às 20h. Segue no Connect!');
   await shot('07_pulso_setup');
   await page.click('.win [data-act="start"]'); await page.waitForTimeout(600);
   ok('live começa e estúdio abre', await ev(() => !!SL.Live.cur && !document.getElementById('overlay-live').hidden));
@@ -97,14 +96,14 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await page.waitForTimeout(1200);
   const comentario = page.locator('#lv-chat .cm[data-m]:not(.sys):not(.follow):not(.sub):not(.streamer):not(.donation)');
   if (await comentario.count()) { await comentario.last().click({ timeout: 3000 }).catch(() => {}); await page.waitForTimeout(250); }
-  const popOk = await ev(() => !!document.querySelector('.viewer-pop [data-p="quick"]'));
-  if (popOk) { await page.click('.viewer-pop [data-p="quick"]'); await page.waitForTimeout(200); }
+  const popOk = await ev(() => !!document.querySelector('.viewer-pop [data-p="rep"]'));
+  if (popOk) { await page.click('.viewer-pop [data-p="rep"]'); await page.waitForTimeout(200); }
   ok('clicar num comentário abre as respostas e responde no chat', popOk && await ev(() => SL.Live.cur.chat.some(m => m.kind === 'streamer' || m.streamer || /@/.test(m.text || m.raw || ''))));
   await page.click('.taskbar [data-live]'); await page.waitForTimeout(200);
   const minim = await ev(() => document.getElementById('overlay-live').hidden && !!SL.Live.cur);
   await page.click('.taskbar [data-live]'); await page.waitForTimeout(200);
   ok('live minimiza pela barra de tarefas e volta', minim && await ev(() => !document.getElementById('overlay-live').hidden));
-  await shot('08_live_estudio');
+  await shot('08_live');
   const L1 = await ev(() => { const L = SL.Live.cur; return { min: L.min, viewers: L.viewers, peak: L.peak, msgs: L.stats.msgs, chatDom: document.querySelectorAll('#lv-chat .cm').length, att: L.att.size, intents: [...new Set(L.chat.map(m => m.intent).filter(Boolean))], moments: L.moments.length }; });
   ok('público chega na live', L1.peak >= 1, L1);
   ok('chat tem mensagens na tela', L1.chatDom > 3 && L1.msgs > 5, { dom: L1.chatDom, msgs: L1.msgs });
@@ -135,28 +134,26 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   const retorno = await ev(() => { const v = SL.G.viewers.list.find(x => x.m.v >= 2 && !x.npc); if (!v) return null; const m = SL.Chat.say(v, 'greet', { s: 'Teste', g: 'Xeque', cat: 'Xadrez' }); return m && m.raw; });
   ok('saudação de quem volta é diferente da de primeira vez', !!retorno && !/primeira vez/i.test(retorno), retorno);
 
-  // 7. vídeos: criar, editar, renderizar, publicar e ver desempenho
-  await ev(() => SL.debug.fill());
-  await page.click('.dicon[data-app="estudio"]'); await page.waitForTimeout(400);
-  await page.click('.win [data-act="type"][data-v="short"]'); await page.click('.win [data-act="step"][data-s="2"]');
-  await page.click('.win [data-act="step"][data-s="3"]'); await page.click('.win [data-act="wgame"][data-v="xeque"]'); await page.click('.win [data-act="step"][data-s="4"]');
-  const rawBtn = await page.$('.win [data-act="raw"]'); if (rawBtn) await rawBtn.click();
-  await page.click('.win [data-act="step"][data-s="5"]');
-  await shot('10_estudio_momentos');
-  await page.click('.win [data-act="step"][data-s="6"]'); await page.click('.win [data-act="create"]'); await page.waitForTimeout(300);
-  ok('projeto de edição criado', await ev(() => SL.G.edits.length >= 1));
-  const eid = await ev(() => SL.G.edits[SL.G.edits.length - 1].id);
-  await page.click(`.win [data-act="edit"][data-e="${eid}"][data-m="9999"]`); await page.waitForTimeout(200);
-  await ev(() => SL.debug.skip(400));
-  ok('edição termina e renderiza', await ev(id => SL.G.edits.find(e => e.id === id).status === 'pronto', eid), await ev(id => SL.G.edits.find(e => e.id === id).status, eid));
-  await ev(() => SL.UI.wins.find(w => w.app === 'estudio').ctx.render());
-  await page.click('.win [data-act="tab"][data-t="producao"]'); await page.click(`.win [data-act="fin"][data-e="${eid}"]`);
-  await page.fill('.win [data-f="etitle"]', 'NÃO ACREDITO nesse xeque-mate no Xeque Rápido!');
-  await page.click('.win [data-act="ft"][data-v="tags"]'); for (let i = 0; i < 3; i++) await page.click('.win [data-act="etag"]:not(.on)');
-  await page.click('.win [data-act="ft"][data-v="pub"]'); await page.waitForTimeout(200);
-  await shot('11_estudio_publicar');
-  await page.click(`.win [data-act="pub"][data-e="${eid}"]`); await page.waitForTimeout(200);
-  ok('vídeo publicado', await ev(() => SL.G.videos.length >= 1 && SL.G.videos[0].status === 'publicado'));
+  // 7. vídeos dentro do app: corte da live no TikTok (gravação pronta → Editar → Rápida → Editando → título, descrição e hashtags → publicar)
+  await ev(() => { SL.debug.fill(); SL.G.time.speed = 3; });
+  await page.click('.dicon[data-app="clipz"]'); await page.waitForTimeout(400);
+  await page.click('.win [data-act="criar"][data-k="corte"]'); await page.waitForTimeout(300);
+  await page.click('.criar [data-raw]'); await page.waitForTimeout(200);
+  ok('gravação da live aparece pronta com o botão Editar', await ev(() => !!document.querySelector('.criar [data-editar]')));
+  await page.click('.criar [data-editar]'); await page.waitForTimeout(150);
+  ok('Editar mostra Rápida, Normal e Caprichada', await ev(() => document.querySelectorAll('.criar [data-level]').length === 3));
+  await page.click('.criar [data-level="rapida"]'); await page.waitForTimeout(400);
+  ok('caixa de carregamento Editando', await ev(() => /Editando/.test(document.querySelector('.criar .cv-wait') ? document.querySelector('.criar .cv-wait').textContent : '')));
+  await shot('10_editando');
+  await page.waitForSelector('.criar [data-publicar]', { timeout: 120000 });
+  ok('3 opções de título e descrição e 5 hashtags', await ev(() => document.querySelectorAll('.criar [data-pick="titulo"]').length === 3 && document.querySelectorAll('.criar [data-pick="descricao"]').length === 3 && document.querySelectorAll('.criar .cv-tag').length === 5));
+  await page.click('.criar [data-pick="titulo"][data-i="0"]'); await page.click('.criar [data-pick="descricao"][data-i="0"]');
+  for (let i = 0; i < 5; i++) { const t = page.locator('.criar .cv-tag:not(.on):not([disabled])').first(); if (await t.count()) await t.click(); }
+  ok('no máximo 3 hashtags', await ev(() => document.querySelectorAll('.criar .cv-tag.on').length === 3));
+  await shot('11_configurar_video');
+  await page.click('.criar [data-publicar]'); await page.waitForTimeout(300);
+  ok('vídeo publicado e nota de cada escolha', await ev(() => SL.G.videos.length >= 1 && SL.G.videos[0].status === 'publicado' && document.querySelectorAll('.criar .cv-row').length >= 5));
+  await page.click('.criar [data-fim]'); await ev(() => { SL.G.time.speed = 1; });
   await ev(() => SL.debug.skip(60 * 30));
   const vid = await ev(() => { const v = SL.G.videos[0]; return { views: Math.round(v.views), likes: Math.round(v.likes), ctr: v.ctr, ret: v.ret, comments: v.comments.length, hist: v.hist.length }; });
   ok('algoritmo distribui o vídeo (visualizações ao longo do tempo)', vid.views > 0 && vid.hist >= 1, vid);

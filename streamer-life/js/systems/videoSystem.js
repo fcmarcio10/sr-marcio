@@ -9,7 +9,8 @@
   VS.TYPES = {
     tradicional: { label: 'Vídeo tradicional', plat: 'vision', len: [480, 1080], raws: ['gameplay', 'react', 'vlog', 'opiniao', 'desafio', 'colab', 'live'], work: 180, icon: 'video' },
     corte: { label: 'Corte de transmissão', plat: 'vision', len: [300, 720], raws: ['live'], work: 90, icon: 'scissors' },
-    short: { label: 'Short (TikTok)', plat: 'clipz', len: [15, 60], raws: 'any', work: 30, icon: 'clip', short: true },
+    short: { label: 'Corte (TikTok)', plat: 'clipz', len: [15, 60], raws: 'any', work: 30, icon: 'clip', short: true },
+    reels: { label: 'Reels (YouTube)', plat: 'vision', len: [15, 60], raws: 'any', work: 30, icon: 'clip', short: true },
     reel: { label: 'Reel (Instagram)', plat: 'connect', len: [15, 90], raws: 'any', work: 35, icon: 'connect', short: true },
     gameplay: { label: 'Gameplay', plat: 'vision', len: [720, 1500], raws: ['gameplay', 'live'], work: 120, icon: 'gamepad' },
     reacao: { label: 'Reação', plat: 'vision', len: [480, 1080], raws: ['react'], work: 140, icon: 'eye' },
@@ -27,7 +28,7 @@
     live: { label: 'Gravação de live', where: 'auto', icon: 'live' },
     colab: { label: 'Colaboração', where: 'auto', icon: 'users' },
   };
-  VS.LEVELS = { rapida: { label: 'Rápida', mult: 0.5, q: 0.75 }, padrao: { label: 'Padrão', mult: 1, q: 1 }, caprichada: { label: 'Caprichada', mult: 2.1, q: 1.2 } };
+  VS.LEVELS = { rapida: { label: 'Rápida', mult: 0.5, q: 0.85 }, padrao: { label: 'Padrão', mult: 1, q: 1 }, caprichada: { label: 'Caprichada', mult: 2.1, q: 1.2 } };
 
   // ---------- material bruto ----------
   VS.addRaw = r => {
@@ -82,7 +83,7 @@
     d.moments.sort((x, y) => y.clip - x.clip);
     const raw = VS.addRaw({ kind: d.kind, game: d.game, topic: d.topic, minutes: d.n, quality: Math.round(d.q / d.n), moments: d.moments.slice(0, 12), place: d.place });
     SL.Life.skillUp(d.kind === 'opiniao' || d.kind === 'vlog' ? 'carisma' : 'jogo', d.n / 60 * 0.4);
-    SL.notify({ cat: 'canal', icon: 'video', title: 'Gravação pronta', text: U.dur(d.n) + ' de material (' + VS.RAWKINDS[d.kind].label.toLowerCase() + '). Monte o vídeo no Estúdio.', app: 'estudio' });
+    SL.notify({ cat: 'canal', icon: 'video', title: 'Gravação pronta', text: U.dur(d.n) + ' de material (' + VS.RAWKINDS[d.kind].label.toLowerCase() + '). Continue no YouTube ou no TikTok.', app: 'vision' });
     if (!G().ch.contentDays.includes(SL.Clock.day())) G().ch.contentDays.push(SL.Clock.day());
     return raw;
   };
@@ -111,7 +112,7 @@
     const G0 = G(); const s = SL.Equip.stats();
     let sk = G0.player.skills.edicao;
     if (e.editor !== 'eu') { const n = D.npcById(e.editor); sk = n ? n.skill : sk; }
-    let q = 18 + sk * 0.62 + s.monQ * 0.1 + s.render * 0.08;
+    let q = 28 + sk * 0.55 + s.monQ * 0.1 + s.render * 0.08;
     if (G0.equip.soft.editor_pro) q *= 1.12;
     if (e.editor === 'eu') q *= 0.6 + SL.Life.perf() * 0.4;
     return U.clamp(q * VS.LEVELS[e.level].q, 5, 100);
@@ -128,7 +129,7 @@
     const lenMin = (T.len[0] + T.len[1]) / 2 / 60;
     e.render = Math.max(3, Math.round(lenMin * 110 / Math.max(8, s.render)));
     if (G().act && G().act.id === 'editar' && G().act.data.edit === e.id) SL.Life.stop(true);
-    SL.notify({ cat: 'canal', icon: 'scissors', title: 'Edição concluída', text: 'Renderizando "' + (e.title || T.label) + '": cerca de ' + U.dur(e.render) + '.', app: 'estudio' });
+    SL.notify({ cat: 'canal', icon: 'scissors', title: 'Edição concluída', text: 'Renderizando "' + (e.title || T.label) + '": cerca de ' + U.dur(e.render) + '.', app: 'vision' });
     SL.bus.emit('videos');
   };
   VS.startEditing = (editId, minutes) => {
@@ -232,7 +233,7 @@
   SL.bus.on('tick:minute', () => {
     const G0 = G(); if (!G0) return;
     G0.edits.forEach(e => {
-      if (e.status === 'renderizando') { e.render--; if (e.render <= 0) { e.status = 'pronto'; SL.notify({ cat: 'canal', icon: 'check', title: 'Vídeo renderizado', text: (e.title || VS.TYPES[e.type].label) + ' está pronto para publicar.', app: 'estudio' }); SL.bus.emit('videos'); } }
+      if (e.status === 'renderizando') { e.render--; if (e.render <= 0) { e.status = 'pronto'; SL.notify({ cat: 'canal', icon: 'check', title: 'Vídeo renderizado', text: (e.title || VS.TYPES[e.type].label) + ' está pronto para publicar.', app: 'vision' }); SL.bus.emit('videos'); } }
     });
   });
   SL.bus.on('tick:hour', () => {
