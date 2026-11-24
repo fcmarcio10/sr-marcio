@@ -6,3 +6,4 @@ tools/tests/*.png
 src/p00_clips.js
 tools/tests/undefined/
 tools/radio/previa/
+streamer-life/tests/shots/
