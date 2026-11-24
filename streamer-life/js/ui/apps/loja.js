@@ -22,7 +22,7 @@
       const cur = D.equipById(G.equip.setup[st.slot]);
       const items = D.equip.filter(e => e.slot === st.slot && e.price > 0 || (e.slot === st.slot && G.equip.owned[e.id]));
       return `<div class="row wrap">${D.equipSlots.map(s => `<button class="chip ${st.slot === s.id ? 'on' : ''}" data-act="slot" data-v="${s.id}">${ic(s.icon, 13)} ${s.name}</button>`).join('')}</div>
-        <div class="small muted">${phys ? 'Compra na loja física: você leva na hora.' : 'Compra online: entrega amanhã de manhã.'} Equipado agora: <b>${cur ? esc(cur.name) + (SL.Equip.isBroken(cur.id) ? ' (quebrado)' : '') : 'nada'}</b></div>
+        <div class="small muted">${phys ? 'Compra na loja física: você leva na hora.' : 'Compra online: chega quando você acordar.'} Equipado agora: <b>${cur ? esc(cur.name) + (SL.Equip.isBroken(cur.id) ? ' (quebrado)' : '') : 'nada'}</b></div>
         <div class="shop-grid">${items.map(it => this.card(it, cur, phys)).join('')}</div>
         ${st.slot === 'computador' ? this.compat() : ''}`;
     },

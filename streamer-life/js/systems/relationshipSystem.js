@@ -105,12 +105,15 @@
   R.breakUp = id => { const r = R.get(id); if (r.stage !== 'namorando') return; r.stage = 'ex'; r.aff -= 25; r.rom = 10; remember(r, 'fim', 'bad', 'terminaram'); SL.Life.mod({ humor: -20, estresse: 12 }); SL.bus.emit('rel', id); };
 
   // quem está em um lugar agora (pelos horários de cada pessoa)
+  // sem relógio: quem frequenta o lugar pode estar lá (sorteado pelo dia, para não mudar a cada clique)
+  R.PRAZO = 3 * 1440;   // um combinado vale por uns 3 dias do jogo
+  const planOk = p => p && !p.done && G().time.t <= p.t + R.PRAZO;
   R.presentAt = placeId => {
-    const day = SL.Clock.dow(), h = SL.Clock.hourF(); const out = [];
-    D.npcs.forEach(n => {
-      (n.places || []).forEach(pl => { if (pl.p === placeId && pl.d.includes(day) && h >= pl.h[0] && h < pl.h[1]) out.push(n.id); });
+    const day = SL.Clock.day(); const out = [];
+    D.npcs.forEach((n, i) => {
+      (n.places || []).forEach(pl => { if (pl.p === placeId && ((day * 7 + i * 3 + pl.d.length) % 10) < 3 + pl.d.length) out.push(n.id); });
       const plan = R.get(n.id) && R.get(n.id).plan;
-      if (plan && plan.place === placeId && Math.abs(G().time.t - plan.t) <= 120 && !out.includes(n.id)) out.push(n.id);
+      if (planOk(plan) && plan.place === placeId && !out.includes(n.id)) out.push(n.id);
     });
     return [...new Set(out)];
   };
@@ -128,24 +131,22 @@
     jogar: { label: 'Jogar online juntos', place: 'pc', cost: 0, dur: 120 },
     visita: { label: 'Visitar a casa', place: 'amigos', cost: 0, dur: 120 },
   };
-  R.invite = (id, kind, dayOff, hour) => {
+  R.invite = (id, kind) => {
     const r = R.get(id); const def = R.def(id); const I = R.INVITES[kind]; if (!r || !I) return { ok: false, line: '...' };
     if (kind === 'visita' && !['duda', 'rafa'].includes(id)) return { ok: false, line: 'Melhor combinar em outro lugar.' };
     const romantic = (kind === 'jantar' || kind === 'parque' || kind === 'cafe') && (r.stage === 'interesse' || r.stage === 'namorando');
     let p = 0.3 + r.aff / 120 + (r.flags.conflict ? -0.3 : 0) + (romantic ? 0.15 : 0);
     if (r.flags.noShow && G().time.t - r.flags.noShow < 7 * 1440) p -= 0.35;
     if (!U.chance(U.clamp(p, 0.05, 0.95))) { remember(r, 'convite', 'bad'); return { ok: false, line: U.pick(['Essa semana tá corrida, fica pra próxima.', 'Hmm, não vai dar. Desculpa!', 'Agora não consigo.']) }; }
-    const day = SL.Clock.day() + dayOff; const t = day * 1440 + hour * 60;
     const place = kind === 'visita' ? (id === 'rafa' ? 'rafa' : 'amigos') : I.place;
-    r.plan = { kind, place, t, romantic };
-    if (SL.Calendar) SL.Calendar.add({ day, hour, kind: 'encontro', title: I.label + ' com ' + R.name(id), ref: 'plan_' + id });
+    r.plan = { kind, place, t: G().time.t, romantic };
     remember(r, 'convite', 'good');
     SL.bus.emit('rel', id);
-    return { ok: true, line: U.pick(['Bora! Combinado.', 'Fechou, tô dentro!', 'Ótima ideia, até lá!']) + ' ' + SL.Clock.fmtDay(day) + ' às ' + hour + 'h.' };
+    return { ok: true, line: U.pick(['Bora! Combinado.', 'Fechou, tô dentro!', 'Ótima ideia!']) + ' ' + (place === 'pc' ? 'É só me chamar quando ligar o PC.' : 'Te encontro lá: vá quando puder.') };
   };
   R.planHere = placeId => {
     const out = [];
-    for (const id in G().rel) { const r = G().rel[id]; if (r.plan && r.plan.place === placeId && Math.abs(G().time.t - r.plan.t) <= 120 && !r.plan.done) out.push(id); }
+    for (const id in G().rel) { const r = G().rel[id]; if (planOk(r.plan) && r.plan.place === placeId) out.push(id); }
     return out;
   };
   R.startPlan = id => {
@@ -216,7 +217,7 @@
     const it = D.delivery.find(x => x.id === id); if (!it) return 'Item inválido.';
     if (G().loc.area !== 'casa') return 'O entregador só leva na sua casa.';
     if (!SL.Econ.spend(it.price + 6, 'comida', 'Pedido no iFood: ' + it.name)) return 'Dinheiro insuficiente.';
-    G().equip.deliveries.push({ id, at: G().time.t + U.ri(30, 55), kind: 'food' });
+    R.deliveryArrived({ id, kind: 'food' });   // sem relógio: o entregador chega na hora
     return null;
   };
   R.deliveryArrived = d => {
@@ -250,11 +251,9 @@
       case 'cr_seco': R.touchCreator(id, 1, 'resposta'); break;
       case 'collab_sim': {
         const r = R.get(id); r.flags.collabPending = 0;
-        const day = SL.Clock.day() + U.ri(1, 3); const hour = U.pick([19, 20, 21]);
-        r.plan = { kind: 'collab', place: 'pc', t: day * 1440 + hour * 60 };
-        if (SL.Calendar) SL.Calendar.add({ day, hour, kind: 'collab', title: 'Live collab com ' + R.name(id), ref: 'plan_' + id });
+        r.plan = { kind: 'collab', place: 'pc', t: G0.time.t };
         R.touchCreator(id, 5, 'collab');
-        reply('Fechado! ' + SL.Clock.fmtDay(day) + ' às ' + hour + 'h, ao vivo. Vou avisar meu público também.');
+        reply('Fechado! Na sua próxima live a gente faz junto. Vou avisar meu público também.');
         break;
       }
       case 'collab_depois': { const r = R.get(id); r.flags.collabPending = 0; R.touchCreator(id, 1, 'resposta'); reply('Tranquilo, quando der me chama!'); break; }
@@ -276,9 +275,9 @@
         reply('Mandei ' + U.money(v) + '. Mas organiza essas contas, hein!'); break;
       }
       case 'mae_novidade': { const r = R.get('mae'); r.aff += 3; r.last = G0.time.t; reply(SL.Social.totalFollowers() > 500 ? 'Já tem ' + U.num(SL.Social.totalFollowers()) + ' pessoas te seguindo?! Vou contar pra todo mundo!' : 'Que orgulho! Continua assim.'); break; }
-      case 'amigo_sim': { const res = R.invite(id, m.data.kind, m.data.day - SL.Clock.day(), m.data.hour); if (!res.ok) { const r = R.get(id); r.plan = { kind: m.data.kind, place: m.data.place, t: m.data.day * 1440 + m.data.hour * 60, romantic: false }; if (SL.Calendar) SL.Calendar.add({ day: m.data.day, hour: m.data.hour, kind: 'encontro', title: R.INVITES[m.data.kind].label + ' com ' + R.name(id), ref: 'plan_' + id }); } reply('Combinado então!'); break; }
+      case 'amigo_sim': { const res = R.invite(id, m.data.kind); if (!res.ok) { const r = R.get(id); r.plan = { kind: m.data.kind, place: m.data.place, t: G0.time.t, romantic: false }; } reply('Combinado então! Vá quando puder.'); break; }
       case 'amigo_nao': { const r = R.get(id); r.flags.declines = (r.flags.declines || 0) + 1; r.aff -= 2; if (r.flags.declines >= 3) { r.flags.conflict = 1; r.flags.declines = 0; reply('Você sempre tá ocupado(a) pra mim, né? Tudo bem.'); remember(r, 'conflito', 'bad', 'se sentiu deixado(a) de lado'); } else reply('Ah, tudo bem. Fica pra próxima.'); break; }
-      case 'parceiro_sim': { const r = R.get(id); r.rom = U.clamp(r.rom + 3, 0, 100); reply('Te espero! :)'); const day = SL.Clock.day() + (SL.Clock.hour() > 19 ? 1 : 0); r.plan = { kind: 'jantar', place: 'restaurante', t: day * 1440 + 20 * 60, romantic: true }; if (SL.Calendar) SL.Calendar.add({ day, hour: 20, kind: 'encontro', title: 'Jantar com ' + R.name(id), ref: 'plan_' + id }); break; }
+      case 'parceiro_sim': { const r = R.get(id); r.rom = U.clamp(r.rom + 3, 0, 100); reply('Te espero no restaurante! :)'); r.plan = { kind: 'jantar', place: 'restaurante', t: G0.time.t, romantic: true }; break; }
       case 'parceiro_nao': { const r = R.get(id); r.rom -= 4; r.aff -= 2; reply('Hm. Tá bom.'); break; }
       default: if (SL.Sponsors && optId.startsWith('of_')) SL.Sponsors.onDm(threadId, m, optId); else if (SL.Events && optId.startsWith('ev_')) SL.Events.onDm(threadId, m, optId);
     }
@@ -290,16 +289,16 @@
     const G0 = G(); if (!G0) return;
     for (const id in G0.rel) {
       const r = G0.rel[id]; const p = r.plan; if (!p || p.done) continue;
-      if (p.kind === 'collab' && G0.time.t > p.t + 150) { r.plan = null; r.aff -= 20; r.trust -= 15; remember(r, 'falta', 'bad', 'você faltou à collab combinada'); SL.Rep.mod({ profissional: -4 }); SL.Social.dm(id, 'Fiquei te esperando pra collab... avisei meu público e tudo.', null, {}); if (SL.Calendar) SL.Calendar.removeRef('plan_' + id); continue; }
-      if (p.kind !== 'collab' && G0.time.t > p.t + 150) {
+      if (p.kind === 'collab' && G0.time.t > p.t + R.PRAZO) { r.plan = null; r.aff -= 20; r.trust -= 15; remember(r, 'falta', 'bad', 'você faltou à collab combinada'); SL.Rep.mod({ profissional: -4 }); SL.Social.dm(id, 'Fiquei te esperando pra collab... avisei meu público e tudo.', null, {}); if (SL.Calendar) SL.Calendar.removeRef('plan_' + id); continue; }
+      if (p.kind !== 'collab' && G0.time.t > p.t + R.PRAZO) {
         r.plan = null; r.aff -= 12; r.trust -= 15; r.flags.noShow = G0.time.t;
         remember(r, 'falta', 'bad', 'você não apareceu no encontro');
         SL.Social.dm(id, U.pick(['Fiquei te esperando... tá tudo bem?', 'Sério que você esqueceu?', 'Esperei quase uma hora. Poxa.']), null, {});
         if (SL.Calendar) SL.Calendar.removeRef('plan_' + id);
         updateStage(id);
       }
-      if (p.kind !== 'collab' && Math.abs(G0.time.t - p.t) < 60 && !p.reminded) { p.reminded = 1; SL.notify({ cat: 'pessoas', icon: 'calendar', title: 'Compromisso agora', text: (R.INVITES[p.kind] || { label: 'Encontro' }).label + ' com ' + R.name(id) + (p.place === 'pc' ? ' (no computador)' : ' em ' + (D.placeById(p.place) || { name: '' }).name) }); }
-      if (p.kind === 'collab' && Math.abs(G0.time.t - p.t) < 60 && !p.reminded) { p.reminded = 1; SL.notify({ cat: 'canal', icon: 'users', title: 'Collab agora', text: 'Abra a Twitch no computador e comece a live com ' + R.name(id) + '.', app: 'pulso' }); }
+      if (p.kind !== 'collab' && G0.time.t - p.t > R.PRAZO - 1440 && !p.reminded) { p.reminded = 1; SL.notify({ cat: 'pessoas', icon: 'calendar', title: 'Não esqueça do combinado', text: (R.INVITES[p.kind] || { label: 'Encontro' }).label + ' com ' + R.name(id) + (p.place === 'pc' ? ' (no computador)' : ' em ' + (D.placeById(p.place) || { name: '' }).name) }); }
+      if (p.kind === 'collab' && G0.time.t - p.t > R.PRAZO - 1440 && !p.reminded) { p.reminded = 1; SL.notify({ cat: 'canal', icon: 'users', title: 'Collab combinada', text: 'Abra o OBS no computador e comece a live com ' + R.name(id) + '.', app: 'pulso' }); }
     }
   });
   SL.bus.on('tick:day', day => {
@@ -310,7 +309,7 @@
       if ((r.stage === 'amigo' || r.stage === 'melhor_amigo') && since > 10) r.aff = U.clamp(r.aff - 0.6, -100, 100);
       if (r.stage === 'namorando') {
         const tg = (t - (r.flags.lastTogether || t)) / 1440;
-        if (tg > 5 && U.chance(0.35)) SL.Social.dm(id, U.pick(D.T.npcMsgs.partner), [{ id: 'parceiro_sim', label: 'Marcar um jantar hoje' }, { id: 'parceiro_nao', label: 'Hoje não dá' }]);
+        if (tg > 5 && U.chance(0.35)) SL.Social.dm(id, U.pick(D.T.npcMsgs.partner), [{ id: 'parceiro_sim', label: 'Marcar um jantar' }, { id: 'parceiro_nao', label: 'Hoje não dá' }]);
         if (tg > 10) { r.rom = U.clamp(r.rom - 2.5, 0, 100); if (!r.flags.conflict && U.chance(0.25)) { r.flags.conflict = 1; SL.Social.dm(id, 'A gente precisa conversar. Você só tem tempo pro canal.', null); remember(r, 'conflito', 'bad', 'reclamou da falta de atenção'); } }
         if (r.rom < 25 && U.chance(0.2)) { R.breakUp(id); SL.Social.dm(id, 'Acho melhor a gente terminar. Desculpa.', null); SL.notify({ cat: 'pessoas', icon: 'heart', title: 'Fim do namoro', text: R.name(id) + ' terminou com você.' }); }
       }
@@ -321,9 +320,8 @@
     ['duda', 'rafa'].forEach(id => {
       const r = G0.rel[id]; if (!r || r.plan || !U.chance(0.12 + r.aff / 600)) return;
       const kind = id === 'rafa' ? U.pick(['jogar', 'visita']) : U.pick(['cafe', 'parque', 'visita']);
-      const d2 = day + U.ri(0, 2); const hour = kind === 'cafe' ? 16 : kind === 'parque' ? 10 : 20;
       const place = kind === 'visita' ? (id === 'rafa' ? 'rafa' : 'amigos') : R.INVITES[kind].place;
-      SL.Social.dm(id, U.pick(D.T.npcMsgs[id]) + ' (' + R.INVITES[kind].label.toLowerCase() + ', ' + SL.Clock.fmtDay(d2) + ' às ' + hour + 'h?)', [{ id: 'amigo_sim', label: 'Topar' }, { id: 'amigo_nao', label: 'Recusar' }], { data: { kind, day: d2, hour, place } });
+      SL.Social.dm(id, U.pick(D.T.npcMsgs[id]) + ' (' + R.INVITES[kind].label.toLowerCase() + '?)', [{ id: 'amigo_sim', label: 'Topar' }, { id: 'amigo_nao', label: 'Recusar' }], { data: { kind, place } });
     });
     const crush = Object.keys(G0.rel).find(id => G0.rel[id].stage === 'interesse' && !G0.rel[id].plan);
     if (crush && U.chance(0.2)) SL.Social.dm(crush, U.pick(D.T.npcMsgs.crush), null);

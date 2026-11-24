@@ -8,9 +8,9 @@
   const VS = () => SL.Videos;
 
   const KINDS = {
-    video: { type: 'tradicional', app: 'vision', plat: 'YouTube', nome: 'Vídeo para o YouTube', rec: 60, thumb: true, icon: 'vision', extra: 'gameplay' },
-    reels: { type: 'reels', app: 'vision', plat: 'YouTube', nome: 'Reels para o YouTube', rec: 20, thumb: false, icon: 'clip', extra: 'reels' },
-    corte: { type: 'short', app: 'clipz', plat: 'TikTok', nome: 'Corte para o TikTok', rec: 20, thumb: false, icon: 'scissors', extra: 'corte' },
+    video: { type: 'tradicional', app: 'vision', plat: 'YouTube', nome: 'Vídeo para o YouTube', rec: 30, thumb: true, icon: 'vision', extra: 'gameplay' },
+    reels: { type: 'reels', app: 'vision', plat: 'YouTube', nome: 'Reels para o YouTube', rec: 10, thumb: false, icon: 'clip', extra: 'reels' },
+    corte: { type: 'short', app: 'clipz', plat: 'TikTok', nome: 'Corte para o TikTok', rec: 10, thumb: false, icon: 'scissors', extra: 'corte' },
   };
   const kindOfType = t => t === 'reels' ? 'reels' : t === 'short' ? 'corte' : 'video';
   const MAX_TAGS = 3;
@@ -94,7 +94,7 @@
         const jogos = D.games.filter(x => !x.nongame && SL.Equip.canStream(x, '480p').ok);
         h += `<p class="cv-p">${K.type === 'short' ? 'Corte um momento de uma live ou grave uma partida curta.' : 'Escolha o jogo. A gravação leva ' + U.dur(K.rec) + ' do jogo.'}</p>`;
         if (lives.length) h += `<div class="cv-sub">Gravações das suas lives</div><div class="cv-grid">${lives.map(r => `<button class="cv-card" data-raw="${r.id}"><span class="cv-ic" style="background:#9146ff">${ic('live', 18)}</span><b>Live de ${esc((D.gameById(r.game) || {}).name || 'conversa')}</b><small>${SL.Clock.fmtDay(SL.Clock.day(r.t))} · ${r.moments.length} momentos</small></button>`).join('')}</div><div class="cv-sub">Ou gravar agora</div>`;
-        h += `<div class="cv-grid">${jogos.map(x => `<button class="cv-card" data-game="${x.id}"><span class="cv-ic" style="background:${x.color}">${ic('gamepad', 18)}</span><b>${esc(x.name)}</b><small>${esc(x.cat)}</small></button>`).join('')}${K.type === 'tradicional' ? `<button class="cv-card" data-game="opiniao"><span class="cv-ic" style="background:#2563eb">${ic('megaphone', 18)}</span><b>Falar com a câmera</b><small>Opinião sobre um assunto</small></button>` : ''}</div>`;
+        h += `<div class="cv-grid">${jogos.map(x => `<button class="cv-card" data-game="${x.id}"><span class="cv-ic" style="background:${x.color}">${ic('gamepad', 18)}</span><b>${esc(x.name)}</b><small>${esc(x.cat)}</small></button>`).join('')}</div>`;
       } else if (st.step === 'gravando') {
         const a = G.act; const mom = a && a.data && a.data.moments ? a.data.moments.length : 0;
         h += carregando('Gravando...', 'video', a ? SL.Life.progress() : 1, mom + ' momentos bons até agora');

@@ -14,7 +14,7 @@
         <div class="hud-needs">${SL.Life.NEEDS.map(nd => `<div class="hn" data-k="${nd.k}" title="${nd.label}"><span class="hn-i" style="color:${nd.color}">${UI.ic(nd.icon, 14)}</span><span class="hn-l">${nd.label}</span><div class="hn-b"><i style="background:${nd.color}"></i></div></div>`).join('')}</div>
       </div>
       <div class="hud-tc">
-        <div class="hud-clock"><div class="hc-time"><div class="t mono"></div><div class="d"></div></div><div class="speeds">${UI.speedBtns()}</div></div>
+        <div class="hud-clock"><button class="hud-meta" data-h="metas" title="Suas metas"><span class="hmi">${UI.ic('trophy', 15)}</span><span class="hmt"><small>Próxima meta</small><b class="ellipsis"></b><span class="hm-bar"><i></i></span></span><span class="hm-r"></span></button><div class="speeds" hidden title="Velocidade da live">${UI.speedBtns()}</div></div>
         <div class="hud-act" hidden></div>
       </div>
       <div class="hud-tr">
@@ -23,7 +23,7 @@
         <button class="gbtn" data-h="menu" title="Menu (Esc)">${UI.ic('more', 20)}<span>Menu</span></button>
       </div>
       <div class="hud-live" hidden></div>`;
-    refs = { cv: $('.hud-me canvas', hud), name: $('.hud-me b', hud), tier: $('.hud-me small', hud), t: $('.hud-clock .t', hud), d: $('.hud-clock .d', hud), money: $('.hud-money', hud), mv: $('.mv', hud), badge: $('[data-h="phone"] .badge', hud), act: $('.hud-act', hud), pc: $('[data-h="pc"]', hud), bars: SL.Life.NEEDS.map(nd => ({ nd, el: $('.hn[data-k="' + nd.k + '"]', hud) })) };
+    refs = { cv: $('.hud-me canvas', hud), name: $('.hud-me b', hud), tier: $('.hud-me small', hud), meta: $('.hud-meta', hud), mt: $('.hud-meta b', hud), mbar: $('.hud-meta .hm-bar i', hud), mr: $('.hud-meta .hm-r', hud), speeds: $('.hud-clock .speeds', hud), money: $('.hud-money', hud), mv: $('.mv', hud), badge: $('[data-h="phone"] .badge', hud), act: $('.hud-act', hud), pc: $('[data-h="pc"]', hud), bars: SL.Life.NEEDS.map(nd => ({ nd, el: $('.hn[data-k="' + nd.k + '"]', hud) })) };
     hud.onclick = e => {
       if (HUD.locked()) return;
       const b = e.target.closest('[data-h],[data-speed],[data-actstop]'); if (!b) return; SL.audio.play('click');
@@ -35,6 +35,7 @@
       if (h === 'menu') SL.Screens.pauseMenu();
       if (h === 'bank') UI.openApp('banco');
       if (h === 'me') UI.openApp('stats');
+      if (h === 'metas') UI.openApp('stats', { tab: 'objetivos' });
       if (h === 'voltarpc') HUD.goToPC();
     };
     HUD.paintPortrait();
@@ -42,10 +43,22 @@
   HUD.paintPortrait = () => { if (refs.cv) SL.Avatar.toCanvas(refs.cv, SL.G.player.look, { scale: 1.05 }); };
   // durante uma sequência (cozinhar e levar à mesa, por exemplo) nada pode interromper
   HUD.locked = () => !!(SL.Seq && SL.Seq.busy());
-  let lastAct = '';
+  let lastAct = '', lastMeta = '', metaT = 0;
   HUD.update = force => {
-    const G = SL.G; if (!G || !refs.t) return;
-    refs.t.textContent = SL.Clock.fmtTime(G.time.t); refs.d.textContent = SL.Clock.period(G.time.t) + ' · ' + SL.Clock.fmtDate(G.time.t);
+    const G = SL.G; if (!G || !refs.meta) return;
+    // próxima meta (sem relógio nem data: pedido do dono)
+    const nowM = performance.now();
+    if (force || nowM - metaT > 600) {
+      metaT = nowM; const m = SL.Goals.atual(); const key = m ? m.g.id + '|' + Math.round(m.s.p * 100) : 'fim';
+      if (key !== lastMeta) {
+        lastMeta = key;
+        refs.mt.textContent = m ? m.g.title : 'Todas as metas cumpridas';
+        refs.mbar.style.width = (m ? m.s.p * 100 : 100) + '%';
+        refs.mr.textContent = m && m.g.r ? '+' + U.money0(m.g.r) : '';
+        refs.meta.title = m ? (m.g.hint ? m.g.hint + ' ' : '') + (m.s.b ? '(' + U.num(Math.floor(m.s.a)) + ' de ' + U.num(m.s.b) + ')' : '') + (m.g.r ? ' Prêmio: ' + U.money0(m.g.r) : '') : '';
+      }
+    }
+    const aoVivo = !!(SL.Live && SL.Live.cur); if (refs.speeds.hidden === aoVivo) refs.speeds.hidden = !aoVivo;
     refs.name.textContent = G.player.channel; refs.tier.textContent = SL.Career.tierName();
     refs.mv.textContent = U.money0(G.money); refs.money.classList.toggle('neg', G.money < 0);
     const un = SL.Notify.unread(); refs.badge.hidden = !un; refs.badge.textContent = un > 99 ? '99+' : un;
@@ -57,7 +70,7 @@
     const key = show ? [a.id, a.label, Math.round(SL.Life.progress() * 100), HUD.locked()].join('|') : '';
     if (force || key !== lastAct) {
       lastAct = key; refs.act.hidden = !show;
-      if (show) refs.act.innerHTML = `<span class="ha-i">${UI.ic(SL.Life.ACT[a.id].icon, 16)}</span><div class="grow"><b>${U.esc(a.label)}</b>${a.dur ? `<div class="ha-b"><i style="width:${SL.Life.progress() * 100}%"></i></div><small>até ${SL.Clock.fmtTime(a.t0 + a.dur)}</small>` : ''}</div>${HUD.locked() ? '' : `<button class="sbtn" data-actstop title="Parar">${UI.ic('x', 14)}</button>`}`;
+      if (show) refs.act.innerHTML = `<span class="ha-i">${UI.ic(SL.Life.ACT[a.id].icon, 16)}</span><div class="grow"><b>${U.esc(a.label)}</b>${a.dur ? `<div class="ha-b"><i style="width:${SL.Life.progress() * 100}%"></i></div>` : ''}</div>${HUD.locked() ? '' : `<button class="sbtn" data-actstop title="Parar">${UI.ic('x', 14)}</button>`}`;
     }
   };
   // live no ar com você longe do PC: janelinha com a tela da live onde você parou
@@ -110,7 +123,7 @@
     const G = SL.G; const p = D.placeById(toId); const here = SL.City.here();
     if (toId === here) { SL.City.enter(toId); return; }
     const opts = SL.City.options(toId); const open = SL.City.isOpen(toId);
-    const m = UI.modal({ title: p.id === 'casa' ? 'Voltar para casa' : p.name, icon: p.icon, sub: (open ? 'Aberto agora' : 'Fechado agora') + ' · ' + opts[0].km.toFixed(1).replace('.', ',') + ' km · abre ' + p.open[0] + 'h–' + (p.open[1] % 24) + 'h',
+    const m = UI.modal({ title: p.id === 'casa' ? 'Voltar para casa' : p.name, icon: p.icon, sub: opts[0].km.toFixed(1).replace('.', ',') + ' km',
       html: `<div class="col">${opts.map(o => `<button class="choice" data-tr="${o.tr.id}"><div class="row"><span class="acc">${UI.ic(o.tr.icon, 18)}</span><b class="grow">${o.tr.name}</b><span class="mono small">${U.dur(o.min)}</span><span class="mono small ok" style="width:70px;text-align:right">${o.cost ? U.money(o.cost) : 'grátis'}</span></div></button>`).join('')}</div>${!open && p.kind !== 'casa' ? '<p class="small warn">Chegando lá você vai encontrar a porta fechada.</p>' : ''}` });
     $$('[data-tr]', m.el).forEach(b => b.onclick = () => { m.close(); UI.err(SL.City.travel(toId, b.dataset.tr)); });
   };
@@ -125,7 +138,7 @@
     const sig = JSON.stringify([p.id, open, acts.map(a => a.id + a.disabled + a.price), people, busy, G.money > 0, Math.floor(G.time.t / 30)]);
     if (el.dataset.sig === sig) return; el.dataset.sig = sig;
     HUD._acts = acts;
-    el.innerHTML = `<header><div class="pi" style="background:${p.color}">${UI.ic(p.icon, 20)}</div><div class="grow"><b>${U.esc(p.name)}</b><div class="tiny ${open ? 'ok' : 'bad'}">${open ? 'Aberto' : 'Fechado'} · ${p.open[0]}h às ${p.open[1] % 24}h</div></div></header>
+    el.innerHTML = `<header><div class="pi" style="background:${p.color}">${UI.ic(p.icon, 20)}</div><div class="grow"><b>${U.esc(p.name)}</b><div class="tiny ok">Aberto</div></div></header>
       <div class="pbody">
         <div class="col gap4">${acts.map((a, i) => `<button class="act-btn" data-pa="${i}" ${a.disabled || (busy && !a.ui) ? 'disabled' : ''} ${a.hl ? 'style="border-color:var(--live)"' : ''}><span class="ai">${UI.ic(a.icon, 17)}</span><span class="grow"><b>${U.esc(a.label)}</b><small>${U.esc(a.disabled && a.why ? a.why : a.desc || '')}</small></span>${a.price ? `<span class="price">${U.money0(a.price)}</span>` : ''}</button>`).join('')}</div>
         <div><div class="upper" style="margin-bottom:6px">Pessoas aqui</div>${people.length ? `<div class="people">${people.map(id => `<button class="person" data-person="${id}"><canvas data-look="${id}"></canvas><span class="small">${SL.Rel.get(id).met ? U.esc(SL.Rel.name(id)) : 'Alguém novo'}</span></button>`).join('')}</div>` : '<div class="small muted">Ninguém conhecido agora. Cada pessoa tem horários próprios.</div>'}</div>
@@ -192,11 +205,16 @@
     };
     draw();
   };
-  HUD.inviteWhen = (id, kind, cb) => {
-    const h = SL.Clock.hour(); const today = SL.Clock.day();
-    const slots = []; for (let d = 0; d < 3; d++) [10, 15, 20].forEach(hh => { if (d > 0 || hh > h + 1) slots.push([d, hh]); });
-    const m = UI.modal({ title: SL.Rel.INVITES[kind].label + ' com ' + SL.Rel.name(id), icon: 'calendar', html: '<p class="small muted">Escolha quando. Faltar ao combinado tem consequência.</p><div class="grid3">' + slots.map(([d, hh]) => `<button class="choice" data-sl="${d},${hh}"><b>${d === 0 ? 'Hoje' : d === 1 ? 'Amanhã' : SL.Clock.fmtDay(today + d)}</b><small>às ${hh}h</small></button>`).join('') + '</div>' });
-    $$('[data-sl]', m.el).forEach(b => b.onclick = () => { const [d, hh] = b.dataset.sl.split(',').map(Number); m.close(); cb(SL.Rel.invite(id, kind, d, hh)); });
+  HUD.inviteWhen = (id, kind, cb) => { cb(SL.Rel.invite(id, kind)); };
+  HUD.resumoSemana = () => {
+    const G = SL.G; const r = G && G.resumo; if (!r || (SL.Live && SL.Live.cur) || HUD.locked() || document.querySelector('#modals .modal-bg')) return;
+    G.resumo = null;
+    const meta = SL.Goals.atual(); const sg = n => (n > 0 ? '+' : '') + U.num(n);
+    UI.modal({ title: 'Resumo da semana ' + r.n, icon: 'stats', html: `<div class="sum-grid"><div class="card stat"><b>${r.lives}</b><span>Lives (${r.horas}h no ar)</span></div><div class="card stat"><b>${U.int(r.pico)}</b><span>Maior público</span></div><div class="card stat"><b class="ok">${U.money0(r.ganho)}</b><span>Dinheiro que entrou</span></div><div class="card stat"><b class="bad">${U.money0(r.gasto)}</b><span>Gastos</span></div></div>
+      <div class="card col"><h3>Seguidores novos</h3><div class="kv">${r.seg.map(([n, v]) => `<span>${n}</span><b class="${v > 0 ? 'ok' : v < 0 ? 'bad' : ''}">${sg(v)}</b>`).join('')}</div></div>
+      ${r.best ? `<div class="card col"><h3>Melhor vídeo da semana</h3><div class="small">${U.esc(r.best.title)} <span class="muted">· ${r.best.plat} · ${U.num(r.best.views)} visualizações</span></div><span class="tiny muted">${r.videos} vídeo(s) e corte(s) publicados.</span></div>` : ''}
+      ${meta ? `<div class="card col"><h3>Próxima meta</h3><div class="small">${U.esc(meta.g.title)}${meta.g.r ? ' <b class="ok">+' + U.money0(meta.g.r) + '</b>' : ''}</div><div class="bar"><i style="width:${Math.round(meta.s.p * 100)}%"></i></div></div>` : ''}`, buttons: [{ label: 'Bora pra próxima', cls: 'primary' }] });
+    if (SL.audio) SL.audio.play('levelup');
   };
 
   // ---------- cenário: mouse e teclado ----------
@@ -231,12 +249,15 @@
         const id = SL.City.personAtScreen(p.x, p.y); if (id) HUD.talk(id);
       }
     });
+    // barulhinho de teclado quando você digita (chat da live, mensagens, posts)
+    window.addEventListener('keydown', e => { if (UI.screen === 'game' && /input|textarea/i.test(document.activeElement.tagName) && e.key.length === 1 && SL.audio.tecla) SL.audio.tecla(); });
     window.addEventListener('keydown', e => {
       if (UI.screen !== 'game' || /input|textarea|select/i.test(document.activeElement.tagName)) return;
       const G = SL.G;
       if (HUD.locked()) { if (G.loc.area === 'casa' && SL.HomeScene.keyDown(e.key)) e.preventDefault(); return; }
-      if (e.key === ' ') { e.preventDefault(); const cur = SL.Clock.sp(); if (cur === 0) SL.Clock.setSpeed(HUD._lastSpeed || 1); else { HUD._lastSpeed = cur; SL.Clock.setSpeed(0); } HUD.update(true); }
-      if (['1', '2', '3'].includes(e.key) && !(UI._ctx && UI._ctx._pick)) { SL.Clock.setSpeed(e.key === '1' ? 1 : 2); HUD.update(true); }
+      const noAr = !!(SL.Live && SL.Live.cur);
+      if (e.key === ' ' && noAr) { e.preventDefault(); const cur = SL.Clock.sp(); if (cur === 0) SL.Clock.setSpeed(HUD._lastSpeed || 1); else { HUD._lastSpeed = cur; SL.Clock.setSpeed(0); } HUD.update(true); }
+      if (noAr && ['1', '2', '3'].includes(e.key) && !(UI._ctx && UI._ctx._pick)) { SL.Clock.setSpeed(e.key === '1' ? 1 : 2); HUD.update(true); }
       if (e.key === 'Escape') { if ($('.modal-bg')) return; if (UI._ctx) return UI.closeCtx(); if (UI.phoneOpen()) return UI.closePhone(); if (UI.pcOpen() && !(SL.Live && SL.Live.cur)) return UI.closePC(); SL.Screens.pauseMenu(); }
       if ((e.key === 'c' || e.key === 'C') && !UI.pcOpen()) { if (UI.phoneOpen()) UI.closePhone(); else UI.openPhone(); }
       if ((e.key === 'p' || e.key === 'P') && G.loc.area === 'casa') { if (UI.pcOpen()) UI.closePC(); else HUD.goToPC(); }

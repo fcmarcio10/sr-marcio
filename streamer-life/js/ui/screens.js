@@ -114,7 +114,7 @@
       <div class="slots">${list.map(s => `<div class="card slot">
         <div class="upper">${name(s.slot)}</div>
         ${s.empty ? '<div class="empty">Vazio</div>' : s.broken ? '<div class="empty bad">Arquivo corrompido</div>' : `<div class="top"><canvas data-look="${s.slot}"></canvas><div class="grow"><b>${U.esc(s.meta.channel)}</b><div class="muted small">${U.esc(s.meta.name)} · ${U.esc(s.meta.tier || '')}</div></div></div>
-        <div class="kv"><span>Data no jogo</span><span>${U.esc(s.meta.day.split(' de ').slice(0, 2).join(' de '))}</span><span>Seguidores</span><span>${U.num(s.meta.followers)}</span><span>Dinheiro</span><span>${U.money0(s.meta.money)}</span><span>Salvo em</span><span>${new Date(s.savedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span></div>`}
+        <div class="kv"><span>Nível</span><span>${U.esc(s.meta.tier || '')}</span><span>Seguidores</span><span>${U.num(s.meta.followers)}</span><span>Dinheiro</span><span>${U.money0(s.meta.money)}</span><span>Salvo em</span><span>${new Date(s.savedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span></div>`}
         <div class="row">${s.empty || s.broken ? '' : `<button class="btn primary sm" data-load="${s.slot}">${UI.ic('play', 14)} Carregar</button>`}${s.empty ? '' : `<button class="btn danger sm" data-del="${s.slot}">${UI.ic('trash', 14)} Excluir</button>`}</div>
       </div>`).join('')}</div>
       <div class="card col"><h3>Importar salvamento</h3><p class="small muted">Use um arquivo exportado antes, ou cole o código do salvamento.</p>

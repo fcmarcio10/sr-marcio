@@ -343,10 +343,11 @@
   const bboxOf = (x0, y0, x1, y1, z0, z1) => { const a = P(x0, y0, z0), b = P(x1, y1, z0), c = P(x0, y0, z1), d = P(x1, y1, z1); return [Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.max(b[0], d[0]), Math.max(b[1], d[1])]; };
 
   // ---------- luz e céu ----------
-  const hour = () => SL.Clock.hourF();
+  const hour = () => 14;   // sem relógio (pedido do dono): a casa fica sempre de dia
   const skyColor = () => { const h = hour(); if (h < 5 || h >= 20) return '#1a2140'; if (h < 7) return '#e8a070'; if (h < 17) return '#8ec6ff'; if (h < 19) return '#f0a060'; return '#4a4a80'; };
   const nightAlpha = () => { const h = hour(); if (h >= 7 && h < 17.5) return 0; if (h >= 20 || h < 5) return 0.64; if (h < 7) return 0.64 * (1 - (h - 5) / 2); return 0.64 * ((h - 17.5) / 2.5); };
-  const dayK = () => { const h = hour(); if (h < 6 || h > 18.5) return 0; if (h < 8) return (h - 6) / 2; if (h > 16.5) return (18.5 - h) / 2; return 1; };
+  const chovendo = () => !!(SL.G && SL.G.flags && SL.G.flags.chuva);
+  const dayK = () => { if (chovendo()) return 0; const h = hour(); if (h < 6 || h > 18.5) return 0; if (h < 8) return (h - 6) / 2; if (h > 16.5) return (18.5 - h) / 2; return 1; };
 
   // ---------- chão (desenhado uma vez) ----------
   const FR = 2;
@@ -459,7 +460,9 @@
   const drawWallTops = c => {
     atZ(c, WALLZ, () => {
       c.fillStyle = WALL_TOP; c.beginPath(); walls.forEach(w => c.rect(w.r[0] - 0.3, w.r[1] - 0.3, w.r[2] - w.r[0] + 0.6, w.r[3] - w.r[1] + 0.6)); c.fill();
-      walls.forEach(w => { if (!w.win) return; const hz = w.skip.E || w.skip.W; c.fillStyle = '#9fc6dd'; if (hz) c.fillRect(w.x * T + 3, w.y * T + 13, T - 6, 6); else c.fillRect(w.x * T + 13, w.y * T + 3, 6, T - 6); });
+      const chuva = chovendo(); const tt = performance.now() / 1000;
+      walls.forEach(w => { if (!w.win) return; const hz = w.skip.E || w.skip.W; c.fillStyle = chuva ? '#6f8394' : '#9fc6dd'; if (hz) c.fillRect(w.x * T + 3, w.y * T + 13, T - 6, 6); else c.fillRect(w.x * T + 13, w.y * T + 3, 6, T - 6);
+        if (chuva) { c.fillStyle = 'rgba(220,235,255,.55)'; for (let i = 0; i < 4; i++) { const k = ((tt * (0.9 + i * 0.23) + i * 0.37 + w.x * 0.13) % 1); if (hz) c.fillRect(w.x * T + 5 + i * 6, w.y * T + 13 + k * 5, 0.8, 1.6); else c.fillRect(w.x * T + 14 + (i % 2) * 2.5, w.y * T + 4 + k * (T - 9), 0.8, 2); } } });
       c.strokeStyle = WALL_EDGE; c.lineWidth = 1.2; c.beginPath(); wallEdges.forEach(e => { c.moveTo(e[0], e[1]); c.lineTo(e[2], e[3]); }); c.stroke();
     });
   };

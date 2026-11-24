@@ -11,7 +11,7 @@
       st.tab = st.tab || 'carreira';
       const tabs = [['carreira', 'Carreira'], ['seguidores', 'Seguidores'], ['reputacao', 'Reputação'], ['ranking', 'Ranking'], ['objetivos', 'Objetivos'], ['historico', 'Acontecimentos']];
       el.innerHTML = `<div class="app"><div class="app-head"><h2>${ic('stats', 16)} Estatísticas</h2><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab]()}</div></div>`;
-      const cv = el.querySelector('#st-f'); if (cv) { const d = SL.G.stats.days.slice(-60); UI.chart(cv, [{ data: d.map(x => x.f.p), color: '#8b5cf6' }, { data: d.map(x => x.f.v), color: '#ff5a36', fill: false }, { data: d.map(x => x.f.c), color: '#19d3c5', fill: false }, { data: d.map(x => x.f.n), color: '#3b82f6', fill: false }], { labels: d.map(x => SL.Clock.fmtDay(x.d).slice(5)) }); }
+      const cv = el.querySelector('#st-f'); if (cv) { const d = SL.G.stats.days.slice(-60); UI.chart(cv, [{ data: d.map(x => x.f.p), color: '#8b5cf6' }, { data: d.map(x => x.f.v), color: '#ff5a36', fill: false }, { data: d.map(x => x.f.c), color: '#19d3c5', fill: false }, { data: d.map(x => x.f.n), color: '#3b82f6', fill: false }], { labels: d.map(() => '') }); }
       const cv2 = el.querySelector('#st-inc'); if (cv2) { const ks = Object.keys(SL.G.month).sort().slice(-8); UI.chart(cv2, [{ data: ks.map(k => SL.Econ.taxableLastMonth(k) + (SL.G.month[k].in.trabalho || 0)), color: '#35d39a' }], { labels: ks.map(k => k.slice(5) + '/' + k.slice(2, 4)) }); }
     },
     carreira() {

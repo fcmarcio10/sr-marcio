@@ -103,7 +103,7 @@
 
   // Quem das pessoas conhecidas vai aparecer nesta live, e quando
   V.planAttendance = (live) => {
-    const G0 = G(); const day = SL.Clock.day(); const hour = SL.Clock.hour();
+    const G0 = G(); const day = SL.Clock.day(); const hour = SL.Clock.HORA;
     const game = D.gameById(live.game);
     const trust = 0.5 + G0.rep.confianca / 100;
     const out = [];

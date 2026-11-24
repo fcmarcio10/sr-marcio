@@ -54,16 +54,25 @@
   const filaSc = []; let tocandoSc = false;
   const proximoSc = () => {
     if (tocandoSc || !filaSc.length) return;
-    const id = filaSc.shift(); tocandoSc = true;
-    A.arquivo('sc_som', 0.85);
+    const it = filaSc.shift(); tocandoSc = true;
+    if (it.som) A.arquivo('sc_som', 0.85);
     setTimeout(() => {
-      const a = A.arquivo(id, 1);
-      const fim = () => { if (!tocandoSc) return; tocandoSc = false; setTimeout(proximoSc, 500); };
+      const a = A.arquivo(it.id, it.vol || 1);
+      const fim = () => { if (!tocandoSc) return; tocandoSc = false; setTimeout(proximoSc, 400); };
       if (!a) return fim();
       a.onended = fim; a.onerror = fim; setTimeout(fim, 9000);
-    }, 1000);
+    }, it.som ? 1000 : 0);
   };
-  A.superchat = id => { if (filaSc.length < 3) filaSc.push(id); proximoSc(); };
+  A.superchat = id => { if (filaSc.filter(x => x.som).length < 3) filaSc.push({ id, som: true }); proximoSc(); };
+  // vozes da live sem o som do superchat: Bigode (no máximo uma a cada 25 s) e o público gritando
+  let ultBigode = -1e9;
+  A.voz = id => {
+    const agora = performance.now();
+    if (/^bg_/.test(id)) { if (agora - ultBigode < 25000 || filaSc.length >= 2) return; ultBigode = agora; }
+    else if (filaSc.length >= 3) return;
+    if (/^pb_/.test(id)) filaSc.unshift({ id, vol: 0.9 }); else filaSc.push({ id, vol: 0.9 });
+    proximoSc();
+  };
   A.paraSuperchats = () => { filaSc.length = 0; };
 
   const SFX = {
@@ -95,8 +104,41 @@
     const f = SFX[name]; if (f) try { f(); } catch (e) { /* ignora */ }
   };
 
-  // Trilha ambiente lo-fi simples (acordes suaves), opcional
+  // ---------- sons de fundo (sugestão 8): chuva na janela e teclado ----------
+  let chuvaG = null, chuvaSrc = null, tecladoT = 0, ambOn = { chuva: false, teclado: false, live: false };
+  const ruido = seg => { const b = ctx.createBuffer(1, Math.floor(ctx.sampleRate * seg), ctx.sampleRate); const d = b.getChannelData(0); let last = 0; for (let i = 0; i < d.length; i++) { last = last * 0.86 + (Math.random() * 2 - 1) * 0.14; d[i] = last * 3; } return b; };
+  const ligaChuva = () => {
+    if (chuvaG) return;
+    chuvaG = ctx.createGain(); chuvaG.gain.value = 0; chuvaG.connect(master);
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1500; f.connect(chuvaG);
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 220; hp.connect(f);
+    chuvaSrc = ctx.createBufferSource(); chuvaSrc.buffer = ruido(3); chuvaSrc.loop = true; chuvaSrc.connect(hp); chuvaSrc.start();
+  };
+  // pingos na janela de vez em quando
+  const pingo = () => { if (!ctx) return; tone(1800 + Math.random() * 1600, 0.04, 'sine', 0.012 + Math.random() * 0.01, 0, -900); };
+  // uma tecla: clique curto com um pouco de corpo
+  const tecla = (when, forte) => { noise(0.018, forte ? 0.05 : 0.032, when, 2400); tone(150 + Math.random() * 60, 0.025, 'triangle', forte ? 0.02 : 0.012, when); };
+  A.tecla = () => { if (!ctx || (SL.settings && SL.settings.volume === 0)) return; if (ctx.state === 'suspended') ctx.resume(); tecla(0, Math.random() < 0.12); };
+  // chamado pelo laço do jogo umas 4 vezes por segundo
+  A.ambiente = st => {
+    if (!ctx) return;
+    ambOn = st;
+    if (st.chuva) ligaChuva();
+    if (chuvaG) { const alvo = st.chuva ? (st.fora ? 0.05 : 0.11) : 0; chuvaG.gain.setTargetAtTime(alvo, ctx.currentTime, 1.2); if (st.chuva && Math.random() < 0.35) pingo(); }
+    // trabalhando no PC (editar, freela, estudar): rajadas de teclas de vez em quando
+    const agora = performance.now();
+    if (st.teclado && agora > tecladoT) {
+      const n = 3 + Math.floor(Math.random() * 7); let t = 0;
+      for (let i = 0; i < n; i++) { t += 0.07 + Math.random() * 0.12; tecla(t, i === n - 1 && Math.random() < 0.4); }
+      tecladoT = agora + 900 + Math.random() * 2600;
+    }
+    // música mais baixa durante a live (para ouvir o superchat e o Bigode)
+    if (musicGain) { const s = SL.settings || {}; const base = (s.music == null ? 0.25 : s.music) * 0.35; musicGain.gain.setTargetAtTime(base * (st.live ? 0.45 : 1), ctx.currentTime, 0.8); }
+  };
+
+  // Trilha ambiente lo-fi calma (acordes suaves, baixo e notas soltas), ligada por padrão
   const CHORDS = [[220, 277, 330, 415], [196, 247, 294, 370], [175, 220, 262, 330], [196, 247, 294, 349]];
+  const MELO = [440, 494, 554, 659, 740, 880];
   let chordIdx = 0;
   A.music = on => {
     if (!ctx) return;
@@ -114,6 +156,11 @@
         g.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.8);
         o.connect(fl); fl.connect(g); g.connect(musicGain); o.start(t0 + i * 0.05); o.stop(t0 + 4);
       });
+      // baixo macio
+      { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = ch[0] / 4; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.09, t0 + 0.08); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.8); o.connect(g); g.connect(musicGain); o.start(t0); o.stop(t0 + 2); }
+      // duas ou três notas soltas por cima, bem baixinho
+      const n = 1 + Math.floor(Math.random() * 3);
+      for (let k = 0; k < n; k++) { const when = 0.6 + k * (0.8 + Math.random() * 0.6); const f0 = MELO[Math.floor(Math.random() * MELO.length)]; const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = f0; g.gain.setValueAtTime(0.0001, t0 + when); g.gain.exponentialRampToValueAtTime(0.035, t0 + when + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t0 + when + 1.2); o.connect(g); g.connect(musicGain); o.start(t0 + when); o.stop(t0 + when + 1.3); }
     };
     playChord(); musicTimer = setInterval(playChord, 4000);
   };

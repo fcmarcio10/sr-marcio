@@ -61,14 +61,15 @@
   };
   LV.start = opts => {
     const err = LV.check(opts); if (err) return err;
+    if (SL.Clock.sp() === 0) SL.Clock.setSpeed(1);   // a live sempre começa andando
     const G0 = G(), P = G0.ch.pulso, g = D.gameById(opts.game);
     SL.Viewers.ensureNpcViewers();
-    const day = SL.Clock.day(), h = SL.Clock.hourF();
-    // live agendada / prometida
+    const day = SL.Clock.day();
+    // live prometida ("amanhã tem live"): sem relógio, vale a próxima live que você fizer
     let promised = false;
-    G0.ch.schedule.forEach(s => { if (!s.done && s.day === day && Math.abs(s.hour - h) <= 1.6) { s.done = true; promised = true; } });
+    G0.ch.schedule.forEach(s => { if (!s.done && s.day <= day + 1) { s.done = true; promised = true; } });
     G0.promises.forEach(p => {
-      if (p.status === 'pendente' && p.kind === 'live' && p.day === day && Math.abs(p.hour - h) <= 2) { LV.keepPromise(p); promised = true; }
+      if (p.status === 'pendente' && p.kind === 'live') { LV.keepPromise(p); promised = true; }
       if (p.status === 'pendente' && p.kind === 'jogo' && p.game === g.id) LV.keepPromise(p);
     });
     const ts = SL.Algo.titleScore(opts.title, { game: opts.game, kind: 'live' });
@@ -92,7 +93,7 @@
     const anonF = Math.max(0, P.f - known);
     const days = G0.ch.contentDays.filter(d => d >= day - 14).length;
     const consistency = Math.min(1, days / 7);
-    let show = 0.04 * (0.5 + 0.5 * SL.Algo.todMul(Math.floor(h))) * (L.announced ? 1.35 : 1) * (promised ? 1.25 : 1) * (0.7 + consistency * 0.5) * (0.6 + G0.ch.lastLiveQ / 125) * (0.6 + G0.rep.confianca / 125);
+    let show = 0.04 * (0.5 + 0.5 * SL.Algo.todMul(SL.Clock.HORA)) * (L.announced ? 1.35 : 1) * (promised ? 1.25 : 1) * (0.7 + consistency * 0.5) * (0.6 + G0.ch.lastLiveQ / 125) * (0.6 + G0.rep.confianca / 125);
     if (G0.ch.catHist[g.id] === undefined && G0.ch.pulso.livesN > 3) show *= 0.85;
     const buzz = SL.Videos ? SL.Videos.buzz() : { k: 0 }; show *= 1 + buzz.k; L.buzz = buzz.k > 0.04 ? buzz.plat : null;
     const total = anonF * show + (buzz.k > 0.04 ? Math.round(buzz.k * 8) : 0);
@@ -154,7 +155,9 @@
   };
   const donate = (v, amount, text, uName) => {
     const L = LV.cur, P = G().ch.pulso;
-    amount = Math.round(amount * 100) / 100;
+    // teto pelo tamanho do canal (sugestão 7): canal pequeno não recebe R$ 900 de uma vez
+    const teto = LV.tetoDoacao();
+    amount = Math.round(Math.min(amount, teto) * 100) / 100;
     P.bal += amount * 0.95; L.stats.don += amount; L.stats.donN++;
     if (v) { v.m.don += amount; v.m.ld = SL.Clock.day(); const st = L.present.get(v.id); if (st) st.thanked = false; }
     const u = v ? v.u : uName;
@@ -171,6 +174,7 @@
   };
 
   LV.donate = donate;   // para testes e eventos
+  LV.tetoDoacao = () => { const L = LV.cur, P = G().ch.pulso; return Math.max(25, Math.round(20 + P.f * 0.5 + (L ? L.viewers : 0) * 4)); };
   // falas de superchat com voz (audio/sc_1..sc_10.mp3, cada uma com uma voz diferente)
   LV.SUPERCHATS = [
     { id: 'sc_1', t: 'Toma esse superchat pra comprar um microfone novo, porque esse aí tá chiando demais!' },
@@ -183,14 +187,95 @@
     { id: 'sc_8', t: 'Ai, eu amo essa live! Toma esse superchat e lê meu nome bem bonito, tá?' },
     { id: 'sc_9', t: 'Passando só pra deixar esse superchat e voltar a fingir que tô estudando.' },
     { id: 'sc_10', t: 'Superchat pra ver se você acerta pelo menos uma hoje!' },
+    // nov/2026: mais 20 vozes (ElevenLabs, eleven_v4)
+    { id: 'sc_11', t: 'Acabei de receber o salário e já tô gastando aqui. Prioridades, né?' },
+    { id: 'sc_12', t: 'Esse superchat é pra você comprar uma cadeira nova, porque essa aí tá rangendo!' },
+    { id: 'sc_13', t: 'Netinho, eu não entendo nada desse jogo, mas tô muito orgulhosa de você!' },
+    { id: 'sc_14', t: 'Mandei esse superchat só pra você ler meu nome. Pronto, agora pode continuar.' },
+    { id: 'sc_15', t: 'Se você ganhar essa, eu mando outro. Se perder, eu mando outro também!' },
+    { id: 'sc_16', t: 'Boa noite, chat! Vim só deixar esse presentinho e já vou fazer a janta.' },
+    { id: 'sc_17', t: 'Faz uma dancinha aí que eu mando mais um, prometo!' },
+    { id: 'sc_18', t: 'Tô vendo aqui do interior, o sinal tá fraco, mas tô aqui com você, viu!' },
+    { id: 'sc_19', t: 'Que live boa! Toma esse superchat e manda um abraço pra galera do sul!' },
+    { id: 'sc_20', t: 'Jovem, eu assisto todas as suas lives. Continue assim. Tome aqui.' },
+    { id: 'sc_21', t: 'Ai, meu Deus, apertei o botão sem querer! Ah, deixa assim, é seu!' },
+    { id: 'sc_22', t: 'Isso aqui é melhor que novela! Toma, e não me decepciona.' },
+    { id: 'sc_23', t: 'Ganhei meu primeiro dinheiro vendendo brigadeiro e vim gastar aqui!' },
+    { id: 'sc_24', t: 'Superchat pra você beber uma água, que você tá falando sem parar!' },
+    { id: 'sc_25', t: 'Eu devia tá dormindo, mas essa live tá boa demais. Toma aí!' },
+    { id: 'sc_26', t: 'Esse lance foi inacreditável! Toma esse superchat, merecido!' },
+    { id: 'sc_27', t: 'Passei aqui pra dar um salve e deixar esse trocadinho. Tamo junto!' },
+    { id: 'sc_28', t: 'Primeira vez aqui e já virei fã! Toma esse superchat de boas-vindas pra mim mesma.' },
+    { id: 'sc_29', t: 'Meu gato pisou no teclado e mandou esse superchat. Mas ele aprova a live.' },
+    { id: 'sc_30', t: 'Tô no ônibus assistindo a live. Se eu perder o ponto, a culpa é sua!' },
   ];
+  // vozes do Bigode (bg_1 boas-vindas, bg_2 follow, bg_3 superchat, bg_4 silenciou troll) e do público (pb_1..3 jogada, pb_4 deu ruim)
+  const voz = id => SL.bus.emit('live:voz', { id });
+
+  // ---------- momentos de decisão (sugestão 1): escolha rápida com 2 botões e tempo ----------
+  // "a" arrisca (pode virar o melhor momento da live ou um fracasso engraçado: os dois viram corte); "b" joga seguro.
+  LV.MOMENTOS = [
+    { t: 'Um inimigo forte apareceu na sua frente!', a: 'Partir pra cima', b: 'Recuar', fa: 'Vou pra cima!', fb: 'Calma, vou recuar um pouco.' },
+    { t: 'Última vida e o chefe está quase morto!', a: 'Golpe final', b: 'Curar antes', fa: 'É agora ou nunca!', fb: 'Primeiro me curo, depois eu volto.' },
+    { t: 'O chat está pedindo uma jogada maluca!', a: 'Fazer a jogada', b: 'Jogar normal', fa: 'Vocês pediram, vocês vão ter!', fb: 'Hoje não, chat, hoje não.' },
+    { t: 'Tem um atalho perigoso no mapa.', a: 'Pegar o atalho', b: 'Caminho seguro', fa: 'Segura que vou pelo atalho!', fb: 'Vou pelo caminho de sempre.' },
+    { t: 'Dá para tentar um recorde agora!', a: 'Tentar o recorde', b: 'Deixar pra depois', fa: 'Bora tentar esse recorde!', fb: 'Recorde fica pra outro dia.' },
+    { t: 'Um contra três: dá pra virar?', a: 'Encarar os três', b: 'Fugir', fa: 'Vem todo mundo!', fb: 'Três é demais, vou sair daqui.' },
+    { t: 'Item raro no lugar mais perigoso do mapa.', a: 'Ir buscar', b: 'Deixar quieto', fa: 'Esse item vai ser meu!', fb: 'Nem vale o risco.' },
+    { t: 'Último lance da partida!', a: 'Tentar o impossível', b: 'Garantir o empate', fa: 'Olha isso, chat!', fb: 'Empate tá bom demais.' },
+  ];
+  LV.MOMENTOS_PAPO = [
+    { t: 'O chat pediu para você cantar!', a: 'Cantar', b: 'Desconversar', fa: 'Tá bom, mas não riam!', fb: 'Vocês não merecem minha voz hoje.' },
+    { t: 'Desafio do chat: ler os comentários com sotaque.', a: 'Topar', b: 'Recusar', fa: 'Bora, sotaque ativado!', fb: 'Isso não vai acontecer.' },
+    { t: 'Contar a história mais vergonhosa da sua vida?', a: 'Contar', b: 'Melhor não', fa: 'Senta que lá vem história...', fb: 'Essa eu levo pro túmulo.' },
+  ];
+  LV.MOMENTO_SEG = 9;   // segundos para escolher (no tempo real); sem escolha, joga seguro
+  const momentoNovo = () => {
+    const L = LV.cur; const g = D.gameById(L.game);
+    const pool = g && (g.nongame || g.id === 'conversa') ? LV.MOMENTOS_PAPO : LV.MOMENTOS;
+    const usados = L.momUsados || (L.momUsados = []); const livres = pool.filter((x, i) => !usados.includes(i));
+    const m = U.pick(livres.length ? livres : pool); usados.push(pool.indexOf(m));
+    L.momento = { id: U.uid('mo'), t: m.t, a: m.a, b: m.b, fa: m.fa, fb: m.fb, ini: L.min, real: typeof performance !== 'undefined' ? performance.now() : 0 };
+    if (SL.audio) SL.audio.play('notif');
+    SL.bus.emit('live:momento', L.momento);
+  };
+  LV.decidir = escolha => {
+    const L = LV.cur; if (!L || !L.momento) return null;
+    const mo = L.momento; L.momento = null; touch();
+    const ag = { game: L.game, sim: L.sim.sim, at: G().time.t };
+    let res;
+    if (escolha === 'a') {
+      L.fala = { t: mo.fa, at: performance.now() };
+      const p = U.clamp(0.32 + G().player.skills.jogo / 220 + SL.Life.perf() * 0.15 + L.hype / 500, 0.25, 0.8);
+      if (U.chance(p)) {
+        res = { ok: true, txt: 'Deu certo! O chat foi à loucura.' };
+        L.hype = U.clamp(L.hype + 18, 0, 100); reactAll('momento_ok', 0.5);
+        const m = Object.assign({ type: 'epic', txt: 'Arriscou e deu certo: ' + mo.a.toLowerCase(), int: 0.9, funny: 0.15, good: true, big: true, mt: 'você arriscou ao vivo e deu muito certo', clip: 0.9 }, ag);
+        L.moments.push(m); L.best.push(m); voz(U.pick(['pb_1', 'pb_2', 'pb_3']));
+        SL.Rep.mod({ popularidade: 0.3 });
+      } else {
+        res = { ok: false, txt: 'Deu tudo errado... mas o chat amou rir.' };
+        L.hype = U.clamp(L.hype + 7, 0, 100); reactAll('momento_fail', 0.5);
+        const m = Object.assign({ type: 'funny', txt: 'Arriscou e deu tudo errado', int: 0.65, funny: 0.95, good: false, mt: 'você arriscou ao vivo e passou vergonha', clip: 0.78 }, ag);
+        L.moments.push(m); L.best.push(m); voz('pb_4');
+      }
+    } else {
+      L.fala = { t: mo.fb, at: performance.now() };
+      res = { ok: null, txt: 'Jogou seguro.' };
+      L.hype = U.clamp(L.hype + 2, 0, 100); reactAll('momento_safe', 0.2);
+    }
+    L.best.sort((x, y) => y.clip - x.clip); L.best.length = Math.min(L.best.length, 10);
+    L.momRes = Object.assign({ at: typeof performance !== 'undefined' ? performance.now() : 0, escolha }, res);
+    SL.bus.emit('live:momento', null);
+    return res;
+  };
   // moderador do canal: dá boas-vindas, agradece seguidores, inscrições e superchats, responde perguntas simples
   // e silencia quem passa do ponto. Espera 1 minuto para você poder fazer isso antes, se quiser.
   LV.MOD = { u: 'Bigode', c: '#22c55e' };
   const modSay = text => sys('mod', text, { u: LV.MOD.u, c: LV.MOD.c });
   const lista = a => a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' e ' + a[a.length - 1];
   const textoResposta = (q, opt) => {
-    const L = LV.cur; const g = D.gameById(L.game); const h = SL.Clock.hour();
+    const L = LV.cur; const g = D.gameById(L.game); const h = SL.Clock.HORA;
     const setupDesc = [SL.Equip.item('computador'), SL.Equip.item('microfone'), SL.Equip.item('webcam')].filter(Boolean).map(i => i.name).join(', ') || 'o básico do básico';
     return opt.text({ p: SL.GameSim.answer(L.sim), g: g.name, og: q.qd && q.qd.game ? D.gameById(q.qd.game).name : '', cr: q.qd && q.qd.creator ? D.creatorById(q.qd.creator).name : '', setup: setupDesc, hora: String(h).padStart(2, '0') + 'h' });
   };
@@ -202,6 +287,7 @@
     const dons = L.donations.filter(d => !d.thanked && L.min - d.at >= 1).slice(0, 3);
     if (dons.length) {
       modSay(dons.length === 1 ? 'Valeu demais pelo superchat de ' + U.money(dons[0].amount) + ', @' + dons[0].u + '! :coracao:' : 'Valeu pelos superchats, ' + lista(dons.map(d => '@' + d.u)) + '! :coracao:');
+      voz('bg_3');
       dons.forEach(d => { d.thanked = true; const v = d.vid && SL.Viewers.byId(d.vid); if (v) { v.loy = U.clamp(v.loy + 3, 0, 100); const st = sat(v, 0.2); if (st) st.thanked = true; } });
     }
     // o resto: no máximo uma mensagem a cada 2 minutos, juntando quem chegou e quem seguiu
@@ -226,7 +312,7 @@
     }
     if (seg.length) { partes.push('Valeu pelo follow, ' + lista(seg.map(v => '@' + v.u)) + '!'); seg.forEach(v => { v.loy = U.clamp(v.loy + 2, 0, 100); sat(v, 0.05); }); }
     if (insc.length) { partes.push('Obrigado pela inscrição, ' + lista(insc.map(v => '@' + v.u)) + '!'); insc.forEach(v => { v.loy = U.clamp(v.loy + 3, 0, 100); sat(v, 0.08); }); }
-    if (partes.length) { modSay(partes.join(' ') + ' :coracao:'); L.modUlt = L.min; }
+    if (partes.length) { modSay(partes.join(' ') + ' :coracao:'); L.modUlt = L.min; voz(seg.length ? 'bg_2' : 'bg_1'); }
   };
   // modos do chat: todos, só seguidores ou só emojis
   LV.EMOTES = [':hype:', ':fogo:', ':palmas:', ':gg:', ':riso:', ':coracao:', ':nossa:', ':susto:'];
@@ -322,7 +408,7 @@
       const s = L.anon * 0.00035 * (L.hype / 50) * (L.contentQ / 60);
       const ns = Math.floor(s) + (U.chance(s % 1) ? 1 : 0);
       if (ns > 0) { G0.ch.subCohorts.push({ n: ns, until: SL.Clock.day() + 30 }); P.bal += ns * 3.95; P.subs += ns; L.stats.subs += ns; sys('sub', ns === 1 ? '@' + SL.Viewers.genIdentity().u + ' se inscreveu!' : '+' + ns + ' novas inscrições'); if (SL.audio) SL.audio.play('sub'); }
-      const dr = L.anon * 0.0002 * (L.hype / 60);
+      const dr = L.anon * 0.0003 * (L.hype / 60);
       if (U.chance(Math.min(0.9, dr))) { const idt = SL.Viewers.genIdentity(); donate(null, U.clamp(U.lognorm(Math.log(10), 0.8), 2, 300), SL.Chat.fill(U.pick(D.chat.donation), null, { u: 'o chat' }) || 'Pela live!', idt.u); }
     }
 
@@ -330,7 +416,7 @@
     const ctx = LV.ctx();
     const catFitOf = v => v.favs.includes(g.cat) ? 1 : 0.55;
     let msgBudget = LV.MSG_CAP_MIN;
-    const hour = SL.Clock.hour();
+    const hour = SL.Clock.HORA;
     const present = [...L.present.values()];
     present.forEach(st => {
       const v = SL.Viewers.byId(st.id); if (!v) { L.present.delete(st.id); return; }
@@ -355,7 +441,7 @@
       if (v.npc && !v.fol && st.mins >= 2) follow(v);
       if (P.afil && v.fol && !v.sub && v.loy > 40 && v.w >= 2 && U.chance(0.0016 * v.w * v.gen * st.sat * (1 + L.hype / 100))) subscribe(v);
       const bigNow = moments.some(m => m.big);
-      if (v.w >= 1 && U.chance(v.gen * v.w * 0.00042 * (st.sat + 0.2) * (bigNow ? 2.5 : 1) * (v.npc ? 0.3 : 1))) {
+      if (v.w >= 1 && U.chance(v.gen * v.w * 0.00063 * (st.sat + 0.2) * (bigNow ? 2.5 : 1) * (v.npc ? 0.3 : 1))) {
         const amt = U.clamp([0, 4, 8, 18, 45, 120][v.w] * U.lognorm(0, 0.5), 2, 2000);
         const t = SL.Chat.fill(U.pick(D.chat.donation), v, { u: U.pick(['a família', 'o chat', 'minha mãe', 'todo mundo']) });
         donate(v, amt, t || 'Pela live!');
@@ -418,7 +504,7 @@
     const hasMod = true;   // o Bigode modera sempre
     if (L.trolls.size && hasMod && U.chance(0.5)) {
       const tid = [...L.trolls][0]; const tv = SL.Viewers.byId(tid);
-      if (tv && L.present.has(tid)) { sys('mod', SL.Chat.fill(U.pick(D.chat.mod), null, {}), { u: LV.MOD.u, c: LV.MOD.c }); L.present.delete(tid); sys('alert', '@' + tv.u + ' foi silenciado(a) pela moderação'); }
+      if (tv && L.present.has(tid)) { sys('mod', SL.Chat.fill(U.pick(D.chat.mod), null, {}), { u: LV.MOD.u, c: LV.MOD.c }); L.present.delete(tid); sys('alert', '@' + tv.u + ' foi silenciado(a) pela moderação'); voz('bg_4'); }
       L.trolls.delete(tid);
     }
     if (L.trolls.size && !hasMod && L.toxic > 3 && U.chance(0.3)) { L.hype = U.clamp(L.hype - 2, 0, 100); }
@@ -426,6 +512,10 @@
     eventsMinute(g);
     pollMinute();
     modMinute();
+    // momento de decisão (sugestão 1)
+    if (L.momEm == null) L.momEm = U.ri(5, 9);
+    if (!L.momento && !L.away && !paused && !L.ev.ad && L.min >= L.momEm) { L.momEm = L.min + U.ri(12, 20); momentoNovo(); }
+    else if (L.momento && (L.away || L.min - L.momento.ini >= 3) && !(SL.LiveUI && SL.LiveUI.visible && SL.LiveUI.visible())) LV.decidir('b');
     // você fala sozinho com o chat de tempos em tempos (só escreve se quiser)
     if (!L.away && !paused && !L.ev.ad && L.silence >= (L.falaEm || 4)) { L.falaEm = U.ri(4, 8); if (U.chance(0.3)) LV.joke(true); else LV.talk(U.pick(['dia', 'historia', 'perguntar', 'planos']), true); }
     // problemas técnicos e visita famosa se resolvem sem botão
@@ -576,13 +666,13 @@
     if (SL.Calendar) SL.Calendar.removeRef(p.id);
   };
   SL.bus.on('tick:hour', () => {
-    const G0 = G(); if (!G0) return; const day = SL.Clock.day(), h = SL.Clock.hour();
+    const G0 = G(); if (!G0) return; const day = SL.Clock.day();
     G0.promises.forEach(p => {
       if (p.status !== 'pendente') return;
-      if (p.kind === 'live' && (day > p.day || (day === p.day && h > p.hour + 2))) LV.breakPromise(p);
+      if (p.kind === 'live' && day > p.day + 2) LV.breakPromise(p);
       if ((p.kind === 'jogo' || p.kind === 'inscritos') && day > p.until) LV.breakPromise(p);
     });
-    G0.ch.schedule.forEach(s => { if (!s.done && !s.missed && (day > s.day || (day === s.day && h > s.hour + 2))) { s.missed = true; SL.Rep.mod({ confianca: -1.5 }); SL.notify({ cat: 'canal', icon: 'alert', title: 'Live agendada não aconteceu', text: 'Seus seguidores esperaram e você não entrou ao vivo.' }); } });
+    G0.ch.schedule.forEach(s => { if (!s.done && !s.missed && day > s.day + 2) { s.missed = true; SL.Rep.mod({ confianca: -1.5 }); SL.notify({ cat: 'canal', icon: 'alert', title: 'Live agendada não aconteceu', text: 'Seus seguidores esperaram e você não entrou ao vivo.' }); } });
     G0.promises = G0.promises.filter(p => p.status === 'pendente' || G0.time.t - p.made < 14 * 1440);
   });
 
@@ -598,7 +688,7 @@
     const v = SL.Viewers.byId(q.vid); const st = v && (L.present.get(v.id) || L.att.get(v.id));
     const g = D.gameById(L.game);
     const setupDesc = [SL.Equip.item('computador'), SL.Equip.item('microfone'), SL.Equip.item('webcam')].filter(Boolean).map(i => i.name).join(', ') || 'o básico do básico';
-    const h = SL.Clock.hour();
+    const h = SL.Clock.HORA;
     const text = opt.text({ p: SL.GameSim.answer(L.sim), g: g.name, og: q.qd && q.qd.game ? D.gameById(q.qd.game).name : '', cr: q.qd && q.qd.creator ? D.creatorById(q.qd.creator).name : '', setup: setupDesc, hora: String(h).padStart(2, '0') + 'h' });
     say((v ? '@' + v.u + ' ' : '') + text);
     const fx = opt.fx || {};
@@ -751,7 +841,7 @@
     { s: 120, label: '120 segundos', sai: 0.08, hype: 10 },
   ];
   LV.AD_ESPERA = 10;                               // minutos do jogo entre um intervalo e outro
-  LV.adValor = (s, viewers) => (viewers || 0) * 0.0015 * s * (G().ch.pulso.afil ? 1.25 : 1);   // R$ por intervalo
+  LV.adValor = (s, viewers) => (viewers || 0) * 0.003 * s * (G().ch.pulso.afil ? 1.25 : 1);   // R$ por intervalo (nov/2026: o dobro)
   LV.adEspera = () => { const L = LV.cur; if (!L || L.lastAd == null) return 0; return Math.max(0, LV.AD_ESPERA - (L.min - L.lastAd)); };
   LV.ad = seg => {
     const L = LV.cur; if (!L) return 'Os anúncios só passam durante a live.';
@@ -826,7 +916,9 @@
       witnesses.forEach(id => { const v = SL.Viewers.byId(id); if (v) { v.m.saw.push(cm.id); if (v.m.saw.length > 6) v.m.saw.shift(); } });
     });
     // material bruto para cortes
-    if (SL.Videos) SL.Videos.addRaw({ kind: 'live', game: L.game, minutes: dur, quality: Math.round(avgQ * 0.65 + L.tech.overall * 0.35), moments: L.best.slice(0, 8).map(m => ({ type: m.type, txt: m.txt, int: m.int, funny: m.funny, mt: m.mt, clip: m.clip, big: !!m.big })), live: L.id, title: L.title });
+    const rawLive = SL.Videos ? SL.Videos.addRaw({ kind: 'live', game: L.game, minutes: dur, quality: Math.round(avgQ * 0.65 + L.tech.overall * 0.35), moments: L.best.slice(0, 8).map(m => ({ type: m.type, txt: m.txt, int: m.int, funny: m.funny, mt: m.mt, clip: m.clip, big: !!m.big })), live: L.id, title: L.title }) : null;
+    // cortes automáticos no TikTok e no YouTube assim que a live acaba (pedido do dono)
+    const cortes = rawLive && dur >= 10 ? SL.Videos.autoCortes(rawLive.id) : [];
     SL.Life.skillUp('carisma', dur / 60 * 0.5); SL.Life.skillUp('jogo', dur / 60 * 0.35);
     // reputação
     if (L.toxic > 6 && L.trolls.size) SL.Rep.mod({ imagem: -1 });
@@ -834,8 +926,10 @@
     // patrocínio: menções contam ao terminar
     const sum = { id: L.id, t0: L.t0, dur, game: L.game, title: L.title, peak: L.peak, avg: Math.round(avg * 10) / 10, fol: L.stats.fol, subs: L.stats.subs, don: Math.round(L.stats.don * 100) / 100, donN: L.stats.donN, msgs: L.stats.msgs,
       q: Math.round(avgQ), adRev: Math.round(L.stats.adRev * 100) / 100, newV: L.stats.newV, uniq: L.att.size, raid: L.stats.raid,
-      graph: sample(L.graph, 60), hype: sample(L.hypeG, 60), best: L.best.slice(0, 5).map(m => ({ txt: m.txt, clip: m.clip, type: m.type })), reason: reason || 'normal', record, promises: L.promisesMade.length };
+      graph: sample(L.graph, 60), hype: sample(L.hypeG, 60), best: L.best.slice(0, 5).map(m => ({ txt: m.txt, clip: m.clip, type: m.type })), reason: reason || 'normal', record, promises: L.promisesMade.length, cortes };
     G0.lives.push(sum); U.cap_list(G0.lives, 120);
+    // repasse na hora (antes era toda segunda-feira): doações, inscrições e anúncios caem na conta
+    if (P.bal >= 0.01) { const v = Math.round(P.bal * 100) / 100; P.bal = 0; SL.Econ.add(v, 'doacoes', 'Repasse da Twitch (live)'); sum.pago = v; }
     // afiliado
     if (!P.afil && P.f >= 50 && P.livesN >= 7 && avg >= 3) { P.afil = true; SL.notify({ cat: 'carreira', icon: 'star', title: 'Você virou afiliado(a) da Twitch!', text: 'Agora seus espectadores podem se inscrever e você pode rodar anúncios.' }); if (SL.audio) SL.audio.play('levelup'); }
     if (P.afil && !P.parc && P.f >= 15000 && P.hours >= 150 && G0.ch.avgViewers.slice(-10).reduce((a, b) => a + b, 0) / Math.min(10, G0.ch.avgViewers.length) >= 75) { P.parc = true; SL.notify({ cat: 'carreira', icon: 'crown', title: 'Parceria Twitch aprovada!', text: 'Selo de parceiro, 1440p e repasse maior.' }); }

@@ -41,12 +41,7 @@ for (let d = 0; d < DAYS; d++) {
     const sum = SL.Live.end();
     if (sum && (d % 5 === 0 || d === DAYS - 1)) console.log(`dia ${d} ${game} pico ${sum.peak} média ${sum.avg} seg+${sum.fol} msgs ${sum.msgs} don R$${sum.don} q${sum.q} | Pulso ${G.ch.pulso.f} Vision ${G.ch.vision.f} Clipz ${G.ch.clipz.f} Connect ${G.ch.connect.f} | conhecidos ${G.viewers.list.length} | R$ ${Math.round(G.money)}`);
   }
-  // vídeo a cada 3 dias (corte da live) e short todo dia
-  const raw = G.raw[G.raw.length - 1];
-  if (raw && raw.moments.length) {
-    const e = SL.Videos.createEdit({ raw: raw.id, type: d % 3 === 0 ? 'corte' : 'short', moments: raw.moments.map((_, i) => i).slice(0, 4), level: 'padrao' });
-    if (e && e.id) { for (let i = 0; i < e.work; i++) SL.Videos.workMinute(e.id); e.status = 'pronto'; e.title = 'NÃO ACREDITO nesse momento no ' + SL.D.gameById(raw.game).name + '!'; e.thumb.text = 'NÃO ACREDITO'; e.tags = SL.D.gameById(raw.game).tags.slice(0, 3); SL.Videos.publish(e.id); }
-  }
+  // os cortes (TikTok e YouTube) agora saem sozinhos no fim de cada live (Videos.autoCortes)
   if (d % 2 === 0) SL.Social.post({ kind: 'texto', text: 'Live hoje às 20h, bora!', eng: 1.1 });
   stepTo(0);
 }

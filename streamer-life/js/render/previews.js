@@ -170,8 +170,27 @@
   // quarto/escritório atrás da câmera (o "cenário" da live)
   P.room = (ctx, w, h, t, o) => {
     const G0 = SL.G; const deco = G0 ? G0.home.deco : [];
-    const studio = G0 && G0.home.studio;
-    ctx.fillStyle = grad(ctx, 0, 0, 0, h, studio ? ['#1d1838', '#120f22'] : ['#3a3446', '#2a2533']); ctx.fillRect(0, 0, w, h);
+    const studio = G0 && G0.home.studio; const it = G0 ? G0.home.items : {};
+    const PAREDE = { kitnet: ['#3f3a4a', '#2b2734'], apto: ['#3b4252', '#282d38'], casa: ['#4a4038', '#332c26'], cobertura: ['#2f3d45', '#1f2a30'], mansao: ['#3d3a30', '#2a2820'] };
+    const hid = G0 ? G0.home.id : 'kitnet'; const par = PAREDE[hid] || PAREDE[Object.keys(PAREDE)[(hid || '').length % 5]];
+    ctx.fillStyle = grad(ctx, 0, 0, 0, h, studio ? ['#1d1838', '#120f22'] : par); ctx.fillRect(0, 0, w, h);
+    // rodapé e chão
+    ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(0, h * 0.9, w, h * 0.1); ctx.fillStyle = 'rgba(255,255,255,.05)'; ctx.fillRect(0, h * 0.9, w, Math.max(1, h * 0.006));
+    // janela da casa: céu de dia ou chuva escorrendo
+    if (!studio) {
+      const jx = w * 0.5, jy = h * 0.08, jw = w * 0.17, jh = h * 0.28; const chuva = G0 && G0.flags.chuva;
+      ctx.fillStyle = '#d8d4cc'; ctx.fillRect(jx - w * 0.008, jy - h * 0.012, jw + w * 0.016, jh + h * 0.024);
+      ctx.fillStyle = grad(ctx, 0, jy, 0, jy + jh, chuva ? ['#5d6873', '#47525c'] : ['#7fb8f0', '#b8dcff']); ctx.fillRect(jx, jy, jw, jh);
+      if (chuva) { ctx.fillStyle = 'rgba(220,235,255,.5)'; for (let i = 0; i < 9; i++) { const k = ((t * (0.6 + (i % 4) * 0.17) + i * 0.29) % 1); ctx.fillRect(jx + jw * ((i * 0.113) % 1), jy + k * jh * 0.9, Math.max(1, w * 0.002), jh * 0.08); } }
+      else { ctx.fillStyle = 'rgba(255,255,255,.85)'; const nx = jx + ((t * 0.01) % 1) * jw; ctx.beginPath(); ctx.ellipse(nx, jy + jh * 0.35, jw * 0.16, jh * 0.08, 0, 0, 7); ctx.fill(); }
+      ctx.fillStyle = '#d8d4cc'; ctx.fillRect(jx + jw / 2 - w * 0.003, jy, w * 0.006, jh); ctx.fillRect(jx, jy + jh / 2 - h * 0.004, jw, h * 0.008);
+    }
+    // painel acústico
+    if (it.acustica && !studio) { ctx.fillStyle = '#2a2a33'; for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) { ctx.fillRect(w * (0.27 + i * 0.045), h * (0.36 + j * 0.08), w * 0.04, h * 0.07); } }
+    // luminária de chão acesa
+    if (deco.includes('luminaria')) { const lx = w * 0.17; const gl = ctx.createRadialGradient(lx, h * 0.3, 1, lx, h * 0.3, h * 0.3); gl.addColorStop(0, 'rgba(255,220,150,.35)'); gl.addColorStop(1, 'rgba(255,220,150,0)'); ctx.fillStyle = gl; ctx.fillRect(lx - h * 0.3, 0, h * 0.6, h * 0.7); ctx.fillStyle = '#222'; ctx.fillRect(lx - w * 0.003, h * 0.32, w * 0.006, h * 0.58); ctx.fillStyle = '#f2e2c0'; ctx.beginPath(); ctx.moveTo(lx - w * 0.03, h * 0.33); ctx.lineTo(lx + w * 0.03, h * 0.33); ctx.lineTo(lx + w * 0.018, h * 0.25); ctx.lineTo(lx - w * 0.018, h * 0.25); ctx.closePath(); ctx.fill(); }
+    // cama no canto (na casa pequena, o quarto é o escritório)
+    if (it.cama && !studio && (hid === 'kitnet' || !G0.home.owned)) { const cor = it.cama === 'cama_premium' ? '#6b4fa0' : it.cama === 'cama_casal' ? '#2f6f8f' : '#8a6a4a'; ctx.fillStyle = '#5a3c28'; ctx.fillRect(w * 0.8, h * 0.74, w * 0.2, h * 0.17); ctx.fillStyle = '#e8e2d6'; ctx.fillRect(w * 0.81, h * 0.7, w * 0.19, h * 0.08); ctx.fillStyle = cor; ctx.fillRect(w * 0.81, h * 0.75, w * 0.19, h * 0.12); ctx.fillStyle = '#f4f0e8'; ctx.beginPath(); ctx.ellipse(w * 0.88, h * 0.7, w * 0.04, h * 0.03, 0, 0, 7); ctx.fill(); }
     if (deco.includes('led')) { const hue = (t * 20) % 360; ctx.fillStyle = 'hsla(' + hue + ',90%,60%,.28)'; ctx.fillRect(0, h * 0.1, w, h * 0.04); const g = ctx.createLinearGradient(0, h * 0.1, 0, h * 0.5); g.addColorStop(0, 'hsla(' + hue + ',90%,60%,.18)'); g.addColorStop(1, 'transparent'); ctx.fillStyle = g; ctx.fillRect(0, h * 0.1, w, h * 0.4); }
     if (deco.includes('estante')) { ctx.fillStyle = '#5a3a2a'; ctx.fillRect(w * 0.72, h * 0.15, w * 0.22, h * 0.6); ctx.fillStyle = '#3a2418'; for (let i = 0; i < 4; i++) ctx.fillRect(w * 0.72, h * (0.28 + i * 0.13), w * 0.22, h * 0.015); const r = U.mulberry(3); for (let i = 0; i < 10; i++) { ctx.fillStyle = D.shirtColors[i % D.shirtColors.length]; ctx.fillRect(w * (0.74 + r() * 0.17), h * (0.2 + Math.floor(i / 3) * 0.13), w * 0.02, h * 0.07); } }
     if (deco.includes('neon') && G0) { ctx.save(); ctx.shadowColor = '#ff3d81'; ctx.shadowBlur = 18; txt(ctx, G0.player.channel, w * 0.06, h * 0.2, Math.round(h * 0.08), '#ff7ab0', 'left', 800); ctx.restore(); }
@@ -179,6 +198,13 @@
     if (deco.includes('quadro')) { ctx.fillStyle = '#efe6d6'; ctx.fillRect(w * 0.26, h * 0.12, w * 0.14, h * 0.18); ctx.fillStyle = '#3b82f6'; ctx.beginPath(); ctx.arc(w * 0.31, h * 0.2, h * 0.04, 0, 7); ctx.fill(); ctx.fillStyle = '#ff5a36'; ctx.fillRect(w * 0.33, h * 0.18, w * 0.05, h * 0.08); }
     if (deco.includes('planta')) { ctx.fillStyle = '#7a4a2a'; ctx.fillRect(w * 0.04, h * 0.7, w * 0.06, h * 0.1); ctx.fillStyle = '#3f8f3a'; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.ellipse(w * 0.07 + Math.cos(i) * w * 0.02, h * 0.62 - i * h * 0.02, w * 0.02, h * 0.05, i, 0, 7); ctx.fill(); } }
     if (studio) { ctx.fillStyle = 'rgba(255,255,255,.04)'; for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) ctx.fillRect(w * 0.5 + i * w * 0.04, h * 0.1 + j * h * 0.07, w * 0.035, h * 0.06); }
+    // a sua cadeira, atrás de você
+    if (it.cadeira) {
+      const cx = w * 0.5; const cad = it.cadeira;
+      if (cad === 'cadeira_gamer') { ctx.fillStyle = '#16161c'; rr(ctx, cx - w * 0.15, h * 0.3, w * 0.3, h * 0.75, w * 0.05); ctx.fill(); ctx.fillStyle = '#d6283b'; ctx.fillRect(cx - w * 0.11, h * 0.34, w * 0.03, h * 0.6); ctx.fillRect(cx + w * 0.08, h * 0.34, w * 0.03, h * 0.6); }
+      else if (cad === 'cadeira_ergo' || cad === 'cadeira_escritorio') { ctx.fillStyle = '#20232b'; rr(ctx, cx - w * 0.13, h * 0.36, w * 0.26, h * 0.7, w * 0.04); ctx.fill(); ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1; for (let i = 1; i < 6; i++) { ctx.beginPath(); ctx.moveTo(cx - w * 0.12, h * (0.36 + i * 0.1)); ctx.lineTo(cx + w * 0.12, h * (0.36 + i * 0.1)); ctx.stroke(); } }
+      else { ctx.fillStyle = '#e8e8e4'; rr(ctx, cx - w * 0.12, h * 0.48, w * 0.24, h * 0.6, w * 0.03); ctx.fill(); ctx.fillStyle = 'rgba(0,0,0,.08)'; for (let i = 0; i < 3; i++) ctx.fillRect(cx - w * 0.09, h * (0.52 + i * 0.05), w * 0.18, h * 0.015); }
+    }
     if (G0 && G0.home.dirt > 55) { ctx.fillStyle = '#8a8a7a'; ctx.beginPath(); ctx.ellipse(w * 0.85, h * 0.92, w * 0.08, h * 0.05, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#5a6a8a'; ctx.fillRect(w * 0.8, h * 0.85, w * 0.05, h * 0.04); }
   };
 

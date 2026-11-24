@@ -105,7 +105,9 @@
       if (a.data && a.data.until && G().time.t >= a.data.until) return 'fim';
       if (!a.data || !a.data.until) { if (G().needs.sono >= 99.5 && G().time.t - a.t0 > 120) return 'fim'; }
     },
-    end: (a, ok) => { const h = (G().time.t - a.t0) / 60; if (h >= 6) L.mod({ humor: 4, saude: 1 }); if (h < 4 && ok) L.mod({ humor: -2 }); const lf = G().life; if (lf) lf.awake = h >= 3 ? 0 : Math.max(0, lf.awake - h * 120); } });
+    end: (a, ok) => { const h = (G().time.t - a.t0) / 60; if (h >= 6) L.mod({ humor: 4, saude: 1 }); if (h < 4 && ok) L.mod({ humor: -2 }); const lf = G().life; if (lf) lf.awake = h >= 3 ? 0 : Math.max(0, lf.awake - h * 120);
+      // acordou: as compras online chegam
+      if (h >= 3) { G().equip.deliveries.forEach(d => { if (d.kind !== 'food') d.at = Math.min(d.at, G().time.t); }); if (SL.Equip.entregar) SL.Equip.entregar(); } } });
   def('cochilar', { label: 'Cochilando', icon: 'sleep', speed: 10, sleep: true, dur: 60, fx: { sono: 10, energia: 12, estresse: -3 },
     minute: () => { L.mod({ sono: 10 * bed() / 60 }); },
     end: () => { const lf = G().life; if (lf) lf.awake = Math.max(0, lf.awake - 90); } });
@@ -156,17 +158,18 @@
     minute: () => { L.skillUp('fisico', 0.05); L.mod({ saude: 0.03 }); } });
   def('regar', { label: 'Regando as plantas', icon: 'plant', speed: 1, dur: 3, end: (a, ok) => { if (ok) { G().home.plants.last = SL.Clock.day(); L.mod({ humor: 1 }); } } });
   def('usar_pc', { label: 'Usando o computador', icon: 'monitor', speed: 0, pc: true, fx: { energia: -1.5 } });
+  // nov/2026: estudo, freela, turno e evento levam metade do tempo (pedido do dono)
   def('estudar', { label: 'Estudando', icon: 'book', speed: 8, pc: true, work: true, fx: { energia: -4, estresse: 1.5 },
-    dur: a => a.data.hours * 60,
-    minute: a => { const c = D.courses.find(x => x.id === a.data.course); if (c) L.skillUp(c.skill, c.gain / (c.hours * 60) * 1.15); },
+    dur: a => a.data.hours * 30,
+    minute: a => { const c = D.courses.find(x => x.id === a.data.course); if (c) L.skillUp(c.skill, c.gain / (c.hours * 30) * 1.15); },
     end: (a, ok) => { if (ok) { G().courses[a.data.course] = SL.Clock.day(); SL.notify({ cat: 'vida', icon: 'book', title: 'Curso concluído', text: (D.courses.find(x => x.id === a.data.course) || {}).name }); } } });
   def('freela', { label: 'Fazendo freela de edição', icon: 'briefcase', speed: 8, pc: true, work: true, fx: { energia: -6, estresse: 3 },
-    dur: a => a.data.hours * 60,
+    dur: a => a.data.hours * 30,
     minute: () => L.skillUp('edicao', 0.012),
     end: (a, ok) => {
-      const h = (G().time.t - a.t0) / 60; const rate = 14 + G().player.skills.edicao * 0.9;
+      const h = (G().time.t - a.t0) / 60; const rate = (14 + G().player.skills.edicao * 0.9) * 2 * 1.3;   // metade do tempo, 30% a mais no total
       const pay = Math.round(h * rate * (ok ? 1 : 0.6));
-      if (pay > 0) SL.Econ.add(pay, 'trabalho', 'Freela de edição (' + U.dur(h * 60) + ')');
+      if (pay > 0) SL.Econ.add(pay, 'trabalho', 'Freela de edição');
     } });
   def('editar', { label: 'Editando vídeo', icon: 'scissors', speed: 16, pc: true, work: true, fx: { energia: -5, estresse: 2 },
     dur: a => a.data.minutes, minute: a => SL.Videos.workMinute(a.data.edit) });
@@ -185,16 +188,16 @@
     end: (a, ok) => { if (ok) L.alimenta({ fome: 70, sede: 25, saude: 1 }); } });
   def('cafe_fora', { label: 'Tomando café', icon: 'coffee', speed: 3, dur: 20, leisure: true, end: (a, ok) => { if (ok) { L.alimenta({ energia: 15, sono: 5, sede: 10, humor: 4 }); G().life.caf = 180; } } });
   def('lanche_fora', { label: 'Comendo um lanche', icon: 'food', speed: 3, dur: 20, end: (a, ok) => { if (ok) L.alimenta({ fome: 40, sede: 20, humor: 3 }); } });
-  def('turno_cafe', { label: 'Trabalhando no Café Grão Fino', icon: 'briefcase', speed: 10, dur: 240, work: true, fx: { energia: -8, estresse: 3, higiene: -3 },
+  def('turno_cafe', { label: 'Trabalhando no Café Grão Fino', icon: 'briefcase', speed: 10, dur: 120, work: true, fx: { energia: -8, estresse: 3, higiene: -3 },
     minute: () => L.skillUp('carisma', 0.006),
     end: (a, ok) => {
-      const h = (G().time.t - a.t0) / 60; const pay = Math.round(h * 19 + (ok ? U.ri(8, 30) : 0));
+      const h = (G().time.t - a.t0) / 60; const pay = Math.round(h * 57 + (ok ? U.ri(12, 40) : 0));
       if (pay > 0) SL.Econ.add(pay, 'trabalho', 'Turno no Café Grão Fino' + (ok ? ' (com gorjetas)' : ''));
       if (SL.Rel) SL.Rel.passiveMeet('cafeteria');
     } });
   def('cinema', { label: 'No cinema', icon: 'video', speed: 8, dur: 140, leisure: true, fx: { humor: 7, estresse: -6 } });
   def('passear', { label: 'Passeando', icon: 'bag', speed: 6, dur: 60, leisure: true, fx: { humor: 6, estresse: -5, energia: -3 } });
-  def('evento', { label: 'No evento', icon: 'flag', speed: 10, dur: 240, fx: { energia: -6, humor: 6 },
+  def('evento', { label: 'No evento', icon: 'flag', speed: 10, dur: 120, fx: { energia: -6, humor: 6 },
     end: (a, ok) => { if (SL.Events) SL.Events.expoAttended(a.data, ok); } });
   def('encontro', { label: 'Em um encontro', icon: 'heart', speed: 6, dur: 90, leisure: true, fx: { humor: 8, estresse: -6 },
     end: (a, ok) => { if (SL.Rel) SL.Rel.dateEnd(a.data, ok); } });
@@ -284,8 +287,10 @@
     });
   });
 
+  SL.bus.on('tick:hour', () => { const G0 = G(); if (G0 && U.chance(0.04)) G0.flags.chuva = G0.flags.chuva ? 0 : (U.chance(0.5) ? 1 : 0); });
   SL.bus.on('tick:day', day => {
     const G0 = G(); if (!G0) return;
+    G0.flags.chuva = U.chance(0.22) ? 1 : 0;
     // comida estraga
     const spoiled = [];
     for (const id in G0.home.food) {

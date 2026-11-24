@@ -30,7 +30,7 @@
     dailyViews(n) {
       const G = SL.G; const today = SL.Clock.day(); const arr = new Array(n).fill(0);
       G.videos.filter(v => v.plat === 'vision').forEach(v => { const d0 = SL.Clock.day(v.t); v.hist.forEach((x, i) => { const k = d0 + i - (today - n + 1); if (k >= 0 && k < n) arr[k] += x || 0; }); });
-      return { data: arr, labels: arr.map((_, i) => SL.Clock.fmtDay(today - n + 1 + i).slice(5)) };
+      return { data: arr, labels: arr.map(() => '') };
     },
     inicio() {
       const G = SL.G; const items = G.feed.filter(f => f.plat === 'vision').slice().reverse().slice(0, 24);
@@ -158,7 +158,7 @@
     },
     publicar(ctx) {
       const G = SL.G; const st = ctx.st; st.kind = st.kind || 'texto';
-      const kinds = [['texto', 'Texto', 'chat'], ['foto', 'Foto', 'image'], ['enquete', 'Enquete', 'poll'], ['anuncio', 'Anunciar live', 'megaphone']];
+      const kinds = [['texto', 'Texto', 'chat'], ['foto', 'Foto', 'image'], ['enquete', 'Enquete', 'poll']];
       let body = '';
       if (st.kind === 'texto') body = `<div class="upper">Sobre o quê?</div><div class="col gap4">${D.T.playerPostTopics.map(t => `<button class="choice ${st.topic === t.id ? 'on' : ''}" data-act="topic" data-v="${t.id}" style="${st.topic === t.id ? 'border-color:var(--accent)' : ''}"><b>${esc(t.label)}</b><small>${esc(t.text.replace('{g}', (D.gameById(SL.Creators.playerMainGame() || 'zonafinal') || {}).name))}${t.polemic ? ' · pode dar polêmica' : ''}</small></button>`).join('')}</div><div class="field"><label>Ou escreva do seu jeito</label><textarea class="textarea" data-f="ptext" maxlength="280" placeholder="O que está acontecendo?">${esc(st.text || '')}</textarea></div>`;
       if (st.kind === 'foto') {

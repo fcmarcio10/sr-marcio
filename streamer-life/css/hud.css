@@ -596,3 +596,34 @@ body:has(#modals .modal-bg) #toasts .toast:not(.err) { opacity: 0; pointer-event
 .lgrid.g4 { grid-template-columns: repeat(2, 1fr); }
 .lgrid.g2 { grid-template-columns: repeat(2, 1fr); }
 #lv-pend[hidden] { display: none !important; }
+
+/* ===== momento de decisão na live (nov/2026) ===== */
+.preview-box .mom { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: min(92%, 380px); z-index: 4; background: rgba(10, 12, 18, .92); border: 1px solid #8b5cf6; border-radius: 8px; padding: 8px 10px 0; display: flex; flex-direction: column; gap: 7px; overflow: hidden; animation: momIn .25s ease-out; }
+.preview-box .mom[hidden] { display: none; }
+.preview-box .mom .mom-t { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #fff; }
+.preview-box .mom .mom-t svg { color: #ff7a1a; flex: none; }
+.preview-box .mom .mom-bt { display: flex; gap: 6px; }
+.preview-box .mom .mom-bt .btn { flex: 1; justify-content: center; }
+.preview-box .mom .mom-bar { height: 3px; margin: 0 -10px; background: rgba(255, 255, 255, .08); }
+.preview-box .mom .mom-bar i { display: block; height: 100%; background: #8b5cf6; }
+.preview-box .mom.res { padding-bottom: 8px; border-color: #4b5563; }
+.preview-box .mom.res.ok { border-color: #22c55e; }
+.preview-box .mom.res.ok svg { color: #22c55e; }
+.preview-box .mom.res.bad { border-color: #f59e0b; }
+.preview-box .mom.res.bad svg { color: #f59e0b; }
+@keyframes momIn { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* ===== próxima meta no lugar do relógio (nov/2026) ===== */
+.hud-clock { padding: 3px; gap: 6px; }
+.hud-meta { display: flex; align-items: center; gap: 8px; min-width: 230px; max-width: 340px; padding: 4px 10px 4px 6px; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; border-radius: 7px; }
+.hud-meta:hover { background: rgba(255, 255, 255, .05); }
+.hud-meta .hmi { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; background: rgba(255, 224, 102, .12); color: #ffe066; flex: none; }
+.hud-meta .hmt { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 2px; }
+.hud-meta .hmt small { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.hud-meta .hmt b { font-size: 12px; font-weight: 600; }
+.hud-meta .hm-bar { display: block; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.hud-meta .hm-bar i { display: block; height: 100%; background: #ffe066; }
+.hud-meta .hm-r { font-size: 11px; font-weight: 700; color: #35d39a; white-space: nowrap; }
+@media (max-width: 760px) { .hud-meta { min-width: 0; max-width: 62vw; } .hud-meta .hm-r { display: none; } }
+
+.speeds[hidden], .tb-speeds[hidden] { display: none !important; }

@@ -16,7 +16,7 @@
   const plen = pts => { let d = 0; for (let i = 1; i < pts.length; i++) d += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y); return d; };
   C.distanceKm = (a, b) => plen(C.path(a, b)) * M_PER_UNIT / 1000;
   C.here = () => { const G = SL.G; return G.loc.area === 'casa' ? 'casa' : (G.loc.place || 'casa'); };
-  C.isOpen = (id, t) => { const p = D.placeById(id); const h = SL.Clock.hourF(t); if (p.kind === 'amigos') return true; return h >= p.open[0] && h < p.open[1]; };
+  C.isOpen = () => true;   // sem relógio: tudo aberto
   C.options = toId => {
     const G = SL.G; const from = C.here(); const km = C.distanceKm(from, toId); const m = km * 1000;
     return D.transport.filter(tr => !tr.needs || G.equip.vehicles.includes(tr.needs)).map(tr => {
@@ -86,7 +86,7 @@
     cars = []; for (let i = 0; i < 26; i++) { const horiz = r() < 0.5; cars.push({ horiz, lane: horiz ? ROADS_Y[Math.floor(r() * ROADS_Y.length)] : ROADS_X[Math.floor(r() * ROADS_X.length)], p: r() * (horiz ? W : Hh), v: (20 + r() * 40) * (r() < 0.5 ? -1 : 1), c: D.shirtColors[Math.floor(r() * 12)] }); }
     walkers = []; for (let i = 0; i < 30; i++) walkers.push({ x: r() * W, y: r() * Hh, a: r() * 6.3, look: A.randomLook(U.mulberry(i + 50)) });
   };
-  const nightA = () => { const h = SL.Clock.hourF(); if (h >= 7 && h < 17.5) return 0; if (h >= 20 || h < 5) return 0.5; if (h < 7) return 0.5 * (1 - (h - 5) / 2); return 0.5 * ((h - 17.5) / 2.5); };
+  const nightA = () => 0;
   C.renderMap = (c, cw, ch, t, dt) => {
     if (!blocks) buildBlocks();
     cam.s = Math.min(cw / W, ch / Hh) * 0.98; cam.ox = (cw - W * cam.s) / 2; cam.oy = (ch - Hh * cam.s) / 2;
@@ -188,7 +188,6 @@
       C._people.push({ id, x: sp[0], y: sp[1] });
     });
     A.sprite(c, G.player.look, 330, 372, 0.85, { dir: 'up' });
-    const h = SL.Clock.hourF(); if (p.kind === 'parque' && (h >= 18.5 || h < 6)) { c.fillStyle = 'rgba(8,10,30,.45)'; c.fillRect(0, 0, VW, VH); }
     c.restore();
   };
   C.personAtScreen = (sx, sy) => { if (!C._people || !cam.ps) return null; const x = (sx - cam.pox) / cam.ps, y = (sy - cam.poy) / cam.ps; const hit = C._people.find(pp => Math.abs(pp.x - x) < 16 && y > pp.y - 50 && y < pp.y + 6); return hit ? hit.id : null; };
@@ -232,7 +231,7 @@
         break;
       case 'cafeteria':
         act({ id: 'cafe', label: 'Tomar um café', desc: '20 min', icon: 'coffee', price: 9, run: pay(9, 'comida', 'Café no Grão Fino', life('cafe_fora')) });
-        { const h = SL.Clock.hourF(); act({ id: 'turno', label: 'Trabalhar um turno', desc: '4h · R$ 19/h + gorjetas', icon: 'briefcase', disabled: h > 16 || h < 7, why: 'Turnos começam entre 7h e 16h', run: life('turno_cafe') }); }
+        act({ id: 'turno', label: 'Trabalhar um turno', desc: '2h · R$ 57/h + gorjetas', icon: 'briefcase', run: life('turno_cafe') });
         break;
       case 'amigos': {
         const host = p.host; const home = SL.Rel.presentAt(placeId).includes(host); const r = SL.Rel.get(host);
@@ -240,13 +239,14 @@
         break;
       }
       case 'expo': {
-        const ev = D.expoEvents.find(x => x.md === SL.Clock.md());
-        if (ev) act({ id: 'evento', label: 'Participar: ' + ev.name, desc: '4h de networking e fãs', icon: 'flag', price: G.flags.expo && G.flags.expo.name === ev.name ? 0 : ev.fee, run: pay(G.flags.expo && G.flags.expo.name === ev.name ? 0 : ev.fee, 'lazer', 'Ingresso: ' + ev.name, life('evento', G.flags.expo && G.flags.expo.name === ev.name ? G.flags.expo : { name: ev.name })) });
-        else { const next = D.expoEvents.map(x => ({ x, d: SL.Clock.dayForMD(SL.Clock.day(), x.md) })).sort((a, b) => a.d - b.d)[0]; act({ id: 'sem', label: 'Nenhum evento hoje', desc: 'Próximo: ' + next.x.name + ' em ' + SL.Clock.fmtDay(next.d), icon: 'calendar', disabled: true }); }
+        // sem calendário: cada semana do jogo tem um evento; com convite, o evento do convite (de graça)
+        const sem = Math.floor(SL.Clock.day() / 7); const conv = G.flags.expo;
+        const ev = conv ? (D.expoEvents.find(x => x.name === conv.name) || D.expoEvents[0]) : D.expoEvents[sem % D.expoEvents.length];
+        if (!conv && G.flags.expoSem === sem) { const prox = D.expoEvents[(sem + 1) % D.expoEvents.length]; act({ id: 'sem', label: 'Você já foi ao evento desta semana', desc: 'O próximo é ' + prox.name, icon: 'calendar', disabled: true }); }
+        else act({ id: 'evento', label: 'Participar: ' + ev.name, desc: '2h de networking e fãs', icon: 'flag', price: conv ? 0 : ev.fee, run: pay(conv ? 0 : ev.fee, 'lazer', 'Ingresso: ' + ev.name, life('evento', conv || { name: ev.name })) });
         break;
       }
     }
-    if (p.kind !== 'amigos') act({ id: 'vlog', label: 'Gravar vlog aqui', desc: 'Material bruto para vídeo', icon: 'cam', ui: 'vlog' });
     act({ id: 'foto', label: 'Tirar foto para o Instagram', desc: 'Postar onde você está', icon: 'image', ui: 'foto' });
     return L;
   };

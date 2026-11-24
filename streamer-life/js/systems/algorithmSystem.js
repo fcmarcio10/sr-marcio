@@ -89,7 +89,7 @@
   };
   // chegadas por minuto vindas do diretório da plataforma, boca a boca e outras redes
   A.liveDiscovery = L => {
-    const G0 = G(); const g = D.gameById(L.game); const h = SL.Clock.hour();
+    const G0 = G(); const g = D.gameById(L.game); const h = SL.Clock.HORA;
     const Vn = L.viewers;
     const pop = A.gamePop(g) / 100;
     const vis = 0.35 + 0.65 * Math.min(1, Math.log10(1 + Vn) / 3.6);

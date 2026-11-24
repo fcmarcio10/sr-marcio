@@ -16,6 +16,14 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
   const ev = (fn, arg) => page.evaluate(fn, arg);
   const shot = async n => page.screenshot({ path: path.join(out, n + '.png') });
+  // fecha as janelas abertas de cima para baixo (eventos com decisão escolhem a primeira opção)
+  const fechaJanelas = async () => {
+    for (let i = 0; i < 8; i++) {
+      const top = await page.$('#modals .modal-bg:last-child'); if (!top) return;
+      const ch = await top.$('.choice[data-c]'); if (ch) { await ch.click(); await page.waitForTimeout(250); }
+      const bt = await top.$('.mf .btn.primary'); if (bt) { await bt.click().catch(() => {}); await page.waitForTimeout(250); } else if (!ch) { await page.keyboard.press('Escape'); await page.waitForTimeout(200); }
+    }
+  };
   const url = 'file://' + path.join(__dirname, '..', 'index.html');
   await page.goto(url); await ev(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(400);
 
@@ -33,9 +41,13 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
 
   // 2. passagem do tempo e necessidades
   const t0 = await ev(() => SL.G.time.t);
-  await page.click('#hud [data-speed="2"]'); await page.waitForTimeout(8000); await page.click('#hud [data-speed="1"]');
+  await page.waitForTimeout(2500);
   const t1 = await ev(() => SL.G.time.t);
-  ok('tempo passa em tempo real (velocidade 3x)', t1 - t0 >= 5, t1 - t0);
+  ok('sem relógio: parado em casa o tempo não passa', t1 === t0 && await ev(() => document.querySelector('#hud .speeds').hidden && !document.querySelector('#hud .hc-time')), t1 - t0);
+  ok('topo mostra a próxima meta com prêmio', await ev(() => { const m = SL.Goals.atual(); const b = document.querySelector('#hud .hud-meta b'); return !!m && !!b && b.textContent === m.g.title && m.g.r > 0; }), await ev(() => document.querySelector('#hud .hud-meta').textContent));
+  await ev(() => SL.Life.start('banho')); await page.waitForTimeout(1500);
+  ok('fazendo alguma coisa o tempo anda', await ev(t => SL.G.time.t > t, t0), await ev(t => SL.G.time.t - t, t0));
+  await ev(() => { if (SL.G.act) SL.Life.stop(true); });
   const before = await ev(() => Object.assign({}, SL.G.needs));
   await ev(() => SL.debug.skip(180));
   const after = await ev(() => Object.assign({}, SL.G.needs));
@@ -68,8 +80,9 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   ok('computador abre', await ev(() => !document.getElementById('overlay-pc').hidden));
   await page.click('.dicon[data-app="loja"]'); await page.waitForTimeout(400);
   await page.click('.win [data-act="slot"][data-v="microfone"]');
+  const dinAntes = await ev(() => SL.G.money);
   await page.click('.win [data-act="buy"][data-v="mic_usb"]'); await page.waitForTimeout(300);
-  ok('compra online agenda entrega', await ev(() => SL.G.equip.deliveries.some(d => d.id === 'mic_usb') && SL.G.money < 2400));
+  ok('compra online agenda entrega', await ev(d => SL.G.equip.deliveries.some(x => x.id === 'mic_usb') && SL.G.money < d, dinAntes));
   await shot('06_pc_loja');
   await ev(() => { SL.debug.skip(60 * 26); SL.debug.fill(); });
   ok('entrega chega e equipa', await ev(() => SL.G.equip.setup.microfone === 'mic_usb'));
@@ -111,7 +124,17 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   ok('anúncios de 30/60/120 s na live pagam no saldo da Twitch', opAds === 3 && await ev(b => SL.G.ch.pulso.bal > b && (SL.G.ch.pulso.ads || []).length === 1, balAntes));
   ok('chat no ritmo do público (poucas pessoas, chat calmo)', await ev(() => { const L = SL.Live.cur; const o = L.viewers; L.viewers = 5; const r = SL.LiveUI.chatRate(L); SL.settings.chatCap = 3; const c = SL.LiveUI.chatRate(L); SL.settings.chatCap = 6; L.viewers = o; return r < 0.3 && c < r; }));
   // 3 velocidades em todo lugar; levantar do PC com a live no ar e voltar
-  ok('3 velocidades (pausa, normal, 3x) na casa, no PC e na live', await ev(() => document.querySelectorAll('#hud [data-speed]').length === 3 && document.querySelectorAll('.taskbar [data-speed]').length === 3 && document.querySelectorAll('#lv-ctl [data-speed]').length === 3));
+  ok('velocidades (pausa, normal, 3x) só aparecem com a live no ar', await ev(() => document.querySelectorAll('#lv-ctl [data-speed]').length === 3 && !document.querySelector('.taskbar .tb-speeds').hidden));
+  // momento de decisão: 2 botões com tempo; arriscar vira momento forte (ou fracasso engraçado) e o público grita
+  await ev(() => { window.__voz = []; const o = SL.audio.voz; SL.audio.voz = id => { window.__voz.push(id); o(id); }; const L = SL.Live.cur; L.momento = null; L.momEm = L.min + 1; SL.debug.skip(1); });
+  await page.waitForTimeout(400);
+  const mom = await ev(() => { const el = document.getElementById('lv-mom'); return { vis: !!el && !el.hidden, bt: el ? el.querySelectorAll('[data-mom]').length : 0, t: el ? el.textContent : '' }; });
+  ok('momento de decisão aparece na tela da live com 2 botões', mom.vis && mom.bt === 2, mom);
+  await shot('08a_momento');
+  if (mom.bt) await page.click('#lv-mom [data-mom="a"]');
+  await page.waitForTimeout(300);
+  ok('arriscar vira momento da live e o público reage com voz', await ev(() => { const L = SL.Live.cur; return !L.momento && !!L.momRes && L.best.some(m => /^Arriscou/.test(m.txt)) && window.__voz.some(v => /^pb_/.test(v)); }), await ev(() => window.__voz));
+  ok('sem escolher, o momento some sozinho (joga seguro)', await ev(() => { const L = SL.Live.cur; L.momEm = L.min + 1; SL.debug.skip(1); const tinha = !!L.momento; if (L.momento) L.momento.gasto = 99999; return tinha; }) && await page.waitForFunction(() => !SL.Live.cur.momento, null, { timeout: 3000 }).then(() => true).catch(() => false));
   await page.click('.taskbar [data-sair]'); await page.waitForTimeout(400);
   ok('sair do PC com a live no ar: ela continua e aparece a janelinha da live', await ev(() => !SL.UI.pcOpen() && !!SL.Live.cur && SL.Live.cur.away && !document.querySelector('#hud .hud-live').hidden));
   await ev(() => SL.debug.skip(5));
@@ -129,7 +152,9 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   ok('superchat com voz (ElevenLabs), som e destaque no chat', await ev(() => window.__vozes.length >= 1 && /^sc_/.test(window.__vozes[0]) && !!document.querySelector('#lv-chat .cm.superchat') && !!(SL.SONS && SL.SONS.sc_som)));
   await page.click('[data-la="end"]'); await page.waitForTimeout(200); await page.click('.modal .mf .btn.danger'); await page.waitForTimeout(600);
   ok('resumo da live aparece', await ev(() => !!document.querySelector('#sum-ch')));
-  ok('resumo da live liga com corte, Instagram e agenda (próximos passos)', await ev(() => document.querySelectorAll('[data-prox]').length >= 2));
+  ok('resumo da live: próximos passos (Instagram e vídeo)', await ev(() => document.querySelectorAll('[data-prox]').length >= 2 && !document.querySelector('[data-prox="agenda"]')));
+  ok('cortes automáticos no TikTok e no YouTube quando a live acaba', await ev(() => { const s = SL.G.lives[SL.G.lives.length - 1]; return s.cortes && s.cortes.length === 2 && SL.G.videos.filter(v => v.auto && v.status === 'publicado').length === 2 && document.querySelectorAll('.modal [data-ver]').length === 2; }), await ev(() => (SL.G.lives[SL.G.lives.length - 1].cortes || []).map(c => c.plat + ': ' + c.title)));
+  ok('doações, inscrições e anúncios caem na conta no fim da live', await ev(() => { const s = SL.G.lives[SL.G.lives.length - 1]; return s.pago > 0 && SL.G.ch.pulso.bal === 0 && SL.G.ledger.some(l => /Repasse da Twitch/.test(l.desc)); }), await ev(() => SL.G.lives[SL.G.lives.length - 1].pago));
   await shot('09_resumo_live');
   await page.click('.modal .mf .btn.primary');
   const after1 = await ev(() => ({ lives: SL.G.lives.length, f: SL.G.ch.pulso.f, known: SL.G.viewers.list.length, raw: SL.G.raw.length, visited: SL.G.viewers.list.filter(v => v.m.v >= 1).length }));
@@ -141,7 +166,7 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
     await ev(() => SL.Live.start({ game: 'xeque', title: 'Voltamos! Xeque Rápido com o chat', desc: 'todo dia às 20h', quality: '720p', planned: 90, announce: true }));
     for (let i = 0; i < 9; i++) await ev(() => { SL.debug.skip(10); SL.G.needs.sono = Math.max(SL.G.needs.sono, 60); const L = SL.Live.cur; const q = L.questions.find(x => !x.done); if (q) SL.Live.answer(q.msgId, SL.Chat.ANSWERS[q.type][0].id); });
     await ev(() => SL.LiveUI.finish());
-    await page.waitForTimeout(300); const b = await page.$('.modal .mf .btn.primary'); if (b) await b.click();
+    await page.waitForTimeout(300); await fechaJanelas();
   }
   // sair de casa com a live no ar: pergunta e encerra
   await ev(() => { SL.debug.fill(); SL.Live.start({ game: 'xeque', title: 'Teste de saída', quality: '720p', planned: 60 }); });
@@ -181,13 +206,15 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   ok('no máximo 3 hashtags', await ev(() => document.querySelectorAll('.criar .cv-tag.on').length === 3));
   await shot('11_configurar_video');
   await page.click('.criar [data-publicar]'); await page.waitForTimeout(300);
-  ok('vídeo publicado e nota de cada escolha', await ev(() => SL.G.videos.length >= 1 && SL.G.videos[0].status === 'publicado' && document.querySelectorAll('.criar .cv-row').length >= 5));
+  ok('vídeo publicado e nota de cada escolha', await ev(() => SL.G.videos.some(v => !v.auto && v.status === 'publicado') && document.querySelectorAll('.criar .cv-row').length >= 5));
+  ok('criar vídeo sem a opção de vlog (falar com a câmera)', await ev(() => !SL.Videos.TYPES.vlog || !document.querySelector('[data-game="opiniao"]')));
   ok('vídeo publicado traz público para a próxima live', await ev(() => SL.Videos.buzz().k > 0));
   await page.click('.criar [data-fim]'); await ev(() => { SL.G.time.speed = 1; });
   await ev(() => SL.debug.skip(60 * 30));
   const vid = await ev(() => { const v = SL.G.videos[0]; return { views: Math.round(v.views), likes: Math.round(v.likes), ctr: v.ctr, ret: v.ret, comments: v.comments.length, hist: v.hist.length }; });
   ok('algoritmo distribui o vídeo (visualizações ao longo do tempo)', vid.views > 0 && vid.hist >= 1, vid);
 
+  await page.waitForTimeout(300); await fechaJanelas();
   // 8. redes sociais: post no Connect pela interface
   await page.click('.dicon[data-app="connect"]'); await page.waitForTimeout(300);
   await page.click('.win [data-act="tab"][data-t="publicar"]'); await page.click('.win [data-act="topic"][data-v="pergunta"]');
@@ -197,14 +224,17 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   const post = await ev(() => { const p = SL.G.posts[0]; return { reach: Math.round(p.reach), likes: Math.round(p.likes), comments: p.comments.length }; });
   ok('post recebe alcance e curtidas', post.reach > 0 && post.likes > 0, post);
   ok('feed vivo com outros criadores', await ev(() => SL.G.feed.filter(f => f.author !== 'me').length > 10 && SL.G.feed.some(f => f.plat === 'pulso')), await ev(() => SL.G.feed.length));
+  await page.waitForTimeout(300); await fechaJanelas();
   await page.click('.win [data-act="tab"][data-t="feed"]'); await page.waitForTimeout(300); await shot('12_connect_feed');
 
   // 9. contas e banco
   await ev(() => { SL.debug.money(3000); const d = SL.Clock.day(); SL.debug.skip(((SL.Clock.dayForDayOfMonth(d, 10) - d) * 1440) + 600); });
   const bank = await ev(() => ({ paid: SL.G.ledger.some(l => /Aluguel/.test(l.desc) && l.v < 0), money: SL.G.money, pend: SL.Econ.pending().length }));
   ok('aluguel pago no vencimento (débito automático)', bank.paid, bank);
+  await page.waitForTimeout(300); await fechaJanelas();
   await page.click('.dicon[data-app="banco"]'); await page.waitForTimeout(300); await shot('13_banco');
 
+  await page.waitForTimeout(300); await fechaJanelas();
   // 10. cidade, lugar e relacionamento
   await ev(() => { SL.UI.closePC(); if (SL.G.act) SL.Life.stop(false); SL.debug.fill(); SL.debug.toHour(10); SL.debug.fill(); });
   await ev(() => { SL.City.goOutside(); SL.City.travel('cafeteria', 'onibus'); });
@@ -232,6 +262,15 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   ok('celular abre com apps', await ev(() => document.querySelectorAll('#overlay-phone .app-grid .dicon').length >= 10));
   await page.click('#overlay-phone [data-app="stats"]'); await page.waitForTimeout(300); await shot('19_celular_carreira');
   await page.click('[data-pclose]');
+
+  // 12b. resumo da semana, chuva e cenário da casa na câmera
+  await ev(() => { document.querySelectorAll('.modal-bg').forEach(m => m.remove()); SL.G.resumo = SL.Goals.semana(SL.Clock.day()); SL.G.flags.chuva = 1; });
+  await page.waitForSelector('.modal', { timeout: 3000 }).catch(() => null);
+  ok('resumo da semana aparece sozinho', await ev(() => /Resumo da semana/.test((document.querySelector('.modal') || {}).textContent || '') && !SL.G.resumo));
+  await shot('19a_resumo_semana');
+  await ev(() => document.querySelectorAll('.modal-bg').forEach(m => m.remove()));
+  ok('chuva: som de fundo sem erro', await ev(() => { try { SL.audio.ambiente({ chuva: true, fora: false, teclado: true, live: false }); return true; } catch (e) { return false; } }));
+  ok('Agenda saiu (sem dias e horários)', await ev(() => !SL.Apps.calendario));
 
   // 13. todos os apps abrem sem erro
   const appErr = await ev(() => { const bad = []; Object.keys(SL.Apps).forEach(id => { const el = document.createElement('div'); try { const ctx = { app: id, args: {}, st: {}, mode: 'pc', host: el, render() {}, rr() {} }; SL.Apps[id].render(el, ctx); if (SL.Apps[id].render && el.innerHTML.includes('Erro')) bad.push(id); } catch (e) { bad.push(id + ': ' + e.message); } }); return bad; });

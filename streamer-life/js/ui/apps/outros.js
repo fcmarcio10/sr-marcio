@@ -7,14 +7,14 @@
   SL.Apps.rango = {
     title: 'iFood', short: 'iFood', icon: 'food', color: 'linear-gradient(135deg,#ff4b55,#d41625)', order: 10, pc: true, phone: true, w: 560, h: 600, watch: ['food', 'money'],
     render(el) {
-      const G = SL.G; const pend = G.equip.deliveries.filter(d => d.kind === 'food');
+      const G = SL.G;
       el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#e0402a">${ic('food', 15)}</span>iFood</div></div><div class="app-body">
-        ${pend.length ? `<div class="card" style="border-color:var(--warn)">${ic('clock', 14)} Pedido a caminho: chega por volta de ${SL.Clock.fmtTime(pend[0].at)}.</div>` : ''}${G.flags.mealReady ? `<div class="card" style="border-color:var(--ok)"><div class="row"><b class="grow">Seu pedido chegou!</b><button class="btn sm ok" data-act="eat">Comer agora</button></div></div>` : ''}
-        <div class="small muted">Entrega só em casa · taxa de R$ 6 · 30 a 55 minutos</div>
-        <div class="list">${D.delivery.map(f => `<div class="li"><div class="grow"><b class="small">${esc(f.name)}</b><div class="tiny muted">${Object.entries(f.eat).filter(([k]) => k === 'fome' || k === 'sede').map(([k, v]) => (v > 0 ? '+' : '') + Math.min(100, Math.round(SL.Life.efeito(k, v))) + ' ' + k).join(' · ')}</div></div><span class="mono small ok">${U.money(f.price)}</span><button class="btn sm" data-act="order" data-v="${f.id}" ${pend.length || G.money < f.price + 6 ? 'disabled' : ''}>Pedir</button></div>`).join('')}</div></div></div>`;
+${G.flags.mealReady ? `<div class="card" style="border-color:var(--ok)"><div class="row"><b class="grow">Seu pedido chegou!</b><button class="btn sm ok" data-act="eat">Comer agora</button></div></div>` : ''}
+        <div class="small muted">Entrega só em casa · taxa de R$ 6 · chega na hora</div>
+        <div class="list">${D.delivery.map(f => `<div class="li"><div class="grow"><b class="small">${esc(f.name)}</b><div class="tiny muted">${Object.entries(f.eat).filter(([k]) => k === 'fome' || k === 'sede').map(([k, v]) => (v > 0 ? '+' : '') + Math.min(100, Math.round(SL.Life.efeito(k, v))) + ' ' + k).join(' · ')}</div></div><span class="mono small ok">${U.money(f.price)}</span><button class="btn sm" data-act="order" data-v="${f.id}" ${G.flags.mealReady || G.money < f.price + 6 ? 'disabled' : ''}>Pedir</button></div>`).join('')}</div></div></div>`;
     },
     act(a, ds, ctx) {
-      if (a === 'order') { const e = SL.Rel.orderFood(ds.v); if (e) return e; UI.toast({ title: 'Pedido feito', text: 'O entregador já está a caminho.', icon: 'food', cat: 'vida' }, 'cash'); return ctx.render(); }
+      if (a === 'order') { const e = SL.Rel.orderFood(ds.v); if (e) return e; UI.toast({ title: 'Pedido entregue', text: 'Está na mesa. Coma antes que esfrie.', icon: 'food', cat: 'vida' }, 'cash'); return ctx.render(); }
       if (a === 'eat') { SL.G.flags.ate = 1; const e = SL.Rel.eatDelivery(); if (e) return e; return ctx.render(); }
     },
   };
@@ -128,10 +128,9 @@
 })(window.SL);
 
 
-// Anúncios: intervalos de 30, 60 ou 120 segundos durante a live; o dinheiro vai para o saldo da Twitch e cai na conta no repasse de segunda
+// Anúncios: intervalos de 30, 60 ou 120 segundos durante a live; o dinheiro vai para o saldo da Twitch e cai na conta no fim da live
 (function (SL) {
   const U = SL.U, UI = SL.UI; const ic = UI.ic;
-  const proxSegunda = () => { const d0 = SL.Clock.day(); for (let d = d0 + 1; d <= d0 + 7; d++) if (SL.Clock.dowOfDay(d) === 1) return d; return d0 + 7; };
   SL.Apps.anuncios = {
     title: 'Anúncios', short: 'Anúncios', icon: 'ads', color: 'linear-gradient(135deg,#9146ff,#5a2bb8)', order: 2, pc: true, phone: true, w: 640, h: 620,
     watch: ['ads', 'money', 'live:start', 'live:end', 'live:minute'],
@@ -146,12 +145,12 @@
         : falta ? `<div class="card ad-st">${ic('clock', 16)}<span>Próximo intervalo liberado em ${falta} min do jogo.</span></div>`
         : `<div class="card ad-st ok">${ic('live', 16)}<span>Você está ao vivo com <b>${U.int(v)}</b> ${v === 1 ? 'pessoa' : 'pessoas'} assistindo.</span></div>`;
       const opc = LV.AD_OPCOES.map(o => `<button class="ad-op" data-act="rodar" data-s="${o.s}" ${pode ? '' : 'disabled'}><b>${o.s}s</b><span class="ad-val">${L ? '≈ ' + U.money(LV.adValor(o.s, v)) : '—'}</span><small>${o.s === 30 ? 'quase ninguém sai' : o.s === 60 ? 'alguns saem' : 'mais gente sai'}</small></button>`).join('');
-      const hist = (P.ads || []).slice(0, 8).map(a => `<div class="li"><span class="tag">${a.s}s</span><div class="grow small">${SL.Clock.fmtStamp(a.t)} · ${U.int(a.v)} assistindo</div><b class="ok small mono">+${U.money(a.rev)}</b></div>`).join('');
+      const hist = (P.ads || []).slice(0, 8).map(a => `<div class="li"><span class="tag">${a.s}s</span><div class="grow small">${SL.Clock.ago(a.t)} · ${U.int(a.v)} assistindo</div><b class="ok small mono">+${U.money(a.rev)}</b></div>`).join('');
       el.innerHTML = `<div class="app"><div class="app-head"><h2>${ic('ads', 16)} Anúncios</h2><span class="tiny muted" style="margin-left:auto">Intervalos na live da Twitch</span></div><div class="app-body col gap8">
         ${status}
         <div class="ad-ops">${opc}</div>
         <p class="tiny muted">Quanto mais longo o intervalo, mais você ganha e mais gente sai da live. Espere ${LV.AD_ESPERA} min do jogo entre um intervalo e outro.</p>
-        <div class="card row"><div class="grow"><div class="tiny muted">Saldo da Twitch a receber (anúncios, inscrições e doações)</div><b class="ok" style="font-size:1.3em">${U.money(P.bal)}</b></div><div class="tiny muted" style="text-align:right">Cai na conta no repasse de segunda<br><b>${SL.Clock.fmtDay(proxSegunda())}</b>${P.bal < 50 ? '<br>(a partir de R$ 50)' : ''}</div></div>
+        <div class="card row"><div class="grow"><div class="tiny muted">Saldo da Twitch a receber (anúncios, inscrições e doações)</div><b class="ok" style="font-size:1.3em">${U.money(P.bal)}</b></div><div class="tiny muted" style="text-align:right">Cai na sua conta<br><b>no fim da live</b></div></div>
         <div class="card col gap4"><b class="small">Últimos intervalos</b>${hist ? `<div class="list">${hist}</div>` : '<span class="tiny muted">Nenhum ainda.</span>'}<span class="tiny muted">Total com anúncios: ${U.money(P.adsTotal || 0)}</span></div>
       </div></div>`;
     },

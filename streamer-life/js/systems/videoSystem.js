@@ -79,7 +79,7 @@
   };
   VS.recordEnd = (a, ok) => {
     const d = a.data;
-    if (d.n < 10) { SL.notify({ cat: 'canal', icon: 'video', title: 'Gravação descartada', text: 'Menos de 10 minutos não rende vídeo.' }); return; }
+    if (d.n < 5) { SL.notify({ cat: 'canal', icon: 'video', title: 'Gravação descartada', text: 'Menos de 5 minutos não rende vídeo.' }); return; }
     d.moments.sort((x, y) => y.clip - x.clip);
     const raw = VS.addRaw({ kind: d.kind, game: d.game, topic: d.topic, minutes: d.n, quality: Math.round(d.q / d.n), moments: d.moments.slice(0, 12), place: d.place });
     SL.Life.skillUp(d.kind === 'opiniao' || d.kind === 'vlog' ? 'carisma' : 'jogo', d.n / 60 * 0.4);
@@ -94,7 +94,7 @@
     let w = T.work * VS.LEVELS[level].mult * (1.4 - G0.player.skills.edicao / 100 * 0.6);
     if (G0.equip.soft.editor_pro) w *= 0.75;
     w *= 1 - s.prod / 100; w *= 1.3 - s.render / 100 * 0.4;
-    return Math.max(15, Math.round(w));
+    return Math.max(8, Math.round(w * 0.5));   // nov/2026: edição 2x mais curta (pedido do dono)
   };
   VS.createEdit = o => {
     const G0 = G(); const raw = G0.raw.find(r => r.id === o.raw); if (!raw) return 'Escolha um material.';
@@ -127,7 +127,7 @@
     const s = SL.Equip.stats(); const T = VS.TYPES[e.type];
     e.status = 'renderizando';
     const lenMin = (T.len[0] + T.len[1]) / 2 / 60;
-    e.render = Math.max(3, Math.round(lenMin * 110 / Math.max(8, s.render)));
+    e.render = Math.max(2, Math.round(lenMin * 55 / Math.max(8, s.render)));
     if (G().act && G().act.id === 'editar' && G().act.data.edit === e.id) SL.Life.stop(true);
     SL.notify({ cat: 'canal', icon: 'scissors', title: 'Edição concluída', text: 'Renderizando "' + (e.title || T.label) + '": cerca de ' + U.dur(e.render) + '.', app: 'vision' });
     SL.bus.emit('videos');
@@ -180,7 +180,7 @@
       ctr: U.clamp(ctr, 0.005, 0.9), ret: U.clamp(ret, 0.05, 0.95), luck: U.lognorm(0, 0.45), bait: ts.bait, trend, funny, sponsor: e.sponsor, topic: e.topic, rawKind: e.rawKind,
       t: scheduleT && scheduleT > G0.time.t ? scheduleT : G0.time.t, status: scheduleT && scheduleT > G0.time.t ? 'agendado' : 'publicado',
       views: 0, imp: 0, likes: 0, dislikes: 0, ccount: 0, comments: [], shares: 0, newSubs: 0, wh: 0, rev: 0, hist: [], viral: null, boost: null, ms: 0,
-      moments: e.moments.map(m => m.txt).slice(0, 4), scores: { title: ts.score, thumb: th, tags: tg, desc: ds } };
+      moments: e.moments.map(m => m.txt).slice(0, 4), scores: { title: ts.score, thumb: th, tags: tg, desc: ds }, auto: !!e.auto };
     SL.Algo.rollViral(v);
     e.status = v.status === 'agendado' ? 'agendado' : 'publicado'; e.video = v.id;
     G0.videos.push(v);
@@ -201,9 +201,36 @@
     if (v.sponsor && SL.Sponsors) SL.Sponsors.deliver(v.sponsor, 'video', { video: v.id });
     if (v.plat === 'vision' && SL.Social) SL.Social.autoPostVideo(v);
     if (v.rawKind === 'opiniao' && SL.Events) SL.Events.opinionRisk(v);
-    SL.notify({ cat: 'canal', icon: v.plat === 'clipz' ? 'clip' : v.plat === 'connect' ? 'connect' : 'vision', title: 'Publicado no ' + ({ vision: 'YouTube', clipz: 'TikTok', connect: 'Instagram' })[v.plat], text: '"' + v.title + '"', app: v.plat === 'clipz' ? 'clipz' : v.plat === 'connect' ? 'connect' : 'vision' });
+    SL.notify({ silent: !!v.auto, cat: 'canal', icon: v.plat === 'clipz' ? 'clip' : v.plat === 'connect' ? 'connect' : 'vision', title: (v.auto ? 'Corte automático no ' : 'Publicado no ') + ({ vision: 'YouTube', clipz: 'TikTok', connect: 'Instagram' })[v.plat], text: '"' + v.title + '"', app: v.plat === 'clipz' ? 'clipz' : v.plat === 'connect' ? 'connect' : 'vision' });
     SL.bus.emit('video:published', v);
     if (SL.Goals) SL.Goals.check();
+  };
+
+  // ---------- cortes automáticos no fim da live (pedido do dono, nov/2026) ----------
+  // A gravação da live vira na hora um corte no TikTok e um corte no YouTube, com título, descrição,
+  // hashtags e thumbnail automáticos. A nota depende dos momentos da live e da sua habilidade de edição.
+  const AUTO_TIT = {
+    short: ['{m}!', 'Ninguém esperava isso no {g}', 'Olha o que aconteceu na live de {g}', 'Esse momento no {g} foi INSANO', '{m} (ao vivo)'],
+    corte: ['{m}: melhores momentos da live de {g}', 'MELHORES MOMENTOS: {g} ao vivo', 'A live de {g} foi assim: {m}', 'Corte da live: {m}'],
+  };
+  VS.autoCortes = rawId => {
+    const G0 = G(); const raw = G0.raw.find(r => r.id === rawId); if (!raw || !raw.moments || !raw.moments.length) return [];
+    const g = D.gameById(raw.game) || D.gameById('conversa'); const out = [];
+    const ordem = raw.moments.map((m, i) => [m.clip, i]).sort((a, b) => b[0] - a[0]).map(x => x[1]);
+    [['short', 'TikTok'], ['corte', 'YouTube']].forEach(([type, nome]) => {
+      const T = VS.TYPES[type]; const need = T.short ? 1 : Math.max(2, Math.round((T.len[0] + T.len[1]) / 2 / 180));
+      const e = VS.createEdit({ raw: raw.id, type, moments: ordem.slice(0, Math.max(1, Math.min(need, ordem.length))), level: 'padrao' });
+      if (typeof e === 'string') return;
+      e.auto = true; e.qAcc = VS.editQualityNow(e) * 0.9; e.qN = 1; e.done = e.work; e.status = 'pronto';   // edição automática: um pouco pior que a sua
+      const mo = e.moments[0]; const fill = s => s.replace('{g}', g.name).replace('{m}', mo ? mo.txt : 'Que momento');
+      e.title = fill(U.pick(AUTO_TIT[type])).slice(0, 95);
+      e.desc = 'Corte da live de ' + g.name + '. Tem live quase todo dia na Twitch: @' + G0.player.user + '. Segue para não perder a próxima!';
+      e.tags = SL.Algo.suggestTags(raw.game).slice(0, 3);
+      if (!T.short) e.thumb = { scene: 0, expr: 'surpreso', text: U.pick(['NÃO ACREDITO', 'QUE ISSO?!', 'INSANO']), color: '#ffe066', arrow: true, circle: false };
+      if (VS.publish(e.id)) return;
+      const v = G0.videos.find(x => x.id === e.video); if (v) out.push({ id: v.id, plat: nome, app: v.plat === 'clipz' ? 'clipz' : 'vision', title: v.title, q: v.quality });
+    });
+    return out;
   };
 
   // ---------- comentários ----------

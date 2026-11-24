@@ -30,7 +30,7 @@
     d.v = SL.State.SAVE_VERSION;
     return d;
   };
-  S.meta = G => ({ name: G.player.name, channel: G.player.channel, day: SL.Clock.fmtFull(G.time.t), time: SL.Clock.fmtTime(G.time.t), money: G.money,
+  S.meta = G => ({ name: G.player.name, channel: G.player.channel, day: (SL.Career.TIERS[G.career.tier] || {}).n || '', time: '', money: G.money,
     followers: G.ch.pulso.f + G.ch.vision.f + G.ch.clipz.f + G.ch.connect.f, tier: (SL.Career.TIERS[G.career.tier] || {}).n, look: G.player.look, playMs: G.playMs });
   const round = (k, v) => (typeof v === 'number' && !Number.isInteger(v)) ? Math.round(v * 100) / 100 : v;
   S.serialize = G => JSON.stringify({ app: 'streamer-life', v: SL.State.SAVE_VERSION, savedAt: Date.now(), meta: S.meta(G), data: G }, round);
@@ -83,7 +83,8 @@
   // configurações (separadas do jogo)
   S.loadSettings = () => {
     let s = {}; try { s = JSON.parse(U.store.get(S.SETTINGS_KEY) || '{}') || {}; } catch (e) { s = {}; }
-    SL.settings = Object.assign({ volume: 0.6, music: 0.25, musicOn: false, autosave: true, autosaveMin: 3, reduceMotion: false, textScale: 1, chatCap: 6, tips: true }, s);
+    SL.settings = Object.assign({ volume: 0.6, music: 0.25, musicOn: true, autosave: true, autosaveMin: 3, reduceMotion: false, textScale: 1, chatCap: 6, tips: true }, s);
+    if (!SL.settings.somV2) { SL.settings.somV2 = 1; SL.settings.musicOn = true; }   // nov/2026: música calma ligada por padrão
     return SL.settings;
   };
   S.saveSettings = () => U.store.set(S.SETTINGS_KEY, JSON.stringify(SL.settings));

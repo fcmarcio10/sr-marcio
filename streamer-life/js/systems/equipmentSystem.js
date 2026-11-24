@@ -91,7 +91,7 @@
       const at = (SL.Clock.day() + 1) * 1440 + 10 * 60 + U.ri(0, 180);
       G().equip.deliveries.push({ id, at, kind: 'equip' });
       if (SL.Calendar) SL.Calendar.add({ day: SL.Clock.day(at), kind: 'entrega', title: 'Entrega: ' + it.name });
-      SL.notify({ cat: 'dinheiro', icon: 'shop', title: 'Pedido confirmado', text: it.name + ' chega amanhã de manhã.' });
+      SL.notify({ cat: 'dinheiro', icon: 'shop', title: 'Pedido confirmado', text: it.name + ' chega quando você acordar.' });
     } else Q.receive(id);
     return null;
   };
@@ -141,13 +141,17 @@
   };
 
   // uso e quebra (por dia)
-  SL.bus.on('tick:minute', () => {
+  Q.entregar = () => {
     const G0 = G(); if (!G0) return;
     const del = G0.equip.deliveries;
     for (let i = del.length - 1; i >= 0; i--) if (del[i].at <= G0.time.t) {
       const d = del.splice(i, 1)[0];
       if (d.kind === 'equip') Q.receive(d.id); else if (d.kind === 'furn') H.receive(d.id); else if (d.kind === 'food' && SL.Rel) SL.Rel.deliveryArrived(d);
     }
+  };
+  SL.bus.on('tick:minute', () => {
+    const G0 = G(); if (!G0) return;
+    Q.entregar();
     if (G0.act && G0.act.id === 'live') G0.flags.useToday = (G0.flags.useToday || 0) + 1.4;
     else if (G0.act && SL.Life.ACT[G0.act.id] && SL.Life.ACT[G0.act.id].pc) G0.flags.useToday = (G0.flags.useToday || 0) + 1;
   });
@@ -179,7 +183,7 @@
     if (!SL.Econ.spend(Q.price(f), 'casa', f.name)) return 'Dinheiro insuficiente.';
     if (mode === 'entrega') {
       G0.equip.deliveries.push({ id, at: (SL.Clock.day() + 1) * 1440 + 9 * 60 + U.ri(0, 240), kind: 'furn' });
-      SL.notify({ cat: 'dinheiro', icon: 'shop', title: 'Compra confirmada', text: f.name + ' será entregue amanhã.' });
+      SL.notify({ cat: 'dinheiro', icon: 'shop', title: 'Compra confirmada', text: f.name + ' chega quando você acordar.' });
     } else H.receive(id);
     return null;
   };

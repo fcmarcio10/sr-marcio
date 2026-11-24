@@ -37,7 +37,10 @@
   // ---------- contas ----------
   E.overdueCount = () => { const d = SL.Clock.day(); return G().bills.filter(b => !b.paid && b.due < d).length; };
   E.pending = () => G().bills.filter(b => !b.paid).sort((a, b) => a.due - b.due);
+  E.CONTAS = 0.7;   // nov/2026: aluguel, internet, energia e assinaturas 30% mais baratos (dinheiro mais fácil)
+  const BARATO = { aluguel: 1, internet: 1, energia: 1, software: 1 };
   const addBill = (kind, name, amount, dueDay, cat, ref) => {
+    if (BARATO[kind]) amount *= E.CONTAS;
     if (amount <= 0) return;
     const b = { id: U.uid('b'), kind, name, amount: Math.round(amount * 100) / 100, due: dueDay, paid: false, cat, late: 0, ref: ref || null, created: SL.Clock.day() };
     G().bills.push(b);
@@ -63,7 +66,8 @@
     G0.equip.vehicles.forEach(v => { const vv = D.vehicles.find(x => x.id === v); if (vv && vv.monthly) { items.push([vv.name, vv.monthly]); sum += vv.monthly; } });
     if (G0.gym) { items.push(['Academia (mensal)', 99]); sum += 99; }
     G0.loans.forEach(l => { if (l.left > 0) { items.push(['Parcela do empréstimo', l.inst]); sum += l.inst; } });
-    return { sum, items };
+    items.forEach(it => { if (/^(Aluguel|Condomínio|Internet|Energia)/.test(it[0]) || (D.software.some(s => s.name === it[0]))) it[1] *= E.CONTAS; });
+    return { sum: items.reduce((s, it) => s + it[1], 0), items };
   };
 
   E.createMonthlyBills = day => {
@@ -172,10 +176,9 @@
     G0.bills = G0.bills.filter(b => !b.paid || day - SL.Clock.day(b.paidT || 0) < 45);
     // repasses das plataformas
     const P = G0.ch;
-    if (SL.Clock.dowOfDay(day) === 1 && P.pulso.bal >= 50) { const v = P.pulso.bal; P.pulso.bal = 0; E.add(v, 'doacoes', 'Repasse semanal da Twitch'); SL.notify({ cat: 'dinheiro', icon: 'money', title: 'Repasse da Twitch', text: U.money(v) + ' caiu na conta (doações, inscrições e anúncios).', app: 'banco' }); }
-    const dom = SL.Clock.dayOfMonth(day * 1440);
-    if (dom === 21 && P.vision.bal >= 100) { const v = P.vision.bal; P.vision.bal = 0; E.add(v, 'vision', 'Pagamento mensal do YouTube'); SL.notify({ cat: 'dinheiro', icon: 'vision', title: 'Pagamento do YouTube', text: U.money(v) + ' pela monetização dos vídeos.', app: 'banco' }); }
-    if (dom === 25 && P.clipz.bal >= 100) { const v = P.clipz.bal; P.clipz.bal = 0; E.add(v, 'clipz', 'Fundo de criadores do TikTok'); SL.notify({ cat: 'dinheiro', icon: 'clip', title: 'Pagamento do TikTok', text: U.money(v) + ' do fundo de criadores.', app: 'banco' }); }
+    if (P.pulso.bal >= 1 && !(SL.Live && SL.Live.cur)) { const v = P.pulso.bal; P.pulso.bal = 0; E.add(v, 'doacoes', 'Repasse da Twitch'); SL.notify({ silent: true, cat: 'dinheiro', icon: 'money', title: 'Repasse da Twitch', text: U.money(v) + ' caiu na conta (inscrições renovadas).', app: 'banco' }); }
+    if (P.vision.bal >= 10) { const v = P.vision.bal; P.vision.bal = 0; E.add(v, 'vision', 'Pagamento do YouTube'); SL.notify({ cat: 'dinheiro', icon: 'vision', title: 'Pagamento do YouTube', text: U.money(v) + ' pela monetização dos vídeos.', app: 'banco' }); }
+    if (P.clipz.bal >= 10) { const v = P.clipz.bal; P.clipz.bal = 0; E.add(v, 'clipz', 'Fundo de criadores do TikTok'); SL.notify({ cat: 'dinheiro', icon: 'clip', title: 'Pagamento do TikTok', text: U.money(v) + ' do fundo de criadores.', app: 'banco' }); }
     // registro diário
     const st = G0.stats;
     st.days.push({ d: day, f: { p: P.pulso.f, v: P.vision.f, c: P.clipz.f, n: P.connect.f }, m: Math.round(G0.money), nw: Math.round(E.netWorth()), subs: P.pulso.subs, views: P.vision.views + P.clipz.views });

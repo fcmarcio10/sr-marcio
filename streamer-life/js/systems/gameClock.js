@@ -8,6 +8,12 @@
   C.SPEEDS = [0, 0.25, 0.75];      // minutos de jogo por segundo real
   C.ACT_MULT = [0, 1, 3];          // atividades (dormir, banho...) andam no ritmo delas, multiplicado pela velocidade escolhida
   C.LIVE_SPEEDS = [0, 0.25, 1.95]; // durante a live: o 3x acelera 160% a mais (pedido do dono)
+  // nov/2026 (pedido do dono): sem relógio e sem dias na tela. O tempo só anda quando você faz alguma coisa
+  // (dormir, comer, editar, live...). Parado pela casa ou mexendo no PC, nada passa. As velocidades só existem na live.
+  C.RITMO = 2;                      // atividades fora da live: ritmo próprio x2 (antes: x1 no normal, x3 no 3x)
+  C.HORA = 20;                      // hora fixa para o público, as lojas e o resto que dependia do relógio
+  // "hoje", "amanhã", "em 3 dias" (sem datas)
+  C.quando = d => { const n = d - C.day(); return n < 0 ? C.ago(d * 1440 + 720) : n === 0 ? 'hoje' : n === 1 ? 'amanhã' : 'daqui a ' + n + ' dias'; };
   // velocidade escolhida (saves antigos tinham 4 velocidades: o que passa de 2 vira 3x)
   C.sp = () => { const G = SL.G; const s = G ? G.time.speed | 0 : 1; return Math.max(0, Math.min(C.SPEEDS.length - 1, s)); };
   C.setSpeed = s => { const G = SL.G; if (!G) return; G.time.speed = Math.max(0, Math.min(C.SPEEDS.length - 1, s | 0)); SL.bus.emit('speed', G.time.speed); };
@@ -34,17 +40,17 @@
   C.monthKey = t => { const d = C.date(t); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0'); };
   C.dayOfMonth = t => C.date(t).getUTCDate();
   C.fmtTime = t => { const m = C.mod(t); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
-  C.fmtDate = t => { const d = C.date(t); return DOW3[d.getUTCDay()] + ', ' + String(d.getUTCDate()).padStart(2, '0') + ' ' + MON3[d.getUTCMonth()]; };
-  C.fmtDay = d => C.fmtDate(d * 1440);
-  C.fmtFull = t => { const d = C.date(t); return DOW[d.getUTCDay()] + ', ' + d.getUTCDate() + ' de ' + MON[d.getUTCMonth()] + ' de ' + d.getUTCFullYear(); };
-  C.fmtStamp = t => C.fmtDate(t) + ' ' + C.fmtTime(t);
+  // sem datas na tela (pedido do dono): tudo vira "hoje", "ontem", "amanhã", "daqui a 3 dias"...
+  C.fmtDate = t => C.quando(C.day(t));
+  C.fmtDay = d => C.quando(d);
+  C.fmtFull = t => C.quando(C.day(t));
+  C.fmtStamp = t => C.ago(t);
   C.period = t => { const h = C.hour(t); return h < 5 ? 'Madrugada' : h < 12 ? 'Manhã' : h < 18 ? 'Tarde' : 'Noite'; };
   C.ago = t => {
     const d = SL.G.time.t - t;
-    if (d < 60) return 'há ' + Math.max(1, Math.round(d)) + ' min';
-    if (d < 1440) return 'há ' + Math.round(d / 60) + ' h';
-    const days = Math.round(d / 1440);
-    return days === 1 ? 'ontem' : 'há ' + days + ' dias';
+    if (d < 180) return 'agora há pouco';
+    const days = C.day() - C.day(t);
+    return days <= 0 ? 'hoje' : days === 1 ? 'ontem' : 'há ' + days + ' dias';
   };
   // próximo dia (>= hoje) que cai em um dia do mês
   C.dayForDayOfMonth = (fromDay, dom) => {
@@ -65,13 +71,11 @@
   C.rate = () => {
     const G = SL.G;
     if (!G || holds > 0) return 0;
-    const sp = C.sp(); const base = SL.Live && SL.Live.cur ? C.LIVE_SPEEDS : C.SPEEDS;
-    if (G.act) {
-      if (G.act.id === 'live') return C.LIVE_SPEEDS[sp] || 0;
-      if (sp === 0) return 0;
-      return Math.max(base[sp], (G.act.speed || 0) * C.ACT_MULT[sp]);
-    }
-    return base[sp] || 0;
+    const act = G.act && G.act.id !== 'live' ? (G.act.speed || 0) * C.RITMO : 0;
+    // live no ar (mesmo com você longe do PC): velocidade escolhida na live (pausa, normal, 3x)
+    if (SL.Live && SL.Live.cur) { const sp = C.sp(); if (sp === 0) return 0; return Math.max(C.LIVE_SPEEDS[sp] || 0, act); }
+    // fora da live: só passa tempo fazendo alguma coisa
+    return act;
   };
 
   C.advance = realSec => {

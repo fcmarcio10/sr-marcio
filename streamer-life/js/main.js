@@ -46,9 +46,9 @@
       <div class="card flat col gap4"><b class="small">${SL.icon('laptop', 15)} Computador</b><span class="small muted">Clique na mesa do escritório: OBS Studio para as lives na Twitch, YouTube e TikTok para gravar vídeos, Steam, Instagram, Bank e mais. Dá para levantar do PC com a live no ar (sair de casa encerra a live).</span></div>
       <div class="card flat col gap4"><b class="small">${SL.icon('phone', 15)} Celular</b><span class="small muted">Tecla C ou botão no topo. Mensagens, redes, banco, mapa e comida, de qualquer lugar.</span></div>
       <div class="card flat col gap4"><b class="small">${SL.icon('heart', 15)} Necessidades</b><span class="small muted">Fome, sede e cansaço (as barrinhas no canto). Cansado demais, você fica com sono e rende menos.</span></div>
-      <div class="card flat col gap4"><b class="small">${SL.icon('money', 15)} Contas</b><span class="small muted">Aluguel dia 10, internet dia 15, energia dia 20. Freelas e turnos no café ajudam no começo.</span></div>
-      <div class="card flat col gap4"><b class="small">${SL.icon('clock', 15)} Tempo</b><span class="small muted">Três velocidades: pausa (Espaço), normal (1) e 3x (2). No normal, 1 minuto do jogo leva 4 segundos. Também ficam na barra do PC e na live.</span></div></div>
-      <p class="small muted">Os objetivos do painel à esquerda guiam os primeiros passos. Não existe um caminho certo: você decide como viver.</p>`, buttons: [{ label: 'Começar', cls: 'primary', icon: 'play' }] });
+      <div class="card flat col gap4"><b class="small">${SL.icon('money', 15)} Dinheiro</b><span class="small muted">A Twitch paga no fim de cada live. Aluguel, internet e energia chegam uma vez por mês (veja no Bank). Freelas e turnos no café ajudam no começo.</span></div>
+      <div class="card flat col gap4"><b class="small">${SL.icon('clock', 15)} Tempo</b><span class="small muted">Não tem relógio: o tempo só passa quando você faz alguma coisa (live, editar, comer, dormir). Na live dá para pausar ou acelerar 3x.</span></div></div>
+      <p class="small muted">A "Próxima meta" no topo da tela mostra o próximo passo e o prêmio em dinheiro. Não existe um caminho certo: você decide como viver.</p>`, buttons: [{ label: 'Começar', cls: 'primary', icon: 'play' }] });
   };
   SL.quitToTitle = () => {
     SL.LiveUI.close(); UI.closePhone(); $('#overlay-pc').hidden = true; $('#overlay-pc').innerHTML = ''; UI.wins.length = 0; document.body.classList.remove('pc-open', 'live-open');
@@ -83,14 +83,15 @@
     SL.HUD.update();
     if (now - lastSlow > 250) {
       lastSlow = now;
-      UI.checkDecisions(); SL.HUD.placePanel(); SL.HUD.stageOverlay();
+      UI.checkDecisions(); SL.HUD.placePanel(); SL.HUD.stageOverlay(); if (G.resumo) SL.HUD.resumoSemana();
+      if (SL.audio.ambiente) { const a = G.act; SL.audio.ambiente({ chuva: !!G.flags.chuva, fora: G.loc.area !== 'casa', teclado: !!(a && ['editar', 'freela', 'estudar'].includes(a.id)), live: !!SL.Live.cur }); }
       if (pcOpen) {
-        const tc = $('#overlay-pc .tb-clock'); if (tc) { tc.textContent = SL.Clock.fmtTime(G.time.t); tc.title = SL.Clock.fmtFull(G.time.t); }
+        const ts = $('#overlay-pc .tb-speeds'); if (ts) { const ar = !!SL.Live.cur; if (ts.hidden === ar) ts.hidden = !ar; }
         const pr = SL.Life.progress(); UI.$$('#overlay-pc [data-actprog]').forEach(b => { b.style.width = (pr * 100).toFixed(1) + '%'; });
-        const fim = G.act && G.act.dur ? 'falta ' + U.dur(Math.max(1, Math.round(G.act.t0 + G.act.dur - G.time.t))) + (SL.Clock.sp() === 0 ? ' · tempo pausado' : '') : ''; UI.$$('#overlay-pc [data-actfim]').forEach(b => { if (b.textContent !== fim) b.textContent = fim; });
+        const fim = G.act && G.act.dur ? Math.round(pr * 100) + '%' : ''; UI.$$('#overlay-pc [data-actfim]').forEach(b => { if (b.textContent !== fim) b.textContent = fim; });
         if (now - lastWall > 1000) { lastWall = now; const wcv = $('#overlay-pc canvas.wall'); if (wcv) SL.Preview.wallpaper(wcv, now); SL.UI.renderDesktopIcons(); }
       }
-      if (UI.phoneOpen()) { const pc = $('#overlay-phone .ph-clock'); if (pc) pc.textContent = SL.Clock.fmtTime(G.time.t); const pb = $('#overlay-phone .ph-bat'); if (pb) pb.textContent = Math.round(Math.max(5, 100 - (G.time.t % 1440) / 1440 * 80)) + '%'; }
+      if (UI.phoneOpen()) { const pb = $('#overlay-phone .ph-bat'); if (pb && !pb.textContent) pb.textContent = '87%'; }
     }
     const every = (SL.settings.autosaveMin || 3) * 60000;
     if (Date.now() - lastAuto > every) { lastAuto = Date.now(); SL.Save.auto(); }

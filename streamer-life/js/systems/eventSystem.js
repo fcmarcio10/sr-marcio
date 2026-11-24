@@ -107,9 +107,9 @@
   };
   DEF.convite_expo = {
     title: d => 'Convite: ' + d.name, icon: 'flag',
-    text: d => 'Você foi convidado(a) para o evento "' + d.name + '" no Centro de Eventos Expo Norte, ' + SL.Clock.fmtDay(d.day) + '. ' + (d.fee ? 'Inscrição de ' + U.money(d.fee) + '.' : 'Entrada liberada para criadores.') + (d.cache ? ' Cachê de ' + U.money(d.cache) + ' para participar de um painel.' : ''),
+    text: d => 'Você foi convidado(a) para o evento "' + d.name + '" no Centro de Eventos Expo Norte. ' + (d.fee ? 'Inscrição de ' + U.money(d.fee) + '.' : 'Entrada liberada para criadores.') + (d.cache ? ' Cachê de ' + U.money(d.cache) + ' para participar de um painel.' : ''),
     choices: [
-      { id: 'sim', label: 'Confirmar presença', fn: d => { G().flags.expo = d; if (SL.Calendar) SL.Calendar.add({ day: d.day, hour: 10, kind: 'evento', title: d.name + ' (Expo Norte)', ref: 'expo' }); return 'Anotado no calendário. Vá ao Centro de Eventos no dia.'; } },
+      { id: 'sim', label: 'Confirmar presença', fn: d => { G().flags.expo = d; return 'Confirmado. Vá ao Centro de Eventos quando quiser.'; } },
       { id: 'nao', label: 'Recusar', fn: () => { Rep.mod({ profissional: -0.5 }); return 'Fica para a próxima.'; } },
     ],
   };
@@ -170,7 +170,7 @@
     if (d.cache) SL.Econ.add(d.cache, 'eventos', 'Cachê: ' + d.name);
     SL.notify({ cat: 'carreira', icon: 'flag', title: 'Evento aproveitado', text: 'Você conheceu ' + met.map(c => D.creatorById(c.id).name).join(', ') + ' e ganhou ' + fans + ' seguidores.' });
     if (U.chance(0.5)) SL.Sponsors.makeOffer();
-    G0.flags.expo = null;
+    G0.flags.expo = null; G0.flags.expoSem = Math.floor(SL.Clock.day() / 7);
   };
   E.onDm = () => {};
 
@@ -186,7 +186,7 @@
     if (raw.length && cool('corte_viraliza', 5) && U.chance(0.04 * (1 + G0.rep.popularidade / 50))) { const r = U.pick(raw); r.viralEv = 1; E.trigger('corte_viraliza', { txt: r.moments[0].txt, views: Math.round((pf + 500) * U.rf(2, 12)) }); return; }
     if (G0.rep.popularidade >= 30 && cool('fake_news', 25) && U.chance(0.004)) { E.trigger('fake_news', { text: U.pick(['@' + G0.player.user + ' compra seguidores', '@' + G0.player.user + ' é grosseiro(a) com fãs fora das lives', '@' + G0.player.user + ' vai parar com o canal']) }); return; }
     if (pf > 300 && cool('seguidores_comprados', 40) && U.chance(0.003)) { E.trigger('seguidores_comprados', {}); return; }
-    if (G0.home.id === 'kitnet' && SL.Clock.hour() >= 23 && G0.act && G0.act.id === 'live' && cool('vizinho', 20) && U.chance(0.3)) { E.trigger('vizinho', {}); return; }
+    if (G0.home.id === 'kitnet' && G0.act && G0.act.id === 'live' && cool('vizinho', 20) && U.chance(0.1)) { E.trigger('vizinho', {}); return; }
     if (SL.Career && SL.Career.tier() >= 4 && cool('entrevista', 30) && U.chance(0.004)) { E.trigger('entrevista', { cache: Math.round(3000 + pf * 0.01) }); return; }
     if (pf > 200 && cool('doacao_fora', 15) && U.chance(0.003)) { const fans = G0.viewers.list.filter(v => v.fol && v.w >= 3 && v.loy > 40); if (fans.length) { const v = U.pick(fans); E.trigger('doacao_fora', { u: v.u, v: U.ri(1, 5) * 100, msg: U.pick(['Obrigado por me fazer companhia nas madrugadas.', 'Investe no canal, você merece.', 'Suas lives me ajudaram numa fase difícil.']) }); } }
   });

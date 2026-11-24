@@ -81,32 +81,32 @@
   const tf = () => SL.Social.totalFollowers();
   const ownsPc = t => Object.keys(G().equip.owned).some(id => { const e = D.equipById(id); return e && e.slot === 'computador' && e.tier >= t; });
   GO.LIST = [
-    { id: 'p_comer', g: 'Primeiros passos', title: 'Comer alguma coisa', hint: 'Clique na geladeira da cozinha.', check: () => !!G().flags.ate },
-    { id: 'p_pc', g: 'Primeiros passos', title: 'Ligar o computador', hint: 'Clique na mesa do escritório.', check: () => !!G().flags.pcOpened },
-    { id: 'p_live', g: 'Primeiros passos', title: 'Fazer sua primeira transmissão', hint: 'App OBS Studio, no computador.', check: () => G().ch.pulso.livesN >= 1 },
-    { id: 'p_post', g: 'Primeiros passos', title: 'Publicar algo no Instagram', hint: 'App Instagram, no celular ou no computador.', check: () => G().posts.length >= 1 },
-    { id: 'p_video', g: 'Primeiros passos', title: 'Publicar seu primeiro vídeo', hint: 'Grave e edite no Premiere Pro.', check: () => G().videos.length >= 1 },
-    { id: 'pc1', g: 'Carreira', title: 'Comprar seu primeiro computador de verdade', check: () => ownsPc(1) },
-    { id: 'f100', g: 'Carreira', title: 'Conseguir os primeiros 100 seguidores', prog: () => [tf(), 100] },
-    { id: 'afil', g: 'Carreira', title: 'Virar afiliado(a) da Twitch', hint: '50 seguidores, 7 lives e média de 3 pessoas.', check: () => G().ch.pulso.afil },
-    { id: 'spons', g: 'Carreira', title: 'Conseguir o primeiro patrocínio', check: () => G().contracts.length >= 1 },
-    { id: 'v100', g: 'Carreira', title: 'Live com 100 pessoas ao mesmo tempo', prog: () => [G().ch.pulso.peak, 100] },
-    { id: 'mon', g: 'Carreira', title: 'Monetizar o canal no YouTube', hint: '1.000 inscritos e 4.000 horas assistidas.', check: () => G().ch.vision.mon },
-    { id: 'f10k', g: 'Carreira', title: 'Alcançar 10 mil inscritos no YouTube', prog: () => [G().ch.vision.f, 10000] },
-    { id: 'viral', g: 'Carreira', title: 'Ter um vídeo com 100 mil visualizações', prog: () => [Math.max(0, ...G().videos.map(v => v.views)), 100000] },
-    { id: 'v1000', g: 'Carreira', title: 'Live com 1.000 espectadores simultâneos', prog: () => [G().ch.pulso.peak, 1000] },
-    { id: 'f100k', g: 'Carreira', title: 'Alcançar 100 mil seguidores', prog: () => [tf(), 100000] },
-    { id: 'top10', g: 'Carreira', title: 'Entrar no top 10 do ranking de criadores', check: () => SL.Creators.ranking().findIndex(x => x.me) < 10 },
-    { id: 'f1m', g: 'Carreira', title: 'Chegar a 1 milhão de seguidores', prog: () => [tf(), 1000000] },
-    { id: 'top1', g: 'Carreira', title: 'Ser o maior criador de conteúdo do ranking', check: () => SL.Creators.ranking()[0].me },
-    { id: 'pcpro', g: 'Conquistas da vida', title: 'Comprar um computador profissional', check: () => ownsPc(4) },
-    { id: 'equipe', g: 'Conquistas da vida', title: 'Montar uma equipe (2 contratados)', prog: () => [G().staff.length, 2] },
-    { id: 'produto', g: 'Conquistas da vida', title: 'Lançar um produto próprio', check: () => G().ch.merch.on },
-    { id: 'patri', g: 'Conquistas da vida', title: 'Patrimônio de R$ 100 mil', prog: () => [Math.max(0, SL.Econ.netWorth()), 100000] },
-    { id: 'casa', g: 'Conquistas da vida', title: 'Comprar uma casa', check: () => G().home.owned },
-    { id: 'estudio', g: 'Conquistas da vida', title: 'Construir um estúdio', check: () => G().home.studio },
-    { id: 'amigo', g: 'Pessoas', title: 'Fazer uma nova amizade', check: () => Object.keys(G().rel).some(id => !['duda', 'rafa', 'mae'].includes(id) && ['amigo', 'melhor_amigo'].includes(G().rel[id].stage)) },
-    { id: 'collab', g: 'Pessoas', title: 'Fazer uma live em colaboração', check: () => !!G().flags.collabDone },
+    { id: 'p_comer', r: 50, g: 'Primeiros passos', title: 'Comer alguma coisa', hint: 'Clique na geladeira da cozinha.', check: () => !!G().flags.ate },
+    { id: 'p_pc', r: 50, g: 'Primeiros passos', title: 'Ligar o computador', hint: 'Clique na mesa do escritório.', check: () => !!G().flags.pcOpened },
+    { id: 'p_live', r: 150, g: 'Primeiros passos', title: 'Fazer sua primeira transmissão', hint: 'App OBS Studio, no computador.', check: () => G().ch.pulso.livesN >= 1 },
+    { id: 'p_post', r: 80, g: 'Primeiros passos', title: 'Publicar algo no Instagram', hint: 'App Instagram, no celular ou no computador.', check: () => G().posts.length >= 1 },
+    { id: 'p_video', r: 150, g: 'Primeiros passos', title: 'Publicar seu primeiro vídeo', hint: 'Faça uma live: o corte sai sozinho no TikTok e no YouTube.', check: () => G().videos.length >= 1 },
+    { id: 'f100', r: 300, g: 'Carreira', title: 'Conseguir os primeiros 100 seguidores', prog: () => [tf(), 100] },
+    { id: 'afil', r: 500, g: 'Carreira', title: 'Virar afiliado(a) da Twitch', hint: '50 seguidores, 7 lives e média de 3 pessoas.', check: () => G().ch.pulso.afil },
+    { id: 'pc1', r: 300, g: 'Carreira', title: 'Comprar seu primeiro computador de verdade', check: () => ownsPc(1) },
+    { id: 'spons', r: 400, g: 'Carreira', title: 'Conseguir o primeiro patrocínio', check: () => G().contracts.length >= 1 },
+    { id: 'v100', r: 800, g: 'Carreira', title: 'Live com 100 pessoas ao mesmo tempo', prog: () => [G().ch.pulso.peak, 100] },
+    { id: 'mon', r: 1500, g: 'Carreira', title: 'Monetizar o canal no YouTube', hint: '1.000 inscritos e 4.000 horas assistidas.', check: () => G().ch.vision.mon },
+    { id: 'f10k', r: 3000, g: 'Carreira', title: 'Alcançar 10 mil inscritos no YouTube', prog: () => [G().ch.vision.f, 10000] },
+    { id: 'viral', r: 2500, g: 'Carreira', title: 'Ter um vídeo com 100 mil visualizações', prog: () => [Math.max(0, ...G().videos.map(v => v.views)), 100000] },
+    { id: 'v1000', r: 4000, g: 'Carreira', title: 'Live com 1.000 espectadores simultâneos', prog: () => [G().ch.pulso.peak, 1000] },
+    { id: 'f100k', r: 10000, g: 'Carreira', title: 'Alcançar 100 mil seguidores', prog: () => [tf(), 100000] },
+    { id: 'top10', r: 8000, g: 'Carreira', title: 'Entrar no top 10 do ranking de criadores', check: () => SL.Creators.ranking().findIndex(x => x.me) < 10 },
+    { id: 'f1m', r: 30000, g: 'Carreira', title: 'Chegar a 1 milhão de seguidores', prog: () => [tf(), 1000000] },
+    { id: 'top1', r: 50000, g: 'Carreira', title: 'Ser o maior criador de conteúdo do ranking', check: () => SL.Creators.ranking()[0].me },
+    { id: 'pcpro', r: 2000, g: 'Conquistas da vida', title: 'Comprar um computador profissional', check: () => ownsPc(4) },
+    { id: 'equipe', r: 1500, g: 'Conquistas da vida', title: 'Montar uma equipe (2 contratados)', prog: () => [G().staff.length, 2] },
+    { id: 'produto', r: 2000, g: 'Conquistas da vida', title: 'Lançar um produto próprio', check: () => G().ch.merch.on },
+    { id: 'patri', r: 5000, g: 'Conquistas da vida', title: 'Patrimônio de R$ 100 mil', prog: () => [Math.max(0, SL.Econ.netWorth()), 100000] },
+    { id: 'casa', r: 10000, g: 'Conquistas da vida', title: 'Comprar uma casa', check: () => G().home.owned },
+    { id: 'estudio', r: 5000, g: 'Conquistas da vida', title: 'Construir um estúdio', check: () => G().home.studio },
+    { id: 'amigo', r: 200, g: 'Pessoas', title: 'Fazer uma nova amizade', check: () => Object.keys(G().rel).some(id => !['duda', 'rafa', 'mae'].includes(id) && ['amigo', 'melhor_amigo'].includes(G().rel[id].stage)) },
+    { id: 'collab', r: 400, g: 'Pessoas', title: 'Fazer uma live em colaboração', check: () => !!G().flags.collabDone },
     { id: 'namoro', g: 'Pessoas', title: 'Começar um namoro (opcional)', check: () => !!SL.Rel.partner() },
   ];
   GO.status = g => { if (G().goals[g.id]) return { done: true, p: 1 }; if (g.prog) { const [a, b] = g.prog(); return { done: a >= b, p: U.clamp(a / b, 0, 1), a, b }; } return { done: !!g.check(), p: g.check() ? 1 : 0 }; };
@@ -117,12 +117,35 @@
       let ok = false; try { ok = GO.status(g).done; } catch (e) { ok = false; }
       if (ok) {
         G0.goals[g.id] = SL.Clock.day();
-        SL.notify({ cat: 'carreira', icon: 'trophy', title: 'Objetivo concluído', text: g.title, sound: 'success' });
+        if (g.r) SL.Econ.add(g.r, 'outros', 'Prêmio da meta: ' + g.title);
+        SL.notify({ cat: 'carreira', icon: 'trophy', title: 'Meta cumprida' + (g.r ? ': +' + U.money0(g.r) : ''), text: g.title, sound: 'success' });
         if (SL.audio) SL.audio.play('success');
       }
     });
     SL.bus.emit('goals');
   };
   GO.next = n => GO.LIST.filter(g => !G().goals[g.id]).slice(0, n || 3);
+  // a meta que aparece no painel do jogo: a primeira que falta (primeiros passos e carreira, na ordem)
+  GO.atual = () => {
+    const G0 = G(); if (!G0) return null;
+    const g = GO.LIST.find(x => (x.g === 'Primeiros passos' || x.g === 'Carreira') && !G0.goals[x.id]); if (!g) return null;
+    let st; try { st = GO.status(g); } catch (e) { st = { done: false, p: 0 }; }
+    return { g, s: st };
+  };
+
+  // ---------- resumo da semana (sugestão 2): a cada 7 dias do jogo ----------
+  GO.semana = day => {
+    const G0 = G(); const ini = (day - 7) * 1440, fim = day * 1440; const ch = G0.ch;
+    const lives = G0.lives.filter(l => l.t0 >= ini && l.t0 < fim);
+    const d0 = G0.stats.days.find(x => x.d === day - 7) || G0.stats.days[0] || { f: { p: 0, v: 0, c: 0, n: 0 } };
+    const mov = G0.ledger.filter(x => x.t >= ini && x.t < fim);
+    const vids = G0.videos.filter(v => v.t >= ini && v.t < fim && v.status === 'publicado');
+    const best = vids.slice().sort((a, b) => b.views - a.views)[0];
+    return { n: Math.floor(day / 7), lives: lives.length, horas: Math.round(lives.reduce((a, l) => a + l.dur, 0) / 6) / 10, pico: lives.reduce((a, l) => Math.max(a, l.peak), 0),
+      seg: [['Twitch', ch.pulso.f - d0.f.p], ['YouTube', ch.vision.f - d0.f.v], ['TikTok', ch.clipz.f - d0.f.c], ['Instagram', ch.connect.f - d0.f.n]],
+      ganho: Math.round(mov.filter(x => x.v > 0 && x.cat !== 'emprestimo').reduce((a, x) => a + x.v, 0)), gasto: Math.round(mov.filter(x => x.v < 0).reduce((a, x) => a - x.v, 0)),
+      videos: vids.length, best: best ? { title: best.title, views: best.views, plat: best.plat === 'clipz' ? 'TikTok' : 'YouTube' } : null };
+  };
+  SL.bus.on('tick:day', day => { const G0 = G(); if (!G0 || day < 7 || day % 7) return; G0.resumo = GO.semana(day); });
   SL.bus.on('tick:hour', () => { if (G()) GO.check(); });
 })(window.SL);

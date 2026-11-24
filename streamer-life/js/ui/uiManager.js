@@ -125,7 +125,7 @@
     if (SL.audio) SL.audio.play('close');
   };
   UI.buildDesktop = ov => {
-    ov.innerHTML = `<div class="desktop"><canvas class="wall"></canvas><div class="desk-area"><div class="desk-icons"></div></div><div class="start-menu" hidden></div><div class="taskbar"><button class="tb-start" data-start title="Iniciar: todos os aplicativos">${UI.ic('window', 18)}<span>Iniciar</span></button><div class="tb-wins row gap4"></div><div class="tray"><div class="speeds tb-speeds">${UI.speedBtns()}</div>${UI.ic('wifi', 15)}<span class="tb-clock mono"></span><button class="tb-out" data-sair title="Levantar do PC (a live continua se estiver no ar)">${UI.ic('exit', 15)}<span>Sair do PC</span></button><button class="tb-off" data-desligar title="Desligar o PC">${UI.ic('power', 16)}</button></div></div></div>`;
+    ov.innerHTML = `<div class="desktop"><canvas class="wall"></canvas><div class="desk-area"><div class="desk-icons"></div></div><div class="start-menu" hidden></div><div class="taskbar"><button class="tb-start" data-start title="Iniciar: todos os aplicativos">${UI.ic('window', 18)}<span>Iniciar</span></button><div class="tb-wins row gap4"></div><div class="tray"><div class="speeds tb-speeds" hidden title="Velocidade da live">${UI.speedBtns()}</div>${UI.ic('wifi', 15)}<button class="tb-out" data-sair title="Levantar do PC (a live continua se estiver no ar)">${UI.ic('exit', 15)}<span>Sair do PC</span></button><button class="tb-off" data-desligar title="Desligar o PC">${UI.ic('power', 16)}</button></div></div></div>`;
     const sm = $('.start-menu', ov);
     // com a live aberta, o menu Iniciar ficava escondido atrás dela: a live minimiza antes
     $('[data-start]', ov).onclick = e => { e.stopPropagation(); if (sm.hidden && SL.LiveUI && SL.LiveUI.visible()) SL.LiveUI.minimize(); if (sm.hidden) UI.renderStart(); sm.hidden = !sm.hidden; };
@@ -262,7 +262,7 @@
     if (!id) {
       phoneCtx = null;
       const G = SL.G;
-      fresh.innerHTML = `<div class="phone-home"><div><div class="big-t">${SL.Clock.fmtTime(G.time.t)}</div><div class="muted">${SL.Clock.fmtFull(G.time.t)}</div></div><div class="app-grid">${UI.appList('phone').map(k => { const a = SL.Apps[k]; const b = a.badge ? a.badge() : 0; return `<button class="dicon" data-app="${k}"><div class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 22)}${b ? '<span class="badge">' + (b > 99 ? '99+' : b) + '</span>' : ''}</div><span>${U.esc(a.short || a.title)}</span></button>`; }).join('')}</div></div>`;
+      fresh.innerHTML = `<div class="phone-home"><div><div class="big-t">${U.esc(G.player.channel)}</div><div class="muted">${U.num(SL.Social.totalFollowers())} seguidores · ${U.money0(G.money)}</div></div><div class="app-grid">${UI.appList('phone').map(k => { const a = SL.Apps[k]; const b = a.badge ? a.badge() : 0; return `<button class="dicon" data-app="${k}"><div class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 22)}${b ? '<span class="badge">' + (b > 99 ? '99+' : b) + '</span>' : ''}</div><span>${U.esc(a.short || a.title)}</span></button>`; }).join('')}</div></div>`;
       $$('[data-app]', fresh).forEach(b => b.onclick = () => UI.phoneApp(b.dataset.app));
       return;
     }

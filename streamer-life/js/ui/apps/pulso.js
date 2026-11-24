@@ -17,7 +17,7 @@
   const predict = o => {
     const G = SL.G; const g = D.gameById(o.game); if (!g) return null;
     const P = G.ch.pulso; const pop = SL.Algo.gamePop(g);
-    const base = P.f * 0.04 * (0.5 + 0.5 * SL.Algo.todMul(SL.Clock.hour())) * (o.announce ? 1.35 : 1) + (1.05 * pop / 100 * (1 - 0.7 * g.sat) * 0.35 * SL.Algo.todMul(SL.Clock.hour()) * 15);
+    const base = P.f * 0.04 * (0.5 + 0.5 * SL.Algo.todMul(SL.Clock.HORA)) * (o.announce ? 1.35 : 1) + (1.05 * pop / 100 * (1 - 0.7 * g.sat) * 0.35 * SL.Algo.todMul(SL.Clock.HORA) * 15);
     const lo = Math.max(0, Math.round(base * 0.5)), hi = Math.max(2, Math.round(base * 1.7 + 3));
     return [lo, hi];
   };
@@ -27,9 +27,9 @@
     watch: ['live:end', 'promises', 'tick:hour', 'equip', 'videos'],
     render(el, ctx) {
       const st = ctx.st; st.tab = st.tab || (ctx.args && ctx.args.tab) || 'transmitir';
-      const tabs = [['transmitir', 'Transmitir', 'live'], ['painel', 'Painel', 'stats'], ['comunidade', 'Comunidade', 'users'], ['agenda', 'Agenda', 'calendar'], ['monetizacao', 'Monetização', 'money']];
+      const tabs = [['transmitir', 'Transmitir', 'live'], ['painel', 'Painel', 'stats'], ['comunidade', 'Comunidade', 'users'], ['monetizacao', 'Monetização', 'money']];
       el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#8b5cf6">${ic('pulso', 15)}</span>OBS Studio</div><div class="tabs">${tabs.map(([k, l, i]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${ic(i, 14)}${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
-      if (st.tab === 'painel') { const cv = $('#pl-chart', el); if (cv) UI.chart(cv, [{ data: SL.G.lives.slice(-20).map(l => l.avg), color: '#8b5cf6' }, { data: SL.G.lives.slice(-20).map(l => l.peak), color: '#ff4d5e', fill: false }], { labels: SL.G.lives.slice(-20).map(l => SL.Clock.fmtDay(SL.Clock.day(l.t0)).slice(5)) }); }
+      if (st.tab === 'painel') { const cv = $('#pl-chart', el); if (cv) UI.chart(cv, [{ data: SL.G.lives.slice(-20).map(l => l.avg), color: '#8b5cf6' }, { data: SL.G.lives.slice(-20).map(l => l.peak), color: '#ff4d5e', fill: false }], { labels: SL.G.lives.slice(-20).map((l, i, a) => '#' + (SL.G.lives.length - a.length + i + 1)) }); }
     },
     transmitir(ctx) {
       const G = SL.G; const st = ctx.st;
@@ -38,13 +38,11 @@
       const g = D.gameById(f.game); const ts = SL.Algo.titleScore(f.title, { game: f.game, kind: 'live' });
       const q = SL.Equip.streamQuality(g, f.quality, f.cam, {});
       const comp = SL.Algo.competitors(f.game); const pr = predict(f);
-      const collab = Object.keys(G.rel).find(id => { const r = G.rel[id]; return r.plan && r.plan.kind === 'collab' && Math.abs(G.time.t - r.plan.t) <= 120; });
-      const sched = G.ch.schedule.find(s => !s.done && s.day === SL.Clock.day() && Math.abs(s.hour - SL.Clock.hourF()) <= 1.6);
+      const collab = Object.keys(G.rel).find(id => { const r = G.rel[id]; return r.plan && r.plan.kind === 'collab' && !r.plan.done; });
       return `<div class="go-bar"><div class="grow"><b>${esc(g.name)}</b><small>${f.title ? esc(f.title) : 'Escolha um título para a live'} · ${f.quality} · ${U.dur(f.planned)}</small></div><button class="btn live lg" data-act="start">${ic('live', 18)} Entrar ao vivo</button></div>
       <div class="live-setup">
         <div class="col gap16">
-          ${collab ? `<div class="card" style="border-color:var(--info)"><div class="row"><span class="acc">${ic('users', 18)}</span><b class="grow">Collab agendada com ${esc(SL.Rel.name(collab))}</b><label class="row small"><input type="checkbox" data-act="collab" ${f.collab ? 'checked' : ''}> Fazer agora</label></div></div>` : ''}
-          ${sched ? `<div class="card" style="border-color:var(--ok)"><b class="small">${ic('calendar', 14)} Esta live estava agendada: seus seguidores estão esperando.</b></div>` : ''}
+          ${collab ? `<div class="card" style="border-color:var(--info)"><div class="row"><span class="acc">${ic('users', 18)}</span><b class="grow">Collab combinada com ${esc(SL.Rel.name(collab))}</b><label class="row small"><input type="checkbox" data-act="collab" ${f.collab ? 'checked' : ''}> Fazer agora</label></div></div>` : ''}
           <div class="col"><div class="section-t"><h3>Jogo ou categoria</h3><span class="tiny muted">Tendência e concorrência mudam todo dia</span></div>
           <div class="game-pick">${D.games.map(x => { const cs = SL.Equip.canStream(x, '480p'); const tm = SL.Algo.trendMul(x.id); const cp = SL.Algo.competitors(x.id); const ql = SL.Equip.streamQuality(x, f.quality, f.cam, {}); return `<button class="gp ${f.game === x.id ? 'on' : ''} ${cs.ok ? '' : 'no'}" data-act="game" data-g="${x.id}" title="${esc(cs.ok ? x.cat : cs.reason)}"><span class="gc" style="background:${x.color}"></span><b>${esc(x.name)}</b><small>${esc(x.cat)} · ${tm > 1.12 ? '<span class="ok">em alta</span>' : tm < 0.88 ? '<span class="bad">em baixa</span>' : 'estável'}</small><small class="gp-pc">${cs.ok ? (ql.fps < 0.8 ? '<i class="dot warn"></i>PC no limite' : '<i class="dot ok"></i>roda bem') : '<i class="dot bad"></i>' + esc(cs.reason || 'indisponível')}</small></button>`; }).join('')}</div></div>
           <div class="field"><label for="lv-title">Título da live</label><div class="row"><input id="lv-title" class="input" maxlength="90" value="${esc(f.title)}" data-f="title" placeholder="Ex.: Primeira vez no ${esc(g.name)}!"><button class="btn sm" data-act="idea">${ic('sparkle', 14)} Ideia</button></div>
@@ -61,7 +59,6 @@
             <div class="row small"><span class="dot ${q.fps < 0.8 || q.netOk < 0.85 ? 'warn' : 'ok'}"></span><span class="grow">${q.issues.length ? q.issues.map(i => ({ lag: 'Seu PC está no limite: pode travar.', rede: 'Sua internet não aguenta essa qualidade.', cam: 'Câmera escura ou ruim.', mic: 'Sem microfone.' })[i]).join(' ') : 'Tudo certo para transmitir.'}</span></div>
             <div class="row small"><span class="dot ok"></span><span class="grow">Público esperado: <b>${pr ? pr[0] + ' a ' + pr[1] : '?'}</b> pessoas</span></div>
             ${(() => { const bz = SL.Videos.buzz(); return bz.k > 0.04 ? `<div class="row small"><span class="dot ok"></span><span class="grow">Seu vídeo no ${bz.plat} vai trazer gente nova.</span></div>` : `<div class="row small"><span class="dot"></span><span class="grow muted">Postar um vídeo ou corte antes traz mais gente.</span></div>`; })()}
-            ${(() => { const hoje = G.ch.schedule.find(x => !x.done && x.day === SL.Clock.day()); return hoje ? `<div class="row small"><span class="dot ${Math.abs(hoje.hour - SL.Clock.hourF()) <= 1.6 ? 'ok' : 'warn'}"></span><span class="grow">Live marcada hoje às ${hoje.hour}h${Math.abs(hoje.hour - SL.Clock.hourF()) <= 1.6 ? ': é agora, o público está esperando.' : '.'}</span></div>` : ''; })()}
           </div>
         </div></div>`;
     },
@@ -70,7 +67,7 @@
       const av = G.ch.avgViewers.slice(-10); const avg = av.length ? av.reduce((a, b) => a + b, 0) / av.length : 0;
       return `<div class="statrow"><div class="card stat"><b>${U.num(P.f)}</b><span>Seguidores na Twitch</span></div><div class="card stat"><b>${U.num(P.subs)}</b><span>Inscritos ativos</span></div><div class="card stat"><b>${U.int(avg * 10) / 10 || 0}</b><span>Média (últimas 10 lives)</span></div><div class="card stat"><b>${U.num(P.peak)}</b><span>Recorde de público</span></div><div class="card stat"><b>${Math.round(P.hours)}h</b><span>Horas transmitidas</span></div><div class="card stat"><b>${P.parc ? 'Parceiro' : P.afil ? 'Afiliado' : 'Iniciante'}</b><span>Status na Twitch</span></div></div>
         <div class="card"><div class="section-t"><h3>Público por live</h3><span class="tiny muted"><span style="color:#8b5cf6">média</span> · <span style="color:#ff4d5e">pico</span></span></div>${G.lives.length ? '<canvas class="chart" id="pl-chart"></canvas>' : '<div class="empty">Faça sua primeira live para ver o gráfico.</div>'}</div>
-        <div class="card"><h3>Histórico de lives</h3>${lives.length ? `<div class="tablewrap"><table class="table"><tr><th>Data</th><th>Jogo</th><th>Duração</th><th>Pico</th><th>Média</th><th>Seguidores</th><th>Doações</th><th>Qualidade</th></tr>${lives.slice(0, 40).map(l => `<tr><td>${SL.Clock.fmtDay(SL.Clock.day(l.t0))}</td><td>${esc(D.gameById(l.game).name)}</td><td class="n">${U.dur(l.dur)}</td><td class="n">${U.int(l.peak)}</td><td class="n">${l.avg}</td><td class="n ok">+${U.int(l.fol)}</td><td class="n">${U.money(l.don)}</td><td class="n">${l.q}</td></tr>`).join('')}</table></div>` : '<div class="empty">Nenhuma live ainda.</div>'}</div>`;
+        <div class="card"><h3>Histórico de lives</h3>${lives.length ? `<div class="tablewrap"><table class="table"><tr><th>Live</th><th>Jogo</th><th>Duração</th><th>Pico</th><th>Média</th><th>Seguidores</th><th>Doações</th><th>Qualidade</th></tr>${lives.slice(0, 40).map((l, i) => `<tr><td>#${G.lives.length - i}</td><td>${esc(D.gameById(l.game).name)}</td><td class="n">${U.dur(l.dur)}</td><td class="n">${U.int(l.peak)}</td><td class="n">${l.avg}</td><td class="n ok">+${U.int(l.fol)}</td><td class="n">${U.money(l.don)}</td><td class="n">${l.q}</td></tr>`).join('')}</table></div>` : '<div class="empty">Nenhuma live ainda.</div>'}</div>`;
     },
     comunidade(ctx) {
       const G = SL.G; const st = ctx.st; st.cf = st.cf || 'todos'; st.q = st.q || '';
@@ -86,30 +83,18 @@
     profile(v) {
       const ar = D.archetypes[v.a]; const games = Object.entries(v.m.g).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([g, n]) => D.gameById(g).name + ' (' + n + ')').join(', ');
       return `<div class="card col"><div class="row"><span class="ava" style="width:48px;height:48px;font-size:20px;background:${v.c}">${esc(v.u[0].toUpperCase())}</span><div class="grow"><b style="color:${v.c}">@${esc(v.u)}</b><div class="small muted">${esc(v.n)} · ${v.age} anos</div></div><span class="tag acc">${SL.Viewers.label(v)}</span></div>
-        <div class="kv"><span>Jeito</span><span>${esc(ar ? ar.label : v.a)}</span><span>Gosta de</span><span>${esc(v.favs.join(', '))}</span><span>Jogo favorito</span><span>${esc((D.gameById(v.fg) || {}).name || '')}</span><span>Costuma ver às</span><span>${v.hr}h</span><span>Visitas</span><span>${v.m.v}</span><span>Mensagens</span><span>${v.m.msg}</span><span>Respondido(a)</span><span>${v.m.rep}x</span><span>Doações</span><span>${U.money(v.m.don)}</span><span>Desde</span><span>${SL.Clock.fmtDay(v.m.f)}</span></div>
+        <div class="kv"><span>Jeito</span><span>${esc(ar ? ar.label : v.a)}</span><span>Gosta de</span><span>${esc(v.favs.join(', '))}</span><span>Jogo favorito</span><span>${esc((D.gameById(v.fg) || {}).name || '')}</span><span>Visitas</span><span>${v.m.v}</span><span>Mensagens</span><span>${v.m.msg}</span><span>Respondido(a)</span><span>${v.m.rep}x</span><span>Doações</span><span>${U.money(v.m.don)}</span><span>Desde</span><span>${SL.Clock.fmtDay(v.m.f)}</span></div>
         <div class="relbar">Fidelidade<div class="bar"><i style="width:${v.loy}%"></i></div><b>${Math.round(v.loy)}</b></div>
         <div class="relbar">Interesse<div class="bar"><i style="width:${v.int}%;background:var(--info)"></i></div><b>${Math.round(v.int)}</b></div>
         ${games ? `<div class="small"><span class="muted">Viu você jogar:</span> ${esc(games)}</div>` : ''}
-        ${v.m.notes.length ? `<div class="upper">Memória</div>${v.m.notes.slice().reverse().map(n => `<div class="memo">${esc(SL.Chat.fill(SL.Viewers.noteText(n), v, {}))} <span class="faint tiny">· ${SL.Clock.fmtDay(n.d)}</span></div>`).join('')}` : ''}
+        ${v.m.notes.length ? `<div class="upper">Memória</div>${v.m.notes.slice().reverse().map(n => `<div class="memo">${esc(SL.Chat.fill(SL.Viewers.noteText(n), v, {}))} <span class="faint tiny">· ${SL.Clock.ago(n.d * 1440)}</span></div>`).join('')}` : ''}
         ${v.m.saw.length ? `<div class="small muted">Esteve presente em ${v.m.saw.length} momentos marcantes do canal.</div>` : ''}
         <div class="row wrap">${v.ban ? `<button class="btn sm" data-act="unban" data-v="${v.id}">Desbanir</button>` : v.mod ? `<button class="btn sm" data-act="unmod" data-v="${v.id}">Remover moderação</button>` : `<button class="btn sm" data-act="mkmod" data-v="${v.id}">${ic('shield', 14)} Tornar moderador(a)</button>`}</div></div>`;
-    },
-    agenda() {
-      const G = SL.G; const day = SL.Clock.day();
-      const sch = G.ch.schedule.filter(s => s.day >= day - 1).sort((a, b) => a.day - b.day || a.hour - b.hour);
-      const prom = G.promises.slice().reverse().slice(0, 20);
-      const kindL = p => p.kind === 'live' ? 'Live ' + SL.Clock.fmtDay(p.day) + ' às ' + p.hour + 'h' : p.kind === 'jogo' ? 'Jogar ' + D.gameById(p.game).name + ' até ' + SL.Clock.fmtDay(p.until) : 'Jogar com o chat até ' + SL.Clock.fmtDay(p.until);
-      return `<div class="card col"><h3>Agendar uma live</h3><p class="small muted">Agendar avisa os seguidores (post no Instagram) e aumenta o público. Faltar quebra a confiança.</p>
-        <div class="row wrap">${[0, 1, 2, 3].map(d => `<button class="chip" data-act="schd" data-v="${d}" ${d === (G.st_schd || 0) ? '' : ''}>${d === 0 ? 'Hoje' : d === 1 ? 'Amanhã' : SL.Clock.fmtDay(day + d)}</button>`).join('')}</div>
-        <div class="row wrap">${[14, 16, 18, 19, 20, 21, 22, 23].map(h => `<button class="btn sm" data-act="sch" data-h="${h}">${h}h</button>`).join('')}</div><div class="tiny muted" id="sch-day">Dia escolhido: ${this._schd ? SL.Clock.fmtDay(day + this._schd) : 'hoje'}</div></div>
-        <div class="card"><h3>Lives agendadas</h3>${sch.length ? `<div class="list">${sch.map(s => `<div class="li"><span class="acc">${ic('live', 15)}</span><b class="grow small">${SL.Clock.fmtDay(s.day)} às ${s.hour}h</b><span class="tag ${s.done ? 'ok' : s.missed ? 'bad' : 'warn'}">${s.done ? 'aconteceu' : s.missed ? 'perdida' : 'pendente'}</span></div>`).join('')}</div>` : '<div class="empty">Nenhuma live agendada.</div>'}</div>
-        <div class="card"><h3>Promessas feitas ao público</h3>${prom.length ? `<div class="list">${prom.map(p => `<div class="li"><span class="${p.status === 'cumprida' ? 'ok' : p.status === 'quebrada' ? 'bad' : 'warn'}">${ic(p.status === 'cumprida' ? 'check' : p.status === 'quebrada' ? 'x' : 'clock', 15)}</span><div class="grow"><b class="small">${esc(kindL(p))}</b><div class="tiny muted">${esc(p.why)} · ${p.viewers.length} pessoas lembram</div></div><span class="tag">${p.status}</span></div>`).join('')}</div>` : '<div class="empty">Nenhuma promessa. Elas surgem quando você responde o chat.</div>'}</div>`;
     },
     monetizacao() {
       const G = SL.G; const P = G.ch.pulso; const mk = SL.Clock.monthKey(); const m = G.month[mk] || { in: {} };
       const req = [[P.f, 50, 'seguidores'], [P.livesN, 7, 'lives feitas'], [G.ch.avgViewers.slice(-10).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(10, G.ch.avgViewers.length)), 3, 'média de pessoas']];
-      const nextMon = (() => { for (let d = SL.Clock.day() + 1; d < SL.Clock.day() + 8; d++) if (SL.Clock.dowOfDay(d) === 1) return d; return SL.Clock.day() + 7; })();
-      return `<div class="statrow"><div class="card stat"><b class="ok">${U.money(P.bal)}</b><span>Saldo a receber (repasse segunda, ${SL.Clock.fmtDay(nextMon)})</span></div><div class="card stat"><b>${U.money(m.in.doacoes || 0)}</b><span>Repasses de doações no mês</span></div><div class="card stat"><b>${U.num(P.subs)}</b><span>Inscrições ativas (R$ 3,95 cada por mês)</span></div></div>
+      return `<div class="statrow"><div class="card stat"><b class="ok">${U.money(P.bal)}</b><span>Saldo a receber (cai na conta no fim de cada live)</span></div><div class="card stat"><b>${U.money(m.in.doacoes || 0)}</b><span>Repasses da Twitch no mês</span></div><div class="card stat"><b>${U.num(P.subs)}</b><span>Inscrições ativas (R$ 3,95 cada por mês)</span></div></div>
         <div class="card col"><h3>${P.afil ? ic('check', 16) + ' Você é afiliado(a)' : 'Programa de afiliados'}</h3>${P.afil ? '<p class="small muted">Seus espectadores podem se inscrever e você pode rodar anúncios durante a live (cada anúncio rende pela quantidade de pessoas, mas cansa o público).</p>' : req.map(([a, b, l]) => `<div class="attr">${l}<div class="bar"><i style="width:${Math.min(100, a / b * 100)}%"></i></div><b>${Math.floor(a)}/${b}</b></div>`).join('')}</div>
         <div class="card col"><h3>Parceria Twitch</h3><p class="small muted">Exige 15 mil seguidores, 150 horas de live e média de 75 pessoas. Libera 1440p e o selo de parceiro.</p>${[[P.f, 15000, 'seguidores'], [P.hours, 150, 'horas'], [G.ch.avgViewers.slice(-10).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(10, G.ch.avgViewers.length)), 75, 'média']].map(([a, b, l]) => `<div class="attr">${l}<div class="bar"><i style="width:${Math.min(100, a / b * 100)}%"></i></div><b>${U.num(a)}</b></div>`).join('')}</div>`;
     },
@@ -132,8 +117,6 @@
       if (a === 'mkmod') { const e = SL.Live.makeMod(ds.v); if (e) return e; return ctx.render(); }
       if (a === 'unmod') { SL.Viewers.byId(ds.v).mod = 0; return ctx.render(); }
       if (a === 'unban') { SL.Viewers.byId(ds.v).ban = 0; return ctx.render(); }
-      if (a === 'schd') { this._schd = +ds.v; $$('[data-act="schd"]', ctx.host).forEach(b => b.classList.toggle('on', b === t)); $('#sch-day', ctx.host).textContent = 'Dia escolhido: ' + SL.Clock.fmtDay(SL.Clock.day() + this._schd); return; }
-      if (a === 'sch') { const d = this._schd || 0; const h = +ds.h; if (d === 0 && h <= SL.Clock.hour()) return 'Esse horário já passou hoje.'; SL.Social.scheduleLivePost(d, h); UI.toast({ title: 'Live agendada', text: SL.Clock.fmtDay(SL.Clock.day() + d) + ' às ' + h + 'h · anunciada no Instagram', icon: 'calendar', cat: 'canal' }, 'success'); return ctx.render(); }
       void G;
     },
     input(target, ctx) {
@@ -182,7 +165,7 @@
       <div class="live-main">
         <div class="live-top"><span class="onair"><i></i>AO VIVO</span><div class="ttl"><b class="ellipsis" id="lv-t"></b><small id="lv-g"></small></div>
           <div class="lstats"><div class="lstat v"><b id="ls-v">0</b><span>assistindo</span></div><div class="lstat"><b id="ls-f">+0</b><span>seguidores</span></div><div class="lstat"><b id="ls-s">0</b><span>inscrições</span></div><div class="lstat"><b id="ls-d">R$ 0</b><span>doações</span></div><div class="lstat"><b id="ls-t">0:00</b><span>no ar</span></div></div><div class="lctl" id="lv-ctl"></div></div>
-        <div class="preview-wrap" id="lv-wrap"><div class="preview-box" id="lv-box"><canvas id="lv-cv"></canvas><div class="alerts" id="lv-al"></div></div></div>
+        <div class="preview-wrap" id="lv-wrap"><div class="preview-box" id="lv-box"><canvas id="lv-cv"></canvas><div class="alerts" id="lv-al"></div><div class="mom" id="lv-mom" hidden></div></div></div>
         <div class="meter-row"><div class="meter" title="Empolgação do chat">${ic('fire', 14)}<span>Empolgação</span><div class="bar"><i id="m-h"></i></div></div><div class="meter" title="Qualidade do conteúdo agora">${ic('star', 14)}<span>Conteúdo</span><div class="bar"><i id="m-c"></i></div></div><div class="meter" title="Qualidade técnica">${ic('cpu', 14)}<span>Técnica</span><div class="bar"><i id="m-t"></i></div></div><div class="meter" title="Sua energia">${ic('energy', 14)}<span>Você</span><div class="bar"><i id="m-e"></i></div></div><span id="m-issues" class="row gap4"></span></div>
       </div>
       <div class="live-side"><div class="sh">${ic('chat', 16)}<b class="grow">Chat</b><span class="tiny muted" id="lv-rate"></span></div><div class="actions" id="lv-actions"></div><div class="chat-tip tiny muted">O Bigode (moderador) cuida do chat. Clique num comentário só se quiser responder.</div><div class="chat" id="lv-chat"></div><div class="pending" id="lv-pend"></div>
@@ -194,6 +177,7 @@
     LUI.actions();
     $('#lv-actions').onclick = LUI.actionClick; $('#lv-ctl').onclick = LUI.actionClick;
     $('#lv-pend').onclick = LUI.pendClick;
+    $('#lv-mom').onclick = e => { const b = e.target.closest('[data-mom]'); if (!b) return; SL.audio.play('click'); SL.Live.decidir(b.dataset.mom); LUI.momento(); };
     $('#lv-chat').onclick = e => { const m = e.target.closest('[data-m]'); if (m) LUI.msgPop(m.dataset.m, m); };
     $('#lv-form').onsubmit = e => { e.preventDefault(); const v = $('#lv-in').value.trim(); if (!v) return; $('#lv-in').value = ''; LUI.typed(v); };
   };
@@ -243,7 +227,6 @@
     if (k === 'talk') return menu(t, 'Conversar sobre...', LVs.TALKS.map(x => ({ label: x.label, icon: x.icon, fn: () => LVs.talk(x.id) })));
     if (k === 'joke') LVs.joke();
     if (k === 'poll') return menu(t, 'Criar enquete', LVs.POLLS.map(p => ({ label: p.q, icon: 'poll', fn: () => LVs.poll(p.id) })));
-    if (k === 'schedule') return menu(t, 'Próxima live', [[1, 20], [1, 21], [2, 20], [3, 20]].map(([d, h]) => ({ label: (d === 1 ? 'Amanhã' : SL.Clock.fmtDay(SL.Clock.day() + d)) + ' às ' + h + 'h', icon: 'calendar', desc: 'Vira promessa para quem está aqui', fn: () => { LVs.scheduleNext(d, h); } })));
     if (k === 'celeb') LVs.greetCeleb();
     if (k === 'risky') LVs.toggleRisky();
     if (k === 'focus') LVs.toggleFocus();
@@ -270,6 +253,7 @@
   };
   // superchat: som e voz (fila no SL.audio, um por vez)
   SL.bus.on('live:superchat', s => { if (SL.audio && SL.audio.superchat) SL.audio.superchat(s.id); });
+  SL.bus.on('live:voz', s => { if (SL.audio && SL.audio.voz) SL.audio.voz(s.id); });
   LUI.finish = reason => { const sum = SL.Live.end(reason); if (sum && LUI._shown !== sum) LUI.summary(sum); };
   SL.bus.on('live:end', sum => { const had = !!$('#overlay-live').firstChild; LUI.close(); if (had && sum) { LUI._shown = sum; LUI.summary(sum); } });
 
@@ -346,8 +330,29 @@
   };
 
   // laço do estúdio (chamado pelo laço principal)
+  // momento de decisão (sugestão 1): cartão em cima da tela da live com 2 botões e o tempo correndo
+  LUI.momento = () => {
+    const L = SL.Live.cur; const mb = $('#lv-mom'); if (!L || !mb) return;
+    const agora = performance.now(); const dt = Math.min(250, agora - (LUI._momT || agora)); LUI._momT = agora;
+    const mo = L.momento;
+    if (mo) {
+      if (mb.dataset.id !== mo.id) { mb.dataset.id = mo.id; mb.dataset.res = ''; mb.className = 'mom'; mb.hidden = false; mb.innerHTML = `<div class="mom-t">${ic('fire', 14)}<b>${esc(mo.t)}</b></div><div class="mom-bt"><button class="btn red sm" data-mom="a">${ic('fire', 13)} ${esc(mo.a)}</button><button class="btn sm" data-mom="b">${ic('shield', 13)} ${esc(mo.b)}</button></div><div class="mom-bar"><i></i></div>`; }
+      if (SL.Clock.sp() !== 0) mo.gasto = (mo.gasto || 0) + dt;
+      const frac = 1 - (mo.gasto || 0) / (SL.Live.MOMENTO_SEG * 1000);
+      const bar = mb.querySelector('.mom-bar i'); if (bar) bar.style.width = Math.max(0, frac * 100).toFixed(1) + '%';
+      if (frac <= 0) { SL.Live.decidir('b'); LUI.momento(); }
+      return;
+    }
+    const r = L.momRes;
+    if (r && agora - r.at < 2600) {
+      if (mb.dataset.res !== String(r.at)) { mb.dataset.res = String(r.at); mb.dataset.id = ''; mb.hidden = false; mb.className = 'mom res ' + (r.ok ? 'ok' : r.ok === false ? 'bad' : ''); mb.innerHTML = `<div class="mom-t">${ic(r.ok ? 'trophy' : r.ok === false ? 'joke' : 'shield', 14)}<b>${esc(r.txt)}</b></div>`; }
+      return;
+    }
+    if (!mb.hidden) { mb.hidden = true; mb.dataset.id = ''; }
+  };
   LUI.frame = tSec => {
     const L = SL.Live.cur; if (!L || $('#overlay-live').hidden) return;
+    LUI.momento();
     const wrap = $('#lv-wrap'), box = $('#lv-box');
     if (wrap && box) { const aw = wrap.clientWidth - 20, ah = wrap.clientHeight - 20; const w = Math.max(80, Math.min(aw, ah * 16 / 9)); const k = Math.round(w) + 'x' + Math.round(w * 9 / 16); if (box.dataset.k !== k) { box.dataset.k = k; box.style.width = Math.round(w) + 'px'; box.style.height = Math.round(w * 9 / 16) + 'px'; } }
     const cv = $('#lv-cv'); if (cv) SL.Preview.live(cv, L, tSec);
@@ -400,23 +405,21 @@
 
   LUI.summary = s => {
     const G = SL.G; const g = D.gameById(s.game);
-    const raw = G.raw.find(r => r.live === s.id);
     const m = UI.modal({ title: s.reason === 'sono' ? 'Você dormiu ao vivo!' : s.reason === 'saude' ? 'A live acabou: você passou mal' : 'Resumo da transmissão', icon: 'live', wide: true, sub: g.name + ' · ' + U.dur(s.dur) + (s.record ? ' · NOVO RECORDE' : ''), html: `
       <div class="sum-grid"><div class="card stat"><b>${U.int(s.peak)}</b><span>Pico de público</span></div><div class="card stat"><b>${s.avg}</b><span>Média</span></div><div class="card stat"><b class="ok">+${U.int(s.fol)}</b><span>Novos seguidores</span></div><div class="card stat"><b>${U.int(s.uniq)}</b><span>Pessoas diferentes</span></div>
       <div class="card stat"><b>${U.int(s.subs)}</b><span>Inscrições</span></div><div class="card stat"><b class="ok">${U.money(s.don)}</b><span>Doações (${s.donN})</span></div><div class="card stat"><b>${U.int(s.msgs)}</b><span>Mensagens no chat</span></div><div class="card stat"><b>${s.q}</b><span>Qualidade média</span></div></div>
       <div class="card"><div class="section-t"><h3>Público e empolgação</h3><span class="tiny muted"><span style="color:#ff4d5e">pessoas</span> · <span style="color:#ffb547">empolgação</span></span></div><canvas class="chart" id="sum-ch"></canvas></div>
-      <div class="card col"><h3>Melhores momentos</h3>${s.best.length ? s.best.map((b, i) => `<div class="row"><span class="acc">${ic('scissors', 15)}</span><span class="grow small">${esc(b.txt)}</span><div class="bar" style="width:70px"><i style="width:${b.clip * 100}%"></i></div>${raw ? `<button class="btn sm" data-cut="${i}">Criar corte</button>` : ''}</div>`).join('') : '<div class="small muted">Nenhum momento forte o bastante para virar corte.</div>'}
+      <div class="card col"><h3>Cortes publicados sozinhos</h3>${(s.cortes || []).length ? s.cortes.map(c => `<div class="row"><span class="acc">${ic(c.app === 'clipz' ? 'clip' : 'vision', 15)}</span><span class="grow small"><b>${c.plat}</b> · ${esc(c.title)}</span><div class="bar" style="width:70px" title="Nota ${c.q}"><i style="width:${c.q}%"></i></div><button class="btn sm" data-ver="${c.app}|${c.id}">Ver</button></div>`).join('') : '<div class="small muted">A live foi curta ou sem momento forte: não deu corte desta vez.</div>'}
       ${s.adRev ? `<div class="small muted">Anúncios renderam ${U.money(s.adRev)}.</div>` : ''}${s.promises ? `<div class="small warn">${s.promises} promessa(s) feita(s) nesta live. Cumpra para manter a confiança.</div>` : ''}${s.raid ? `<div class="small acc">${U.int(s.raid)} pessoas chegaram por raid ou vídeo bombando.</div>` : ''}</div>
-      <div class="card col prox"><h3>Próximos passos</h3><div class="row gap6 wrap">${raw && raw.moments && raw.moments.length ? `<button class="btn sm pink" data-prox="corte">${ic('scissors', 14)} Corte no TikTok</button>` : ''}<button class="btn sm" data-prox="post">${ic('connect', 14)} Agradecer no Instagram</button><button class="btn sm" data-prox="agenda">${ic('calendar', 14)} Marcar a próxima live</button></div><span class="tiny muted">Cortes e posts trazem gente nova para a próxima live.</span></div>
-      <p class="tiny muted">Doações, inscrições e anúncios caem no saldo da Twitch e são repassados toda segunda-feira.</p>`, buttons: [{ label: 'Fechar', cls: 'primary' }] });
+      <div class="card col prox"><h3>Próximos passos</h3><div class="row gap6 wrap"><button class="btn sm" data-prox="post">${ic('connect', 14)} Agradecer no Instagram</button><button class="btn sm red" data-prox="video">${ic('vision', 14)} Gravar vídeo no YouTube</button></div><span class="tiny muted">Os cortes já estão no TikTok e no YouTube trazendo gente para a próxima live.</span></div>
+      <p class="tiny muted">${s.pago ? 'Caíram na sua conta agora: <b class="ok">' + U.money(s.pago) + '</b> (doações, inscrições e anúncios).' : 'Doações, inscrições e anúncios caem na sua conta no fim de cada live.'}</p>`, buttons: [{ label: 'Fechar', cls: 'primary' }] });
     UI.chart($('#sum-ch', m.el), [{ data: s.graph, color: '#ff4d5e' }, { data: s.hype, color: '#ffb547', fill: false }]);
-    $$('[data-cut]', m.el).forEach(b => b.onclick = () => { m.close(); UI.criarVideo('corte', null, { raw: raw && raw.id }); });
+    $$('[data-ver]', m.el).forEach(b => b.onclick = () => { const [app, id] = b.dataset.ver.split('|'); m.close(); UI.openApp(app, app === 'vision' ? { video: id } : undefined); });
     // próximos passos: cada sistema puxa o outro
     $$('[data-prox]', m.el).forEach(b => b.onclick = () => {
       const k = b.dataset.prox;
-      if (k === 'corte') { m.close(); UI.criarVideo('corte', null, { raw: raw && raw.id }); }
+      if (k === 'video') { m.close(); if (!UI.pcOpen()) return; UI.criarVideo('video'); }
       if (k === 'post') { const e = SL.Social.post({ kind: 'texto', text: 'Valeu demais pela live de hoje! ' + U.int(s.peak) + ' pessoas no pico. Amanhã tem mais.', eng: 1.15 }); if (e) return UI.err(e); b.disabled = true; b.innerHTML = ic('check', 14) + ' Postado'; }
-      if (k === 'agenda') { m.close(); UI.openApp('calendario'); }
     });
   };
 })(window.SL);
