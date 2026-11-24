@@ -47,7 +47,7 @@
       <div class="card flat col gap4"><b class="small">${SL.icon('phone', 15)} Celular</b><span class="small muted">Tecla C ou botão no topo. Mensagens, redes, banco, mapa e comida, de qualquer lugar.</span></div>
       <div class="card flat col gap4"><b class="small">${SL.icon('heart', 15)} Necessidades</b><span class="small muted">Fome, sede e cansaço (as barrinhas no canto). Cansado demais, você fica com sono e rende menos.</span></div>
       <div class="card flat col gap4"><b class="small">${SL.icon('money', 15)} Contas</b><span class="small muted">Aluguel dia 10, internet dia 15, energia dia 20. Freelas e turnos no café ajudam no começo.</span></div>
-      <div class="card flat col gap4"><b class="small">${SL.icon('clock', 15)} Tempo</b><span class="small muted">Três velocidades: pausa (Espaço), normal (1) e 3x (2). Também ficam na barra do PC e na live.</span></div></div>
+      <div class="card flat col gap4"><b class="small">${SL.icon('clock', 15)} Tempo</b><span class="small muted">Três velocidades: pausa (Espaço), normal (1) e 3x (2). No normal, 1 minuto do jogo leva 4 segundos. Também ficam na barra do PC e na live.</span></div></div>
       <p class="small muted">Os objetivos do painel à esquerda guiam os primeiros passos. Não existe um caminho certo: você decide como viver.</p>`, buttons: [{ label: 'Começar', cls: 'primary', icon: 'play' }] });
   };
   SL.quitToTitle = () => {

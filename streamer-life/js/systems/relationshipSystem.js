@@ -228,7 +228,7 @@
   R.eatDelivery = () => {
     const id = G().flags.mealReady; const it = D.delivery.find(x => x.id === id); if (!it) return 'Nenhum pedido esperando.';
     G().flags.mealReady = null;
-    SL.Life.mod(it.eat); if (it.leftovers) SL.Life.addFood(it.leftovers, 1);
+    SL.Life.alimenta(it.eat); if (it.leftovers) SL.Life.addFood(it.leftovers, 1);
     G().home.dirt = U.clamp(G().home.dirt + 2, 0, 100);
     return null;
   };

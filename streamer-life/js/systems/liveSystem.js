@@ -27,7 +27,7 @@
 
   const pushMsg = (msg, delayFrac) => {
     const L = LV.cur; if (!L || !msg) return;
-    const msPerMin = 1000 / (SL.Clock.rate() || 0.5);
+    const msPerMin = 1000 / (SL.Clock.rate() || 0.25);
     LV.queue.push({ at: performance.now() + (delayFrac == null ? U.rand() : delayFrac) * msPerMin * 0.95, msg });
     L.chat.push(msg); if (L.chat.length > 220) L.chat.splice(0, L.chat.length - 220);
     L.stats.msgs++;
@@ -609,7 +609,7 @@
     L.hype = U.clamp(L.hype + 6 * dim('poll'), 0, 100); reactAll('poll', 0.25);
     return null;
   };
-  LV.pause = () => { const L = LV.cur; if (L.ev.paused) return; touch(); say('Vou dar uma pausa de 10 minutinhos, já volto!'); L.ev.paused = 10; SL.Life.mod({ sede: 25, estresse: -4, energia: 3 }); if (SL.Life.foodCount('salgadinho')) { SL.Life.takeFood('salgadinho'); SL.Life.mod({ fome: 13 }); } else if (SL.Life.foodCount('pao')) { SL.Life.takeFood('pao'); SL.Life.mod({ fome: 28 }); } };
+  LV.pause = () => { const L = LV.cur; if (L.ev.paused) return; touch(); say('Vou dar uma pausa de 10 minutinhos, já volto!'); L.ev.paused = 10; SL.Life.alimenta({ sede: 25 }); SL.Life.mod({ estresse: -4, energia: 3 }); if (SL.Life.foodCount('salgadinho')) { SL.Life.takeFood('salgadinho'); SL.Life.alimenta({ fome: 13 }); } else if (SL.Life.foodCount('pao')) { SL.Life.takeFood('pao'); SL.Life.alimenta({ fome: 28 }); } };
   LV.changeGame = gid => {
     const L = LV.cur; const g = D.gameById(gid); if (!g || gid === L.game) return;
     const cs = SL.Equip.canStream(g, L.quality); if (!cs.ok) return cs.reason;

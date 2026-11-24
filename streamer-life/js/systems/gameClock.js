@@ -4,9 +4,10 @@
   const U = SL.U;
   const C = SL.Clock = {};
   // 3 velocidades (pedido do dono): pausa, normal e 3x. Valem na casa, no PC e na live.
-  C.SPEEDS = [0, 0.5, 1.5];        // minutos de jogo por segundo real: normal é calmo (1 hora do jogo = 2 minutos)
+  // nov/2026: o relógio anda 2x mais devagar (normal: 1 minuto do jogo a cada 4 segundos; 1 hora do jogo = 4 minutos)
+  C.SPEEDS = [0, 0.25, 0.75];      // minutos de jogo por segundo real
   C.ACT_MULT = [0, 1, 3];          // atividades (dormir, banho...) andam no ritmo delas, multiplicado pela velocidade escolhida
-  C.LIVE_SPEEDS = [0, 0.5, 1.5];   // durante a live
+  C.LIVE_SPEEDS = [0, 0.25, 0.75]; // durante a live
   // velocidade escolhida (saves antigos tinham 4 velocidades: o que passa de 2 vira 3x)
   C.sp = () => { const G = SL.G; const s = G ? G.time.speed | 0 : 1; return Math.max(0, Math.min(C.SPEEDS.length - 1, s)); };
   C.setSpeed = s => { const G = SL.G; if (!G) return; G.time.speed = Math.max(0, Math.min(C.SPEEDS.length - 1, s | 0)); SL.bus.emit('speed', G.time.speed); };

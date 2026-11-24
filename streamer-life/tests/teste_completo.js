@@ -33,7 +33,7 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
 
   // 2. passagem do tempo e necessidades
   const t0 = await ev(() => SL.G.time.t);
-  await page.click('#hud [data-speed="2"]'); await page.waitForTimeout(4500); await page.click('#hud [data-speed="1"]');
+  await page.click('#hud [data-speed="2"]'); await page.waitForTimeout(8000); await page.click('#hud [data-speed="1"]');
   const t1 = await ev(() => SL.G.time.t);
   ok('tempo passa em tempo real (velocidade 3x)', t1 - t0 >= 5, t1 - t0);
   const before = await ev(() => Object.assign({}, SL.G.needs));

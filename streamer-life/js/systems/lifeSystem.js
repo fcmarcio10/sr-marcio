@@ -14,6 +14,11 @@
   ];
   const LIVE_KEYS = { fome: 1, sede: 1, energia: 1 };
   L.fixed = n => { n.sono = n.energia; n.saude = 100; n.higiene = 100; n.humor = 70; n.estresse = 10; };
+  // comidas e bebidas matam a fome/sede 80% a mais (pedido do dono, nov/2026); o café e o energético também animam 80% a mais
+  L.COMIDA = 1.8;
+  const COMIDA_KEYS = { fome: 1, sede: 1, energia: 1 };
+  L.efeito = (k, v) => (v > 0 && COMIDA_KEYS[k] ? v * L.COMIDA : v);
+  L.alimenta = fx => { const o = {}; for (const k in fx) o[k] = L.efeito(k, fx[k]); L.mod(o); };
   L.mod = delta => {
     const n = G().needs;
     for (const k in delta) if (LIVE_KEYS[k]) n[k] = U.clamp(n[k] + delta[k], 0, 100);
@@ -110,7 +115,7 @@
     end: (a, ok) => { if (ok) { L.mod({ higiene: 100, humor: 3 }); } } });
   def('vaso', { label: 'No banheiro', icon: 'hygiene', speed: 1.2, dur: 6 });
   def('escovar', { label: 'Se arrumando', icon: 'hygiene', speed: 1.5, dur: 6, end: (a, ok) => { if (ok) L.mod({ higiene: 14, humor: 1 }); } });
-  def('beber', { label: 'Bebendo água', icon: 'drink', speed: 1, dur: 2, end: (a, ok) => { if (ok) L.mod({ sede: 42 }); } });
+  def('beber', { label: 'Bebendo água', icon: 'drink', speed: 1, dur: 2, end: (a, ok) => { if (ok) L.alimenta({ sede: 42 }); } });
   // comer/beber: data.food; data.taken = já tirou da geladeira; data.q = qualidade do preparo; data.where = 'mesa' para sentar
   def('comer', { label: 'Comendo', icon: 'food', speed: 2,
     dur: a => a.data.dur || Math.min(20, (D.foodById(a.data.food) || { time: 10 }).time),
@@ -119,7 +124,7 @@
       const fd = D.foodById(a.data.food); if (!fd) return;
       const q = a.data.q || 1; const part = ok ? 1 : U.clamp((G().time.t - a.t0) / (a.dur || 1), 0.3, 1);
       const fx = {}; for (const k in fd.eat) fx[k] = fd.eat[k] * (fd.eat[k] > 0 ? q : 1) * part;
-      L.mod(fx); if (fd.coffee || fd.id === 'energetico') G().life.caf = 180;
+      L.alimenta(fx); if (fd.coffee || fd.id === 'energetico') G().life.caf = 180;
       G().home.dirt = U.clamp(G().home.dirt + 1, 0, 100);
     } });
   // cozinhar: com data.food prepara aquele item (já tirado da geladeira) e guarda a qualidade em data.q
@@ -129,13 +134,13 @@
     end: (a, ok) => {
       const q = (D.furnById(G().home.items.fogao) || { cook: 0.85 }).cook * (0.75 + G().player.skills.culinaria / 140);
       a.data.q = ok ? q : 0.6;
-      if (!a.data.food) { if (ok) L.mod({ fome: 62 * q }); else L.mod({ fome: 20 }); }
+      if (!a.data.food) { if (ok) L.alimenta({ fome: 62 * q }); else L.alimenta({ fome: 20 }); }
       if (ok) L.skillUp('culinaria', 1.4);
       G().home.dirt = U.clamp(G().home.dirt + 4, 0, 100);
     } });
   def('cafe', { label: 'Passando café', icon: 'coffee', speed: 1.5, dur: 6,
     start: () => { if (!G().home.items.cafeteira && !G().home.items.fogao) return 'Sem cafeteira nem fogão.'; if (!L.takeFood('cafe')) return 'Acabou o café. Compre no mercado.'; },
-    end: (a, ok) => { if (ok) { L.mod({ energia: 14, sono: 6, humor: 1.5 }); G().life.caf = 180; } } });
+    end: (a, ok) => { if (ok) { L.alimenta({ energia: 14, sono: 6, humor: 1.5 }); G().life.caf = 180; } } });
   def('tv', { label: 'Assistindo TV', icon: 'tv', speed: 5, dur: 60, leisure: true, fx: { humor: 8, estresse: -7, energia: 2 },
     end: (a, ok) => { if (ok && SL.Algo) SL.Algo.learnTrend('tv'); } });
   def('videogame', { label: 'Jogando videogame', icon: 'gamepad', speed: 5, dur: 60, leisure: true, fx: { humor: 10, estresse: -7 },
@@ -177,9 +182,9 @@
     minute: () => { L.skillUp('fisico', 0.02); L.mod({ saude: 0.02 }); } });
   def('relaxar', { label: 'Relaxando', icon: 'tree', speed: 6, dur: 60, leisure: true, fx: { estresse: -12, humor: 8, energia: 3 } });
   def('restaurante', { label: 'Almoçando fora', icon: 'utensils', speed: 5, dur: 45, leisure: true, fx: { humor: 6, estresse: -4 },
-    end: (a, ok) => { if (ok) L.mod({ fome: 70, sede: 25, saude: 1 }); } });
-  def('cafe_fora', { label: 'Tomando café', icon: 'coffee', speed: 3, dur: 20, leisure: true, end: (a, ok) => { if (ok) { L.mod({ energia: 15, sono: 5, sede: 10, humor: 4 }); G().life.caf = 180; } } });
-  def('lanche_fora', { label: 'Comendo um lanche', icon: 'food', speed: 3, dur: 20, end: (a, ok) => { if (ok) L.mod({ fome: 40, sede: 20, humor: 3 }); } });
+    end: (a, ok) => { if (ok) L.alimenta({ fome: 70, sede: 25, saude: 1 }); } });
+  def('cafe_fora', { label: 'Tomando café', icon: 'coffee', speed: 3, dur: 20, leisure: true, end: (a, ok) => { if (ok) { L.alimenta({ energia: 15, sono: 5, sede: 10, humor: 4 }); G().life.caf = 180; } } });
+  def('lanche_fora', { label: 'Comendo um lanche', icon: 'food', speed: 3, dur: 20, end: (a, ok) => { if (ok) L.alimenta({ fome: 40, sede: 20, humor: 3 }); } });
   def('turno_cafe', { label: 'Trabalhando no Café Grão Fino', icon: 'briefcase', speed: 10, dur: 240, work: true, fx: { energia: -8, estresse: 3, higiene: -3 },
     minute: () => L.skillUp('carisma', 0.006),
     end: (a, ok) => {
