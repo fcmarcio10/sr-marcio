@@ -139,7 +139,7 @@
       <label class="row"><input type="checkbox" id="s-auto" ${s.autosave !== false ? 'checked' : ''}> Salvamento automático (a cada dia no jogo e depois das lives)</label>
       <label class="row"><input type="checkbox" id="s-rm" ${s.reduceMotion ? 'checked' : ''}> Reduzir animações</label>
       <div class="field"><label>Tamanho do texto</label><div class="row">${[[0.9, 'Menor'], [1, 'Normal'], [1.12, 'Maior']].map(([v, l]) => `<button class="chip ${s.textScale === v ? 'on' : ''}" data-ts="${v}">${l}</button>`).join('')}</div></div>
-      <div class="field"><label>Velocidade máxima do chat na tela</label><div class="row">${[[3, 'Calma'], [6, 'Normal'], [12, 'Frenética']].map(([v, l]) => `<button class="chip ${s.chatCap === v ? 'on' : ''}" data-cc="${v}">${l}</button>`).join('')}</div></div>
+      <div class="field"><label>Velocidade do chat na live <span class="tiny muted">(também depende de quantas pessoas estão assistindo)</span></label><div class="row">${[[3, 'Calma'], [6, 'Normal'], [12, 'Frenética']].map(([v, l]) => `<button class="chip ${s.chatCap === v ? 'on' : ''}" data-cc="${v}">${l}</button>`).join('')}</div></div>
     </div>`;
   };
   SC.bindSettings = root => {

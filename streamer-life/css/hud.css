@@ -424,3 +424,16 @@ body.live-open .tb-out, .tb-out.live { background: var(--b-roxo); }
 .hl-b { width: 100%; justify-content: center; }
 .hl-tip { color: var(--muted); font-size: .72em; text-align: center; margin-top: -2px; }
 @media (max-width: 760px) { .hud-live { width: 214px; } .tb-out span { display: none; } .lctl .lv-speeds { display: flex; } }
+
+/* ---- app Anúncios ---- */
+.ad-st { display: flex; align-items: center; gap: 10px; font-size: .9em; }
+.ad-st.ok { border-color: rgba(22, 163, 74, .6); }
+.ad-st.on { border-color: rgba(145, 70, 255, .7); }
+.ad-ops { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.ad-op { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 8px; border-radius: 12px; border: 0; background: var(--b-roxo); color: #fff; cursor: pointer; font: inherit; }
+.ad-op b { font: 800 1.6em var(--f-display, inherit); }
+.ad-op .ad-val { font-weight: 700; color: #d9fbe5; }
+.ad-op small { opacity: .8; font-size: .75em; }
+.ad-op:hover:not([disabled]) { filter: brightness(1.12); }
+.ad-op[disabled] { background: #343d52; color: #9aa3b8; cursor: not-allowed; }
+.ad-op[disabled] .ad-val { color: #9aa3b8; }

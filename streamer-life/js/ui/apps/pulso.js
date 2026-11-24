@@ -213,7 +213,7 @@
   LUI.actions = () => {
     const L = SL.Live.cur; if (!L) return; const G = SL.G; const el = $('#lv-actions'); if (!el) return;
     const g = D.gameById(L.game); const contracts = SL.Sponsors.active();
-    const sig = JSON.stringify([L.risky > 0, L.focus, !!L.poll, !!L.challenge, L.ev.mic, L.ev.net > 0, L.ev.paused, L.followersOnly, contracts.length, G.ch.pulso.afil, !!(L.ev.celeb && !L.ev.celeb.greeted)]);
+    const sig = JSON.stringify([L.risky > 0, L.focus, !!L.poll, !!L.challenge, L.ev.mic, L.ev.net > 0, L.ev.paused, L.followersOnly, contracts.length, G.ch.pulso.afil, !!L.ev.ad, !!(L.ev.celeb && !L.ev.celeb.greeted)]);
     if (el.dataset.sig === sig) return; el.dataset.sig = sig;
     const b = (k, label, icon, cls, title) => `<button class="btn ${cls || ''}" data-la="${k}" title="${esc(title || '')}">${ic(icon, 15)}${label}</button>`;
     const k = (key, label, icon, cls, title) => `<button class="lbtn ${cls || ''}" data-la="${key}" title="${esc(title || label)}">${ic(icon, 15)}<span>${label}</span></button>`;
@@ -221,7 +221,7 @@
     if (!g.nongame) acts.push(k('risky', L.risky > 0 ? 'Arriscando' : 'Arriscar', 'fire', L.risky > 0 ? 'on' : '', 'Jogada arriscada'), k('focus', L.focus ? 'Focado' : 'Focar', 'target', L.focus ? 'on' : '', 'Focar no jogo'));
     acts.push(k('game', 'Trocar jogo', 'gamepad'), k('pause', L.ev.paused ? 'Em pausa' : 'Pausa', 'clock', L.ev.paused ? 'on' : '', 'Pausa de 10 min'), k('schedule', 'Próxima live', 'calendar', '', 'Anunciar a próxima live'), k('fonly', 'Só seguidores', 'shield', L.followersOnly ? 'on' : '', 'Chat só para seguidores'));
     if (contracts.length) acts.push(k('sponsor', 'Patrocínio', 'brief', '', 'Mencionar patrocinador'));
-    if (G.ch.pulso.afil) acts.push(k('ad', 'Anúncio', 'ads', '', 'Rodar anúncio'));
+    acts.push(k('ad', L.ev.ad ? 'No intervalo' : 'Anúncios', 'ads', L.ev.ad ? 'on' : '', 'Intervalo de anúncios de 30, 60 ou 120 segundos'));
     if (L.ev.celeb && !L.ev.celeb.greeted) acts.unshift(k('celeb', 'Cumprimentar ' + L.ev.celeb.name, 'star', 'hot'));
     if (L.ev.mic) acts.unshift(k('mic', 'Arrumar microfone', 'mic', 'bad'));
     if (L.ev.net > 0) acts.unshift(k('netq', 'Baixar qualidade', 'wifiOff', 'bad'), k('netr', 'Reiniciar roteador', 'wifi', 'bad'));
@@ -251,8 +251,8 @@
     if (k === 'challenge') return menu(t, 'Desafio', LVs.CHALLENGES.map(c => ({ label: c.label, desc: c.desc, icon: 'trophy', fn: () => LVs.challenge(c.id) })));
     if (k === 'game') return menu(t, 'Trocar para', D.games.filter(x => x.id !== L.game).map(x => { const cs = SL.Equip.canStream(x, L.quality); return { label: x.name, desc: cs.ok ? x.cat : cs.reason, icon: 'gamepad', disabled: !cs.ok, fn: () => { const r = LVs.changeGame(x.id); $('#lv-g').textContent = ''; return r; } }; }));
     if (k === 'pause') LVs.pause();
-    if (k === 'sponsor') return menu(t, 'Patrocinador', SL.Sponsors.active().map(c => { const b = D.brandById(c.brand); const d = c.deliv.find(x => x.k === 'live'); return { label: b.name, desc: d ? d.done + '/' + d.n + ' menções · mínimo ' + d.minV + ' pessoas' : 'sem menções no contrato', icon: 'brief', disabled: !d || d.done >= d.n, fn: () => LVs.sponsor(c.id) }; }));
-    if (k === 'ad') { const r = LVs.ad(); if (r) UI.err(r); }
+    if (k === 'sponsor') return menu(t, 'Patrocinador', SL.Sponsors.active().map(c => { const b = D.brandById(c.brand); const d = c.deliv.find(x => x.k === 'live'); const falta = SL.Sponsors.espera(c); return { label: b.name, desc: !d ? 'sem menções no contrato' : d.done >= d.n ? 'menções já cumpridas' : d.done + '/' + d.n + ' menções · mínimo ' + d.minV + ' pessoas' + (falta > 0 ? ' · próxima em ' + falta + ' min' : ''), icon: 'brief', disabled: !d || d.done >= d.n, fn: () => LVs.sponsor(c.id) }; }));
+    if (k === 'ad') { const falta = LVs.adEspera(); return menu(t, falta > 0 ? 'Anúncios (próximo em ' + falta + ' min)' : 'Intervalo de anúncios', LVs.AD_OPCOES.map(o => ({ label: o.label, icon: 'ads', desc: '≈ ' + U.money(LVs.adValor(o.s, L.viewers)) + ' · cai na conta segunda', disabled: falta > 0 || !!L.ev.ad, fn: () => LVs.ad(o.s) }))); }
     if (k === 'fonly') LVs.toggleFollowersOnly();
     if (k === 'mic') LVs.fixMic();
     if (k === 'netq') LVs.fixNet('qualidade');
@@ -260,6 +260,13 @@
     if (k === 'speed') LVs.setSpeed(+t.dataset.s);
     if (k === 'end') return UI.confirm('Encerrar a live?', 'O resumo da transmissão vai aparecer em seguida.', () => LUI.finish(), 'Encerrar', true);
     LUI.actions();
+  };
+  // mensagens por segundo na tela: poucas pessoas, chat calmo; muita gente, chat rápido
+  LUI.CHAT_MODOS = { 3: { k: 0.45, max: 0.6 }, 6: { k: 1, max: 2 }, 12: { k: 1.7, max: 5 } };
+  LUI.chatRate = L => {
+    const cap = SL.settings.chatCap || 6; const modo = LUI.CHAT_MODOS[cap] || (cap <= 3 ? LUI.CHAT_MODOS[3] : cap <= 6 ? LUI.CHAT_MODOS[6] : LUI.CHAT_MODOS[12]);
+    const v = Math.max(0, L.viewers || 0); const rapido = SL.Clock.sp() === 2 ? 1.5 : 1;
+    return Math.min(modo.max, (0.06 + Math.sqrt(v) * 0.05 + v * 0.004) * modo.k * rapido);
   };
   LUI.finish = reason => { const sum = SL.Live.end(reason); if (sum && LUI._shown !== sum) LUI.summary(sum); };
   SL.bus.on('live:end', sum => { const had = !!$('#overlay-live').firstChild; LUI.close(); if (had && sum) { LUI._shown = sum; LUI.summary(sum); } });
@@ -346,10 +353,14 @@
     const cv = $('#lv-cv'); if (cv) SL.Preview.live(cv, L, tSec);
     // chat com limite de mensagens por segundo
     const fresh = SL.Live.flush(); if (fresh.length) buf.push(...fresh);
-    const cap = (SL.settings.chatCap || 6);
-    const now = performance.now(); LUI._acc = (LUI._acc || 0) + (now - (LUI._last || now)) / 1000 * cap; LUI._last = now;
-    if (buf.length > 60) buf = buf.filter((m, i) => i >= buf.length - 40 || m.kind !== 'msg' || m.q);
+    const rate = LUI.chatRate(L);
+    const now = performance.now(); LUI._acc = (LUI._acc || 0) + (now - (LUI._last || now)) / 1000 * rate; LUI._last = now;
+    // mensagens comuns que não couberam no ritmo do chat ficam para trás (perguntas, doações e avisos nunca somem)
+    const comum = m => m.kind === 'msg' && !m.q; const nComum = buf.filter(comum).length; const maxFila = Math.max(2, Math.ceil(rate * 3));
+    if (nComum > maxFila) { let tira = nComum - maxFila; buf = buf.filter(m => !(comum(m) && tira-- > 0)); }
     const chat = $('#lv-chat');
+    // o que você escreve aparece na hora
+    if (chat && buf.some(m => m.kind === 'streamer')) { const meus = buf.filter(m => m.kind === 'streamer'); buf = buf.filter(m => m.kind !== 'streamer'); const f = document.createElement('div'); f.innerHTML = meus.map(msgHTML).join(''); while (f.firstChild) chat.appendChild(f.firstChild); chat.scrollTop = chat.scrollHeight; }
     if (chat && buf.length && LUI._acc >= 1) {
       const n = Math.min(buf.length, Math.floor(LUI._acc)); LUI._acc -= n;
       const nearBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 60;
@@ -358,7 +369,7 @@
       while (chat.children.length > 160) chat.firstChild.remove();
       if (nearBottom) chat.scrollTop = chat.scrollHeight;
     }
-    if (LUI._acc > cap * 2) LUI._acc = cap * 2;
+    if (LUI._acc > 1.5) LUI._acc = 1.5;
     // alertas animados
     const al = $('#lv-al');
     if (al && L.alerts.length > alertsShown) {

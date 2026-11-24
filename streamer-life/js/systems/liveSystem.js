@@ -175,6 +175,8 @@
     if (L.ev.net > 0) L.ev.net--;
     if (L.ev.mic > 0) { L.ev.mic++; if (L.ev.mic > 25) L.ev.mic = 0; }
     if (L.ev.boost > 0) L.ev.boost--;
+    if (L.ev.ad && G0.time.t >= L.ev.ad.until) L.ev.ad = null;
+    if (L.ev.spon && L.min >= L.ev.spon.until) L.ev.spon = null;
     L.tech = SL.Equip.streamQuality(g, L.quality, L.cam, L.ev);
 
     // jogo
@@ -623,20 +625,45 @@
   LV.toggleRisky = () => { const L = LV.cur; L.risky = L.risky > 0 ? 0 : 5; L.focus = false; touch(); if (L.risky) say('Agora é tudo ou nada!'); };
   LV.toggleFocus = () => { const L = LV.cur; L.focus = !L.focus; L.risky = 0; if (L.focus) { say('Deixa eu me concentrar aqui um pouquinho'); reactAll('focus', 0.1); } };
   LV.sponsor = cid => {
-    const L = LV.cur; const c = G().contracts.find(x => x.id === cid); if (!c) return;
-    touch(); const b = D.brandById(c.brand);
+    const L = LV.cur; const c = G().contracts.find(x => x.id === cid); if (!L || !c) return 'Contrato não encontrado.';
+    const b = D.brandById(c.brand);
+    const err = SL.Sponsors ? SL.Sponsors.deliver(cid, 'live', { viewers: L.viewers, avg: L.sumV / Math.max(1, L.min) }) : null;
+    if (err) return err;
+    touch();
     say('Essa live tem o apoio de ' + b.name + '! Conheçam o ' + b.prod + ', link na descrição');
     L.sponsors[cid] = (L.sponsors[cid] || 0) + 1;
+    L.ev.spon = { name: b.name, prod: b.prod, until: L.min + 10 };   // faixa do patrocinador na tela por 10 minutos
     L.hype = U.clamp(L.hype - 3, 0, 100); reactAll('sponsor', 0.2);
-    if (SL.Sponsors) SL.Sponsors.deliver(cid, 'live', { viewers: L.viewers, avg: L.sumV / Math.max(1, L.min) });
     if (b.ethics < 0.3) { SL.Rep.mod({ confianca: -1.5, imagem: -1 }); for (const st of L.present.values()) st.sat = U.clamp(st.sat - 0.05, 0, 1); }
+    return null;
   };
-  LV.ad = () => {
-    const L = LV.cur; const P = G().ch.pulso; if (!P.afil) return 'Anúncios só para afiliados da Twitch.';
-    touch(); L.stats.ads++;
-    const rev = L.viewers * 0.018 * U.rf(0.8, 1.2); L.stats.adRev += rev; P.bal += rev;
-    sys('alert', 'Intervalo comercial de 60 segundos');
-    L.hype = U.clamp(L.hype - 6, 0, 100); L.anon = Math.max(0, Math.round(L.anon * 0.96)); reactAll('ad', 0.15);
+  // intervalo de anúncios de 30, 60 ou 120 segundos: o dinheiro vai para o saldo da Twitch e cai na conta no repasse de segunda
+  LV.AD_OPCOES = [
+    { s: 30, label: '30 segundos', sai: 0.015, hype: 3 },
+    { s: 60, label: '60 segundos', sai: 0.035, hype: 6 },
+    { s: 120, label: '120 segundos', sai: 0.08, hype: 10 },
+  ];
+  LV.AD_ESPERA = 10;                               // minutos do jogo entre um intervalo e outro
+  LV.adValor = (s, viewers) => (viewers || 0) * 0.0015 * s * (G().ch.pulso.afil ? 1.25 : 1);   // R$ por intervalo
+  LV.adEspera = () => { const L = LV.cur; if (!L || L.lastAd == null) return 0; return Math.max(0, LV.AD_ESPERA - (L.min - L.lastAd)); };
+  LV.ad = seg => {
+    const L = LV.cur; if (!L) return 'Os anúncios só passam durante a live.';
+    const o = LV.AD_OPCOES.find(x => x.s === (seg || 60)) || LV.AD_OPCOES[1];
+    const falta = LV.adEspera(); if (falta > 0) return 'Espere ' + falta + ' min para outro intervalo de anúncios.';
+    if (L.ev.ad) return 'Já tem um intervalo de anúncios passando.';
+    const P = G().ch.pulso;
+    touch(); L.stats.ads++; L.lastAd = L.min;
+    const rev = Math.round(LV.adValor(o.s, L.viewers) * U.rf(0.85, 1.15) * 100) / 100;
+    L.stats.adRev += rev; P.bal += rev;
+    (P.ads = P.ads || []).unshift({ t: G().time.t, s: o.s, v: Math.round(L.viewers), rev }); if (P.ads.length > 30) P.ads.length = 30;
+    P.adsTotal = (P.adsTotal || 0) + rev;
+    L.ev.ad = { s: o.s, t0: G().time.t, until: G().time.t + Math.max(1, Math.round(o.s / 60)) };
+    say(o.s >= 120 ? 'Vou rodar uns anúncios rapidinho, aproveitem pra pegar uma água!' : 'Intervalo rapidinho, já volto!');
+    sys('alert', 'Intervalo comercial de ' + o.s + ' segundos (' + U.money(rev) + ' para o seu saldo da Twitch)');
+    L.hype = U.clamp(L.hype - o.hype, 0, 100); L.anon = Math.max(0, Math.round(L.anon * (1 - o.sai)));
+    for (const st of L.present.values()) if (U.chance(o.sai * 0.6)) st.sat = U.clamp(st.sat - 0.08, 0, 1);
+    reactAll('ad', 0.08 + o.s / 1000);
+    SL.bus.emit('ads');
     return null;
   };
   LV.fixMic = () => { const L = LV.cur; if (!L.ev.mic) return; L.ev.mic = 0; touch(); say('Pronto, era o cabo. Tão me ouvindo agora?'); reactAll('mic_fix', 0.3); };

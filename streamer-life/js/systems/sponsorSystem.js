@@ -76,14 +76,18 @@
   };
 
   SP.active = () => G().contracts.filter(c => c.state === 'ativo');
+  // espera entre duas menções da mesma marca na mesma live (antes só contava uma por live e parecia travado)
+  SP.MENCAO_INTERVALO = 15;
+  SP.espera = c => { const L = SL.Live && SL.Live.cur; const d = c.deliv.find(x => x.k === 'live'); if (!L || !d || !d.last || d.last.live !== L.id) return 0; return Math.max(0, SP.MENCAO_INTERVALO - (L.min - d.last.min)); };
   SP.deliver = (cid, kind, data) => {
-    const c = G().contracts.find(x => x.id === cid && x.state === 'ativo'); if (!c) return;
-    const d = c.deliv.find(x => x.k === kind && x.done < x.n); if (!d) return;
+    const c = G().contracts.find(x => x.id === cid && x.state === 'ativo'); if (!c) return 'Contrato não encontrado.';
+    const d = c.deliv.find(x => x.k === kind && x.done < x.n); if (!d) return 'Essa entrega já foi cumprida.';
     if (kind === 'live') {
-      const liveId = SL.Live.cur ? SL.Live.cur.id : 'x';
-      if (d.lives.includes(liveId)) return;
-      if (data.viewers < d.minV) { SL.notify({ cat: 'carreira', icon: 'alert', title: 'Menção não contou', text: 'A ' + D.brandById(c.brand).name + ' exige pelo menos ' + d.minV + ' pessoas assistindo no momento da menção.' }); return; }
-      d.lives.push(liveId);
+      const L = SL.Live.cur; const liveId = L ? L.id : 'x';
+      const falta = SP.espera(c); if (falta > 0) return 'Espere ' + falta + ' min para mencionar a ' + D.brandById(c.brand).name + ' de novo.';
+      if (data.viewers < d.minV) return 'A ' + D.brandById(c.brand).name + ' exige pelo menos ' + d.minV + ' pessoas assistindo na hora da menção (agora: ' + Math.round(data.viewers) + ').';
+      d.lives = d.lives || []; if (!d.lives.includes(liveId)) d.lives.push(liveId);
+      d.last = { live: liveId, min: L ? L.min : 0 };
     }
     d.done++;
     SL.notify({ cat: 'carreira', icon: 'check', title: 'Entrega do contrato', text: D.brandById(c.brand).name + ': ' + SP.KIND[kind] + ' (' + d.done + '/' + d.n + ')', silent: kind === 'live' });

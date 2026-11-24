@@ -95,6 +95,8 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   }
   await page.waitForTimeout(1200);
   const comentario = page.locator('#lv-chat .cm[data-m]:not(.sys):not(.follow):not(.sub):not(.streamer):not(.donation)');
+  // o chat segue o ritmo do público (poucas pessoas = poucas mensagens na tela): espera aparecer um comentário
+  await page.waitForFunction(() => document.querySelectorAll('#lv-chat .cm[data-m]:not(.sys):not(.follow):not(.sub):not(.streamer):not(.donation)').length > 0, null, { timeout: 30000 }).catch(() => null);
   if (await comentario.count()) { await comentario.last().click({ timeout: 3000 }).catch(() => {}); await page.waitForTimeout(250); }
   const popOk = await ev(() => !!document.querySelector('.viewer-pop [data-p="rep"]'));
   if (popOk) { await page.click('.viewer-pop [data-p="rep"]'); await page.waitForTimeout(200); }
@@ -103,6 +105,13 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   const minim = await ev(() => document.getElementById('overlay-live').hidden && !!SL.Live.cur);
   await page.click('.taskbar [data-live]'); await page.waitForTimeout(200);
   ok('live minimiza pela barra de tarefas e volta', minim && await ev(() => !document.getElementById('overlay-live').hidden));
+  // anúncios de 30, 60 ou 120 segundos: dinheiro vai para o saldo da Twitch (repasse de segunda)
+  await page.click('#lv-actions [data-la="ad"]'); await page.waitForTimeout(250);
+  const opAds = await ev(() => document.querySelectorAll('#overlay-live .ctx .opt').length);
+  const balAntes = await ev(() => SL.G.ch.pulso.bal);
+  await page.click('#overlay-live .ctx .opt[data-i="0"]'); await page.waitForTimeout(300);
+  ok('anúncios de 30/60/120 s na live pagam no saldo da Twitch', opAds === 3 && await ev(b => SL.G.ch.pulso.bal > b && (SL.G.ch.pulso.ads || []).length === 1, balAntes));
+  ok('chat no ritmo do público (poucas pessoas, chat calmo)', await ev(() => { const L = SL.Live.cur; const o = L.viewers; L.viewers = 5; const r = SL.LiveUI.chatRate(L); SL.settings.chatCap = 3; const c = SL.LiveUI.chatRate(L); SL.settings.chatCap = 6; L.viewers = o; return r < 0.3 && c < r; }));
   // 3 velocidades em todo lugar; levantar do PC com a live no ar e voltar
   ok('3 velocidades (pausa, normal, 3x) na casa, no PC e na live', await ev(() => document.querySelectorAll('#hud [data-speed]').length === 3 && document.querySelectorAll('.taskbar [data-speed]').length === 3 && document.querySelectorAll('#lv-ctl [data-speed]').length === 3));
   await page.click('.taskbar [data-sair]'); await page.waitForTimeout(400);

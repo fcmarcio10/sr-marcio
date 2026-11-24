@@ -245,7 +245,21 @@
         if (L.away) camVazia(ctx, cx, cy, cw, ch); else P.webcam(ctx, cx, cy, cw, ch, { expr, t: tSec });
       }
     }
-    if (L.away) {
+    if (L.ev.ad) {
+      ctx.fillStyle = 'rgba(6,7,12,.86)'; ctx.fillRect(0, 0, w, h);
+      txt(ctx, 'INTERVALO COMERCIAL', w / 2, h * 0.42, Math.round(h * 0.075), '#fff', 'center', 800);
+      const fim = L.ev.ad.until, ini = L.ev.ad.t0; const k = U.clamp((SL.G.time.t + SL.Clock.fraction() - ini) / Math.max(1, fim - ini), 0, 1);
+      txt(ctx, 'volta em ' + Math.max(1, Math.ceil(L.ev.ad.s * (1 - k))) + ' s', w / 2, h * 0.53, Math.round(h * 0.04), '#b49dff', 'center', 600, 'Inter, Arial');
+      ctx.fillStyle = 'rgba(255,255,255,.15)'; rr(ctx, w * 0.3, h * 0.6, w * 0.4, h * 0.02, 4); ctx.fill();
+      ctx.fillStyle = '#9146ff'; rr(ctx, w * 0.3, h * 0.6, w * 0.4 * k, h * 0.02, 4); ctx.fill();
+    } else if (L.ev.spon) {
+      const tw = w * 0.34, th = h * 0.085, x0 = w - tw - w * 0.02, y0 = h * 0.03;
+      ctx.fillStyle = 'rgba(8,10,16,.82)'; rr(ctx, x0, y0, tw, th, 8); ctx.fill();
+      ctx.fillStyle = '#ffd166'; rr(ctx, x0, y0, w * 0.012, th, 4); ctx.fill();
+      txt(ctx, 'APOIO', x0 + w * 0.025, y0 + th * 0.32, Math.round(h * 0.024), '#ffd166', 'left', 800);
+      txt(ctx, L.ev.spon.name, x0 + w * 0.025, y0 + th * 0.68, Math.round(h * 0.034), '#fff', 'left', 800);
+    }
+    if (L.away && !L.ev.ad) {
       ctx.fillStyle = 'rgba(8,10,16,.78)'; rr(ctx, w * 0.3, h * 0.03, w * 0.4, h * 0.075, 6); ctx.fill();
       txt(ctx, 'JÁ VOLTO', w / 2, h * 0.068, Math.round(h * 0.04), '#fff', 'center', 800);
     }

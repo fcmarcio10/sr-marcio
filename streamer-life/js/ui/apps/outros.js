@@ -126,3 +126,37 @@
     },
   };
 })(window.SL);
+
+
+// Anúncios: intervalos de 30, 60 ou 120 segundos durante a live; o dinheiro vai para o saldo da Twitch e cai na conta no repasse de segunda
+(function (SL) {
+  const U = SL.U, UI = SL.UI; const ic = UI.ic;
+  const proxSegunda = () => { const d0 = SL.Clock.day(); for (let d = d0 + 1; d <= d0 + 7; d++) if (SL.Clock.dowOfDay(d) === 1) return d; return d0 + 7; };
+  SL.Apps.anuncios = {
+    title: 'Anúncios', short: 'Anúncios', icon: 'ads', color: 'linear-gradient(135deg,#9146ff,#5a2bb8)', order: 2, pc: true, phone: true, w: 640, h: 620,
+    watch: ['ads', 'money', 'live:start', 'live:end', 'live:minute'],
+    sig() { const L = SL.Live.cur; const P = SL.G.ch.pulso; return [!!L, L ? Math.round(L.viewers) : 0, L ? SL.Live.adEspera() : 0, L && L.ev.ad ? 1 : 0, Math.round(P.bal * 100), (P.ads || []).length].join('|'); },
+    render(el, ctx) {
+      const G = SL.G; const P = G.ch.pulso; const L = SL.Live.cur; const LV = SL.Live;
+      const falta = L ? LV.adEspera() : 0; const passando = !!(L && L.ev.ad);
+      const pode = L && !falta && !passando;
+      const v = L ? Math.round(L.viewers) : 0;
+      const status = !L ? `<div class="card ad-st">${ic('info', 16)}<span>Os anúncios só passam durante a live. Entre ao vivo pelo OBS Studio e volte aqui (ou use o botão <b>Anúncios</b> da live).</span></div>`
+        : passando ? `<div class="card ad-st on">${ic('ads', 16)}<span>Intervalo comercial passando agora.</span></div>`
+        : falta ? `<div class="card ad-st">${ic('clock', 16)}<span>Próximo intervalo liberado em ${falta} min do jogo.</span></div>`
+        : `<div class="card ad-st ok">${ic('live', 16)}<span>Você está ao vivo com <b>${U.int(v)}</b> ${v === 1 ? 'pessoa' : 'pessoas'} assistindo.</span></div>`;
+      const opc = LV.AD_OPCOES.map(o => `<button class="ad-op" data-act="rodar" data-s="${o.s}" ${pode ? '' : 'disabled'}><b>${o.s}s</b><span class="ad-val">${L ? '≈ ' + U.money(LV.adValor(o.s, v)) : '—'}</span><small>${o.s === 30 ? 'quase ninguém sai' : o.s === 60 ? 'alguns saem' : 'mais gente sai'}</small></button>`).join('');
+      const hist = (P.ads || []).slice(0, 8).map(a => `<div class="li"><span class="tag">${a.s}s</span><div class="grow small">${SL.Clock.fmtStamp(a.t)} · ${U.int(a.v)} assistindo</div><b class="ok small mono">+${U.money(a.rev)}</b></div>`).join('');
+      el.innerHTML = `<div class="app"><div class="app-head"><h2>${ic('ads', 16)} Anúncios</h2><span class="tiny muted" style="margin-left:auto">Intervalos na live da Twitch</span></div><div class="app-body col gap8">
+        ${status}
+        <div class="ad-ops">${opc}</div>
+        <p class="tiny muted">Quanto mais longo o intervalo, mais você ganha e mais gente sai da live. Espere ${LV.AD_ESPERA} min do jogo entre um intervalo e outro.</p>
+        <div class="card row"><div class="grow"><div class="tiny muted">Saldo da Twitch a receber (anúncios, inscrições e doações)</div><b class="ok" style="font-size:1.3em">${U.money(P.bal)}</b></div><div class="tiny muted" style="text-align:right">Cai na conta no repasse de segunda<br><b>${SL.Clock.fmtDay(proxSegunda())}</b>${P.bal < 50 ? '<br>(a partir de R$ 50)' : ''}</div></div>
+        <div class="card col gap4"><b class="small">Últimos intervalos</b>${hist ? `<div class="list">${hist}</div>` : '<span class="tiny muted">Nenhum ainda.</span>'}<span class="tiny muted">Total com anúncios: ${U.money(P.adsTotal || 0)}</span></div>
+      </div></div>`;
+    },
+    act(a, ds, ctx) {
+      if (a === 'rodar') { const e = SL.Live.ad(+ds.s); if (e) return e; UI.toast({ title: 'Intervalo de anúncios', text: ds.s + ' segundos rodando na live.', icon: 'ads', cat: 'canal' }, 'cash'); return ctx.render(); }
+    },
+  };
+})(window.SL);

@@ -127,7 +127,8 @@
   UI.buildDesktop = ov => {
     ov.innerHTML = `<div class="desktop"><canvas class="wall"></canvas><div class="desk-area"><div class="desk-icons"></div></div><div class="start-menu" hidden></div><div class="taskbar"><button class="tb-start" data-start title="Iniciar: todos os aplicativos">${UI.ic('window', 18)}<span>Iniciar</span></button><div class="tb-wins row gap4"></div><div class="tray"><div class="speeds tb-speeds">${UI.speedBtns()}</div>${UI.ic('wifi', 15)}<span class="tb-clock mono"></span><button class="tb-out" data-sair title="Levantar do PC (a live continua se estiver no ar)">${UI.ic('exit', 15)}<span>Sair do PC</span></button><button class="tb-off" data-desligar title="Desligar o PC">${UI.ic('power', 16)}</button></div></div></div>`;
     const sm = $('.start-menu', ov);
-    $('[data-start]', ov).onclick = e => { e.stopPropagation(); if (sm.hidden) UI.renderStart(); sm.hidden = !sm.hidden; };
+    // com a live aberta, o menu Iniciar ficava escondido atrás dela: a live minimiza antes
+    $('[data-start]', ov).onclick = e => { e.stopPropagation(); if (sm.hidden && SL.LiveUI && SL.LiveUI.visible()) SL.LiveUI.minimize(); if (sm.hidden) UI.renderStart(); sm.hidden = !sm.hidden; };
     ov.addEventListener('mousedown', e => { if (!sm.hidden && !sm.contains(e.target) && !e.target.closest('[data-start]')) sm.hidden = true; });
     $('[data-sair]', ov).onclick = () => { SL.audio.play('click'); UI.closePC('sair'); };
     $('[data-desligar]', ov).onclick = () => { SL.audio.play('click'); UI.closePC('desligar'); };
@@ -167,7 +168,8 @@
       const sn = $('.app-body, .app-split > section', host); if (sn && !ctx.resetScroll) sn.scrollTop = top; ctx.resetScroll = false;
       void atBottom;
     };
-    ctx.rr = U.throttle(() => { if (document.body.contains(host)) ctx.render(); }, 350);
+    // apps com sig() só redesenham quando algo que aparece na tela mudou (o clique não se perde)
+    ctx.rr = U.throttle(() => { if (!document.body.contains(host)) return; const a = SL.Apps[app]; if (a && a.sig) { const s = a.sig(ctx); if (s === ctx._sig) return; ctx._sig = s; } ctx.render(); }, 350);
     host.addEventListener('click', e => {
       const t = e.target.closest('[data-act]'); if (!t || !host.contains(t)) return;
       const a = SL.Apps[app]; if (!a.act) return;

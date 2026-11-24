@@ -7,7 +7,7 @@
   // nov/2026: o relógio anda 2x mais devagar (normal: 1 minuto do jogo a cada 4 segundos; 1 hora do jogo = 4 minutos)
   C.SPEEDS = [0, 0.25, 0.75];      // minutos de jogo por segundo real
   C.ACT_MULT = [0, 1, 3];          // atividades (dormir, banho...) andam no ritmo delas, multiplicado pela velocidade escolhida
-  C.LIVE_SPEEDS = [0, 0.25, 0.75]; // durante a live
+  C.LIVE_SPEEDS = [0, 0.25, 1.95]; // durante a live: o 3x acelera 160% a mais (pedido do dono)
   // velocidade escolhida (saves antigos tinham 4 velocidades: o que passa de 2 vira 3x)
   C.sp = () => { const G = SL.G; const s = G ? G.time.speed | 0 : 1; return Math.max(0, Math.min(C.SPEEDS.length - 1, s)); };
   C.setSpeed = s => { const G = SL.G; if (!G) return; G.time.speed = Math.max(0, Math.min(C.SPEEDS.length - 1, s | 0)); SL.bus.emit('speed', G.time.speed); };
@@ -65,13 +65,13 @@
   C.rate = () => {
     const G = SL.G;
     if (!G || holds > 0) return 0;
-    const sp = C.sp();
+    const sp = C.sp(); const base = SL.Live && SL.Live.cur ? C.LIVE_SPEEDS : C.SPEEDS;
     if (G.act) {
       if (G.act.id === 'live') return C.LIVE_SPEEDS[sp] || 0;
       if (sp === 0) return 0;
-      return Math.max(C.SPEEDS[sp], (G.act.speed || 0) * C.ACT_MULT[sp]);
+      return Math.max(base[sp], (G.act.speed || 0) * C.ACT_MULT[sp]);
     }
-    return C.SPEEDS[sp] || 0;
+    return base[sp] || 0;
   };
 
   C.advance = realSec => {
