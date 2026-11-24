@@ -44,7 +44,8 @@
   const FACE = { S: -0.07, N: -0.34, E: -0.24, W: -0.14 };
 
   let grid = null, lay = null, objs = [], walls = [], wallEdges = [], doors = [], props = [], ch = null, hover = null, onArrive = null;
-  let nearPos = null, labels = [];
+  let nearPos = null, labels = [], wallMap = {};
+  const DOOR_EXTRA = T * 0.175; // cada lado: vão de 32 vira ~43 (35% mais largo)
   let floorCv = null, floorKey = '', lastT = 0, lastRoom = null, banner = { name: '', t: -9 }, near = null, hits = [], lastAct = null, lc = null, grassPat = null;
   const V = { cx: 0, cy: 0, s: 2, W: 800, H: 600, zoom: 1, snap: true };
   H.cam = V;
@@ -150,12 +151,23 @@
       const w = { x, y, skip: { N: isWall(x, y - 1), S: isWall(x, y + 1), E: isWall(x + 1, y), W: isWall(x - 1, y) }, col: {}, dec: [] };
       w.col.N = paintOf(x, y - 1) || EXT; w.col.S = paintOf(x, y + 1) || EXT; w.col.E = paintOf(x + 1, y) || EXT; w.col.W = paintOf(x - 1, y) || EXT;
       w.ext = x === 0 || y === 0 || x === lay.w - 1 || y === lay.h - 1;
+      w.tr = { N: 0, S: 0, E: 0, W: 0 };
       walls.push(w);
-      const X = x * T, Y = y * T;
-      if (!w.skip.N) wallEdges.push([X, Y, X + T, Y]); if (!w.skip.S) wallEdges.push([X, Y + T, X + T, Y + T]);
-      if (!w.skip.W) wallEdges.push([X, Y, X, Y + T]); if (!w.skip.E) wallEdges.push([X + T, Y, X + T, Y + T]);
     }
     const wallAt = (x, y) => walls.find(w => w.x === x && w.y === y);
+    wallMap = {}; walls.forEach(w => { wallMap[w.y * 1000 + w.x] = w; });
+    // portas 35% mais largas: a parede do lado da porta encurta (só onde não há outra parede encostando)
+    const portas = lay.doors.concat([lay.entry]);
+    portas.forEach(([x, y]) => {
+      const hz = isWall(x - 1, y) && isWall(x + 1, y);
+      if (hz) { const a = wallAt(x - 1, y), b = wallAt(x + 1, y); if (a && !isWall(x - 1, y - 1) && !isWall(x - 1, y + 1)) a.tr.E = DOOR_EXTRA; if (b && !isWall(x + 1, y - 1) && !isWall(x + 1, y + 1)) b.tr.W = DOOR_EXTRA; }
+      else { const a = wallAt(x, y - 1), b = wallAt(x, y + 1); if (a && !isWall(x - 1, y - 1) && !isWall(x + 1, y - 1)) a.tr.S = DOOR_EXTRA; if (b && !isWall(x - 1, y + 1) && !isWall(x + 1, y + 1)) b.tr.N = DOOR_EXTRA; }
+    });
+    walls.forEach(w => {
+      const X = w.x * T, Y = w.y * T; w.r = [X + w.tr.W, Y + w.tr.N, X + T - w.tr.E, Y + T - w.tr.S]; const [a, b, c2, d2] = w.r;
+      if (!w.skip.N) wallEdges.push([a, b, c2, b]); if (!w.skip.S) wallEdges.push([a, d2, c2, d2]);
+      if (!w.skip.W) wallEdges.push([a, b, a, d2]); if (!w.skip.E) wallEdges.push([c2, b, c2, d2]);
+    });
     // janelas (só nas paredes de fora)
     lay.windows.forEach(([x, y]) => { const w = wallAt(x, y); if (!w || !w.ext) return; w.win = true; w.dec.push({ face: '*', fn: decWindow }); });
     // decoração de parede, espuma acústica, fita de LED, espelho
@@ -168,6 +180,10 @@
     // portas
     doors = lay.doors.map(([x, y]) => ({ x, y, horiz: isWall(x - 1, y) && isWall(x + 1, y), open: 0, exit: false }));
     doors.push({ x: ex, y: ey, horiz: true, open: 0, exit: true });
+    doors.forEach(d => { // vão da porta já com a parede encurtada
+      if (d.horiz) { const a = wallAt(d.x - 1, d.y), b = wallAt(d.x + 1, d.y); d.a0 = d.x * T - (a ? a.tr.E : 0); d.a1 = d.x * T + T + (b ? b.tr.W : 0); }
+      else { const a = wallAt(d.x, d.y - 1), b = wallAt(d.x, d.y + 1); d.a0 = d.y * T - (a ? a.tr.S : 0); d.a1 = d.y * T + T + (b ? b.tr.N : 0); }
+    });
     // lado de fora: árvores, poste e carro
     const W0 = lay.w, H0 = lay.h;
     props = [[-3.4, 2.6, 'tree'], [-2.8, H0 * 0.62, 'tree'], [W0 + 3, 2.2, 'tree'], [W0 + 3.4, H0 * 0.68, 'tree'], [2.5, H0 + 9.4, 'tree'], [W0 - 4, H0 + 9.6, 'tree'], [W0 * 0.45, -3.6, 'tree'], [W0 * 0.8, -3.2, 'bush'], [W0 * 0.2, -2.8, 'bush'], [-2.2, H0 - 1.5, 'bush'], [W0 + 2.2, H0 - 2, 'bush'],
@@ -219,7 +235,7 @@
   };
   H.placeAt = id => { const o = objs.find(x => x.id === id); if (!o || !o.use) return; ch.x = (o.use[0] + 0.5) * T; ch.y = (o.use[1] + 0.5) * T; ch.path = []; if (id === 'porta') { ch.ang = ch.tang = -Math.PI / 2; } };
   const R = 8.5;
-  const walkW = (x, y) => walkable(Math.floor(x / T), Math.floor(y / T));
+  const walkW = (x, y) => { const tx = Math.floor(x / T), ty = Math.floor(y / T); if (walkable(tx, ty)) return true; const w = wallMap[ty * 1000 + tx]; return !!(w && (x < w.r[0] || x > w.r[2] || y < w.r[1] || y > w.r[3])); };
   const free = (x, y) => walkW(x - R, y - R) && walkW(x + R, y - R) && walkW(x - R, y + R) && walkW(x + R, y + R);
   const move = (dx, dy) => {
     let mx = false, my = false;
@@ -257,6 +273,7 @@
     if (a.id === 'cafe') return at(ob('cafeteira') || ob('fogao'));
     if (a.id === 'beber') return at(ob('pia'));
     if (a.id === 'escovar') return at(ob('pia_b'));
+    if (a.id === 'vaso') { const v = ob('vaso'); if (v) return { host: 'vaso', x: (v.x + 0.5) * T, y: v.y * T + 19, ang: Math.PI / 2, sit: true, nude: true }; }
     if (a.id === 'regar') return at(objs.find(o => o.kind === 'planta'));
     return null;
   };
@@ -365,8 +382,9 @@
       const g = grid[y][x]; if (g.t === 'wall') continue;
       const rid = g.room || roomNear(x, y); const r = lay.rooms.find(q => q.id === rid);
       floorTile(c, x, y, r ? r.floor : 'wood', mae);
-      if (g.t === 'door' || g.t === 'exit') { const hz = isWall(x - 1, y) && isWall(x + 1, y); c.fillStyle = '#6d5440'; if (hz) c.fillRect(x * T, y * T + 12, T, 8); else c.fillRect(x * T + 12, y * T, 8, T); c.fillStyle = 'rgba(255,255,255,.08)'; if (hz) c.fillRect(x * T, y * T + 12, T, 1); }
     }
+    walls.forEach(w => { if (!(w.tr.N || w.tr.S || w.tr.E || w.tr.W)) return; const r = lay.rooms.find(q => q.id === roomNear(w.x, w.y) || q.id === roomNear(w.x + (w.tr.W ? -1 : w.tr.E ? 1 : 0), w.y + (w.tr.N ? -1 : w.tr.S ? 1 : 0))); floorTile(c, w.x, w.y, r ? r.floor : 'wood', mae); });
+    doors.forEach(d => { c.fillStyle = '#6d5440'; if (d.horiz) { c.fillRect(d.a0, d.y * T + 12, d.a1 - d.a0, 8); c.fillStyle = 'rgba(255,255,255,.08)'; c.fillRect(d.a0, d.y * T + 12, d.a1 - d.a0, 1); } else c.fillRect(d.x * T + 12, d.a0, 8, d.a1 - d.a0); });
     // capacho na porta de entrada
     const [ex, ey] = lay.entry; c.fillStyle = '#5c4434'; rr(c, ex * T + 4, (ey - 1) * T + 14, T - 8, 16, 3); c.fill(); c.fillStyle = 'rgba(0,0,0,.18)'; for (let i = 0; i < 6; i++) c.fillRect(ex * T + 7 + i * 4, (ey - 1) * T + 16, 1.4, 12);
     // tapetes
@@ -425,7 +443,7 @@
   function decMirror(c, fp) { fq(c, fp, 0.18, 0.82, 34, 54, '#9aa8b4'); fq(c, fp, 0.22, 0.78, 36, 52, '#c8dde8'); fq(c, fp, 0.3, 0.42, 38, 50, 'rgba(255,255,255,.35)'); }
 
   const drawWall = (c, w) => {
-    const x0 = w.x * T, y0 = w.y * T, x1 = x0 + T, y1 = y0 + T;
+    const [x0, y0, x1, y1] = w.r;
     for (const d of ['N', 'E', 'W', 'S']) {
       if (w.skip[d] || !vis(d, x0, y0, x1, y1)) continue;
       const [ax, ay, bx, by] = FACE_AB(d, x0, y0, x1, y1); const fp = (u, z) => P(ax + (bx - ax) * u, ay + (by - ay) * u, z);
@@ -440,20 +458,20 @@
   };
   const drawWallTops = c => {
     atZ(c, WALLZ, () => {
-      c.fillStyle = WALL_TOP; c.beginPath(); walls.forEach(w => c.rect(w.x * T - 0.3, w.y * T - 0.3, T + 0.6, T + 0.6)); c.fill();
+      c.fillStyle = WALL_TOP; c.beginPath(); walls.forEach(w => c.rect(w.r[0] - 0.3, w.r[1] - 0.3, w.r[2] - w.r[0] + 0.6, w.r[3] - w.r[1] + 0.6)); c.fill();
       walls.forEach(w => { if (!w.win) return; const hz = w.skip.E || w.skip.W; c.fillStyle = '#9fc6dd'; if (hz) c.fillRect(w.x * T + 3, w.y * T + 13, T - 6, 6); else c.fillRect(w.x * T + 13, w.y * T + 3, 6, T - 6); });
       c.strokeStyle = WALL_EDGE; c.lineWidth = 1.2; c.beginPath(); wallEdges.forEach(e => { c.moveTo(e[0], e[1]); c.lineTo(e[2], e[3]); }); c.stroke();
     });
   };
   const drawDoor = (c, d) => {
-    const L = T - 3, th = 3.5; let hx, hy, a;
-    if (d.horiz) { hx = d.x * T + 1.5; hy = d.y * T + T / 2; a = d.exit ? -d.open * Math.PI * 0.48 : d.open * Math.PI * 0.48; }
-    else { hx = d.x * T + T / 2; hy = d.y * T + 1.5; a = Math.PI / 2 - d.open * Math.PI * 0.48; }
+    const L = d.a1 - d.a0 - 3, th = 3.5; let hx, hy, a;
+    if (d.horiz) { hx = d.a0 + 1.5; hy = d.y * T + T / 2; a = d.exit ? -d.open * Math.PI * 0.48 : d.open * Math.PI * 0.48; }
+    else { hx = d.x * T + T / 2; hy = d.a0 + 1.5; a = Math.PI / 2 - d.open * Math.PI * 0.48; }
     const ux = Math.cos(a), uy = Math.sin(a), nx = -uy * th / 2, ny = ux * th / 2;
     const pts = [[hx + nx, hy + ny], [hx + ux * L + nx, hy + uy * L + ny], [hx + ux * L - nx, hy + uy * L - ny], [hx - nx, hy - ny]];
     const col = d.exit ? '#6a4630' : '#8d6a4c';
     prism(c, pts, 0, 52, col, sh(col, 0.15));
-    if (d.exit) { const o = ob('porta'); if (o) hits.push(bboxOf(d.x * T, d.y * T, d.x * T + T, d.y * T + T, 0, 52).concat(o)); }
+    if (d.exit) { const o = ob('porta'); if (o) hits.push(bboxOf(d.a0, d.y * T, d.a1, d.y * T + T, 0, 52).concat(o)); }
   };
 
   // ---------- móveis ----------
@@ -502,7 +520,7 @@
         const cx = X + W / 2, cy = Y + Hh / 2;
         atZ(c, 52, () => { c.fillStyle = '#9aa4ac'; c.fillRect(cx - 1.5, Y + 3, 3, cy - Y - 6); c.beginPath(); c.arc(cx, cy - 3, du ? 8 : 5.5, 0, 7); c.fill(); c.fillStyle = '#c3ccd3'; c.beginPath(); c.arc(cx, cy - 3, du ? 6 : 4, 0, 7); c.fill(); });
         if (host) {
-          person(c, G.player.look, ps.x, ps.y, ps.ang, {});
+          person(c, G.player.look, ps.x, ps.y, ps.ang, { nude: true, t });
           c.fillStyle = 'rgba(190,225,255,.75)';
           for (let i = 0; i < 34; i++) { const ph = (t * 1.7 + i * 0.137) % 1; const z = 50 - ph * 50; const p = P(cx + (hv(i, 1) - 0.5) * (du ? 34 : 24), cy - 3 + (hv(i, 2) - 0.5) * (du ? 34 : 24), z); c.fillRect(p[0], p[1], 1.3, 3.5); }
           for (let i = 0; i < 6; i++) { const ph = (t * 0.25 + i / 6) % 1; const p = P(cx + Math.sin(i * 2 + t) * 14, cy + Math.cos(i * 3) * 12, 20 + ph * 40); c.fillStyle = 'rgba(255,255,255,' + (0.16 * (1 - ph)) + ')'; c.beginPath(); c.arc(p[0], p[1], 8 + ph * 14, 0, 7); c.fill(); }
@@ -519,6 +537,7 @@
         const cx = X + 16;
         box(c, cx - 8, Y + 2, cx + 8, Y + 9, 0, 28, '#e9edf2', '#f6f8fb');
         cyl(c, cx, Y + 19, 8, 0, 14, '#e2e7ee', '#f3f6f9', c2 => { c2.fillStyle = '#c9d2dc'; c2.beginPath(); c2.ellipse(cx, Y + 19, 5, 5.6, 0, 0, 7); c2.fill(); });
+        if (host) person(c, G.player.look, ps.x, ps.y, ps.ang, { sit: true, nude: true, t });
         break;
       }
       case 'pia_b': {
@@ -694,8 +713,9 @@
   };
 
   // ---------- personagem visto de cima ----------
-  const person = (c, L, x, y, ang, o) => {
+  const person = (c, L0, x, y, ang, o) => {
     o = o || {};
+    const L = o.nude ? Object.assign({}, L0, { shirt: L0.skin, pants: L0.skin, acc: L0.acc === 2 ? 0 : L0.acc }) : L0;
     const walk = o.walk || 0, sw = Math.sin(walk);
     const sit = !!o.sit; const zs = sit ? 22 : 31;
     atZ(c, sit ? 14 : 0.5, () => { c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(x + 2, y + 3, 11.5, 10, 0, 0, 7); c.fill(); });
@@ -733,7 +753,16 @@
       c.fillStyle = L.shirt; c.beginPath(); c.ellipse(0.6, 0, 6.6, 10.6, 0, 0, 7); c.fill();
       c.fillStyle = 'rgba(255,255,255,.1)'; c.beginPath(); c.ellipse(-1, -3, 3, 5, 0, 0, 7); c.fill();
     });
+    if (o.nude) atZ(c, zs + 2, () => { c.translate(x, y); c.rotate(ang); censura(c, L.skin, sit, o.t || 0); });
     atZ(c, zs + 7, () => { c.translate(x, y); c.rotate(ang); head(c, L); });
+  };
+  // mosaico de censura (como nos jogos de simulação): quadradinhos da cor da pele que tremem
+  const censura = (c, skin, sit, t) => {
+    const cell = 3.4, fr = Math.floor(t * 5); const x0 = -9, x1 = sit ? 16 : 9, y0 = -11, y1 = 11;
+    for (let i = 0; x0 + i * cell < x1; i++) for (let j = 0; y0 + j * cell < y1; j++) {
+      const v = (hv(i + fr, j, 3) - 0.5) * 0.34; c.fillStyle = sh(skin, v); c.fillRect(x0 + i * cell, y0 + j * cell, cell + 0.3, cell + 0.3);
+    }
+    c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 0.6; c.strokeRect(x0, y0, x1 - x0, y1 - y0);
   };
   // o que o personagem leva nas mãos durante uma sequência
   const holdItem = (c, k) => {
@@ -916,7 +945,7 @@
     list.sort((a, b) => b.d - a.d);
     if (ps && ps.floor) drawCollapsed(c, G.player.look, ps.x, ps.y);
     list.forEach(e => {
-      if (e.w) { const x0 = e.w.x * T, y0 = e.w.y * T; hits.push(bboxOf(x0, y0, x0 + T, y0 + T, 0, WALLZ).concat(null)); drawWall(c, e.w); }
+      if (e.w) { const r = e.w.r; hits.push(bboxOf(r[0], r[1], r[2], r[3], 0, WALLZ).concat(null)); drawWall(c, e.w); }
       else if (e.door) drawDoor(c, e.door);
       else if (e.o) { drawObj(c, e.o, t, ps); const o = e.o; hits.push(bboxOf(o.x * T, o.y * T, (o.x + o.w) * T, (o.y + o.h) * T, 0, Math.min(o.z, 56)).concat(o)); }
       else if (e.chair) { drawChair(c, e.chair, ps); const cx = (e.chair.use[0] + 0.5) * T, cy = (e.chair.use[1] + 0.5) * T; hits.push(bboxOf(cx - 11, cy - 9, cx + 11, cy + 12, 0, 40).concat(e.chair)); }

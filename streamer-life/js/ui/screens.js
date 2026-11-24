@@ -15,8 +15,8 @@
       <div class="title-col">
         <div class="logo"><div class="mark">${UI.ic('pulso', 30)}<span>SIMULADOR DE VIDA DIGITAL</span></div><h1>STREAMER<br><em>LIFE</em></h1><p>Comece do zero num quarto simples. Faça lives, publique vídeos, cuide da sua vida e construa uma carreira na internet.</p></div>
         <nav class="menu">
-          <button class="mi main" data-m="continuar" ${meta ? '' : 'disabled'}>${UI.ic('play', 20)}<div><b>Continuar</b><small>${meta ? U.esc(meta.name + ' · ' + meta.day) : 'Nenhuma partida salva'}</small></div></button>
-          <button class="mi" data-m="novo">${UI.ic('plus', 20)}<div><b>Novo jogo</b><small>Criar personagem e canal</small></div></button>
+          <button class="mi ${meta ? 'main' : ''}" data-m="continuar" ${meta ? '' : 'disabled'}>${UI.ic('play', 20)}<div><b>Continuar</b><small>${meta ? U.esc(meta.name + ' · ' + meta.day) : 'Nenhuma partida salva'}</small></div></button>
+          <button class="mi ${meta ? '' : 'main'}" data-m="novo">${UI.ic('plus', 20)}<div><b>Novo jogo</b><small>Criar personagem e canal</small></div></button>
           <button class="mi" data-m="carregar">${UI.ic('folder', 20)}<div><b>Carregar partida</b><small>3 espaços + salvamento automático</small></div></button>
           <button class="mi" data-m="config">${UI.ic('settings', 20)}<div><b>Configurações</b><small>Som, salvamento e acessibilidade</small></div></button>
         </nav>
@@ -169,13 +169,14 @@
   SC.pauseMenu = () => {
     if (SL.Live && SL.Live.cur) return UI.err('Encerre a live para abrir o menu.');
     const G = SL.G;
-    const m = UI.modal({ title: 'Menu', icon: 'more', hold: true, html: `<div class="col">
-      <button class="choice" data-pm="voltar"><b>${UI.ic('play', 15)} Continuar</b></button>
-      <div class="upper" style="margin-top:6px">Salvar</div><div class="grid3">${['1', '2', '3'].map(s => `<button class="choice" data-save="${s}"><b>Espaço ${s}</b><small>${(SL.Save.readMeta(s) || {}).meta ? 'Substituir' : 'Vazio'}</small></button>`).join('')}</div>
-      <button class="choice" data-pm="export"><b>${UI.ic('upload', 15)} Exportar salvamento</b><small>Copie o código ou baixe um arquivo de segurança</small></button>
-      <button class="choice" data-pm="carregar"><b>${UI.ic('folder', 15)} Carregar outra partida</b></button>
-      <button class="choice" data-pm="config"><b>${UI.ic('settings', 15)} Configurações</b></button>
-      <button class="choice" data-pm="sair"><b>${UI.ic('exit', 15)} Salvar e voltar ao menu inicial</b></button></div>` });
+    const pm = (k, ic, t, sub, cls) => `<button class="mi ${cls || ''}" data-pm="${k}">${UI.ic(ic, 20)}<div><b>${t}</b>${sub ? '<small>' + sub + '</small>' : ''}</div></button>`;
+    const m = UI.modal({ title: 'Pausa', icon: 'pause', hold: true, cls: 'game pause-modal', html: `<nav class="menu wide">
+      ${pm('voltar', 'play', 'Continuar', 'Voltar para o jogo', 'main')}
+      <div class="upper" style="margin-top:4px">Salvar o jogo</div><div class="slots3">${['1', '2', '3'].map(s => `<button class="slot-b" data-save="${s}"><b>Espaço ${s}</b><small>${(SL.Save.readMeta(s) || {}).meta ? 'Substituir' : 'Vazio'}</small></button>`).join('')}</div>
+      ${pm('carregar', 'folder', 'Carregar outra partida', '')}
+      ${pm('config', 'settings', 'Configurações', 'Som, tela e salvamento')}
+      ${pm('export', 'upload', 'Exportar salvamento', 'Código ou arquivo de segurança')}
+      ${pm('sair', 'exit', 'Salvar e sair', 'Volta para o menu inicial', 'quit')}</nav>` });
     $$('[data-save]', m.el).forEach(b => b.onclick = () => { const err = SL.Save.write(b.dataset.save); m.close(); if (err) UI.alert('Não foi possível salvar', err, 'alert'); else UI.toast({ title: 'Jogo salvo', text: 'Espaço ' + b.dataset.save + ' · ' + SL.Clock.fmtStamp(G.time.t), icon: 'save', cat: 'sistema' }, 'success'); });
     $$('[data-pm]', m.el).forEach(b => b.onclick = () => {
       const a = b.dataset.pm; m.close();

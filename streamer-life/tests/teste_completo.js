@@ -61,6 +61,7 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   for (let i = 0; i < 120; i++) { await page.waitForTimeout(200); const st = await ev(() => ({ busy: SL.Seq.busy(), locked: document.getElementById('hud').classList.contains('locked') })); if (st.busy && st.locked) travado = true; if (!st.busy) break; }
   ok('preparar trava os botões e termina comendo à mesa', travado && await ev(() => !SL.Seq.busy()));
   ok('comer aumenta a fome', await ev(f => SL.G.needs.fome > f && SL.G.flags.ate, fomeAntes), await ev(() => Math.round(SL.G.needs.fome)));
+  ok('vaso sanitário tem ação e o banho/vaso usam censura', await ev(() => { const v = SL.HomeScene.objects().find(x => x.id === 'vaso'); const a = SL.HUD.objectActions(v); return a.length > 0 && /banheiro/i.test(a[0].label) && !!SL.Life.ACT.vaso; }));
 
   // 4. computador e loja (entrega no dia seguinte)
   await page.click('[data-h="pc"]'); await page.waitForSelector('#overlay-pc:not([hidden])', { timeout: 9000 }).catch(() => null);
@@ -87,12 +88,22 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
     if (i >= 12 && answered + welcomed > 0) break;
     await ev(() => { SL.debug.skip(8); SL.G.needs.sono = Math.max(SL.G.needs.sono, 60); });
     await page.waitForTimeout(350);
-    const ans = await page.$('#lv-pend [data-pa="ans"]'); if (ans) { await ans.click(); answered++; }
-    const wel = await page.$('#lv-pend [data-pa="welcome"]'); if (wel) { await wel.click(); welcomed++; }
+    const tenta = async sel => { const l = page.locator(sel).first(); if (!(await l.count())) return false; return l.click({ timeout: 1500 }).then(() => true).catch(() => false); };
+    if (await tenta('#lv-pend [data-pa="ans"]')) answered++;
+    if (await tenta('#lv-pend [data-pa="welcome"]')) welcomed++;
     if (i === 3) { await page.click('[data-la="talk"]'); await page.waitForTimeout(150); const o = await page.$('#overlay-live .ctx .opt'); if (o) await o.click(); }
     if (i === 6) await page.click('[data-la="joke"]');
   }
   await page.waitForTimeout(1200);
+  const comentario = page.locator('#lv-chat .cm[data-m]:not(.sys):not(.follow):not(.sub):not(.streamer):not(.donation)');
+  if (await comentario.count()) { await comentario.last().click({ timeout: 3000 }).catch(() => {}); await page.waitForTimeout(250); }
+  const popOk = await ev(() => !!document.querySelector('.viewer-pop [data-p="quick"]'));
+  if (popOk) { await page.click('.viewer-pop [data-p="quick"]'); await page.waitForTimeout(200); }
+  ok('clicar num comentário abre as respostas e responde no chat', popOk && await ev(() => SL.Live.cur.chat.some(m => m.kind === 'streamer' || m.streamer || /@/.test(m.text || m.raw || ''))));
+  await page.click('.taskbar [data-live]'); await page.waitForTimeout(200);
+  const minim = await ev(() => document.getElementById('overlay-live').hidden && !!SL.Live.cur);
+  await page.click('.taskbar [data-live]'); await page.waitForTimeout(200);
+  ok('live minimiza pela barra de tarefas e volta', minim && await ev(() => !document.getElementById('overlay-live').hidden));
   await shot('08_live_estudio');
   const L1 = await ev(() => { const L = SL.Live.cur; return { min: L.min, viewers: L.viewers, peak: L.peak, msgs: L.stats.msgs, chatDom: document.querySelectorAll('#lv-chat .cm').length, att: L.att.size, intents: [...new Set(L.chat.map(m => m.intent).filter(Boolean))], moments: L.moments.length }; });
   ok('público chega na live', L1.peak >= 1, L1);

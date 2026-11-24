@@ -76,7 +76,7 @@
       }
     }
     if (SL.HUD.prompt) SL.HUD.prompt();
-    if (SL.Live.cur && !liveOpen) SL.LiveUI.open();
+    if (SL.Live.cur && !liveOpen && !SL.LiveUI.minimized) SL.LiveUI.open();
     SL.LiveUI.frame(t);
     SL.HUD.update();
     if (now - lastSlow > 250) {

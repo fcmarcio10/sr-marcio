@@ -108,6 +108,7 @@
     end: (a, ok) => { if (ok) L.mod({ energia: 4 }); } });
   def('banho_longo', { label: 'Banho demorado', icon: 'shower', speed: 3.5, dur: 35, fx: { estresse: -12, humor: 8 },
     end: (a, ok) => { if (ok) { L.mod({ higiene: 100, humor: 3 }); } } });
+  def('vaso', { label: 'No banheiro', icon: 'hygiene', speed: 1.2, dur: 6 });
   def('escovar', { label: 'Se arrumando', icon: 'hygiene', speed: 1.5, dur: 6, end: (a, ok) => { if (ok) L.mod({ higiene: 14, humor: 1 }); } });
   def('beber', { label: 'Bebendo água', icon: 'drink', speed: 1, dur: 2, end: (a, ok) => { if (ok) L.mod({ sede: 42 }); } });
   // comer/beber: data.food; data.taken = já tirou da geladeira; data.q = qualidade do preparo; data.where = 'mesa' para sentar
@@ -234,7 +235,8 @@
     const n = G0.needs, a = G0.act, def0 = a ? ACT[a.id] : null;
     const k = SL.State.DIFF[G0.player.diff].needs;
     const sleeping = def0 && def0.sleep;
-    const d = { fome: -(sleeping ? 2.3 : 5) / 60 * k, sede: -(sleeping ? 2.8 : 7) / 60 * k, energia: sleeping ? 0 : -3.8 / 60 * k };
+    // fome e sede caem 2,5x mais devagar que na primeira versão (pedido do dono)
+    const d = { fome: -(sleeping ? 0.92 : 2) / 60 * k, sede: -(sleeping ? 1.12 : 2.8) / 60 * k, energia: sleeping ? 0 : -3.8 / 60 * k };
     if (def0 && def0.fx) for (const key in def0.fx) d[key] = (d[key] || 0) + def0.fx[key] / 60;
     // cansaço: horas acordado, computador sem pausa, café, fome e sede
     const lf = G0.life || (G0.life = { awake: 0, pcRun: 0, offPc: 0, caf: 0, warnT: -9999 });

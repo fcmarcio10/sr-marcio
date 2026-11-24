@@ -106,6 +106,7 @@
       case 'mesa': add('Usar o computador', 'laptop', () => UI.openPC()); break;
       case 'chuveiro': add('Tomar banho', 'shower', life('banho'), '15 min'); break;
       case 'pia_b': add('Lavar o rosto', 'hygiene', life('escovar', {}, 'Lavando o rosto')); break;
+      case 'vaso': add('Usar o banheiro', 'hygiene', life('vaso'), '5 min'); break;
       case 'sofa': add('Descansar', 'sofa', life('descansar'), '30 min'); if (it.tv) add('Ver TV', 'tv', life('tv'), '1 hora'); break;
       case 'tv': if (it.tv) add('Ver TV', 'tv', life('tv'), '1 hora'); if (G.equip.setup.console && it.tv) add('Jogar videogame', 'gamepad', life('videogame'), '1 hora'); if (!it.tv) add('Precisa de uma TV', 'tv', null, '', true); break;
       case 'armario': add('Limpar a casa', 'broom', life('limpar'), 'sujeira ' + Math.round(G.home.dirt) + '%'); break;

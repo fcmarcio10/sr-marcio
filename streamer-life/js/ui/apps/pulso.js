@@ -123,7 +123,7 @@
     act(a, ds, ctx, ev, t) {
       const st = ctx.st; const f = st.form; const G = SL.G;
       if (a === 'tab') { st.tab = ds.t; ctx.resetScroll = true; return ctx.render(); }
-      if (a === 'reopen') return SL.LiveUI.open();
+      if (a === 'reopen') return SL.LiveUI.restore();
       if (a === 'game') { const g = D.gameById(ds.g); const cs = SL.Equip.canStream(g, '480p'); if (!cs.ok) return cs.reason; f.game = ds.g; f.tags = f.tags.filter(x => SL.Algo.suggestTags(f.game).includes(x)); return ctx.render(); }
       if (a === 'idea') { f.title = U.pick(TITLE_IDEAS).replace('{g}', D.gameById(f.game).name); SL.Life.skillUp('marketing', 0.02); return ctx.render(); }
       if (a === 'tag') { const i = f.tags.indexOf(ds.v); if (i >= 0) f.tags.splice(i, 1); else if (f.tags.length < 6) f.tags.push(ds.v); return ctx.render(); }
@@ -159,7 +159,7 @@
     if (f.collab) { const id = Object.keys(G.rel).find(k => G.rel[k].plan && G.rel[k].plan.kind === 'collab'); if (id) opts.collabWith = id; }
     const err = SL.Live.start(opts); if (err) return err;
     if (opts.collabWith) LUI.setupCollab(opts.collabWith);
-    LUI.open();
+    LUI.open(); UI.renderTaskbar();
     return null;
   };
   LUI.setupCollab = id => {
@@ -181,27 +181,33 @@
     });
   };
   LUI.open = () => {
-    const ov = $('#overlay-live'); ov.hidden = false; buf = []; pendSig = ''; alertsShown = 0; LUI._aq = []; LUI._aqT = 0; document.body.classList.add('live-open');
+    if (!UI.pcOpen()) UI.openPC();
+    const tz = document.getElementById('toasts'); if (tz) tz.innerHTML = '';
+    const ov = $('#overlay-live'); ov.hidden = false; buf = []; pendSig = ''; alertsShown = 0; LUI._aq = []; LUI._aqT = 0; LUI.minimized = false; document.body.classList.add('live-open');
     const L = SL.Live.cur; const G = SL.G;
     ov.innerHTML = `<div class="studio">
       <div class="live-main">
         <div class="live-top"><span class="onair"><i></i>AO VIVO</span><div class="ttl"><b class="ellipsis" id="lv-t"></b><small id="lv-g"></small></div>
-          <div class="lstats"><div class="lstat v"><b id="ls-v">0</b><span>assistindo</span></div><div class="lstat"><b id="ls-f">+0</b><span>seguidores</span></div><div class="lstat"><b id="ls-s">0</b><span>inscrições</span></div><div class="lstat"><b id="ls-d">R$ 0</b><span>doações</span></div><div class="lstat"><b id="ls-t">0:00</b><span>no ar</span></div></div></div>
-        <div class="preview-wrap"><div class="preview-box"><canvas id="lv-cv"></canvas><div class="alerts" id="lv-al"></div></div></div>
+          <div class="lstats"><div class="lstat v"><b id="ls-v">0</b><span>assistindo</span></div><div class="lstat"><b id="ls-f">+0</b><span>seguidores</span></div><div class="lstat"><b id="ls-s">0</b><span>inscrições</span></div><div class="lstat"><b id="ls-d">R$ 0</b><span>doações</span></div><div class="lstat"><b id="ls-t">0:00</b><span>no ar</span></div></div><div class="lctl" id="lv-ctl"></div></div>
+        <div class="preview-wrap" id="lv-wrap"><div class="preview-box" id="lv-box"><canvas id="lv-cv"></canvas><div class="alerts" id="lv-al"></div></div></div>
         <div class="meter-row"><div class="meter" title="Empolgação do chat">${ic('fire', 14)}<span>Empolgação</span><div class="bar"><i id="m-h"></i></div></div><div class="meter" title="Qualidade do conteúdo agora">${ic('star', 14)}<span>Conteúdo</span><div class="bar"><i id="m-c"></i></div></div><div class="meter" title="Qualidade técnica">${ic('cpu', 14)}<span>Técnica</span><div class="bar"><i id="m-t"></i></div></div><div class="meter" title="Sua energia">${ic('energy', 14)}<span>Você</span><div class="bar"><i id="m-e"></i></div></div><span id="m-issues" class="row gap4"></span></div>
-        <div class="actions" id="lv-actions"></div>
       </div>
-      <div class="live-side"><div class="sh">${ic('chat', 16)}<b class="grow">Chat</b><span class="tiny muted" id="lv-rate"></span></div><div class="chat" id="lv-chat"></div><div class="pending" id="lv-pend"></div>
+      <div class="live-side"><div class="sh">${ic('chat', 16)}<b class="grow">Chat</b><span class="tiny muted" id="lv-rate"></span></div><div class="actions" id="lv-actions"></div><div class="chat-tip tiny muted">Clique num comentário para responder</div><div class="chat" id="lv-chat"></div><div class="pending" id="lv-pend"></div>
         <form class="chat-input" id="lv-form"><input class="input" id="lv-in" maxlength="120" placeholder="Escrever no chat como ${esc(G.player.user)}" autocomplete="off"><button class="btn primary sm">${ic('send', 14)}</button></form></div>
     </div>`;
     $('#lv-t').textContent = L.title;
     LUI.actions();
-    $('#lv-actions').onclick = LUI.actionClick;
+    $('#lv-actions').onclick = LUI.actionClick; $('#lv-ctl').onclick = LUI.actionClick;
     $('#lv-pend').onclick = LUI.pendClick;
     $('#lv-chat').onclick = e => { const m = e.target.closest('[data-m]'); if (m) LUI.msgPop(m.dataset.m, m); };
     $('#lv-form').onsubmit = e => { e.preventDefault(); const v = $('#lv-in').value.trim(); if (!v) return; $('#lv-in').value = ''; LUI.typed(v); };
   };
-  LUI.close = () => { const ov = $('#overlay-live'); ov.hidden = true; ov.innerHTML = ''; document.body.classList.remove('live-open'); };
+  LUI.close = () => { const ov = $('#overlay-live'); ov.hidden = true; ov.innerHTML = ''; LUI.minimized = false; document.body.classList.remove('live-open'); if (UI.renderTaskbar) UI.renderTaskbar(); };
+  // a live é uma janela: dá para minimizar, usar outros apps e voltar pela aba "AO VIVO" da barra de tarefas
+  LUI.minimized = false;
+  LUI.visible = () => !$('#overlay-live').hidden;
+  LUI.minimize = () => { if (!SL.Live.cur) return; LUI.minimized = true; $('#overlay-live').hidden = true; document.body.classList.remove('live-open'); document.querySelectorAll('.viewer-pop, #overlay-live .ctx').forEach(x => x.remove()); UI.renderTaskbar(); };
+  LUI.restore = () => { if (!SL.Live.cur) return; const ov = $('#overlay-live'); if (!ov.firstChild) return LUI.open(); LUI.minimized = false; ov.hidden = false; document.body.classList.add('live-open'); UI.renderTaskbar(); };
   LUI.typed = text => {
     const L = SL.Live.cur; if (!L) return; L.silence = 0;
     const m = SL.Chat.streamer(text); L.chat.push(m); buf.push(m);
@@ -217,16 +223,23 @@
     const sig = JSON.stringify([L.risky > 0, L.focus, !!L.poll, !!L.challenge, L.ev.mic, L.ev.net > 0, L.ev.paused, L.speed, L.followersOnly, contracts.length, G.ch.pulso.afil, !!(L.ev.celeb && !L.ev.celeb.greeted)]);
     if (el.dataset.sig === sig) return; el.dataset.sig = sig;
     const b = (k, label, icon, cls, title) => `<button class="btn ${cls || ''}" data-la="${k}" title="${esc(title || '')}">${ic(icon, 15)}${label}</button>`;
-    el.innerHTML = `<div class="agroup">${b('talk', 'Conversar', 'chat', '', 'Puxa assunto com o chat (zera o silêncio)')}${b('joke', 'Piada', 'joke')}${b('poll', 'Enquete', 'poll', L.poll ? 'disabled' : '')}${b('schedule', 'Anunciar próxima live', 'calendar')}${L.ev.celeb && !L.ev.celeb.greeted ? b('celeb', 'Cumprimentar ' + L.ev.celeb.name, 'star', 'primary') : ''}</div>
-      <div class="agroup">${g.nongame ? '' : b('risky', L.risky > 0 ? 'Arriscando' : 'Jogada arriscada', 'fire', L.risky > 0 ? 'primary' : '') + b('focus', L.focus ? 'Focado' : 'Focar no jogo', 'target', L.focus ? 'primary' : '')}${b('challenge', 'Desafio', 'trophy', L.challenge ? 'disabled' : '')}${b('game', 'Trocar de jogo', 'gamepad')}${b('pause', L.ev.paused ? 'Em pausa' : 'Pausa (10 min)', 'clock', L.ev.paused ? 'disabled' : '')}</div>
-      <div class="agroup">${contracts.length ? b('sponsor', 'Mencionar patrocinador', 'brief') : ''}${G.ch.pulso.afil ? b('ad', 'Rodar anúncio', 'ads') : ''}${b('fonly', L.followersOnly ? 'Só seguidores: ligado' : 'Chat só para seguidores', 'shield', L.followersOnly ? 'primary' : '')}${L.ev.mic ? b('mic', 'Arrumar microfone', 'mic', 'danger') : ''}${L.ev.net > 0 ? b('netq', 'Baixar qualidade', 'wifiOff', 'danger') + b('netr', 'Reiniciar roteador', 'refresh', 'danger') : ''}
-        <span class="grow"></span><span class="row gap4">${[[1, '½x'], [2, '1x'], [3, '2,5x']].map(([s, l]) => `<button class="btn sm ${L.speed === s ? 'primary' : 'ghost'}" data-la="speed" data-s="${s}">${l}</button>`).join('')}</span>${b('end', 'Encerrar live', 'stop', 'live')}</div>`;
+    const k = (key, label, icon, cls, title) => `<button class="lbtn ${cls || ''}" data-la="${key}" title="${esc(title || label)}">${ic(icon, 15)}<span>${label}</span></button>`;
+    const acts = [k('talk', 'Conversar', 'chat', '', 'Puxa assunto com o chat (zera o silêncio)'), k('joke', 'Piada', 'joke'), k('poll', 'Enquete', 'poll', L.poll ? 'disabled' : ''), k('challenge', 'Desafio', 'trophy', L.challenge ? 'disabled' : '')];
+    if (!g.nongame) acts.push(k('risky', L.risky > 0 ? 'Arriscando' : 'Arriscar', 'fire', L.risky > 0 ? 'on' : '', 'Jogada arriscada'), k('focus', L.focus ? 'Focado' : 'Focar', 'target', L.focus ? 'on' : '', 'Focar no jogo'));
+    acts.push(k('game', 'Trocar jogo', 'gamepad'), k('pause', L.ev.paused ? 'Em pausa' : 'Pausa', 'clock', L.ev.paused ? 'on' : '', 'Pausa de 10 min'), k('schedule', 'Próxima live', 'calendar', '', 'Anunciar a próxima live'), k('fonly', 'Só seguidores', 'shield', L.followersOnly ? 'on' : '', 'Chat só para seguidores'));
+    if (contracts.length) acts.push(k('sponsor', 'Patrocínio', 'brief', '', 'Mencionar patrocinador'));
+    if (G.ch.pulso.afil) acts.push(k('ad', 'Anúncio', 'ads', '', 'Rodar anúncio'));
+    if (L.ev.celeb && !L.ev.celeb.greeted) acts.unshift(k('celeb', 'Cumprimentar ' + L.ev.celeb.name, 'star', 'hot'));
+    if (L.ev.mic) acts.unshift(k('mic', 'Arrumar microfone', 'mic', 'bad'));
+    if (L.ev.net > 0) acts.unshift(k('netq', 'Baixar qualidade', 'wifiOff', 'bad'), k('netr', 'Reiniciar roteador', 'wifi', 'bad'));
+    el.innerHTML = `<div class="lgrid">${acts.join('')}</div>`;
+    const ctl = $('#lv-ctl'); if (ctl) ctl.innerHTML = `<span class="lspeed">${[[1, '½x'], [2, '1x'], [3, '2,5x']].map(([sp, l]) => `<button class="${L.speed === sp ? 'on' : ''}" data-la="speed" data-s="${sp}" title="Velocidade do tempo na live">${l}</button>`).join('')}</span><button class="btn live sm" data-la="end">${ic('stop', 14)} Encerrar live</button>`;
   };
   const menu = (anchor, title, items) => {
     const r = anchor.getBoundingClientRect(); const host = $('#overlay-live');
     const m = document.createElement('div'); m.className = 'ctx'; m.style.position = 'fixed';
     m.innerHTML = `<h4>${esc(title)}</h4>` + items.map((it, i) => `<button class="opt" data-i="${i}" ${it.disabled ? 'disabled' : ''}>${ic(it.icon || 'chevR', 15)}<span>${esc(it.label)}${it.desc ? '<span class="why" style="color:var(--muted)">' + esc(it.desc) + '</span>' : ''}</span></button>`).join('');
-    host.appendChild(m); m.style.left = Math.min(r.left, innerWidth - m.offsetWidth - 10) + 'px'; m.style.top = Math.max(10, r.top - m.offsetHeight - 6) + 'px';
+    host.appendChild(m); m.style.left = Math.max(10, Math.min(r.left, innerWidth - m.offsetWidth - 10)) + 'px'; m.style.top = (r.top - m.offsetHeight - 6 >= 10 ? r.top - m.offsetHeight - 6 : Math.min(r.bottom + 6, innerHeight - m.offsetHeight - 10)) + 'px';
     const close = () => { m.remove(); document.removeEventListener('mousedown', out); };
     const out = e => { if (!m.contains(e.target)) close(); };
     setTimeout(() => document.addEventListener('mousedown', out), 0);
@@ -255,8 +268,8 @@
     if (k === 'end') return UI.confirm('Encerrar a live?', 'O resumo da transmissão vai aparecer em seguida.', () => LUI.finish(), 'Encerrar', true);
     LUI.actions();
   };
-  LUI.finish = reason => { const vis = !$('#overlay-live').hidden; const sum = SL.Live.end(reason); if (sum && !vis) LUI.summary(sum); };
-  SL.bus.on('live:end', sum => { if (!$('#overlay-live').hidden) { LUI.close(); LUI.summary(sum); } });
+  LUI.finish = reason => { const sum = SL.Live.end(reason); if (sum && LUI._shown !== sum) LUI.summary(sum); };
+  SL.bus.on('live:end', sum => { const had = !!$('#overlay-live').firstChild; LUI.close(); if (had && sum) { LUI._shown = sum; LUI.summary(sum); } });
 
   // perguntas, recém-chegados e doações para responder
   LUI.pending = () => {
@@ -281,29 +294,42 @@
     if (b.dataset.pa === 'thankall') LVs.thank('all');
     pendSig = ''; LUI.pending();
   };
+  // clicar num comentário: as opções de resposta aparecem logo acima dele
+  const QUICK = [['Valeu, @{u}!', 'heart'], ['Kkkkk boa, @{u}', 'joke'], ['Concordo, @{u}', 'check']];
   LUI.msgPop = (mid, node) => {
-    const L = SL.Live.cur; if (!L) return; const m = L.chat.find(x => x.id === mid); $$('.viewer-pop').forEach(x => x.remove());
+    const L = SL.Live.cur; if (!L) return; const m = L.chat.find(x => x.id === mid);
+    document.querySelectorAll('.viewer-pop').forEach(x => x.remove());
+    document.querySelectorAll('#lv-chat .cm.sel').forEach(x => x.classList.remove('sel'));
     if (!m || !m.vid) return; const v = SL.Viewers.byId(m.vid); if (!v) return;
+    node.classList.add('sel');
     const pop = document.createElement('div'); pop.className = 'viewer-pop'; const side = $('.live-side');
-    const q = L.questions.find(x => x.msgId === mid && !x.done); const isNew = L.newcomers.some(n => n.vid === v.id); const don = L.donations.find(d => d.msgId === mid && !d.thanked);
-    pop.innerHTML = `<div class="row"><span class="ava" style="width:34px;height:34px;font-size:15px;background:${v.c}">${esc(v.u[0].toUpperCase())}</span><div class="grow"><b style="color:${v.c}">@${esc(v.u)}</b><div class="tiny muted">${esc(SL.Viewers.label(v))} · ${v.m.v} visitas · parece ${esc((D.archetypes[v.a] || {}).label || '').toLowerCase()}</div></div><button class="ibtn" data-x>${ic('x', 14)}</button></div>
-      <div class="relbar">Fidelidade<div class="bar"><i style="width:${v.loy}%"></i></div><b>${Math.round(v.loy)}</b></div>
-      ${v.m.notes.length ? v.m.notes.slice(-2).map(n => `<div class="memo">${esc(SL.Chat.fill(SL.Viewers.noteText(n), v, {}))}</div>`).join('') : '<div class="tiny muted">Sem lembranças marcantes ainda.</div>'}
-      <div class="col gap4">${q ? (SL.Chat.ANSWERS[q.type] || []).map(o => `<button class="btn sm" data-p="ans" data-o="${o.id}">${esc(o.label)}</button>`).join('') : ''}${don ? `<button class="btn sm ok" data-p="thank">Agradecer a doação</button>` : ''}${isNew ? `<button class="btn sm" data-p="welcome">Dar boas-vindas</button>` : ''}<button class="btn sm" data-p="read">Ler em voz alta</button>
-      <div class="row"><button class="btn sm grow" data-p="timeout">Silenciar 10 min</button><button class="btn sm danger grow" data-p="ban">Banir</button></div>${v.mod ? '' : `<button class="btn sm ghost" data-p="mod">${ic('shield', 13)} Tornar moderador(a)</button>`}</div>`;
-    side.appendChild(pop); const r = node.getBoundingClientRect(), sr = side.getBoundingClientRect();
-    pop.style.left = '10px'; pop.style.top = Math.max(8, Math.min(r.top - sr.top, side.clientHeight - pop.offsetHeight - 8)) + 'px';
+    const q = L.questions.find(x => x.msgId === mid && !x.done); const isNew = L.newcomers.some(n => n.vid === v.id) && !(L.att.get(v.id) || {}).welcomed; const don = L.donations.find(d => d.msgId === mid && !d.thanked);
+    const note = v.m.notes.length ? esc(SL.Chat.fill(SL.Viewers.noteText(v.m.notes[v.m.notes.length - 1]), v, {})) : '';
+    pop.innerHTML = `<div class="vp-h"><span class="ava" style="background:${v.c}">${esc(v.u[0].toUpperCase())}</span><div class="grow"><b style="color:${v.c}">@${esc(v.u)}</b><div class="tiny muted">${esc(SL.Viewers.label(v))} · ${v.m.v} visita${v.m.v === 1 ? '' : 's'} · fidelidade ${Math.round(v.loy)}</div></div><button class="ibtn" data-x title="Fechar">${ic('x', 14)}</button></div>
+      ${note ? `<div class="memo tiny">${note}</div>` : ''}
+      <div class="vp-r">${q ? (SL.Chat.ANSWERS[q.type] || []).map(o => `<button class="rbtn hot" data-p="ans" data-o="${o.id}">${esc(o.label)}</button>`).join('') : ''}${don ? `<button class="rbtn ok" data-p="thank">Agradecer a doação</button>` : ''}${isNew ? `<button class="rbtn hot" data-p="welcome">Dar boas-vindas</button>` : ''}${QUICK.map(([t, i], n) => `<button class="rbtn" data-p="quick" data-n="${n}">${ic(i, 13)}${esc(t.replace('{u}', v.u))}</button>`).join('')}<button class="rbtn" data-p="read">${ic('mic', 13)}Ler em voz alta</button></div>
+      <form class="vp-f"><input class="input" maxlength="110" value="@${esc(v.u)} " aria-label="Responder"><button class="btn primary sm" title="Responder">${ic('send', 14)}</button></form>
+      <div class="vp-m"><button class="rbtn" data-p="timeout">Silenciar 10 min</button><button class="rbtn bad" data-p="ban">Banir</button>${v.mod ? '' : `<button class="rbtn" data-p="mod">${ic('shield', 12)} Moderador</button>`}</div>`;
+    side.appendChild(pop);
+    const r = node.getBoundingClientRect(), sr = side.getBoundingClientRect(); const ph = pop.offsetHeight;
+    let top = r.top - sr.top - ph - 8, below = false; if (top < 6) { top = r.bottom - sr.top + 8; below = true; }
+    pop.style.top = Math.max(6, Math.min(top, side.clientHeight - ph - 6)) + 'px'; pop.classList.toggle('below', below);
+    const done = () => { pop.remove(); node.classList.remove('sel'); pendSig = ''; LUI.pending(); };
+    pop.querySelector('.vp-f').onsubmit = ev => { ev.preventDefault(); const t = pop.querySelector('.vp-f input').value.trim(); if (t.length > v.u.length + 2) LUI.typed(t); done(); };
     pop.onclick = ev => {
-      const b = ev.target.closest('[data-p],[data-x]'); if (!b) return; const k = b.dataset.p; const LVs = SL.Live;
+      const b = ev.target.closest('[data-p],[data-x]'); if (!b) return; const k = b.dataset.p; const LVs = SL.Live; SL.audio.play('click');
       if (k === 'ans') LVs.answer(mid, b.dataset.o); if (k === 'thank') LVs.thank(mid); if (k === 'welcome') LVs.welcome(v.id); if (k === 'read') LVs.read(mid);
+      if (k === 'quick') LUI.typed(QUICK[+b.dataset.n][0].replace('{u}', v.u));
       if (k === 'timeout') LVs.ban(v.id, true); if (k === 'ban') LVs.ban(v.id, false); if (k === 'mod') UI.err(LVs.makeMod(v.id));
-      pop.remove(); pendSig = ''; LUI.pending();
+      done();
     };
   };
 
   // laço do estúdio (chamado pelo laço principal)
   LUI.frame = tSec => {
     const L = SL.Live.cur; if (!L || $('#overlay-live').hidden) return;
+    const wrap = $('#lv-wrap'), box = $('#lv-box');
+    if (wrap && box) { const aw = wrap.clientWidth - 20, ah = wrap.clientHeight - 20; const w = Math.max(80, Math.min(aw, ah * 16 / 9)); const k = Math.round(w) + 'x' + Math.round(w * 9 / 16); if (box.dataset.k !== k) { box.dataset.k = k; box.style.width = Math.round(w) + 'px'; box.style.height = Math.round(w * 9 / 16) + 'px'; } }
     const cv = $('#lv-cv'); if (cv) SL.Preview.live(cv, L, tSec);
     // chat com limite de mensagens por segundo
     const fresh = SL.Live.flush(); if (fresh.length) buf.push(...fresh);

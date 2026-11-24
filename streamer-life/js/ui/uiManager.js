@@ -108,8 +108,10 @@
     if (SL.audio) SL.audio.play('close');
   };
   UI.buildDesktop = ov => {
-    ov.innerHTML = `<div class="desktop"><canvas class="wall"></canvas><div class="desk-area"><div class="desk-icons"></div></div><div class="taskbar"><button class="tb-app" data-off title="Desligar">${UI.ic('exit', 16)} Desligar</button><div class="tb-wins row gap4"></div><div class="tray">${UI.ic('wifi', 15)}<span class="tb-clock mono"></span></div></div></div>`;
-    $('[data-off]', ov).onclick = () => UI.closePC();
+    ov.innerHTML = `<div class="desktop"><canvas class="wall"></canvas><div class="desk-area"><div class="desk-icons"></div></div><div class="start-menu" hidden></div><div class="taskbar"><button class="tb-start" data-start title="Iniciar: todos os aplicativos">${UI.ic('window', 18)}<span>Iniciar</span></button><div class="tb-wins row gap4"></div><div class="tray">${UI.ic('wifi', 15)}<span class="tb-clock mono"></span></div></div></div>`;
+    const sm = $('.start-menu', ov);
+    $('[data-start]', ov).onclick = e => { e.stopPropagation(); if (sm.hidden) UI.renderStart(); sm.hidden = !sm.hidden; };
+    ov.addEventListener('mousedown', e => { if (!sm.hidden && !sm.contains(e.target) && !e.target.closest('[data-start]')) sm.hidden = true; });
   };
   UI.appList = mode => Object.keys(SL.Apps).filter(id => { const a = SL.Apps[id]; return mode === 'pc' ? a.pc !== false : a.phone; }).sort((a, b) => (SL.Apps[a].order || 50) - (SL.Apps[b].order || 50));
   UI.renderDesktopIcons = () => {
@@ -117,10 +119,20 @@
     box.innerHTML = UI.appList('pc').map(id => { const a = SL.Apps[id]; const b = a.badge ? a.badge() : 0; return `<button class="dicon" data-app="${id}"><div class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 22)}${b ? '<span class="dot"></span>' : ''}</div><span>${U.esc(a.title)}</span></button>`; }).join('');
     $$('[data-app]', box).forEach(b => b.onclick = () => UI.openApp(b.dataset.app));
   };
+  // menu Iniciar com todos os apps do PC
+  UI.renderStart = () => {
+    const sm = $('#overlay-pc .start-menu'); if (!sm) return; const G = SL.G;
+    sm.innerHTML = `<div class="sm-h"><canvas class="sm-ava"></canvas><div><b>${U.esc(G.player.channel)}</b><small>${U.esc(SL.Career.tierName())}</small></div></div><div class="sm-grid">${UI.appList('pc').map(id => { const a = SL.Apps[id]; return `<button class="sm-app" data-app="${id}"><span class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 20)}</span><span>${U.esc(a.title)}</span></button>`; }).join('')}</div><div class="sm-f"><button class="btn sm danger" data-off>${UI.ic('exit', 15)} Desligar o PC</button></div>`;
+    SL.Avatar.toCanvas($('.sm-ava', sm), G.player.look, { scale: 1 });
+    sm.querySelectorAll('[data-app]').forEach(b => b.onclick = () => { sm.hidden = true; UI.openApp(b.dataset.app); });
+    $('[data-off]', sm).onclick = () => { sm.hidden = true; UI.closePC(); };
+  };
   UI.renderTaskbar = () => {
     const tb = $('#overlay-pc .tb-wins'); if (!tb) return;
-    tb.innerHTML = wins.map(w => `<button class="tb-app ${w.focus ? 'on' : ''}" data-w="${w.id}">${UI.ic(SL.Apps[w.app].icon, 15)}<span class="ellipsis">${U.esc(SL.Apps[w.app].title)}</span></button>`).join('');
-    $$('[data-w]', tb).forEach(b => b.onclick = () => { const w = wins.find(x => x.id === b.dataset.w); if (!w) return; if (w.focus && !w.min) { w.min = true; w.el.hidden = true; w.focus = false; } else { w.min = false; w.el.hidden = false; UI.focusWin(w); } UI.renderTaskbar(); });
+    const L = SL.Live && SL.Live.cur; const lv = L ? `<button class="tb-app tb-live ${SL.LiveUI.visible() ? 'on' : ''}" data-live title="Live (clique para minimizar ou voltar)"><i class="dot-live"></i><span>OBS · AO VIVO</span></button>` : '';
+    tb.innerHTML = lv + wins.map(w => `<button class="tb-app ${w.focus ? 'on' : ''}" data-w="${w.id}">${UI.ic(SL.Apps[w.app].icon, 15)}<span class="ellipsis">${U.esc(SL.Apps[w.app].title)}</span></button>`).join('');
+    const lb = $('[data-live]', tb); if (lb) lb.onclick = () => { if (SL.LiveUI.visible()) SL.LiveUI.minimize(); else SL.LiveUI.restore(); };
+    $$('[data-w]', tb).forEach(b => b.onclick = () => { const w = wins.find(x => x.id === b.dataset.w); if (!w) return; if (SL.LiveUI && SL.LiveUI.visible()) { SL.LiveUI.minimize(); w.min = false; w.el.hidden = false; UI.focusWin(w); return; } if (w.focus && !w.min) { w.min = true; w.el.hidden = true; w.focus = false; } else { w.min = false; w.el.hidden = false; UI.focusWin(w); } UI.renderTaskbar(); });
   };
   UI.focusWin = w => { wins.forEach(x => { x.focus = false; x.el.classList.remove('focus'); }); w.focus = true; w.el.classList.add('focus'); w.el.style.zIndex = ++zTop; UI.renderTaskbar(); };
   UI.closeWin = (w, silent) => { const a = SL.Apps[w.app]; if (a.onClose) a.onClose(w.ctx); w.unsub.forEach(([ev, fn]) => SL.bus.off(ev, fn)); w.el.remove(); wins.splice(wins.indexOf(w), 1); UI.renderTaskbar(); if (!silent && SL.audio) SL.audio.play('close'); };
@@ -150,6 +162,7 @@
   UI.openApp = (id, args) => {
     const a = SL.Apps[id]; if (!a) return;
     if (UI.screen !== 'game') return;
+    if (SL.LiveUI && SL.LiveUI.visible() && UI.pcOpen()) SL.LiveUI.minimize();
     const wantPC = UI.pcOpen() || (a.phone === false || !a.phone) ;
     if (UI.pcOpen() || (!a.phone && UI.canUsePC())) {
       if (!UI.pcOpen()) UI.openPC(); if (!UI.pcOpen()) return;
