@@ -84,19 +84,17 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   ok('live começa e estúdio abre', await ev(() => !!SL.Live.cur && !document.getElementById('overlay-live').hidden));
   let answered = 0, welcomed = 0;
   for (let i = 0; i < 24; i++) {
-    if (i >= 12 && answered + welcomed > 0) break;
+    if (i >= 12) break;
     await ev(() => { SL.debug.skip(8); SL.G.needs.sono = Math.max(SL.G.needs.sono, 60); });
     await page.waitForTimeout(350);
     const tenta = async sel => { const l = page.locator(sel).first(); if (!(await l.count())) return false; return l.click({ timeout: 1500 }).then(() => true).catch(() => false); };
     if (await tenta('#lv-pend [data-pa="ans"]')) answered++;
     if (await tenta('#lv-pend [data-pa="welcome"]')) welcomed++;
-    if (i === 3) { await page.click('[data-la="talk"]'); await page.waitForTimeout(150); const o = await page.$('#overlay-live .ctx .opt'); if (o) await o.click(); }
-    if (i === 6) await page.click('[data-la="joke"]');
   }
   await page.waitForTimeout(1200);
-  const comentario = page.locator('#lv-chat .cm[data-m]:not(.sys):not(.follow):not(.sub):not(.streamer):not(.donation)');
+  const comentario = page.locator('#lv-chat .cm[data-m]:not(.sys):not(.follow):not(.sub):not(.streamer):not(.donation):not(.mod):not(.superchat)');
   // o chat segue o ritmo do público (poucas pessoas = poucas mensagens na tela): espera aparecer um comentário
-  await page.waitForFunction(() => document.querySelectorAll('#lv-chat .cm[data-m]:not(.sys):not(.follow):not(.sub):not(.streamer):not(.donation)').length > 0, null, { timeout: 30000 }).catch(() => null);
+  await page.waitForFunction(() => document.querySelectorAll('#lv-chat .cm[data-m]:not(.sys):not(.follow):not(.sub):not(.streamer):not(.donation):not(.mod):not(.superchat)').length > 0, null, { timeout: 30000 }).catch(() => null);
   if (await comentario.count()) { await comentario.last().click({ timeout: 3000 }).catch(() => {}); await page.waitForTimeout(250); }
   const popOk = await ev(() => !!document.querySelector('.viewer-pop [data-p="rep"]'));
   if (popOk) { await page.click('.viewer-pop [data-p="rep"]'); await page.waitForTimeout(200); }
@@ -124,7 +122,11 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   ok('público chega na live', L1.peak >= 1, L1);
   ok('chat tem mensagens na tela', L1.chatDom > 3 && L1.msgs > 5, { dom: L1.chatDom, msgs: L1.msgs });
   ok('mensagens contextuais (momentos do jogo e saudações)', L1.intents.includes('greet') && (L1.intents.includes('moment') || L1.moments > 0), L1.intents);
-  ok('perguntas respondidas pela interface', answered + welcomed > 0, { answered, welcomed });
+  ok('Bigode (moderador) responde, dá boas-vindas e agradece sozinho', await ev(() => SL.Live.cur.chat.some(m => m.kind === 'mod' && m.u === 'Bigode')), await ev(() => SL.Live.cur.chat.filter(m => m.kind === 'mod').slice(-3).map(m => m.raw)));
+  ok('live simples: só Desafio, Anúncios, Chat (e Patrocínio com contrato)', await ev(() => { const t = [...document.querySelectorAll('#lv-actions .lbtn span')].map(s => s.textContent); return t.length <= 4 && t.includes('Desafio') && t.includes('Anúncios') && !t.includes('Conversar') && !t.includes('Piada'); }));
+  await ev(() => { window.__vozes = []; const o = SL.audio.superchat; SL.audio.superchat = id => { window.__vozes.push(id); o(id); }; const L = SL.Live.cur; const v = SL.Viewers.byId([...L.present.keys()][0]); SL.Live.donate(v, 20, ''); });
+  await page.waitForTimeout(800);
+  ok('superchat com voz (ElevenLabs), som e destaque no chat', await ev(() => window.__vozes.length >= 1 && /^sc_/.test(window.__vozes[0]) && !!document.querySelector('#lv-chat .cm.superchat') && !!(SL.SONS && SL.SONS.sc_som)));
   await page.click('[data-la="end"]'); await page.waitForTimeout(200); await page.click('.modal .mf .btn.danger'); await page.waitForTimeout(600);
   ok('resumo da live aparece', await ev(() => !!document.querySelector('#sum-ch')));
   ok('resumo da live liga com corte, Instagram e agenda (próximos passos)', await ev(() => document.querySelectorAll('[data-prox]').length >= 2));

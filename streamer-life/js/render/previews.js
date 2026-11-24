@@ -245,6 +245,14 @@
         if (L.away) camVazia(ctx, cx, cy, cw, ch); else P.webcam(ctx, cx, cy, cw, ch, { expr, t: tSec });
       }
     }
+    // o que você está falando (fala automática): legenda embaixo da tela por 6 segundos
+    if (L.fala && !L.ev.ad && !L.away && performance.now() - L.fala.at < 6000) {
+      const fs = Math.max(10, Math.round(h * 0.034)); ctx.font = '600 ' + fs + 'px Inter, Arial';
+      const pal = L.fala.t.split(' '); const linhas = ['']; pal.forEach(p => { const tt = (linhas[linhas.length - 1] + ' ' + p).trim(); if (ctx.measureText(tt).width > w * 0.62 && linhas[linhas.length - 1]) linhas.push(p); else linhas[linhas.length - 1] = tt; });
+      const lh = fs * 1.35, bw = Math.max(...linhas.map(l => ctx.measureText(l).width)) + fs * 1.4, bh = linhas.length * lh + fs * 0.7, bx = (w - bw) / 2, by = h - bh - h * 0.1;
+      ctx.fillStyle = 'rgba(8,10,16,.78)'; rr(ctx, bx, by, bw, bh, 6); ctx.fill();
+      linhas.forEach((l, i) => txt(ctx, l, w / 2, by + fs * 0.35 + lh * (i + 0.5), fs, '#fff', 'center', 600, 'Inter, Arial'));
+    }
     if (L.ev.ad) {
       ctx.fillStyle = 'rgba(6,7,12,.86)'; ctx.fillRect(0, 0, w, h);
       txt(ctx, 'INTERVALO COMERCIAL', w / 2, h * 0.42, Math.round(h * 0.075), '#fff', 'center', 800);

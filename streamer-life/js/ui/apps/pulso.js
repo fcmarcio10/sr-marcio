@@ -10,8 +10,8 @@
   const viewerBadges = m => (m.badges || []).map(b => ({ streamer: '<i style="background:#8b5cf6" title="Streamer">S</i>', mod: '<i style="background:#35d39a" title="Moderador">M</i>', sub: '<i style="background:#ffb547" title="Inscrito">★</i>', veterano: '<i style="background:#c084fc" title="Veterano">V</i>', novo: '<i style="background:#4cc3ff" title="Primeira vez">N</i>', apoiador: '<i style="background:#ff8fc1" title="Apoiador">$</i>', amigo: '<i style="background:#ff5a36" title="Amigo">♥</i>', verificado: '<i style="background:#4cc3ff" title="Verificado">✓</i>' })[b] || '').join('');
   const msgHTML = m => {
     if (m.kind === 'follow' || m.kind === 'sub' || m.kind === 'alert' || m.kind === 'bot') return `<div class="cm sys ${m.kind}" data-m="${m.id}">${m.kind === 'follow' ? ic('follow', 13) : m.kind === 'sub' ? ic('sub', 13) : m.kind === 'bot' ? ic('shield', 13) : ic('info', 13)} ${m.html}</div>`;
-    if (m.kind === 'mod') return `<div class="cm mod" data-m="${m.id}">${ic('shield', 13)} <b>moderação:</b> ${m.html}</div>`;
-    if (m.kind === 'donation') return `<div class="cm donation" data-m="${m.id}"><span class="amt">${U.money(m.amount)}</span> <span class="u" style="color:${m.c}">${esc(m.u)}</span> ${m.html}</div>`;
+    if (m.kind === 'mod') return `<div class="cm mod" data-m="${m.id}"><span class="modtag">${ic('shield', 11)} MOD</span><span class="u" style="color:${m.c || '#22c55e'}">${esc(m.u || 'Bigode')}:</span> ${m.html}</div>`;
+    if (m.kind === 'donation') { const cor = m.amount >= 100 ? 'r' : m.amount >= 50 ? 'o' : m.amount >= 20 ? 'y' : m.amount >= 10 ? 't' : 'a'; return `<div class="cm superchat sc-${cor}" data-m="${m.id}"><div class="sc-h"><b>${esc(m.u)}</b><span>${U.money(m.amount)}</span>${m.sc ? `<i class="sc-voz" title="Lido em voz alta">${ic('megaphone', 12)}</i>` : ''}</div>${m.raw ? `<div class="sc-b">${m.html}</div>` : ''}</div>`; }
     return `<div class="cm ${m.kind === 'streamer' ? 'streamer' : ''} ${m.q ? 'q' : ''}" data-m="${m.id}"><span class="bd">${viewerBadges(m)}</span><span class="u" style="color:${m.c}">${esc(m.u)}:</span>${m.html}</div>`;
   };
   const predict = o => {
@@ -185,7 +185,7 @@
         <div class="preview-wrap" id="lv-wrap"><div class="preview-box" id="lv-box"><canvas id="lv-cv"></canvas><div class="alerts" id="lv-al"></div></div></div>
         <div class="meter-row"><div class="meter" title="Empolgação do chat">${ic('fire', 14)}<span>Empolgação</span><div class="bar"><i id="m-h"></i></div></div><div class="meter" title="Qualidade do conteúdo agora">${ic('star', 14)}<span>Conteúdo</span><div class="bar"><i id="m-c"></i></div></div><div class="meter" title="Qualidade técnica">${ic('cpu', 14)}<span>Técnica</span><div class="bar"><i id="m-t"></i></div></div><div class="meter" title="Sua energia">${ic('energy', 14)}<span>Você</span><div class="bar"><i id="m-e"></i></div></div><span id="m-issues" class="row gap4"></span></div>
       </div>
-      <div class="live-side"><div class="sh">${ic('chat', 16)}<b class="grow">Chat</b><span class="tiny muted" id="lv-rate"></span></div><div class="actions" id="lv-actions"></div><div class="chat-tip tiny muted">Clique num comentário para responder</div><div class="chat" id="lv-chat"></div><div class="pending" id="lv-pend"></div>
+      <div class="live-side"><div class="sh">${ic('chat', 16)}<b class="grow">Chat</b><span class="tiny muted" id="lv-rate"></span></div><div class="actions" id="lv-actions"></div><div class="chat-tip tiny muted">O Bigode (moderador) cuida do chat. Clique num comentário só se quiser responder.</div><div class="chat" id="lv-chat"></div><div class="pending" id="lv-pend"></div>
         <form class="chat-input" id="lv-form"><input class="input" id="lv-in" maxlength="120" placeholder="Escrever no chat como ${esc(G.player.user)}" autocomplete="off"><button class="btn primary sm">${ic('send', 14)}</button></form></div>
     </div>`;
     $('#lv-t').textContent = L.title;
@@ -215,19 +215,16 @@
   LUI.actions = () => {
     const L = SL.Live.cur; if (!L) return; const G = SL.G; const el = $('#lv-actions'); if (!el) return;
     const g = D.gameById(L.game); const contracts = SL.Sponsors.active();
-    const sig = JSON.stringify([L.risky > 0, L.focus, !!L.poll, !!L.challenge, L.ev.mic, L.ev.net > 0, L.ev.paused, L.followersOnly, contracts.length, G.ch.pulso.afil, !!L.ev.ad, !!(L.ev.celeb && !L.ev.celeb.greeted)]);
+    const sig = JSON.stringify([L.risky > 0, L.focus, !!L.poll, !!L.challenge, L.ev.mic, L.ev.net > 0, L.ev.paused, L.followersOnly, contracts.length, G.ch.pulso.afil, !!L.ev.ad, SL.Live.chatMode(), !!(L.ev.celeb && !L.ev.celeb.greeted)]);
     if (el.dataset.sig === sig) return; el.dataset.sig = sig;
     const b = (k, label, icon, cls, title) => `<button class="btn ${cls || ''}" data-la="${k}" title="${esc(title || '')}">${ic(icon, 15)}${label}</button>`;
     const k = (key, label, icon, cls, title) => `<button class="lbtn ${cls || ''}" data-la="${key}" title="${esc(title || label)}">${ic(icon, 15)}<span>${label}</span></button>`;
-    const acts = [k('talk', 'Conversar', 'chat', '', 'Puxa assunto com o chat (zera o silêncio)'), k('joke', 'Piada', 'joke'), k('poll', 'Enquete', 'poll', L.poll ? 'disabled' : ''), k('challenge', 'Desafio', 'trophy', L.challenge ? 'disabled' : '')];
-    if (!g.nongame) acts.push(k('risky', L.risky > 0 ? 'Arriscando' : 'Arriscar', 'fire', L.risky > 0 ? 'on' : '', 'Jogada arriscada'), k('focus', L.focus ? 'Focado' : 'Focar', 'target', L.focus ? 'on' : '', 'Focar no jogo'));
-    acts.push(k('game', 'Trocar jogo', 'gamepad'), k('pause', L.ev.paused ? 'Em pausa' : 'Pausa', 'clock', L.ev.paused ? 'on' : '', 'Pausa de 10 min'), k('schedule', 'Próxima live', 'calendar', '', 'Anunciar a próxima live'), k('fonly', 'Só seguidores', 'shield', L.followersOnly ? 'on' : '', 'Chat só para seguidores'));
+    // live simples: você fala sozinho e o Bigode (moderador) cuida do chat; ficam só estes botões
+    const modo = SL.Live.chatMode(); const modoTxt = { todos: 'Chat livre', seguidores: 'Só seguidores', emotes: 'Só emojis' }[modo];
+    const acts = [k('challenge', L.challenge ? 'Em desafio' : 'Desafio', 'trophy', L.challenge ? 'on' : ''), k('ad', L.ev.ad ? 'No intervalo' : 'Anúncios', 'ads', L.ev.ad ? 'on' : '', 'Intervalo de anúncios de 30, 60 ou 120 segundos')];
     if (contracts.length) acts.push(k('sponsor', 'Patrocínio', 'brief', '', 'Mencionar patrocinador'));
-    acts.push(k('ad', L.ev.ad ? 'No intervalo' : 'Anúncios', 'ads', L.ev.ad ? 'on' : '', 'Intervalo de anúncios de 30, 60 ou 120 segundos'));
-    if (L.ev.celeb && !L.ev.celeb.greeted) acts.unshift(k('celeb', 'Cumprimentar ' + L.ev.celeb.name, 'star', 'hot'));
-    if (L.ev.mic) acts.unshift(k('mic', 'Arrumar microfone', 'mic', 'bad'));
-    if (L.ev.net > 0) acts.unshift(k('netq', 'Baixar qualidade', 'wifiOff', 'bad'), k('netr', 'Reiniciar roteador', 'wifi', 'bad'));
-    el.innerHTML = `<div class="lgrid">${acts.join('')}</div>`;
+    acts.push(k('chatmode', modoTxt, 'shield', modo !== 'todos' ? 'on' : '', 'Quem pode escrever no chat'));
+    el.innerHTML = `<div class="lgrid g${acts.length}">${acts.join('')}</div>`;
     const ctl = $('#lv-ctl'); if (ctl && !ctl.firstChild) ctl.innerHTML = `<span class="speeds lv-speeds">${UI.speedBtns()}</span><button class="btn live sm" data-la="end">${ic('stop', 14)} Encerrar live</button>`;
   };
   const menu = (anchor, title, items) => {
@@ -256,6 +253,7 @@
     if (k === 'sponsor') return menu(t, 'Patrocinador', SL.Sponsors.active().map(c => { const b = D.brandById(c.brand); const d = c.deliv.find(x => x.k === 'live'); const falta = SL.Sponsors.espera(c); return { label: b.name, desc: !d ? 'sem menções no contrato' : d.done >= d.n ? 'menções já cumpridas' : d.done + '/' + d.n + ' menções · mínimo ' + d.minV + ' pessoas' + (falta > 0 ? ' · próxima em ' + falta + ' min' : ''), icon: 'brief', disabled: !d || d.done >= d.n, fn: () => LVs.sponsor(c.id) }; }));
     if (k === 'ad') { const falta = LVs.adEspera(); return menu(t, falta > 0 ? 'Anúncios (próximo em ' + falta + ' min)' : 'Intervalo de anúncios', LVs.AD_OPCOES.map(o => ({ label: o.label, icon: 'ads', desc: '≈ ' + U.money(LVs.adValor(o.s, L.viewers)) + ' · cai na conta segunda', disabled: falta > 0 || !!L.ev.ad, fn: () => LVs.ad(o.s) }))); }
     if (k === 'fonly') LVs.toggleFollowersOnly();
+    if (k === 'chatmode') return menu(t, 'Quem pode escrever no chat', [['todos', 'Todos', 'Chat aberto', 'chat'], ['seguidores', 'Só seguidores', 'Menos trolls, menos gente nova falando', 'shield'], ['emotes', 'Só emojis', 'Sem textos: só emojis, sem trolls', 'star']].map(([id, label, desc, icon]) => ({ label: label + (LVs.chatMode() === id ? ' (agora)' : ''), desc, icon, fn: () => LVs.setChatMode(id) })));
     if (k === 'mic') LVs.fixMic();
     if (k === 'netq') LVs.fixNet('qualidade');
     if (k === 'netr') LVs.fixNet('roteador');
@@ -270,15 +268,15 @@
     const v = Math.max(0, L.viewers || 0); const rapido = SL.Clock.sp() === 2 ? 1.5 : 1;
     return Math.min(modo.max, (0.06 + Math.sqrt(v) * 0.05 + v * 0.004) * modo.k * rapido);
   };
+  // superchat: som e voz (fila no SL.audio, um por vez)
+  SL.bus.on('live:superchat', s => { if (SL.audio && SL.audio.superchat) SL.audio.superchat(s.id); });
   LUI.finish = reason => { const sum = SL.Live.end(reason); if (sum && LUI._shown !== sum) LUI.summary(sum); };
   SL.bus.on('live:end', sum => { const had = !!$('#overlay-live').firstChild; LUI.close(); if (had && sum) { LUI._shown = sum; LUI.summary(sum); } });
 
   // perguntas, recém-chegados e doações para responder
   LUI.pending = () => {
     const L = SL.Live.cur; const el = $('#lv-pend'); if (!L || !el) return;
-    const qs = L.questions.filter(q => !q.done).slice(-4);
-    const nc = L.newcomers.filter(n => !L.att.get(n.vid) || !L.att.get(n.vid).welcomed).slice(-3);
-    const dons = L.donations.filter(d => !d.thanked).slice(-5);
+    const qs = [], nc = [], dons = [];   // perguntas, boas-vindas e superchats ficam com o Bigode
     const sig = JSON.stringify([qs.map(q => q.msgId), nc.map(n => n.vid), dons.map(d => d.msgId), L.poll && L.poll.votes, L.challenge && L.challenge.label]);
     if (sig === pendSig) return; pendSig = sig;
     let h = '';
@@ -287,7 +285,7 @@
     if (dons.length) h += `<div class="pq"><div class="row"><b class="small ok grow">${ic('gift', 13)} ${dons.length} doaç${dons.length > 1 ? 'ões' : 'ão'} sem agradecer</b><button class="btn sm ok" data-pa="thankall">Agradecer</button></div><div class="tiny muted">${dons.map(d => '@' + esc(d.u) + ' ' + U.money(d.amount)).join(' · ')}</div></div>`;
     nc.forEach(n => { const v = SL.Viewers.byId(n.vid); if (v) h += `<div class="pq"><div class="row"><span class="grow small"><span class="who" style="color:${v.c}">@${esc(v.u)}</span> chegou pela primeira vez</span><button class="btn sm" data-pa="welcome" data-v="${v.id}">Dar boas-vindas</button></div></div>`; });
     qs.forEach(q => { const v = SL.Viewers.byId(q.vid); if (!v) return; h += `<div class="pq"><div><span class="who" style="color:${v.c}">@${esc(v.u)}</span> <span class="tiny muted">(${esc(SL.Viewers.label(v))})</span></div><div>${SL.Chat.html(q.text)}</div><div class="row wrap">${(SL.Chat.ANSWERS[q.type] || []).map(o => `<button class="btn sm" data-pa="ans" data-m="${q.msgId}" data-o="${o.id}">${esc(o.label)}</button>`).join('')}</div></div>`; });
-    el.innerHTML = h || `<div class="tiny muted center" style="padding:6px">Perguntas, recém-chegados e doações aparecem aqui.</div>`;
+    el.innerHTML = h; el.hidden = !h;
   };
   LUI.pendClick = e => {
     const b = e.target.closest('[data-pa]'); if (!b) return; SL.audio.play('click'); const LVs = SL.Live;
@@ -362,7 +360,8 @@
     if (nComum > maxFila) { let tira = nComum - maxFila; buf = buf.filter(m => !(comum(m) && tira-- > 0)); }
     const chat = $('#lv-chat');
     // o que você escreve aparece na hora
-    if (chat && buf.some(m => m.kind === 'streamer')) { const meus = buf.filter(m => m.kind === 'streamer'); buf = buf.filter(m => m.kind !== 'streamer'); const f = document.createElement('div'); f.innerHTML = meus.map(msgHTML).join(''); while (f.firstChild) chat.appendChild(f.firstChild); chat.scrollTop = chat.scrollHeight; }
+    const jaJa = m => m.kind !== 'msg';   // só a conversa do público segue o ritmo; o que você escreve, superchats, avisos e o Bigode aparecem na hora
+    if (chat && buf.some(jaJa)) { const meus = buf.filter(jaJa); buf = buf.filter(m => !jaJa(m)); const f = document.createElement('div'); f.innerHTML = meus.map(msgHTML).join(''); while (f.firstChild) chat.appendChild(f.firstChild); chat.scrollTop = chat.scrollHeight; }
     if (chat && buf.length && LUI._acc >= 1) {
       const n = Math.min(buf.length, Math.floor(LUI._acc)); LUI._acc -= n;
       const nearBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 60;
@@ -377,11 +376,13 @@
     if (al && L.alerts.length > alertsShown) {
       const list = L.alerts.slice(alertsShown); alertsShown = L.alerts.length;
       LUI._aq = (LUI._aq || []).concat(list.slice(-4)).slice(-4);
+      // superchat passa na frente dos alertas de seguidor
+      const scs = LUI._aq.filter(a => a.k === 'don'); if (scs.length) { LUI._aq = scs.concat(LUI._aq.filter(a => a.k !== 'don')); if (!(al.querySelector('.lalert.sc'))) LUI._aqT = 0; }
     }
     // um alerta por vez, como nos programas de live de verdade
     if (al && LUI._aq && LUI._aq.length && now > (LUI._aqT || 0)) {
       LUI._aqT = now + 2600; const a = LUI._aq.shift(); al.innerHTML = '';
-      [a].forEach(a => { const d = document.createElement('div'); d.className = 'lalert ' + a.k; d.innerHTML = a.k === 'follow' ? ic('follow', 16) + '@' + esc(a.u) + ' seguiu!' : a.k === 'sub' ? ic('sub', 16) + '@' + esc(a.u) + ' se inscreveu!' : ic('gift', 16) + '@' + esc(a.u) + ' doou ' + U.money(a.amount); al.appendChild(d); setTimeout(() => d.remove(), 4000); });
+      [a].forEach(a => { const d = document.createElement('div'); d.className = 'lalert ' + a.k; d.innerHTML = a.k === 'follow' ? ic('follow', 16) + '@' + esc(a.u) + ' seguiu!' : a.k === 'sub' ? ic('sub', 16) + '@' + esc(a.u) + ' se inscreveu!' : '<span class="sc-al"><b>SUPERCHAT ' + U.money(a.amount) + '</b><span>@' + esc(a.u) + '</span>' + (a.text ? '<em>' + esc(a.text) + '</em>' : '') + '</span>'; if (a.k === 'don') { d.className = 'lalert sc'; LUI._aqT = performance.now() + 6500; } al.appendChild(d); setTimeout(() => d.remove(), a.k === 'don' ? 6500 : 4000); });
     }
     if (now - lastStat > 250) {
       lastStat = now; const G = SL.G;

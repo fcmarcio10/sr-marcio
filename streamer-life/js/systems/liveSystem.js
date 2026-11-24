@@ -27,6 +27,8 @@
 
   const pushMsg = (msg, delayFrac) => {
     const L = LV.cur; if (!L || !msg) return;
+    // modo só emojis: qualquer fala de espectador vira emojis
+    if (L.emoteOnly && msg.kind === 'msg' && msg.vid && !/^(:[a-z]+:\s?)+$/.test(msg.raw || '')) { msg.raw = U.shuffle(LV.EMOTES.slice()).slice(0, U.ri(1, 3)).join(' '); msg.html = SL.Chat.html(msg.raw); msg.q = null; msg.intent = 'emote'; }
     const msPerMin = 1000 / (SL.Clock.rate() || 0.25);
     LV.queue.push({ at: performance.now() + (delayFrac == null ? U.rand() : delayFrac) * msPerMin * 0.95, msg });
     L.chat.push(msg); if (L.chat.length > 220) L.chat.splice(0, L.chat.length - 220);
@@ -137,6 +139,7 @@
     v.fol = 1 + SL.Clock.day(); v.loy = U.clamp(v.loy + 6, 0, 100); v.int = U.clamp(v.int + 8, 0, 100);
     P.f++; L.stats.fol++;
     sys('follow', '@' + v.u + ' começou a seguir!');
+    (L.novosSeg = L.novosSeg || []).push(v.id);
     L.alerts.push({ k: 'follow', u: v.u });
     if (SL.audio && L.stats.fol < 40) SL.audio.play('follow');
   };
@@ -145,6 +148,7 @@
     v.sub = SL.Clock.day() + 30; v.subM = (v.subM || 0) + 1; v.loy = U.clamp(v.loy + 8, 0, 100);
     P.bal += 3.95; L.stats.subs++; P.subs++;
     sys('sub', '@' + v.u + ' se inscreveu' + (v.subM > 1 ? ' (' + v.subM + ' meses)' : '') + '!');
+    (L.novasInsc = L.novasInsc || []).push(v.id);
     L.alerts.push({ k: 'sub', u: v.u });
     if (SL.audio) SL.audio.play('sub');
   };
@@ -154,12 +158,85 @@
     P.bal += amount * 0.95; L.stats.don += amount; L.stats.donN++;
     if (v) { v.m.don += amount; v.m.ld = SL.Clock.day(); const st = L.present.get(v.id); if (st) st.thanked = false; }
     const u = v ? v.u : uName;
+    // superchat: a partir de R$ 5 a mensagem é lida em voz alta (vozes gravadas no ElevenLabs)
+    let sc = null;
+    if (amount >= 5) { L.scUsados = L.scUsados || []; const pool = LV.SUPERCHATS.filter(x => !L.scUsados.includes(x.id)); sc = U.pick(pool.length ? pool : LV.SUPERCHATS); L.scUsados.push(sc.id); text = sc.t; }
     const msg = SL.Chat.msg(v, text, { kind: 'donation', amount, u, badges: v ? undefined : [] });
+    if (sc) msg.sc = sc.id;
     pushMsg(msg, 0.1);
     L.donations.push({ msgId: msg.id, vid: v ? v.id : null, u, amount, at: L.min, thanked: false });
-    L.alerts.push({ k: 'don', u, amount });
-    if (SL.audio) SL.audio.play('donate');
+    L.alerts.push({ k: 'don', u, amount, text: sc ? sc.t : '' });
+    if (sc) SL.bus.emit('live:superchat', { id: sc.id, u, amount, text: sc.t }); else if (SL.audio) SL.audio.play('donate');
     L.hype = U.clamp(L.hype + Math.min(12, 2 + amount / 10), 0, 100);
+  };
+
+  LV.donate = donate;   // para testes e eventos
+  // falas de superchat com voz (audio/sc_1..sc_10.mp3, cada uma com uma voz diferente)
+  LV.SUPERCHATS = [
+    { id: 'sc_1', t: 'Toma esse superchat pra comprar um microfone novo, porque esse aí tá chiando demais!' },
+    { id: 'sc_2', t: 'Mandei um pix de presente! Agora joga direito, pelo amor de Deus!' },
+    { id: 'sc_3', t: 'No meu tempo a gente jogava bola na rua... mas tá bom, toma aí uma moedinha pra você.' },
+    { id: 'sc_4', t: 'Primeiro superchat da minha vida! Manda um beijo pra minha mãe, que ela tá assistindo!' },
+    { id: 'sc_5', t: 'Meu filho, já tá tarde, vai dormir! Mas antes, toma aqui pro lanche.' },
+    { id: 'sc_6', t: 'Superchat pra você dar aquele grito na próxima jogada! Bora, bora, bora!' },
+    { id: 'sc_7', t: 'Tô assistindo escondido do chefe no trabalho. Valeu pela companhia, toma um superchat!' },
+    { id: 'sc_8', t: 'Ai, eu amo essa live! Toma esse superchat e lê meu nome bem bonito, tá?' },
+    { id: 'sc_9', t: 'Passando só pra deixar esse superchat e voltar a fingir que tô estudando.' },
+    { id: 'sc_10', t: 'Superchat pra ver se você acerta pelo menos uma hoje!' },
+  ];
+  // moderador do canal: dá boas-vindas, agradece seguidores, inscrições e superchats, responde perguntas simples
+  // e silencia quem passa do ponto. Espera 1 minuto para você poder fazer isso antes, se quiser.
+  LV.MOD = { u: 'Bigode', c: '#22c55e' };
+  const modSay = text => sys('mod', text, { u: LV.MOD.u, c: LV.MOD.c });
+  const lista = a => a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' e ' + a[a.length - 1];
+  const textoResposta = (q, opt) => {
+    const L = LV.cur; const g = D.gameById(L.game); const h = SL.Clock.hour();
+    const setupDesc = [SL.Equip.item('computador'), SL.Equip.item('microfone'), SL.Equip.item('webcam')].filter(Boolean).map(i => i.name).join(', ') || 'o básico do básico';
+    return opt.text({ p: SL.GameSim.answer(L.sim), g: g.name, og: q.qd && q.qd.game ? D.gameById(q.qd.game).name : '', cr: q.qd && q.qd.creator ? D.creatorById(q.qd.creator).name : '', setup: setupDesc, hora: String(h).padStart(2, '0') + 'h' });
+  };
+  const modMinute = () => {
+    const L = LV.cur; if (!L) return;
+    const sat = (v, k) => { const st = v && (L.present.get(v.id) || L.att.get(v.id)); if (st) st.sat = U.clamp(st.sat + k, 0, 1); return st; };
+    const nomes = ids => ids.map(id => SL.Viewers.byId(id)).filter(Boolean);
+    // superchats: agradece sempre (depois de 1 minuto, para você poder agradecer antes se quiser)
+    const dons = L.donations.filter(d => !d.thanked && L.min - d.at >= 1).slice(0, 3);
+    if (dons.length) {
+      modSay(dons.length === 1 ? 'Valeu demais pelo superchat de ' + U.money(dons[0].amount) + ', @' + dons[0].u + '! :coracao:' : 'Valeu pelos superchats, ' + lista(dons.map(d => '@' + d.u)) + '! :coracao:');
+      dons.forEach(d => { d.thanked = true; const v = d.vid && SL.Viewers.byId(d.vid); if (v) { v.loy = U.clamp(v.loy + 3, 0, 100); const st = sat(v, 0.2); if (st) st.thanked = true; } });
+    }
+    // o resto: no máximo uma mensagem a cada 2 minutos, juntando quem chegou e quem seguiu
+    if (L.min - (L.modUlt == null ? -99 : L.modUlt) < 2) return;
+    const q = L.questions.find(x => !x.done && L.min - x.at >= 1);
+    const opt = q && (SL.Chat.ANSWERS[q.type] || []).find(o => !(o.fx && (o.fx.promise || o.fx.creator || o.fx.polemic)));
+    if (q && opt) {
+      const v = SL.Viewers.byId(q.vid); q.done = true; L.modUlt = L.min;
+      modSay((v ? '@' + v.u + ' ' : '') + textoResposta(q, opt));
+      if (v) { v.m.rep++; v.loy = U.clamp(v.loy + 2, 0, 100); const st = sat(v, ((opt.fx && opt.fx.sat) || 0.2) * 0.8); if (st) { st.replied = true; st.repliedAt = L.min; } }
+      return;
+    }
+    const novos = L.newcomers.filter(n => L.min - n.at >= 1).slice(0, 5);
+    const seg = nomes((L.novosSeg || []).splice(0, 6)); if (L.novosSeg) L.novosSeg.length = 0;
+    const insc = nomes((L.novasInsc || []).splice(0, 6)); if (L.novasInsc) L.novasInsc.length = 0;
+    const partes = [];
+    if (novos.length) {
+      const vs = nomes(novos.map(n => n.vid));
+      if (vs.length) partes.push((vs.length === 1 ? 'Seja bem-vindo(a), ' : 'Sejam bem-vindos, ') + lista(vs.map(v => '@' + v.u)) + '!');
+      vs.forEach(v => { const st = sat(v, 0.2); if (st) st.welcomed = true; v.int = U.clamp(v.int + 5, 0, 100); });
+      L.newcomers = L.newcomers.filter(n => !novos.includes(n));
+    }
+    if (seg.length) { partes.push('Valeu pelo follow, ' + lista(seg.map(v => '@' + v.u)) + '!'); seg.forEach(v => { v.loy = U.clamp(v.loy + 2, 0, 100); sat(v, 0.05); }); }
+    if (insc.length) { partes.push('Obrigado pela inscrição, ' + lista(insc.map(v => '@' + v.u)) + '!'); insc.forEach(v => { v.loy = U.clamp(v.loy + 3, 0, 100); sat(v, 0.08); }); }
+    if (partes.length) { modSay(partes.join(' ') + ' :coracao:'); L.modUlt = L.min; }
+  };
+  // modos do chat: todos, só seguidores ou só emojis
+  LV.EMOTES = [':hype:', ':fogo:', ':palmas:', ':gg:', ':riso:', ':coracao:', ':nossa:', ':susto:'];
+  LV.chatMode = () => { const L = LV.cur; return !L ? 'todos' : L.emoteOnly ? 'emotes' : L.followersOnly ? 'seguidores' : 'todos'; };
+  LV.setChatMode = modo => {
+    const L = LV.cur; if (!L) return;
+    L.followersOnly = modo === 'seguidores'; L.emoteOnly = modo === 'emotes'; G().ch.pulso.followersOnly = L.followersOnly;
+    if (L.followersOnly) { L.trolls.forEach(id => { const v = SL.Viewers.byId(id); if (v && !v.fol) L.present.delete(id); }); L.trolls.clear(); }
+    if (L.emoteOnly) L.trolls.clear();
+    sys('alert', modo === 'seguidores' ? 'Chat só para seguidores' : modo === 'emotes' ? 'Chat só com emojis' : 'Chat aberto para todos');
   };
 
   // ---------- minuto a minuto ----------
@@ -263,6 +340,7 @@
       if (L.toxic > 2 && v.tx < 0.5) e -= 0.08;
       if (L.silence > 8) e -= 0.1;
       if (paused) e -= 0.15;
+      if (L.emoteOnly) e -= 0.03;
       if (v.tx > 0.6) e = 0.45 + (L.trollFed ? 0.2 : 0);
       if (v.npc) e = Math.max(e, 0.72);
       st.sat = U.clamp(st.sat * 0.85 + e * 0.15, 0, 1);
@@ -284,6 +362,10 @@
       }
       // falar
       if (msgBudget <= 0) return;
+      if (L.emoteOnly) {
+        if (U.chance(v.tl * 0.45 + (moments.some(m => m.int >= 0.35) ? 0.12 : 0))) { pushMsg(SL.Chat.msg(v, U.shuffle(LV.EMOTES.slice()).slice(0, U.ri(1, 3)).join(' '), { kind: 'msg', intent: 'emote', tone: 'h' })); msgBudget--; }
+        return;
+      }
       if (v.tx > 0.6 && !v.mod) {
         if (U.chance(0.35 + v.tl)) { const m = SL.Chat.say(v, 'troll', ctx); pushMsg(m); L.toxic++; L.trolls.add(v.id); msgBudget--; }
         return;
@@ -333,16 +415,26 @@
     // doações não agradecidas
     L.donations.forEach(d => { if (!d.thanked && !d.late && L.min - d.at > 10) { d.late = true; const v = d.vid && SL.Viewers.byId(d.vid); if (v) { v.loy = U.clamp(v.loy - 3, 0, 100); SL.Viewers.note(v, 'semobrigado'); } } });
     // moderação automática
-    const hasMod = [...L.present.keys()].some(id => (SL.Viewers.byId(id) || {}).mod) || G0.staff.some(s => (D.npcById(s.npc) || {}).role === 'moderador') || !!G0.equip.soft.bot_chat;
+    const hasMod = true;   // o Bigode modera sempre
     if (L.trolls.size && hasMod && U.chance(0.5)) {
       const tid = [...L.trolls][0]; const tv = SL.Viewers.byId(tid);
-      if (tv && L.present.has(tid)) { sys('mod', SL.Chat.fill(U.pick(D.chat.mod), null, {}), { u: 'moderação' }); L.present.delete(tid); sys('alert', '@' + tv.u + ' foi silenciado(a) pela moderação'); }
+      if (tv && L.present.has(tid)) { sys('mod', SL.Chat.fill(U.pick(D.chat.mod), null, {}), { u: LV.MOD.u, c: LV.MOD.c }); L.present.delete(tid); sys('alert', '@' + tv.u + ' foi silenciado(a) pela moderação'); }
       L.trolls.delete(tid);
     }
     if (L.trolls.size && !hasMod && L.toxic > 3 && U.chance(0.3)) { L.hype = U.clamp(L.hype - 2, 0, 100); }
 
     eventsMinute(g);
     pollMinute();
+    modMinute();
+    // você fala sozinho com o chat de tempos em tempos (só escreve se quiser)
+    if (!L.away && !paused && !L.ev.ad && L.silence >= (L.falaEm || 4)) { L.falaEm = U.ri(4, 8); if (U.chance(0.3)) LV.joke(true); else LV.talk(U.pick(['dia', 'historia', 'perguntar', 'planos']), true); }
+    // problemas técnicos e visita famosa se resolvem sem botão
+    if (L.ev.mic && L.ev.mic >= 3) LV.fixMic();
+    if (L.ev.net > 0) { L.netT = (L.netT || 0) + 1; if (L.netT >= 2) { LV.fixNet(L.quality !== '480p' ? 'qualidade' : 'roteador'); L.netT = 0; } } else L.netT = 0;
+    if (L.ev.celeb && !L.ev.celeb.greeted && !L.away) LV.greetCeleb();
+    // amigos mandam um superchat nas primeiras lives
+    if (L.scAmigoEm == null) L.scAmigoEm = G().ch.pulso.livesN < 6 && U.chance(0.6) ? U.ri(8, 30) : -1;
+    if (L.min === L.scAmigoEm) { const amigo = [...L.present.keys()].map(id => SL.Viewers.byId(id)).find(v => v && v.npc); if (amigo) donate(amigo, U.ri(5, 15), ''); }
 
     // números
     L.viewers = L.anon + L.present.size;
@@ -566,22 +658,35 @@
     else { reactAll('ban_unfair', 0.25); SL.Rep.mod({ confianca: -1, imagem: -0.5 }); L.hype = U.clamp(L.hype - 4, 0, 100); }
   };
   LV.makeMod = vid => { const v = SL.Viewers.byId(vid); if (!v || v.tx > 0.6) return 'Essa pessoa não parece confiável para moderar.'; v.mod = 1; v.loy = U.clamp(v.loy + 15, 0, 100); if (LV.cur) sys('alert', '@' + v.u + ' agora é moderador(a) do canal'); return null; };
-  LV.talk = topic => {
+  // fala sem repetir as últimas frases; automática (auto) aparece como legenda na tela da live, não no chat
+  const falar = (pool, auto) => {
+    const L = LV.cur; L.falasUsadas = L.falasUsadas || [];
+    const livres = pool.filter(x => !L.falasUsadas.includes(x)); const t = U.pick(livres.length ? livres : pool);
+    L.falasUsadas.push(t); if (L.falasUsadas.length > 14) L.falasUsadas.shift();
+    if (auto) L.fala = { t, at: performance.now() }; else say(t);
+  };
+  LV.FALAS = {
+    dia: ['Hoje o dia foi corrido, mas tô aqui com vocês', 'Gente, vocês não sabem o que aconteceu no mercado hoje', 'Acordei com uma energia hoje que nem eu tô entendendo', 'Fui comprar pão e voltei com três coisas que eu não precisava', 'O vizinho resolveu furar a parede bem na hora da live, olha a sorte', 'Tomei tanto café hoje que tô ouvindo cores'],
+    historia: ['Deixa eu contar uma história que aconteceu comigo...', 'Uma vez, na escola, eu caí da cadeira na frente da sala inteira', 'Minha avó acha que eu trabalho consertando computador', 'Uma vez eu fiquei preso no elevador com um cachorro que não gostava de mim', 'Quando eu era criança eu achava que o jogo salvava sozinho. Não salvava', 'Já perdi uma partida inteira porque o gato deitou no teclado'],
+    perguntar: ['Chat, me contem: o que vocês fizeram hoje?', 'Pergunta séria: pizza com ketchup pode?', 'Vocês preferem praia ou serra?', 'Quem aí tá assistindo do trabalho? Pode confessar', 'Qual foi o melhor jogo que vocês jogaram esse ano?', 'Me indiquem uma série boa, que eu tô sem nada pra ver'],
+    planos: ['Quero trazer mais desafios e vídeos pro canal', 'Meu sonho é fazer o canal virar meu trabalho de verdade', 'Semana que vem quero tentar uma live mais longa', 'Tô juntando pra trocar esse microfone, vocês merecem', 'Quero fazer uma live especial quando a gente bater a próxima meta'],
+  };
+  LV.PIADAS = ['Por que o computador foi ao médico? Porque estava com vírus!', 'Meu jogo travou mais que eu na prova de matemática', 'Eu não perco, eu deixo o adversário ganhar por educação', 'Minha dieta é igual meu ping: sempre alta', 'Eu jogo no modo difícil: o modo internet da minha casa', 'Meu personagem tem mais vida social que eu', 'Eu não sou ruim no jogo, eu sou criativo', 'O controle tá com defeito. Toda vez que eu erro, é o controle'];
+  LV.talk = (topic, auto) => {
     const L = LV.cur; touch();
-    const char = SL.Life.charisma(); const k = dim('talk');
+    const char = SL.Life.charisma(); const k = dim('talk') * (auto ? 0.6 : 1);   // falar sozinho rende menos que puxar assunto você mesmo
     const ok = U.chance(U.clamp(0.35 + char / 140, 0.2, 0.95));
-    const lines = { dia: ['Hoje o dia foi corrido, mas tô aqui com vocês', 'Gente, vocês não sabem o que aconteceu no mercado hoje'], historia: ['Deixa eu contar uma história que aconteceu comigo...', 'Uma vez, na escola, eu...'], perguntar: ['Chat, me contem: o que vocês fizeram hoje?', 'Pergunta séria: pizza com ketchup pode?'], planos: ['Quero trazer mais desafios e vídeos pro canal', 'Meu sonho é fazer o canal virar meu trabalho de verdade'] };
-    say(U.pick(lines[topic] || lines.dia));
+    falar(LV.FALAS[topic] || LV.FALAS.dia, auto);
     if (ok) { L.hype = U.clamp(L.hype + 9 * k, 0, 100); L.mScore += 12 * k; reactAll('talk_ok', topic === 'perguntar' ? 0.4 : 0.18); }
     else { L.hype = U.clamp(L.hype + 2 * k, 0, 100); }
     if (topic === 'historia' && ok && U.chance(0.35)) { const m = { type: 'historia', txt: 'Contou uma história hilária', int: 0.6, funny: 0.75, good: true, mt: 'você contou aquela história hilária na live', clip: 0.7, game: L.game, sim: L.sim.sim, at: G().time.t }; L.moments.push(m); L.best.push(m); L.best.sort((a, b) => b.clip - a.clip); L.best.length = Math.min(L.best.length, 10); }
     if (topic === 'planos') { for (const st of L.present.values()) { const v = SL.Viewers.byId(st.id); if (v && v.loy > 40) st.sat = U.clamp(st.sat + 0.05, 0, 1); } }
     SL.Life.skillUp('carisma', 0.12); SL.Life.mod({ energia: -0.6 });
   };
-  LV.joke = () => {
-    const L = LV.cur; touch(); const k = dim('joke');
+  LV.joke = auto => {
+    const L = LV.cur; touch(); const k = dim('joke') * (auto ? 0.6 : 1);
     const ok = U.chance(U.clamp(0.3 + SL.Life.charisma() / 160 + G().needs.humor / 400, 0.15, 0.9));
-    say(U.pick(['Por que o computador foi ao médico? Porque estava com vírus!', 'Meu jogo travou mais que eu na prova de matemática', 'Eu não perco, eu deixo o adversário ganhar por educação', 'Minha dieta é igual meu ping: sempre alta']));
+    falar(LV.PIADAS, auto);
     if (ok) { L.hype = U.clamp(L.hype + 12 * k, 0, 100); reactAll('joke_ok', 0.35); if (U.chance(0.25)) { const m = { type: 'funny', txt: 'Piada que fez o chat explodir', int: 0.55, funny: 0.85, good: true, mt: 'você fez aquela piada que o chat nunca esqueceu', clip: 0.68, game: L.game, sim: L.sim.sim, at: G().time.t }; L.moments.push(m); L.best.push(m); L.best.sort((a, b) => b.clip - a.clip); L.best.length = Math.min(L.best.length, 10); } }
     else { L.hype = U.clamp(L.hype - 4, 0, 100); reactAll('joke_bad', 0.3); }
   };

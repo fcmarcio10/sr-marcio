@@ -42,6 +42,30 @@
     s.connect(f); f.connect(g); g.connect(master); s.start(t0);
   }
 
+  // arquivos de som gravados (vozes do superchat e o som do superchat, ElevenLabs): SL.SONS em js/data/sons.js
+  A.arquivo = (id, vol) => {
+    const src = SL.SONS && SL.SONS[id]; if (!src || typeof Audio === 'undefined') return null;
+    const s = SL.settings || {}; const a = new Audio(src);
+    a.volume = Math.max(0, Math.min(1, (s.volume == null ? 0.6 : s.volume) * (vol == null ? 1 : vol)));
+    const p = a.play(); if (p && p.catch) p.catch(() => {});
+    return a;
+  };
+  // superchat: toca o som e depois a voz; um de cada vez, sem falar por cima
+  const filaSc = []; let tocandoSc = false;
+  const proximoSc = () => {
+    if (tocandoSc || !filaSc.length) return;
+    const id = filaSc.shift(); tocandoSc = true;
+    A.arquivo('sc_som', 0.85);
+    setTimeout(() => {
+      const a = A.arquivo(id, 1);
+      const fim = () => { if (!tocandoSc) return; tocandoSc = false; setTimeout(proximoSc, 500); };
+      if (!a) return fim();
+      a.onended = fim; a.onerror = fim; setTimeout(fim, 9000);
+    }, 1000);
+  };
+  A.superchat = id => { if (filaSc.length < 3) filaSc.push(id); proximoSc(); };
+  A.paraSuperchats = () => { filaSc.length = 0; };
+
   const SFX = {
     click: () => tone(660, 0.05, 'triangle', 0.06),
     hover: () => tone(900, 0.03, 'sine', 0.025),
