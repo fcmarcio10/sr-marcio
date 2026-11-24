@@ -189,6 +189,12 @@
     SL.bus.emit('videos');
     return null;
   };
+  // vídeos publicados nos últimos 2 dias puxam público para a próxima live (sistemas ligados)
+  VS.buzz = () => {
+    const G0 = G(); const t = G0.time.t; let k = 0; let melhor = null;
+    G0.videos.forEach(v => { if (v.status !== 'publicado' || t - v.t > 2880 || t < v.t) return; const f = Math.log10(1 + (v.views || 0)) / 45 + 0.01; k += f; if (!melhor || v.views > melhor.views) melhor = v; });
+    return { k: Math.min(0.18, k), plat: melhor ? (melhor.plat === 'clipz' ? 'TikTok' : 'YouTube') : null, video: melhor };
+  };
   VS.onPublished = v => {
     const G0 = G(); const day = SL.Clock.day();
     if (!G0.ch.contentDays.includes(day)) G0.ch.contentDays.push(day);

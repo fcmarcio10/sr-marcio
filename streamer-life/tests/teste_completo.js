@@ -127,6 +127,7 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   ok('perguntas respondidas pela interface', answered + welcomed > 0, { answered, welcomed });
   await page.click('[data-la="end"]'); await page.waitForTimeout(200); await page.click('.modal .mf .btn.danger'); await page.waitForTimeout(600);
   ok('resumo da live aparece', await ev(() => !!document.querySelector('#sum-ch')));
+  ok('resumo da live liga com corte, Instagram e agenda (próximos passos)', await ev(() => document.querySelectorAll('[data-prox]').length >= 2));
   await shot('09_resumo_live');
   await page.click('.modal .mf .btn.primary');
   const after1 = await ev(() => ({ lives: SL.G.lives.length, f: SL.G.ch.pulso.f, known: SL.G.viewers.list.length, raw: SL.G.raw.length, visited: SL.G.viewers.list.filter(v => v.m.v >= 1).length }));
@@ -179,6 +180,7 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await shot('11_configurar_video');
   await page.click('.criar [data-publicar]'); await page.waitForTimeout(300);
   ok('vídeo publicado e nota de cada escolha', await ev(() => SL.G.videos.length >= 1 && SL.G.videos[0].status === 'publicado' && document.querySelectorAll('.criar .cv-row').length >= 5));
+  ok('vídeo publicado traz público para a próxima live', await ev(() => SL.Videos.buzz().k > 0));
   await page.click('.criar [data-fim]'); await ev(() => { SL.G.time.speed = 1; });
   await ev(() => SL.debug.skip(60 * 30));
   const vid = await ev(() => { const v = SL.G.videos[0]; return { views: Math.round(v.views), likes: Math.round(v.likes), ctr: v.ctr, ret: v.ret, comments: v.comments.length, hist: v.hist.length }; });

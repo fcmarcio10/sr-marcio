@@ -437,3 +437,136 @@ body.live-open .tb-out, .tb-out.live { background: var(--b-roxo); }
 .ad-op:hover:not([disabled]) { filter: brightness(1.12); }
 .ad-op[disabled] { background: #343d52; color: #9aa3b8; cursor: not-allowed; }
 .ad-op[disabled] .ad-val { color: #9aa3b8; }
+
+/* =====================================================================
+   VISUAL MINIMALISTA (indie, em desenvolvimento) — pedido do dono
+   Tudo menor e mais limpo: botões baixos, cantos pouco arredondados,
+   sem sombras grossas, uma cor de destaque (roxo) e o resto em cinza.
+   ===================================================================== */
+:root {
+  --bg: #0c0e13; --bg2: #101319; --panel: #13161d; --panel2: #181c25; --panel3: #1e232e; --hover: #222836;
+  --line: #20242f; --line2: #2a303d; --text: #e4e6ec; --muted: #8a91a3; --faint: #5a6172;
+  --r-s: 4px; --r: 6px; --r-l: 8px; --r-xl: 10px;
+  --shadow: 0 4px 14px rgba(0, 0, 0, .35); --shadow-l: 0 10px 28px rgba(0, 0, 0, .45);
+  --f-display: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --b-base: #1c212c;
+}
+body { font-size: calc(13px * var(--ts)); }
+h1, h2, h3, h4 { font-weight: 600; letter-spacing: 0; }
+.card h3 { font-size: 12.5px; font-weight: 600; margin-bottom: 6px; }
+
+/* botões: baixos, texto pequeno, sem relevo */
+.btn { height: 28px; padding: 0 10px; gap: 5px; border-radius: 5px; font-family: var(--f-body); font-size: 12px; font-weight: 600; letter-spacing: 0; border-width: 1px !important; }
+.btn:not(.primary):not(.ok):not(.green):not(.live):not(.red):not(.pink):not(.blue):not(.yellow):not(.danger):not(.ghost) { background: var(--b-base); border-color: var(--line2); color: var(--text); }
+.btn:not(.primary):not(.ok):not(.green):not(.live):not(.red):not(.pink):not(.blue):not(.yellow):not(.danger):not(.ghost):hover { background: var(--hover); border-color: #3a4152; }
+.btn.sm { height: 24px; padding: 0 8px; font-size: 11.5px; border-radius: 4px; }
+.btn.lg { height: 34px; padding: 0 14px; font-size: 13px; border-radius: 6px; }
+.btn:hover, .btn:active { transform: none; }
+.btn svg.ic { width: 14px; height: 14px; }
+.btn.sm svg.ic { width: 12px; height: 12px; }
+.ibtn { width: 26px; height: 26px; border-radius: 5px; }
+.chip { padding: 3px 9px; font-size: 11.5px; border-radius: 5px; }
+input.input, .input, select, textarea { font-size: 12.5px; border-radius: 5px; }
+
+/* cartões, janelas e caixas */
+.card { padding: 10px 12px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); box-shadow: none; }
+.win { border-radius: 8px; border-color: var(--line2); box-shadow: var(--shadow-l); }
+.win .wh { height: 32px; padding: 0 4px 0 10px; background: var(--panel2) !important; }
+.win .wh b { font-size: 12px; font-weight: 600; }
+.win .wh .wi { width: 18px; height: 18px; border-radius: 4px; }
+.win .wh .ibtn { width: 24px; height: 24px; }
+.app-head { padding: 8px 12px; gap: 8px; }
+.app-head h2 { font-size: 13px; font-weight: 600; }
+.modal { border-radius: 10px; box-shadow: var(--shadow-l); }
+.modal .mh { padding: 12px 14px 6px; gap: 10px; }
+.modal .mh .mi { width: 30px; height: 30px; border-radius: 7px; }
+.modal .mh h3 { font-size: 14px; }
+.modal .mb { padding: 4px 14px 12px; gap: 10px; font-size: 12.5px; }
+.modal .mf { padding: 8px 12px; gap: 6px; }
+.toast { padding: 8px 30px 8px 10px; border-radius: 8px; gap: 8px; box-shadow: var(--shadow); }
+.toast .ti { width: 24px; height: 24px; border-radius: 6px; }
+.toast b { font-size: 12px; } .toast p { font-size: 11.5px; }
+.toast .tx { width: 20px; height: 20px; top: 5px; right: 5px; }
+
+/* HUD da casa: menor e discreto */
+.hud-tl { width: 206px; padding: 8px; gap: 6px; border-radius: 10px; box-shadow: none; background: rgba(12, 14, 19, .82); }
+.hud-me canvas { width: 32px; height: 32px; border-width: 1.5px; box-shadow: none; }
+.hud-me b { font-size: 12px; } .hud-me small { font-size: 10px; }
+.hud-money { padding: 2px 7px !important; border-radius: 5px; border-width: 1px !important; font-size: 11px; }
+.hud-needs { gap: 4px; }
+.hn { grid-template-columns: 14px 52px 1fr; gap: 5px; font-size: 10.5px; }
+.hn-b { height: 5px; border-radius: 3px; box-shadow: none; }
+.hn-b i { border-radius: 3px; background-image: none; }
+.hud-clock { padding: 3px 3px 3px 10px; gap: 8px; border-radius: 9px; box-shadow: none; background: rgba(12, 14, 19, .82); }
+.hc-time .t { font-family: var(--f-mono); font-size: 15px; font-weight: 700; }
+.hc-time .d { font-size: 10px; }
+.sbtn { width: 26px; height: 26px; border-radius: 6px; }
+.sbtn.x3 { min-width: 26px; padding: 0 6px; }
+.sbtn svg.ic { width: 13px; height: 13px; }
+.hud-tr { gap: 6px; }
+.gbtn { width: 44px; height: 44px; gap: 2px; border-radius: 9px; border-width: 1px !important; box-shadow: none !important; }
+.gbtn svg.ic { width: 17px; height: 17px; }
+.gbtn span { font-size: 9px; letter-spacing: .02em; }
+.gbtn .badge { min-width: 16px; height: 16px; font-size: 10px; line-height: 16px; top: -4px; right: -4px; }
+.hud-act { border-radius: 8px; box-shadow: none; padding: 5px 8px; font-size: 12px; }
+.e-prompt { border-radius: 7px; padding: 4px 10px 4px 5px; font-size: 12px; box-shadow: none !important; }
+.hud-live { width: 250px; padding: 8px; gap: 6px; border-radius: 10px; }
+
+/* lista de opções dos móveis */
+.pie { padding: 6px; border-radius: 10px; min-width: 190px; }
+.pie-l { gap: 4px; }
+.pie-o { padding: 6px 8px; border-radius: 6px; gap: 8px; font-size: 12.5px; border-width: 1px !important; box-shadow: none !important; }
+.pie-o kbd { min-width: 16px; height: 16px; font-size: 10px; border-radius: 4px; }
+
+/* menu principal e menus */
+.menu .mi { padding: 9px 12px; gap: 10px; border-radius: 7px; border-width: 1px !important; box-shadow: none !important; }
+.menu .mi > .ic { width: 28px; height: 28px; padding: 7px; border-radius: 6px; }
+.menu .mi b { font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.menu .mi small { font-size: 11px; }
+.logo h1 { font-size: clamp(34px, 4.6vw, 52px); }
+.dev-tag { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; padding: 2px 8px; border-radius: 4px; border: 1px dashed #4b5163; color: #a3a9b8; font: 600 10.5px var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
+.dev-tag i { width: 6px; height: 6px; border-radius: 50%; background: #facc15; }
+
+/* computador */
+.dicon { width: 70px; gap: 4px; padding: 6px 2px; border-radius: 7px; }
+.dicon .ai { width: 36px; height: 36px; border-radius: 8px; box-shadow: none !important; }
+.dicon .ai svg.ic { width: 18px; height: 18px; }
+.dicon span { font-size: 10.5px; }
+.taskbar { height: 38px; padding: 0 6px; gap: 4px; }
+.taskbar .tb-app { height: 28px; padding: 0 8px; font-size: 11.5px; border-radius: 5px; }
+.tb-start, .tb-out { height: 28px !important; padding: 0 9px !important; border-radius: 5px !important; font-size: 11.5px !important; border-width: 1px !important; }
+.tb-off { width: 28px; height: 28px; border-radius: 5px; }
+.tb-speeds .sbtn, .lv-speeds .sbtn { width: 26px; height: 24px; }
+.taskbar .tray { gap: 8px; font-size: 11.5px; }
+.start-menu { border-radius: 8px; }
+#overlay-live { bottom: 38px !important; }
+
+/* live */
+.live-top { padding: 6px 10px; gap: 10px; }
+.live-top .ttl b { font-size: 12.5px; } .live-top .ttl small { font-size: 10.5px; }
+.onair { padding: 3px 8px; font-size: 10.5px; border-radius: 4px; }
+.lstat b { font-size: 13px; } .lstat span { font-size: 9px; }
+.lgrid { gap: 4px; }
+.lbtn { height: 28px; padding: 0 8px; gap: 5px; border-radius: 5px; font-size: 11.5px; border-width: 1px !important; box-shadow: none !important; }
+.lbtn svg.ic { width: 13px; height: 13px; }
+.chat { font-size: 12.5px; }
+.cm { padding: 2px 5px; border-radius: 4px; }
+.rbtn { border-radius: 5px; font-size: 11.5px; }
+.viewer-pop { border-radius: 8px; }
+.meter { font-size: 11px; }
+
+/* criar vídeo e apps */
+.cv-steps span { font-size: 11px; }
+.cv-card { padding: 10px; border-radius: 7px; gap: 4px; }
+.cv-card b { font-size: 12.5px; }
+.cv-ic { width: 30px; height: 30px; border-radius: 7px; }
+.cv-opt { padding: 7px 10px; border-radius: 6px; font-size: 12.5px; }
+.cv-mini { padding: 4px 10px; }
+.cv-tag { padding: 4px 10px; border-radius: 5px; font-size: 12px; }
+.ad-op { padding: 10px 6px; border-radius: 7px; }
+.ad-op b { font-size: 1.25em; }
+.cal-mark { margin: 4px 0 8px; }
+.prox .row { margin: 2px 0; }
+
+/* com uma janela de aviso aberta (resumo, confirmação...), os avisos comuns somem para não tapar os botões */
+body:has(#modals .modal-bg) #toasts .toast:not(.err) { opacity: 0; pointer-events: none; }

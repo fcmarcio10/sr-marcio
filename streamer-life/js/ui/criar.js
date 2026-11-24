@@ -54,7 +54,7 @@
   const hash = t => '#' + t.replace(/\s+/g, '');
 
   // ---------- o assistente ----------
-  UI.criarVideo = (kind, resumeEdit) => {
+  UI.criarVideo = (kind, resumeEdit, op) => {
     const G = SL.G;
     if (!UI.pcOpen()) return UI.err('Para gravar e editar, use o computador de casa (YouTube ou TikTok no PC).');
     let K = KINDS[kind] || KINDS.video;
@@ -63,6 +63,8 @@
       const e = G.edits.find(x => x.id === resumeEdit);
       if (e) { K = KINDS[kindOfType(e.type)]; st.edit = e.id; st.raw = e.raw; st.game = e.game; st.step = e.status === 'pronto' ? 'configurar' : 'editando'; }
     }
+    // veio do resumo da live: já começa com aquela gravação
+    if (!resumeEdit && op && op.raw) { const r0 = G.raw.find(x => x.id === op.raw); if (r0) { st.raw = r0.id; st.game = r0.game; st.step = 'gravado'; } }
     const steps = [['conteudo', 'Conteúdo'], ['gravando', 'Gravação'], ['editando', 'Edição'], ['configurar', 'Configurar'], ['resultado', 'Publicado']];
     const ordem = { conteudo: 0, gravando: 1, gravado: 1, editando: 2, configurar: 3, resultado: 4 };
     let timer = null;
@@ -114,6 +116,9 @@
         if (K.thumb) h += sec('Thumbnail', `<div class="cv-grid three">${st.opts.thumb.map((t, i) => op('thumb', i, `<canvas class="cv-th" data-th="${i}"></canvas>`)).join('')}</div>`);
         h += sec('Descrição', `<div class="cv-list">${st.opts.descricao.map((t, i) => op('descricao', i, `<span>${esc(t)}</span>`)).join('')}</div>`);
         h += sec(`Hashtags <small class="muted">(${st.pick.tags.length}/${MAX_TAGS})</small>`, `<div class="cv-tags">${st.opts.tags.map(t => { const on = st.pick.tags.includes(t); return `<button class="cv-tag ${on ? 'on' : ''}" data-tag="${esc(t)}" ${!on && st.pick.tags.length >= MAX_TAGS ? 'disabled' : ''}>${esc(hash(t))}</button>`; }).join('')}</div>`);
+        // contrato com vídeo de publicidade pendente: dá para cumprir aqui mesmo
+        const publis = SL.Sponsors.active().filter(c => c.deliv.some(d => d.k === 'video' && d.done < d.n));
+        if (publis.length) h += sec('Publicidade', `<div class="cv-tags">${op('publi', -1, '<span>Sem publi</span>').replace('cv-opt', 'cv-opt cv-mini')}${publis.map(c => op('publi', SL.G.contracts.indexOf(c), `<span>Publi da ${esc(D.brandById(c.brand).name)}</span>`).replace('cv-opt', 'cv-opt cv-mini')).join('')}</div>`);
         const okPub = st.pick.titulo != null && st.pick.descricao != null && (!K.thumb || st.pick.thumb != null);
         h += `<div class="cv-foot"><span class="tiny muted">${okPub ? '' : 'Escolha título' + (K.thumb ? ', thumbnail' : '') + ' e descrição'}</span><button class="btn green" data-publicar ${okPub ? '' : 'disabled'}>${ic('upload', 16)} Publicar no ${K.plat}</button></div>`;
       } else if (st.step === 'resultado') {
@@ -123,8 +128,8 @@
         const cor = n => n >= 70 ? 'var(--ok)' : n >= 45 ? 'var(--warn)' : 'var(--bad)';
         h += `<div class="cv-res"><div class="cv-nota"><b>${nota}</b><span>nota do vídeo</span><div class="stars">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= est ? 'on' : ''}">${ic('star', 18)}</i>`).join('')}</div></div>
           <div class="cv-rows">${rows.map(([n, val]) => `<div class="cv-row"><span>${n}</span><div class="cv-bar"><i style="width:${val}%;background:${cor(val)}"></i></div><b style="color:${cor(val)}">${val}</b></div>`).join('')}</div></div>
-          <p class="cv-p tiny muted">Publicado: "${esc(v.title)}" ${v.tags.map(hash).join(' ')}. As visualizações chegam nas próximas horas.</p>
-          <div class="cv-foot"><button class="btn" data-ver>${ic('eye', 15)} Ver no ${K.plat}</button><button class="btn primary" data-fim>Pronto</button></div>`;
+          <p class="cv-p tiny muted">Publicado: "${esc(v.title)}" ${v.tags.map(hash).join(' ')}. As visualizações chegam nas próximas horas e trazem gente para a sua próxima live.${st.publi ? ' Publicidade da ' + esc(st.publi) + ' entregue.' : ''}</p>
+          <div class="cv-foot"><button class="btn" data-ver>${ic('eye', 15)} Ver no ${K.plat}</button><button class="btn" data-divulgar ${st.divulgado ? 'disabled' : ''}>${ic('connect', 15)} ${st.divulgado ? 'Divulgado' : 'Divulgar no Instagram'}</button><button class="btn primary" data-fim>Pronto</button></div>`;
       }
       m.body.innerHTML = h;
       m.body.querySelectorAll('canvas[data-th]').forEach(cv => SL.Preview.thumbTo(cv, { game: st.game || (edit() || {}).game, th: st.opts.thumb[+cv.dataset.th], title: st.opts.titulo[st.pick.titulo || 0], seed: st.edit + cv.dataset.th }));
@@ -171,9 +176,11 @@
         const e = edit(); if (!e) return;
         e.title = st.opts.titulo[st.pick.titulo]; e.desc = st.opts.descricao[st.pick.descricao]; e.tags = st.pick.tags.slice(0, MAX_TAGS);
         if (K.thumb) e.thumb = Object.assign({}, st.opts.thumb[st.pick.thumb]);
+        const pc = st.pick.publi != null && st.pick.publi >= 0 ? SL.G.contracts[st.pick.publi] : null; e.sponsor = pc ? pc.id : null; st.publi = pc ? D.brandById(pc.brand).name : null;
         const err = VS().publish(e.id); if (err) { st.err = err; return render(); }
         st.video = e.video; st.step = 'resultado'; return render();
       }
+      if (b.hasAttribute('data-divulgar')) { const v = G.videos.find(x => x.id === st.video); const err = SL.Social.post({ kind: 'texto', text: 'Vídeo novo no ' + K.plat + ': ' + (v ? v.title : '') + ' (link no perfil)', eng: 1.1 }); if (err) { st.err = err; return render(); } st.divulgado = true; if (v) v.boost = Object.assign({}, v.boost || {}, { ig: 1 }); return render(); }
       if (b.hasAttribute('data-ver')) { m.close(); UI.openApp(K.app, K.app === 'vision' ? { video: st.video } : undefined); return; }
       if (b.hasAttribute('data-fim')) return m.close();
     });

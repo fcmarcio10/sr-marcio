@@ -92,12 +92,14 @@
     const consistency = Math.min(1, days / 7);
     let show = 0.04 * (0.5 + 0.5 * SL.Algo.todMul(Math.floor(h))) * (L.announced ? 1.35 : 1) * (promised ? 1.25 : 1) * (0.7 + consistency * 0.5) * (0.6 + G0.ch.lastLiveQ / 125) * (0.6 + G0.rep.confianca / 125);
     if (G0.ch.catHist[g.id] === undefined && G0.ch.pulso.livesN > 3) show *= 0.85;
-    const total = anonF * show;
+    const buzz = SL.Videos ? SL.Videos.buzz() : { k: 0 }; show *= 1 + buzz.k; L.buzz = buzz.k > 0.04 ? buzz.plat : null;
+    const total = anonF * show + (buzz.k > 0.04 ? Math.round(buzz.k * 8) : 0);
     for (let m = 0; m < L.planned + 30; m++) L.anonPlan[m] = total * (Math.exp(-m / 15) - Math.exp(-(m + 1) / 15));
     SL.Life.start('live');
     G0.flags.liveToday = day;
     SL.bus.emit('live:start', L);
     sys('alert', 'Transmissão iniciada: ' + L.title);
+    if (L.buzz) sys('alert', 'Tem gente chegando pelo seu vídeo no ' + L.buzz + '!');
     if (G0.equip.soft.bot_chat) sys('bot', SL.Chat.fill(U.pick(D.chat.bot), null, { canal: G0.player.user }), { u: 'Vigia' });
     if (SL.audio) SL.audio.play('live');
     return null;

@@ -60,6 +60,8 @@
           <div class="card col"><h3>Antes de entrar</h3>
             <div class="row small"><span class="dot ${q.fps < 0.8 || q.netOk < 0.85 ? 'warn' : 'ok'}"></span><span class="grow">${q.issues.length ? q.issues.map(i => ({ lag: 'Seu PC está no limite: pode travar.', rede: 'Sua internet não aguenta essa qualidade.', cam: 'Câmera escura ou ruim.', mic: 'Sem microfone.' })[i]).join(' ') : 'Tudo certo para transmitir.'}</span></div>
             <div class="row small"><span class="dot ok"></span><span class="grow">Público esperado: <b>${pr ? pr[0] + ' a ' + pr[1] : '?'}</b> pessoas</span></div>
+            ${(() => { const bz = SL.Videos.buzz(); return bz.k > 0.04 ? `<div class="row small"><span class="dot ok"></span><span class="grow">Seu vídeo no ${bz.plat} vai trazer gente nova.</span></div>` : `<div class="row small"><span class="dot"></span><span class="grow muted">Postar um vídeo ou corte antes traz mais gente.</span></div>`; })()}
+            ${(() => { const hoje = G.ch.schedule.find(x => !x.done && x.day === SL.Clock.day()); return hoje ? `<div class="row small"><span class="dot ${Math.abs(hoje.hour - SL.Clock.hourF()) <= 1.6 ? 'ok' : 'warn'}"></span><span class="grow">Live marcada hoje às ${hoje.hour}h${Math.abs(hoje.hour - SL.Clock.hourF()) <= 1.6 ? ': é agora, o público está esperando.' : '.'}</span></div>` : ''; })()}
           </div>
         </div></div>`;
     },
@@ -404,8 +406,16 @@
       <div class="card"><div class="section-t"><h3>Público e empolgação</h3><span class="tiny muted"><span style="color:#ff4d5e">pessoas</span> · <span style="color:#ffb547">empolgação</span></span></div><canvas class="chart" id="sum-ch"></canvas></div>
       <div class="card col"><h3>Melhores momentos</h3>${s.best.length ? s.best.map((b, i) => `<div class="row"><span class="acc">${ic('scissors', 15)}</span><span class="grow small">${esc(b.txt)}</span><div class="bar" style="width:70px"><i style="width:${b.clip * 100}%"></i></div>${raw ? `<button class="btn sm" data-cut="${i}">Criar corte</button>` : ''}</div>`).join('') : '<div class="small muted">Nenhum momento forte o bastante para virar corte.</div>'}
       ${s.adRev ? `<div class="small muted">Anúncios renderam ${U.money(s.adRev)}.</div>` : ''}${s.promises ? `<div class="small warn">${s.promises} promessa(s) feita(s) nesta live. Cumpra para manter a confiança.</div>` : ''}${s.raid ? `<div class="small acc">${U.int(s.raid)} pessoas chegaram por raid ou vídeo bombando.</div>` : ''}</div>
+      <div class="card col prox"><h3>Próximos passos</h3><div class="row gap6 wrap">${raw && raw.moments && raw.moments.length ? `<button class="btn sm pink" data-prox="corte">${ic('scissors', 14)} Corte no TikTok</button>` : ''}<button class="btn sm" data-prox="post">${ic('connect', 14)} Agradecer no Instagram</button><button class="btn sm" data-prox="agenda">${ic('calendar', 14)} Marcar a próxima live</button></div><span class="tiny muted">Cortes e posts trazem gente nova para a próxima live.</span></div>
       <p class="tiny muted">Doações, inscrições e anúncios caem no saldo da Twitch e são repassados toda segunda-feira.</p>`, buttons: [{ label: 'Fechar', cls: 'primary' }] });
     UI.chart($('#sum-ch', m.el), [{ data: s.graph, color: '#ff4d5e' }, { data: s.hype, color: '#ffb547', fill: false }]);
-    $$('[data-cut]', m.el).forEach(b => b.onclick = () => { m.close(); UI.criarVideo('corte'); });
+    $$('[data-cut]', m.el).forEach(b => b.onclick = () => { m.close(); UI.criarVideo('corte', null, { raw: raw && raw.id }); });
+    // próximos passos: cada sistema puxa o outro
+    $$('[data-prox]', m.el).forEach(b => b.onclick = () => {
+      const k = b.dataset.prox;
+      if (k === 'corte') { m.close(); UI.criarVideo('corte', null, { raw: raw && raw.id }); }
+      if (k === 'post') { const e = SL.Social.post({ kind: 'texto', text: 'Valeu demais pela live de hoje! ' + U.int(s.peak) + ' pessoas no pico. Amanhã tem mais.', eng: 1.15 }); if (e) return UI.err(e); b.disabled = true; b.innerHTML = ic('check', 14) + ' Postado'; }
+      if (k === 'agenda') { m.close(); UI.openApp('calendario'); }
+    });
   };
 })(window.SL);

@@ -13,14 +13,14 @@
     const last = SL.Save.last(); const info = last ? SL.Save.readMeta(last) : null; const meta = info && info.meta;
     el.innerHTML = `<canvas class="bg"></canvas>
       <div class="title-col">
-        <div class="logo"><div class="mark">${UI.ic('pulso', 30)}<span>SIMULADOR DE VIDA DIGITAL</span></div><h1>STREAMER<br><em>LIFE</em></h1><p>Comece do zero num quarto simples. Faça lives, publique vídeos, cuide da sua vida e construa uma carreira na internet.</p></div>
+        <div class="logo"><span class="dev-tag"><i></i>build de desenvolvimento 0.4</span><div class="mark">${UI.ic('pulso', 30)}<span>SIMULADOR DE VIDA DIGITAL</span></div><h1>STREAMER<br><em>LIFE</em></h1><p>Comece do zero num quarto simples. Faça lives, publique vídeos, cuide da sua vida e construa uma carreira na internet.</p></div>
         <nav class="menu">
           <button class="mi ${meta ? 'main' : ''}" data-m="continuar" ${meta ? '' : 'disabled'}>${UI.ic('play', 20)}<div><b>Continuar</b><small>${meta ? U.esc(meta.name + ' · ' + meta.day) : 'Nenhuma partida salva'}</small></div></button>
           <button class="mi ${meta ? '' : 'main'}" data-m="novo">${UI.ic('plus', 20)}<div><b>Novo jogo</b><small>Criar personagem e canal</small></div></button>
           <button class="mi" data-m="carregar">${UI.ic('folder', 20)}<div><b>Carregar partida</b><small>3 espaços + salvamento automático</small></div></button>
           <button class="mi" data-m="config">${UI.ic('settings', 20)}<div><b>Configurações</b><small>Som, salvamento e acessibilidade</small></div></button>
         </nav>
-        <div class="title-foot">Versão 1.0 · Tudo fica salvo no seu navegador. Nenhum dado sai do seu computador.</div>
+        <div class="title-foot">Versão 0.4 · em desenvolvimento · Tudo fica salvo no seu navegador.</div>
       </div>
       <div class="title-side">${meta ? `<div class="last-card"><div class="upper">Última partida</div><div class="row" style="margin-top:8px"><canvas width="54" height="54" style="width:54px;height:54px;border-radius:50%"></canvas><div class="grow"><b>${U.esc(meta.channel)}</b><div class="muted small">${U.esc(meta.tier || '')}</div></div></div><div class="kv" style="margin-top:10px"><span>Seguidores</span><span>${U.num(meta.followers)}</span><span>Dinheiro</span><span>${U.money0(meta.money)}</span><span>Dia</span><span>${U.esc(meta.day.split(',')[0])}</span></div></div>` : ''}</div>`;
     if (meta) SL.Avatar.toCanvas($('.last-card canvas', el), meta.look, { scale: 0.95 });

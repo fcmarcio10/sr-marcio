@@ -24,7 +24,7 @@
     if (UI.screen !== 'game') return;
     [...box.children].forEach(c => { if (c.dataset.title === n.title) c.remove(); });
     if (document.body.classList.contains('live-open') && !n.err) return; // ao vivo: só erros das ações; o resto fica guardado no celular
-    const el = document.createElement('div'); el.className = 'toast'; el.dataset.title = n.title;
+    const el = document.createElement('div'); el.className = 'toast' + (n.err ? ' err' : ''); el.dataset.title = n.title;
     const col = CATC(n.cat); const life = quick ? 2800 : 6000; el.style.borderLeftColor = col;
     el.innerHTML = `<div class="ti" style="background:${U.rgba(col, 0.16)};color:${col}">${UI.ic(n.icon || 'info', 16)}</div><div class="grow"><b>${U.esc(n.title)}</b>${n.text ? '<p>' + U.esc(n.text) + '</p>' : ''}</div><button class="tx" aria-label="Fechar aviso" title="Fechar">${UI.ic('x', 14)}</button><i class="tbar" style="color:${col};animation-duration:${life}ms"></i>`;
     const kill = () => { if (!el.isConnected) return; el.classList.add('out'); setTimeout(() => el.remove(), 260); };
