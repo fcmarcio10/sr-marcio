@@ -671,7 +671,7 @@
     box(c, X + 2, Y + 3, X + W - 2, Y + 29, dz - 3, dz, side, top, { tf: (c2, x, y, w, h) => { if (tier === 0) grain(c2, x, y, w, h, 5); else { c2.fillStyle = 'rgba(255,255,255,.04)'; c2.fillRect(x + 4, y + 4, w - 8, h - 8); } }, front: 'S', ff: (c2, fp) => { if (tier === 1) fq(c2, fp, 0, 1, dz - 1.6, dz - 0.6, '#d8432f'); } });
     [[X + 4, Y + 5], [X + W - 8, Y + 5], [X + 4, Y + 23], [X + W - 8, Y + 23]].forEach(([lx, ly]) => box(c, lx, ly, lx + 4, ly + 4, 0, dz - 3, side, side));
     if (tier === 2) box(c, X + W - 30, Y + 29, X + W - 2, Y + 54, dz - 3, dz, side, top);
-    const a = G.act; const on = a && SL.Life.ACT[a.id] && SL.Life.ACT[a.id].pc;
+    const a0 = G.act; const noAr = !!(SL.Live && SL.Live.cur); const a = noAr ? { id: 'live' } : a0; const on = noAr || (a && SL.Life.ACT[a.id] && SL.Life.ACT[a.id].pc);
     const scr = broken ? '#3a0d0d' : on ? (a.id === 'live' ? '#5a1f6a' : a.id === 'editar' ? '#2c2f6e' : '#2d3f7a') : '#0e1118';
     const content = (c2, fp) => { if (!on || broken) return; fq(c2, fp, 0.12, 0.6, 30, 32, 'rgba(255,255,255,.35)'); fq(c2, fp, 0.12, 0.85, 35, 41, 'rgba(255,255,255,.12)'); if (a.id === 'live') fq(c2, fp, 0.72, 0.88, 42, 45, '#ff4d5e'); };
     const mon = SL.Equip.item('monitor');
@@ -870,7 +870,7 @@
   const lightPass = (c, t) => {
     const na = nightAlpha(); const G = SL.G;
     const a = G.act; const sleeping = a && SL.Life.ACT[a.id] && SL.Life.ACT[a.id].sleep;
-    const pcOn = a && SL.Life.ACT[a.id] && SL.Life.ACT[a.id].pc;
+    const pcOn = (a && SL.Life.ACT[a.id] && SL.Life.ACT[a.id].pc) || !!(SL.Live && SL.Live.cur);
     const tvOn = a && (a.id === 'tv' || a.id === 'videogame');
     if (na <= 0.01) return;
     if (!lc) lc = document.createElement('canvas');
@@ -899,7 +899,7 @@
     // brilhos coloridos
     c.save(); c.globalCompositeOperation = 'lighter';
     const glow = (wx, wy, wz, r, col, al) => { const p = P(wx, wy, wz); const rr0 = r * V.s; const g = c.createRadialGradient(p[0], p[1], 1, p[0], p[1], rr0); g.addColorStop(0, U.rgba(col, al)); g.addColorStop(1, U.rgba(col, 0)); c.fillStyle = g; c.fillRect(p[0] - rr0, p[1] - rr0, rr0 * 2, rr0 * 2); };
-    if (pcOn && desk) glow((desk.x + desk.w / 2) * T, (desk.y + 1) * T, 30, 70, a.id === 'live' ? '#b04cff' : '#6f86ff', na * 0.55);
+    if (pcOn && desk) glow((desk.x + desk.w / 2) * T, (desk.y + 1) * T, 30, 70, (SL.Live && SL.Live.cur) || (a && a.id === 'live') ? '#b04cff' : '#6f86ff', na * 0.55);
     if (tvOn && tv) glow((tv.x + tv.w / 2) * T, (tv.y + 1.5) * T, 30, 90, '#7fb3ff', na * 0.5);
     if (G.home.deco.includes('led')) { const er = lay.rooms.find(r => r.id === 'escritorio'); if (er) glow((er.x + er.w / 2) * T, er.y * T + 12, 54, er.w * 16, '#' + ['c77dff', '7dd3ff', 'ff7ab0'][Math.floor(t / 3) % 3], na * 0.45); }
     objs.forEach(o => { if (o.kind === 'luminaria') glow(o.x * T + 16, o.y * T + 16, 46, 60, '#ffd28a', na * 0.5); if (o.kind === 'neon') glow(o.x * T + 16, (o.y + 1) * T + 4, 34, 40, '#ff3d81', na * 0.7); });

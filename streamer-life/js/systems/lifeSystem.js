@@ -209,6 +209,7 @@
     const def0 = ACT[id]; if (!def0) return 'Atividade desconhecida.';
     const G0 = G();
     if (G0.act && G0.act.id === 'live' && id !== 'live') return 'Você está ao vivo.';
+    if (def0.sleep && SL.Live && SL.Live.cur) { if (SL.LiveUI) SL.LiveUI.finish('dormiu'); else SL.Live.end('dormiu'); }
     if (PHYS.includes(id) && L.tiredLevel() >= 3) return 'Você está exausto(a). Descanse ou durma antes.';
     if (G0.act && G0.act.id !== 'usar_pc') L.stop(false);
     const a = { id, t0: G0.time.t, data: data || {}, label: (opts && opts.label) || def0.label, speed: def0.speed };

@@ -204,6 +204,17 @@
 
   // composição completa da live
   let frozen = null, freezeUntil = 0;
+  // câmera com a cadeira vazia (o streamer levantou do PC)
+  const camVazia = (ctx, x, y, w, h) => {
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    ctx.fillStyle = grad(ctx, x, y, x, y + h, ['#2a2540', '#14121f']); ctx.fillRect(x, y, w, h);
+    const cx = x + w / 2, s = Math.min(w, h);
+    ctx.fillStyle = '#1b1b24'; rr(ctx, cx - s * 0.22, y + h * 0.28, s * 0.44, h * 0.5, s * 0.08); ctx.fill();
+    ctx.fillStyle = '#26263a'; rr(ctx, cx - s * 0.17, y + h * 0.34, s * 0.34, h * 0.36, s * 0.06); ctx.fill();
+    ctx.fillStyle = '#101018'; ctx.fillRect(cx - s * 0.3, y + h * 0.74, s * 0.6, h * 0.1);
+    if (w < ctx.canvas.clientWidth * 0.6) txt(ctx, 'ausente', cx, y + h * 0.16, Math.max(9, Math.round(s * 0.09)), '#b49dff', 'center', 700, 'Inter, Arial');
+    ctx.restore();
+  };
   P.live = (cv, L, tSec) => {
     const dpr = Math.min(2, window.devicePixelRatio || 1); const w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
     if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
@@ -224,14 +235,19 @@
       txt(ctx, 'JÁ VOLTO', w / 2, h * 0.45, Math.round(h * 0.11), '#fff', 'center', 800);
       txt(ctx, 'pausa rapidinha · ' + L.ev.paused + ' min', w / 2, h * 0.58, Math.round(h * 0.04), '#b49dff', 'center', 600, 'Inter, Arial');
     } else if (g.sim === 'conversa' || L.layout === 'camera') {
-      P.webcam(ctx, 0, 0, w, h, { expr, t: tSec });
+      if (L.away) camVazia(ctx, 0, 0, w, h); else P.webcam(ctx, 0, 0, w, h, { expr, t: tSec });
     } else {
-      G[g.sim](ctx, w, h, L.sim, tSec, {});
+      G[g.sim](ctx, w, h, L.sim, L.away ? (L._awayT || (L._awayT = tSec)) : tSec, {});
+      if (!L.away) L._awayT = 0;
       if (L.cam && L.layout !== 'sem') {
         const cw = L.layout === 'dividida' ? w * 0.42 : w * 0.24, ch = cw * 0.75;
         const cx = L.layout === 'dividida' ? w - cw - w * 0.02 : w - cw - w * 0.02, cy = L.layout === 'dividida' ? h * 0.28 : h - ch - h * 0.04;
-        P.webcam(ctx, cx, cy, cw, ch, { expr, t: tSec });
+        if (L.away) camVazia(ctx, cx, cy, cw, ch); else P.webcam(ctx, cx, cy, cw, ch, { expr, t: tSec });
       }
+    }
+    if (L.away) {
+      ctx.fillStyle = 'rgba(8,10,16,.78)'; rr(ctx, w * 0.3, h * 0.03, w * 0.4, h * 0.075, 6); ctx.fill();
+      txt(ctx, 'JÁ VOLTO', w / 2, h * 0.068, Math.round(h * 0.04), '#fff', 'center', 800);
     }
     // sobreposições
     const s = SL.Equip.stats();

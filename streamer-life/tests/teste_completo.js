@@ -33,9 +33,9 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
 
   // 2. passagem do tempo e necessidades
   const t0 = await ev(() => SL.G.time.t);
-  await page.click('[data-speed="3"]'); await page.waitForTimeout(1500); await page.click('[data-speed="1"]');
+  await page.click('#hud [data-speed="2"]'); await page.waitForTimeout(4500); await page.click('#hud [data-speed="1"]');
   const t1 = await ev(() => SL.G.time.t);
-  ok('tempo passa em tempo real (velocidade 3)', t1 - t0 >= 6, t1 - t0);
+  ok('tempo passa em tempo real (velocidade 3x)', t1 - t0 >= 5, t1 - t0);
   const before = await ev(() => Object.assign({}, SL.G.needs));
   await ev(() => SL.debug.skip(180));
   const after = await ev(() => Object.assign({}, SL.G.needs));
@@ -103,6 +103,13 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   const minim = await ev(() => document.getElementById('overlay-live').hidden && !!SL.Live.cur);
   await page.click('.taskbar [data-live]'); await page.waitForTimeout(200);
   ok('live minimiza pela barra de tarefas e volta', minim && await ev(() => !document.getElementById('overlay-live').hidden));
+  // 3 velocidades em todo lugar; levantar do PC com a live no ar e voltar
+  ok('3 velocidades (pausa, normal, 3x) na casa, no PC e na live', await ev(() => document.querySelectorAll('#hud [data-speed]').length === 3 && document.querySelectorAll('.taskbar [data-speed]').length === 3 && document.querySelectorAll('#lv-ctl [data-speed]').length === 3));
+  await page.click('.taskbar [data-sair]'); await page.waitForTimeout(400);
+  ok('sair do PC com a live no ar: ela continua e aparece a janelinha da live', await ev(() => !SL.UI.pcOpen() && !!SL.Live.cur && SL.Live.cur.away && !document.querySelector('#hud .hud-live').hidden));
+  await ev(() => SL.debug.skip(5));
+  await page.click('#hud .hud-live [data-h="voltarpc"]'); await page.waitForSelector('#overlay-live:not([hidden])', { timeout: 9000 }).catch(() => null);
+  ok('voltar ao PC retoma a live', await ev(() => SL.UI.pcOpen() && !SL.Live.cur.away && !!SL.G.act && SL.G.act.id === 'live'));
   await shot('08_live');
   const L1 = await ev(() => { const L = SL.Live.cur; return { min: L.min, viewers: L.viewers, peak: L.peak, msgs: L.stats.msgs, chatDom: document.querySelectorAll('#lv-chat .cm').length, att: L.att.size, intents: [...new Set(L.chat.map(m => m.intent).filter(Boolean))], moments: L.moments.length }; });
   ok('público chega na live', L1.peak >= 1, L1);
@@ -124,6 +131,16 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
     await ev(() => SL.LiveUI.finish());
     await page.waitForTimeout(300); const b = await page.$('.modal .mf .btn.primary'); if (b) await b.click();
   }
+  // sair de casa com a live no ar: pergunta e encerra
+  await ev(() => { SL.debug.fill(); SL.Live.start({ game: 'xeque', title: 'Teste de saída', quality: '720p', planned: 60 }); });
+  await page.waitForTimeout(400);
+  await page.click('.taskbar [data-sair]'); await page.waitForTimeout(300);
+  await ev(() => SL.City.goOutside()); await page.waitForTimeout(250);
+  const pergunta = await ev(() => /live/i.test((document.querySelector('.modal') || {}).textContent || ''));
+  await page.click('.modal .mf .btn.danger'); await page.waitForTimeout(500);
+  ok('sair de casa com a live no ar pergunta e encerra a live', pergunta && await ev(() => !SL.Live.cur && SL.G.loc.area === 'cidade'));
+  { const bb = await page.$('.modal .mf .btn.primary'); if (bb) await bb.click(); }
+  await ev(() => { SL.G.lives.pop(); SL.City.enter('casa'); SL.UI.openPC(); }); await page.waitForTimeout(300);
   const mem = await ev(() => {
     const rec = SL.G.viewers.list.filter(v => v.m.v >= 2);
     const greetsReturn = SL.G.lives.length;

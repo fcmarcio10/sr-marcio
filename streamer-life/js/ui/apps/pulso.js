@@ -187,6 +187,8 @@
         <form class="chat-input" id="lv-form"><input class="input" id="lv-in" maxlength="120" placeholder="Escrever no chat como ${esc(G.player.user)}" autocomplete="off"><button class="btn primary sm">${ic('send', 14)}</button></form></div>
     </div>`;
     $('#lv-t').textContent = L.title;
+    // voltando para a live (ou reabrindo a janela): o chat continua de onde estava
+    { const fila = new Set(SL.Live.queue.map(q => q.msg)); const hist = L.chat.filter(m => !fila.has(m)).slice(-40); const ch = $('#lv-chat'); ch.innerHTML = hist.map(msgHTML).join(''); ch.scrollTop = ch.scrollHeight; }
     LUI.actions();
     $('#lv-actions').onclick = LUI.actionClick; $('#lv-ctl').onclick = LUI.actionClick;
     $('#lv-pend').onclick = LUI.pendClick;
@@ -211,7 +213,7 @@
   LUI.actions = () => {
     const L = SL.Live.cur; if (!L) return; const G = SL.G; const el = $('#lv-actions'); if (!el) return;
     const g = D.gameById(L.game); const contracts = SL.Sponsors.active();
-    const sig = JSON.stringify([L.risky > 0, L.focus, !!L.poll, !!L.challenge, L.ev.mic, L.ev.net > 0, L.ev.paused, L.speed, L.followersOnly, contracts.length, G.ch.pulso.afil, !!(L.ev.celeb && !L.ev.celeb.greeted)]);
+    const sig = JSON.stringify([L.risky > 0, L.focus, !!L.poll, !!L.challenge, L.ev.mic, L.ev.net > 0, L.ev.paused, L.followersOnly, contracts.length, G.ch.pulso.afil, !!(L.ev.celeb && !L.ev.celeb.greeted)]);
     if (el.dataset.sig === sig) return; el.dataset.sig = sig;
     const b = (k, label, icon, cls, title) => `<button class="btn ${cls || ''}" data-la="${k}" title="${esc(title || '')}">${ic(icon, 15)}${label}</button>`;
     const k = (key, label, icon, cls, title) => `<button class="lbtn ${cls || ''}" data-la="${key}" title="${esc(title || label)}">${ic(icon, 15)}<span>${label}</span></button>`;
@@ -224,7 +226,7 @@
     if (L.ev.mic) acts.unshift(k('mic', 'Arrumar microfone', 'mic', 'bad'));
     if (L.ev.net > 0) acts.unshift(k('netq', 'Baixar qualidade', 'wifiOff', 'bad'), k('netr', 'Reiniciar roteador', 'wifi', 'bad'));
     el.innerHTML = `<div class="lgrid">${acts.join('')}</div>`;
-    const ctl = $('#lv-ctl'); if (ctl) ctl.innerHTML = `<span class="lspeed">${[[1, '½x'], [2, '1x'], [3, '2,5x']].map(([sp, l]) => `<button class="${L.speed === sp ? 'on' : ''}" data-la="speed" data-s="${sp}" title="Velocidade do tempo na live">${l}</button>`).join('')}</span><button class="btn live sm" data-la="end">${ic('stop', 14)} Encerrar live</button>`;
+    const ctl = $('#lv-ctl'); if (ctl && !ctl.firstChild) ctl.innerHTML = `<span class="speeds lv-speeds">${UI.speedBtns()}</span><button class="btn live sm" data-la="end">${ic('stop', 14)} Encerrar live</button>`;
   };
   const menu = (anchor, title, items) => {
     const r = anchor.getBoundingClientRect(); const host = $('#overlay-live');

@@ -194,6 +194,7 @@
     challenge_ok: ['h|CONSEGUIU O DESAFIO :gg:', 'h|LENDA', 'h|eu sabia!!'],
     challenge_fail: ['z|não conseguiu {kk}', ':f:', 'n|quase! tenta de novo'],
     pause_back: ['n|voltou!', 'h|bem-vindo(a) de volta', 'n|demorou hein {kk}'],
+    ausente: ['q|cadê você?', 'n|ainda tá aí?', 'z|foi buscar um lanche {kk}', 'n|tô esperando aqui', 'c|live parada hein', 'q|volta logo!', 'n|a cadeira vazia tá ótima {kk}'],
     game_change: ['h|boa, adoro {g}', 'c|preferia o outro jogo', 'q|por que trocou?', 'n|bora de {g}'],
     sponsor: ['n|propaganda né {kk}', 'n|já uso esse produto', 'c|lá vem publi', 'q|tem cupom?'],
     ad: ['c|anúncio de novo...', 'n|tranquilo, apoio o canal vendo anúncio', 'z|hora do lanche {kk}'],

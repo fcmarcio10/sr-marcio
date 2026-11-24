@@ -44,7 +44,13 @@
     else { G.loc = { area: 'local', place: d.to, tx: 0, ty: 0, dir: 1 }; SL.Rel.passiveMeet(d.to); }
     SL.bus.emit('loc');
   };
-  C.goOutside = () => { const G = SL.G; const p = G.loc.area === 'casa' ? 'casa' : G.loc.place; G.loc = { area: 'cidade', place: p, tx: G.loc.tx, ty: G.loc.ty, dir: 1 }; if (SL.audio) SL.audio.play('door'); SL.bus.emit('loc'); };
+  // com a live no ar, sair de casa pergunta e encerra a live
+  C.liveGuard = fn => {
+    if (!(SL.Live && SL.Live.cur) || !SL.G || SL.G.loc.area !== 'casa') return fn();
+    SL.UI.confirm('Sair de casa?', 'Sua live está no ar e vai ser encerrada se você sair de casa.', () => { SL.LiveUI.finish('saiu'); fn(); }, 'Encerrar live e sair', true);
+  };
+  C.goOutside = then => { if (SL.Live && SL.Live.cur && SL.G.loc.area === 'casa') return C.liveGuard(() => { C.goOutside(); if (typeof then === 'function') then(); }); C.goOutsideNow(); if (typeof then === 'function') then(); };
+  C.goOutsideNow = () => { const G = SL.G; const p = G.loc.area === 'casa' ? 'casa' : G.loc.place; G.loc = { area: 'cidade', place: p, tx: G.loc.tx, ty: G.loc.ty, dir: 1 }; if (SL.audio) SL.audio.play('door'); SL.bus.emit('loc'); };
   C.enter = id => { const G = SL.G; if (id === 'casa') { G.loc = { area: 'casa', place: null, tx: 0, ty: 0 }; SL.HomeScene.build(); SL.HomeScene.placeAt('porta'); } else { G.loc = { area: 'local', place: id }; SL.Rel.passiveMeet(id); } SL.bus.emit('loc'); };
 
   // ícones SVG convertidos uma vez para caminhos do Canvas

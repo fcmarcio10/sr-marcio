@@ -14,19 +14,20 @@
         <div class="hud-needs">${SL.Life.NEEDS.map(nd => `<div class="hn" data-k="${nd.k}" title="${nd.label}"><span class="hn-i" style="color:${nd.color}">${UI.ic(nd.icon, 14)}</span><span class="hn-l">${nd.label}</span><div class="hn-b"><i style="background:${nd.color}"></i></div></div>`).join('')}</div>
       </div>
       <div class="hud-tc">
-        <div class="hud-clock"><div class="hc-time"><div class="t mono"></div><div class="d"></div></div><div class="speeds">${[['pause', 0, 'Pausar (espaço)'], ['speed1', 1, 'Normal (1)'], ['speed2', 2, 'Rápido (2)'], ['speed3', 3, 'Muito rápido (3)']].map(([ic, v, t]) => `<button class="sbtn" data-speed="${v}" title="${t}">${UI.ic(ic, 15)}</button>`).join('')}</div></div>
+        <div class="hud-clock"><div class="hc-time"><div class="t mono"></div><div class="d"></div></div><div class="speeds">${UI.speedBtns()}</div></div>
         <div class="hud-act" hidden></div>
       </div>
       <div class="hud-tr">
         <button class="gbtn" data-h="phone" title="Celular (C)">${UI.ic('phone', 20)}<span>Celular</span><i class="badge" hidden></i></button>
         <button class="gbtn" data-h="pc" title="Computador (P)">${UI.ic('laptop', 20)}<span>PC</span></button>
         <button class="gbtn" data-h="menu" title="Menu (Esc)">${UI.ic('more', 20)}<span>Menu</span></button>
-      </div>`;
+      </div>
+      <div class="hud-live" hidden></div>`;
     refs = { cv: $('.hud-me canvas', hud), name: $('.hud-me b', hud), tier: $('.hud-me small', hud), t: $('.hud-clock .t', hud), d: $('.hud-clock .d', hud), money: $('.hud-money', hud), mv: $('.mv', hud), badge: $('[data-h="phone"] .badge', hud), act: $('.hud-act', hud), pc: $('[data-h="pc"]', hud), bars: SL.Life.NEEDS.map(nd => ({ nd, el: $('.hn[data-k="' + nd.k + '"]', hud) })) };
     hud.onclick = e => {
       if (HUD.locked()) return;
       const b = e.target.closest('[data-h],[data-speed],[data-actstop]'); if (!b) return; SL.audio.play('click');
-      if (b.dataset.speed != null) { SL.G.time.speed = +b.dataset.speed; HUD.update(true); return; }
+      if (b.dataset.speed != null) { SL.Clock.setSpeed(+b.dataset.speed); HUD.update(true); return; }
       if (b.dataset.actstop != null) { SL.Life.stop(false); HUD.update(true); return; }
       const h = b.dataset.h;
       if (h === 'phone') { if (UI.phoneOpen()) UI.closePhone(); else UI.openPhone(); }
@@ -34,6 +35,7 @@
       if (h === 'menu') SL.Screens.pauseMenu();
       if (h === 'bank') UI.openApp('banco');
       if (h === 'me') UI.openApp('stats');
+      if (h === 'voltarpc') HUD.goToPC();
     };
     HUD.paintPortrait();
   };
@@ -49,7 +51,7 @@
     const un = SL.Notify.unread(); refs.badge.hidden = !un; refs.badge.textContent = un > 99 ? '99+' : un;
     refs.bars.forEach(({ nd, el }) => { const raw = G.needs[nd.k]; const v = nd.tired ? 100 - raw : raw; const bad = nd.tired ? v > 75 : v < 22; const i = el.querySelector('i'); i.style.width = v + '%'; el.classList.toggle('low', bad); });
     refs.pc.hidden = G.loc.area !== 'casa';
-    UI.$$('#hud [data-speed]').forEach(b => b.classList.toggle('on', +b.dataset.speed === G.time.speed));
+    UI.$$('[data-speed]').forEach(b => b.classList.toggle('on', +b.dataset.speed === SL.Clock.sp()));
     $('#hud').classList.toggle('locked', HUD.locked());
     const a = G.act; const show = !!(a && a.id !== 'usar_pc' && a.id !== 'live');
     const key = show ? [a.id, a.label, Math.round(SL.Life.progress() * 100), HUD.locked()].join('|') : '';
@@ -57,6 +59,29 @@
       lastAct = key; refs.act.hidden = !show;
       if (show) refs.act.innerHTML = `<span class="ha-i">${UI.ic(SL.Life.ACT[a.id].icon, 16)}</span><div class="grow"><b>${U.esc(a.label)}</b>${a.dur ? `<div class="ha-b"><i style="width:${SL.Life.progress() * 100}%"></i></div><small>até ${SL.Clock.fmtTime(a.t0 + a.dur)}</small>` : ''}</div>${HUD.locked() ? '' : `<button class="sbtn" data-actstop title="Parar">${UI.ic('x', 14)}</button>`}`;
     }
+  };
+  // live no ar com você longe do PC: janelinha com a tela da live onde você parou
+  let lmT = 0;
+  HUD.liveMini = (t, pcOpen) => {
+    const el = $('#hud .hud-live'); if (!el) return;
+    const L = SL.Live && SL.Live.cur; const show = !!(L && L.away && !pcOpen && SL.G.loc.area === 'casa');
+    if (el.hidden !== !show) el.hidden = !show;
+    if (!show) { if (el.firstChild) el.innerHTML = ''; return; }
+    if (!el.firstChild) {
+      el.innerHTML = `<div class="hl-h"><span class="onair"><i></i>AO VIVO</span><span class="hl-v" title="Assistindo agora">${UI.ic('eye', 13)}<b></b></span><span class="hl-t mono" title="Tempo no ar"></span></div>
+        <div class="hl-cv"><canvas></canvas></div>
+        <div class="hl-msg"></div>
+        <button class="btn red sm hl-b" data-h="voltarpc">${UI.ic('laptop', 15)} Voltar ao PC</button>
+        <small class="hl-tip">Sair de casa encerra a live</small>`;
+      lmT = 0;
+    }
+    SL.Preview.live(el.querySelector('canvas'), L, t);
+    const now = performance.now(); if (now - lmT < 300) return; lmT = now;
+    el.querySelector('.hl-v b').textContent = U.int(L.viewers);
+    el.querySelector('.hl-t').textContent = Math.floor(L.min / 60) + ':' + String(L.min % 60).padStart(2, '0');
+    const m = [...L.chat].reverse().find(x => x.u && x.html && x.kind !== 'streamer');
+    const mh = m ? `<b style="color:${m.c || '#bbb'}">${U.esc(m.u)}:</b> ${m.html}` : '<span class="muted">O chat está quieto...</span>';
+    const box = el.querySelector('.hl-msg'); if (box.dataset.h !== mh) { box.dataset.h = mh; box.innerHTML = mh; }
   };
   HUD.goToPC = () => {
     const G = SL.G;
@@ -210,8 +235,8 @@
       if (UI.screen !== 'game' || /input|textarea|select/i.test(document.activeElement.tagName)) return;
       const G = SL.G;
       if (HUD.locked()) { if (G.loc.area === 'casa' && SL.HomeScene.keyDown(e.key)) e.preventDefault(); return; }
-      if (e.key === ' ') { e.preventDefault(); G.time.speed = G.time.speed === 0 ? (HUD._lastSpeed || 1) : (HUD._lastSpeed = G.time.speed, 0); HUD.update(true); }
-      if (['1', '2', '3'].includes(e.key) && !(UI._ctx && UI._ctx._pick)) { G.time.speed = +e.key; HUD.update(true); }
+      if (e.key === ' ') { e.preventDefault(); const cur = SL.Clock.sp(); if (cur === 0) SL.Clock.setSpeed(HUD._lastSpeed || 1); else { HUD._lastSpeed = cur; SL.Clock.setSpeed(0); } HUD.update(true); }
+      if (['1', '2', '3'].includes(e.key) && !(UI._ctx && UI._ctx._pick)) { SL.Clock.setSpeed(e.key === '1' ? 1 : 2); HUD.update(true); }
       if (e.key === 'Escape') { if ($('.modal-bg')) return; if (UI._ctx) return UI.closeCtx(); if (UI.phoneOpen()) return UI.closePhone(); if (UI.pcOpen() && !(SL.Live && SL.Live.cur)) return UI.closePC(); SL.Screens.pauseMenu(); }
       if ((e.key === 'c' || e.key === 'C') && !UI.pcOpen()) { if (UI.phoneOpen()) UI.closePhone(); else UI.openPhone(); }
       if ((e.key === 'p' || e.key === 'P') && G.loc.area === 'casa') { if (UI.pcOpen()) UI.closePC(); else HUD.goToPC(); }

@@ -7,6 +7,12 @@
   const $$ = (s, r) => [...(r || document).querySelectorAll(s)];
   UI.$ = $; UI.$$ = $$;
   UI.ic = (n, s) => SL.icon(n, s || 18);
+  // botões de velocidade (pausa, normal e 3x): os mesmos na casa, no PC e na live
+  UI.speedBtns = () => `<button class="sbtn" data-speed="0" title="Pausar (Espaço)">${UI.ic('pause', 15)}</button><button class="sbtn" data-speed="1" title="Velocidade normal (1)">${UI.ic('speed1', 15)}</button><button class="sbtn x3" data-speed="2" title="3 vezes mais rápido (2)">${UI.ic('speed2', 14)}<b>3x</b></button>`;
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-speed]'); if (!b || b.closest('#hud') || !SL.G) return;
+    SL.Clock.setSpeed(+b.dataset.speed); if (SL.audio) SL.audio.play('click'); if (SL.HUD) SL.HUD.update(true);
+  });
   UI.esc = U.esc;
 
   UI.show = id => { $$('.screen').forEach(s => { s.hidden = s.id !== 'scr-' + id; }); UI.screen = id; SL.bus.emit('screen', id); };
@@ -91,6 +97,9 @@
     if (!SL.Equip.item('computador')) return UI.err('Seu computador está quebrado. Conserte ou compre outro (pelo celular: app Loja).');
     if (G.act && G.act.id !== 'usar_pc' && G.act.id !== 'live' && !SL.Life.ACT[G.act.id].pc) { if (SL.Life.ACT[G.act.id].sleep) return UI.err('Você está dormindo.'); SL.Life.stop(false); }
     if (SL.HomeScene) { const d = SL.HomeScene.objects().find(o => o.id === 'mesa'); if (d) SL.HomeScene.placeAt('mesa'); }
+    // voltou para o PC com a live no ar: volta a jogar ao vivo
+    const L = SL.Live && SL.Live.cur;
+    if (L && L.away) { SL.Live.voltar(); SL.Life.start('live'); }
     if (!G.act) SL.Life.start('usar_pc');
     G.flags.pcOpened = 1;
     UI.closePhone();
@@ -100,18 +109,28 @@
     if (SL.audio) SL.audio.play('open');
     SL.Goals.check();
   };
-  UI.closePC = () => {
+  // mode 'sair': levanta do PC (com a live no ar, ela continua enquanto você estiver em casa)
+  // mode 'desligar': desliga o PC (com a live no ar, pergunta e encerra a live)
+  UI.closePC = mode => {
     const ov = $('#overlay-pc'); if (ov.hidden) return;
-    if (SL.Live && SL.Live.cur) return UI.err('Encerre a live antes de desligar o computador.');
+    const L = SL.Live && SL.Live.cur;
+    if (L && mode === 'desligar') return UI.confirm('Desligar o PC?', 'Sua live está no ar e vai ser encerrada.', () => { SL.LiveUI.finish(); UI.closePC(); }, 'Encerrar live e desligar', true);
+    if (L) {
+      SL.Live.sair(); SL.LiveUI.close();
+      if (SL.G.act && SL.G.act.id === 'live') { SL.G.act = null; SL.bus.emit('activity', null); }
+      UI.toast({ title: 'A live continua no ar', text: 'Você pode andar pela casa. Sair de casa encerra a live.', icon: 'live', cat: 'canal' });
+    }
     ov.hidden = true; document.body.classList.remove('pc-open'); wins.slice().forEach(w => UI.closeWin(w, true));
     const G = SL.G; if (G.act && G.act.id === 'usar_pc') SL.Life.stop(false);
     if (SL.audio) SL.audio.play('close');
   };
   UI.buildDesktop = ov => {
-    ov.innerHTML = `<div class="desktop"><canvas class="wall"></canvas><div class="desk-area"><div class="desk-icons"></div></div><div class="start-menu" hidden></div><div class="taskbar"><button class="tb-start" data-start title="Iniciar: todos os aplicativos">${UI.ic('window', 18)}<span>Iniciar</span></button><div class="tb-wins row gap4"></div><div class="tray">${UI.ic('wifi', 15)}<span class="tb-clock mono"></span></div></div></div>`;
+    ov.innerHTML = `<div class="desktop"><canvas class="wall"></canvas><div class="desk-area"><div class="desk-icons"></div></div><div class="start-menu" hidden></div><div class="taskbar"><button class="tb-start" data-start title="Iniciar: todos os aplicativos">${UI.ic('window', 18)}<span>Iniciar</span></button><div class="tb-wins row gap4"></div><div class="tray"><div class="speeds tb-speeds">${UI.speedBtns()}</div>${UI.ic('wifi', 15)}<span class="tb-clock mono"></span><button class="tb-out" data-sair title="Levantar do PC (a live continua se estiver no ar)">${UI.ic('exit', 15)}<span>Sair do PC</span></button><button class="tb-off" data-desligar title="Desligar o PC">${UI.ic('power', 16)}</button></div></div></div>`;
     const sm = $('.start-menu', ov);
     $('[data-start]', ov).onclick = e => { e.stopPropagation(); if (sm.hidden) UI.renderStart(); sm.hidden = !sm.hidden; };
     ov.addEventListener('mousedown', e => { if (!sm.hidden && !sm.contains(e.target) && !e.target.closest('[data-start]')) sm.hidden = true; });
+    $('[data-sair]', ov).onclick = () => { SL.audio.play('click'); UI.closePC('sair'); };
+    $('[data-desligar]', ov).onclick = () => { SL.audio.play('click'); UI.closePC('desligar'); };
   };
   UI.appList = mode => Object.keys(SL.Apps).filter(id => { const a = SL.Apps[id]; return mode === 'pc' ? a.pc !== false : a.phone; }).sort((a, b) => (SL.Apps[a].order || 50) - (SL.Apps[b].order || 50));
   UI.renderDesktopIcons = () => {
@@ -127,7 +146,7 @@
     sm.innerHTML = `<div class="sm-h"><canvas class="sm-ava"></canvas><div><b>${U.esc(G.player.channel)}</b><small>${U.esc(SL.Career.tierName())}</small></div></div><div class="sm-grid">${UI.appList('pc').map(id => { const a = SL.Apps[id]; return `<button class="sm-app" data-app="${id}"><span class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 20)}</span><span>${U.esc(a.title)}</span></button>`; }).join('')}</div><div class="sm-f"><button class="btn sm danger" data-off>${UI.ic('exit', 15)} Desligar o PC</button></div>`;
     SL.Avatar.toCanvas($('.sm-ava', sm), G.player.look, { scale: 1 });
     sm.querySelectorAll('[data-app]').forEach(b => b.onclick = () => { sm.hidden = true; UI.openApp(b.dataset.app); });
-    $('[data-off]', sm).onclick = () => { sm.hidden = true; UI.closePC(); };
+    $('[data-off]', sm).onclick = () => { sm.hidden = true; UI.closePC('desligar'); };
   };
   UI.renderTaskbar = () => {
     const tb = $('#overlay-pc .tb-wins'); if (!tb) return;

@@ -27,7 +27,7 @@
 
   const pushMsg = (msg, delayFrac) => {
     const L = LV.cur; if (!L || !msg) return;
-    const msPerMin = 1000 / (SL.Clock.LIVE_SPEEDS[L.speed] || 1);
+    const msPerMin = 1000 / (SL.Clock.rate() || 0.5);
     LV.queue.push({ at: performance.now() + (delayFrac == null ? U.rand() : delayFrac) * msPerMin * 0.95, msg });
     L.chat.push(msg); if (L.chat.length > 220) L.chat.splice(0, L.chat.length - 220);
     L.stats.msgs++;
@@ -168,7 +168,10 @@
     const perf = SL.Life.perf(); const char = SL.Life.charisma();
     const wasPaused = L.ev.paused > 0;
     if (L.ev.paused > 0) { L.ev.paused--; if (L.ev.paused === 0) { say('Voltei, galera!'); reactAll('pause_back', 0.25); L.silence = 0; } }
-    const paused = L.ev.paused > 0;
+    // fora da frente do PC: ninguém jogando, conta como pausa
+    const paused = L.ev.paused > 0 || !!L.away;
+    if (L.away) L.awayMin = (L.awayMin || 0) + 1;
+    if (L.away && L.awayMin % 6 === 4) reactAll('ausente', 0.12);
     if (L.ev.net > 0) L.ev.net--;
     if (L.ev.mic > 0) { L.ev.mic++; if (L.ev.mic > 25) L.ev.mic = 0; }
     if (L.ev.boost > 0) L.ev.boost--;
@@ -652,7 +655,10 @@
     if (L) { touch(); say('Próxima live: ' + SL.Clock.fmtDay(day) + ' às ' + hour + 'h. Anotem!'); }
     return p;
   };
-  LV.setSpeed = s => { if (LV.cur) LV.cur.speed = s; };
+  LV.setSpeed = s => SL.Clock.setSpeed(s);
+  // levantar do PC com a live no ar (andar pela casa, comer, ir ao banheiro); voltar ao PC retoma
+  LV.sair = () => { const L = LV.cur; if (!L || L.away) return; L.away = true; L.awayMin = 0; touch(); say('Já volto, galera! Não sai ninguém!'); sys('alert', 'O streamer saiu da frente do PC (a live continua)'); };
+  LV.voltar = () => { const L = LV.cur; if (!L || !L.away) return; L.away = false; touch(); say('Voltei, galera!'); reactAll('pause_back', 0.25); };
 
   // ---------- fim ----------
   LV.forceEnd = reason => {

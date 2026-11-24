@@ -71,7 +71,7 @@
       el.innerHTML = `<div class="app"><div class="app-head"><h2>${ic('map', 16)} Mapa da cidade</h2></div><div class="app-body"><div class="small muted">Você está em: <b>${esc((D.placeById(here) || {}).name || '')}</b></div><div class="list">${D.places.filter(p => p.id !== here).map(p => { const o = SL.City.options(p.id)[0]; return `<div class="li click" data-act="go" data-v="${p.id}"><span class="ava" style="width:34px;height:34px;background:${p.color}">${ic(p.icon, 16)}</span><div class="grow"><b class="small">${esc(p.name)}</b><div class="tiny ${SL.City.isOpen(p.id) ? 'ok' : 'bad'}">${SL.City.isOpen(p.id) ? 'aberto' : 'fechado'} · ${o.km.toFixed(1).replace('.', ',')} km · a pé ${U.dur(o.min)}</div></div>${ic('chevR', 15)}</div>`; }).join('')}</div></div></div>`;
       void G;
     },
-    act(a, ds) { if (a === 'go') { UI.closePhone(); if (SL.G.loc.area === 'casa') SL.City.goOutside(); SL.HUD.travelDialog(ds.v); } },
+    act(a, ds) { if (a === 'go') { UI.closePhone(); if (SL.G.loc.area === 'casa') SL.City.goOutside(() => SL.HUD.travelDialog(ds.v)); else SL.HUD.travelDialog(ds.v); } },
   };
 
   SL.Apps.ajustes = {
@@ -115,7 +115,7 @@
     render(el) {
       const G = SL.G; const a = G.act; const playing = a && a.id === 'pc_lazer';
       el.innerHTML = `<div class="app"><div class="app-head"><h2>${ic('gamepad', 16)} Biblioteca</h2><span class="tiny muted">Jogar sozinho treina a habilidade em jogos (sem câmera, sem público).</span></div><div class="app-body">
-        ${playing ? `<div class="card row"><span class="acc">${ic('gamepad', 20)}</span><div class="grow"><b>${esc(a.label)}</b><div class="bar thin"><i style="width:${SL.Life.progress() * 100}%"></i></div></div><button class="btn sm" data-act="stop">Parar</button></div>` : ''}
+        ${playing ? `<div class="card row"><span class="acc">${ic('gamepad', 20)}</span><div class="grow"><b>${esc(a.label)}</b><div class="bar thin"><i data-actprog style="width:${SL.Life.progress() * 100}%"></i></div><small class="tiny muted" data-actfim></small></div><button class="btn sm" data-act="stop">Parar</button></div>` : ''}
         <div class="lib">${D.games.map(g => { const cs = SL.Equip.canStream(g, '480p'); return `<div class="lib-g ${cs.ok ? '' : 'no'}"><span class="lib-c" style="background:${g.color}"></span><div class="grow"><b>${esc(g.name)}</b><small>${esc(g.cat)}${cs.ok ? '' : ' · ' + esc(cs.reason || 'indisponível')}</small></div>
           <button class="btn sm" data-act="play" data-g="${g.id}" ${cs.ok && !playing ? '' : 'disabled'}>${ic('play', 14)} Jogar 1h</button><button class="btn sm live" data-act="stream" data-g="${g.id}" ${cs.ok ? '' : 'disabled'}>${ic('live', 14)} Live</button></div>`; }).join('')}</div></div></div>`;
     },

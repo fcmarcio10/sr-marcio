@@ -16,6 +16,7 @@
     SL.HUD.build(); SL.HUD.bindStageOnce();
     SL.HomeScene.build();
     if (G.act && G.act.id === 'usar_pc') G.act = null;
+    G.time.speed = SL.Clock.sp();
     SL.HUD.update(true);
     SL.bus.emit('loaded');
     if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
@@ -42,11 +43,11 @@
     SL.notify({ cat: 'sistema', icon: 'home', title: 'Bem-vindo(a) à sua nova casa', text: 'Comece explorando: clique nos objetos para usar.' });
     UI.modal({ title: 'Bem-vindo(a) a Streamer Life', icon: 'pulso', hold: true, wide: true, html: `<p>Você acabou de se mudar para um apartamento simples na Vila Esperança, com um notebook velho emprestado e ${U.money0(G.money)} na conta. O sonho: viver de internet.</p>
       <div class="grid2"><div class="card flat col gap4"><b class="small">${SL.icon('home', 15)} Sua casa</b><span class="small muted">Clique num objeto: o personagem vai até ele e aparecem as opções. Ande com WASD ou clicando no chão.</span></div>
-      <div class="card flat col gap4"><b class="small">${SL.icon('laptop', 15)} Computador</b><span class="small muted">Clique na mesa do escritório: OBS Studio para as lives na Twitch, Premiere Pro para editar, YouTube, TikTok, Instagram, Bank e mais.</span></div>
+      <div class="card flat col gap4"><b class="small">${SL.icon('laptop', 15)} Computador</b><span class="small muted">Clique na mesa do escritório: OBS Studio para as lives na Twitch, YouTube e TikTok para gravar vídeos, Steam, Instagram, Bank e mais. Dá para levantar do PC com a live no ar (sair de casa encerra a live).</span></div>
       <div class="card flat col gap4"><b class="small">${SL.icon('phone', 15)} Celular</b><span class="small muted">Tecla C ou botão no topo. Mensagens, redes, banco, mapa e comida, de qualquer lugar.</span></div>
       <div class="card flat col gap4"><b class="small">${SL.icon('heart', 15)} Necessidades</b><span class="small muted">Fome, sede e cansaço (as barrinhas no canto). Cansado demais, você fica com sono e rende menos.</span></div>
       <div class="card flat col gap4"><b class="small">${SL.icon('money', 15)} Contas</b><span class="small muted">Aluguel dia 10, internet dia 15, energia dia 20. Freelas e turnos no café ajudam no começo.</span></div>
-      <div class="card flat col gap4"><b class="small">${SL.icon('clock', 15)} Tempo</b><span class="small muted">Espaço pausa. 1, 2 e 3 mudam a velocidade. Dormir e editar passam o tempo mais rápido.</span></div></div>
+      <div class="card flat col gap4"><b class="small">${SL.icon('clock', 15)} Tempo</b><span class="small muted">Três velocidades: pausa (Espaço), normal (1) e 3x (2). Também ficam na barra do PC e na live.</span></div></div>
       <p class="small muted">Os objetivos do painel à esquerda guiam os primeiros passos. Não existe um caminho certo: você decide como viver.</p>`, buttons: [{ label: 'Começar', cls: 'primary', icon: 'play' }] });
   };
   SL.quitToTitle = () => {
@@ -76,7 +77,8 @@
       }
     }
     if (SL.HUD.prompt) SL.HUD.prompt();
-    if (SL.Live.cur && !liveOpen && !SL.LiveUI.minimized) SL.LiveUI.open();
+    if (SL.Live.cur && !liveOpen && !SL.LiveUI.minimized && !SL.Live.cur.away) SL.LiveUI.open();
+    if (SL.HUD.liveMini) SL.HUD.liveMini(t, pcOpen);
     SL.LiveUI.frame(t);
     SL.HUD.update();
     if (now - lastSlow > 250) {
@@ -84,6 +86,8 @@
       UI.checkDecisions(); SL.HUD.placePanel(); SL.HUD.stageOverlay();
       if (pcOpen) {
         const tc = $('#overlay-pc .tb-clock'); if (tc) { tc.textContent = SL.Clock.fmtTime(G.time.t); tc.title = SL.Clock.fmtFull(G.time.t); }
+        const pr = SL.Life.progress(); UI.$$('#overlay-pc [data-actprog]').forEach(b => { b.style.width = (pr * 100).toFixed(1) + '%'; });
+        const fim = G.act && G.act.dur ? 'falta ' + U.dur(Math.max(1, Math.round(G.act.t0 + G.act.dur - G.time.t))) + (SL.Clock.sp() === 0 ? ' · tempo pausado' : '') : ''; UI.$$('#overlay-pc [data-actfim]').forEach(b => { if (b.textContent !== fim) b.textContent = fim; });
         if (now - lastWall > 1000) { lastWall = now; const wcv = $('#overlay-pc canvas.wall'); if (wcv) SL.Preview.wallpaper(wcv, now); SL.UI.renderDesktopIcons(); }
       }
       if (UI.phoneOpen()) { const pc = $('#overlay-phone .ph-clock'); if (pc) pc.textContent = SL.Clock.fmtTime(G.time.t); const pb = $('#overlay-phone .ph-bat'); if (pb) pb.textContent = Math.round(Math.max(5, 100 - (G.time.t % 1440) / 1440 * 80)) + '%'; }

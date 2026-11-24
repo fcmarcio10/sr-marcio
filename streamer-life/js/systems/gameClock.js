@@ -3,9 +3,13 @@
 (function (SL) {
   const U = SL.U;
   const C = SL.Clock = {};
-  C.SPEEDS = [0, 0.5, 2, 6];        // minutos de jogo por segundo real: 1x é calmo (1 hora do jogo = 2 minutos)
-  C.ACT_MULT = [0, 1, 2, 4];        // atividades (dormir, banho...) andam no ritmo delas, multiplicado pela velocidade escolhida
-  C.LIVE_SPEEDS = [0, 0.5, 1, 2.5]; // durante a live
+  // 3 velocidades (pedido do dono): pausa, normal e 3x. Valem na casa, no PC e na live.
+  C.SPEEDS = [0, 0.5, 1.5];        // minutos de jogo por segundo real: normal é calmo (1 hora do jogo = 2 minutos)
+  C.ACT_MULT = [0, 1, 3];          // atividades (dormir, banho...) andam no ritmo delas, multiplicado pela velocidade escolhida
+  C.LIVE_SPEEDS = [0, 0.5, 1.5];   // durante a live
+  // velocidade escolhida (saves antigos tinham 4 velocidades: o que passa de 2 vira 3x)
+  C.sp = () => { const G = SL.G; const s = G ? G.time.speed | 0 : 1; return Math.max(0, Math.min(C.SPEEDS.length - 1, s)); };
+  C.setSpeed = s => { const G = SL.G; if (!G) return; G.time.speed = Math.max(0, Math.min(C.SPEEDS.length - 1, s | 0)); SL.bus.emit('speed', G.time.speed); };
   C.MAX_STEPS_FRAME = 400;          // limite de minutos simulados por quadro (evita travar)
   let acc = 0, holds = 0;
 
@@ -60,12 +64,13 @@
   C.rate = () => {
     const G = SL.G;
     if (!G || holds > 0) return 0;
+    const sp = C.sp();
     if (G.act) {
-      if (G.act.id === 'live') return C.LIVE_SPEEDS[SL.Live && SL.Live.cur ? SL.Live.cur.speed : 1] || 0;
-      if (G.time.speed === 0) return 0;
-      return Math.max(C.SPEEDS[G.time.speed], (G.act.speed || 0) * C.ACT_MULT[G.time.speed]);
+      if (G.act.id === 'live') return C.LIVE_SPEEDS[sp] || 0;
+      if (sp === 0) return 0;
+      return Math.max(C.SPEEDS[sp], (G.act.speed || 0) * C.ACT_MULT[sp]);
     }
-    return C.SPEEDS[G.time.speed] || 0;
+    return C.SPEEDS[sp] || 0;
   };
 
   C.advance = realSec => {
