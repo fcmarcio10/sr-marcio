@@ -18,21 +18,21 @@
       rooms: [{ id: 'quarto', name: 'Quarto', x: 1, y: 1, w: 7, h: 5, floor: 'wood' }, { id: 'escritorio', name: 'Escritório', x: 9, y: 1, w: 6, h: 5, floor: 'wood2' }, { id: 'banheiro', name: 'Banheiro', x: 16, y: 1, w: 5, h: 5, floor: 'tile' }, { id: 'sala', name: 'Sala', x: 1, y: 7, w: 11, h: 5, floor: 'wood' }, { id: 'cozinha', name: 'Cozinha', x: 13, y: 7, w: 8, h: 5, floor: 'tile2' }],
       doors: [[4, 6], [10, 6], [18, 6], [12, 9], [8, 3]], entry: [6, 12],
       objs: { cama: [1, 1, 3, 2, 2, 3], mesa: [10, 1, 4, 1, 11, 2], luz: [14, 1, 1, 1], bike: [14, 4, 1, 1, 13, 4], chuveiro: [19, 1, 2, 2, 19, 3], vaso: [16, 1, 1, 1], pia_b: [16, 4, 1, 1, 17, 4], geladeira: [20, 7, 1, 1, 20, 8], fogao: [16, 7, 2, 1, 16, 8], pia: [14, 7, 2, 1, 14, 8], cafeteira: [13, 7, 1, 1, 13, 8], sofa: [5, 10, 4, 1, 6, 9], tv: [6, 7, 2, 1, 6, 9], armario: [20, 10, 1, 2, 19, 11], porta: [6, 12, 1, 1, 6, 11], guarda: [6, 1, 2, 1], mesa_jantar: [15, 10, 2, 1, 15, 9] },
-      decoWall: [[2, 'quarto'], [12, 'escritorio'], [3, 'sala'], [9, 'sala'], [5, 'quarto']], decoFloor: [[7, 5], [1, 11], [11, 11], [13, 11], [9, 5], [1, 5]], windows: [[3, 0], [17, 0], [8, 6, 'x'], [2, 6, 'x']], start: [5, 4],
+      decoWall: [[12, 'escritorio'], [10, 'escritorio'], [2, 'quarto'], [3, 'sala'], [9, 'sala'], [5, 'quarto']], decoFloor: [[9, 1], [14, 5], [9, 5], [7, 5], [1, 11], [11, 11], [13, 11], [1, 5]], windows: [[3, 0], [17, 0], [8, 6, 'x'], [2, 6, 'x']], start: [5, 4],
     },
     B: {
       w: 28, h: 15,
       rooms: [{ id: 'quarto', name: 'Quarto', x: 1, y: 1, w: 9, h: 6, floor: 'wood' }, { id: 'escritorio', name: 'Escritório', x: 11, y: 1, w: 8, h: 6, floor: 'wood2' }, { id: 'banheiro', name: 'Banheiro', x: 20, y: 1, w: 7, h: 5, floor: 'tile' }, { id: 'sala', name: 'Sala', x: 1, y: 8, w: 14, h: 6, floor: 'wood' }, { id: 'cozinha', name: 'Cozinha', x: 16, y: 7, w: 11, h: 7, floor: 'tile2' }],
       doors: [[5, 7], [13, 7], [23, 6], [15, 10], [10, 3], [14, 7]], entry: [8, 14],
       objs: { cama: [1, 1, 3, 2, 2, 3], mesa: [12, 1, 5, 1, 14, 2], luz: [18, 1, 1, 1], bike: [17, 5, 1, 1, 16, 5], chuveiro: [24, 1, 2, 2, 24, 3], vaso: [20, 1, 1, 1], pia_b: [20, 4, 1, 1, 21, 4], geladeira: [26, 7, 1, 1, 26, 8], fogao: [20, 7, 2, 1, 20, 8], pia: [18, 7, 2, 1, 18, 8], cafeteira: [17, 7, 1, 1, 17, 8], sofa: [5, 12, 5, 1, 7, 11], tv: [6, 8, 3, 1, 7, 11], armario: [26, 12, 1, 2, 25, 13], porta: [8, 14, 1, 1, 8, 13], guarda: [7, 1, 2, 1], mesa_jantar: [20, 11, 3, 1, 20, 10] },
-      decoWall: [[3, 'quarto'], [15, 'escritorio'], [3, 'sala'], [11, 'sala'], [6, 'quarto'], [17, 'escritorio'], [18, 'cozinha']], decoFloor: [[9, 6], [1, 13], [13, 13], [16, 13], [11, 6], [1, 6], [10, 9], [26, 10], [18, 6], [3, 13]], windows: [[4, 0], [21, 0], [12, 0, 'x'], [10, 7, 'x'], [3, 7, 'x']], start: [6, 4],
+      decoWall: [[15, 'escritorio'], [17, 'escritorio'], [3, 'quarto'], [3, 'sala'], [11, 'sala'], [6, 'quarto'], [18, 'cozinha']], decoFloor: [[11, 1], [18, 6], [11, 6], [9, 6], [1, 13], [13, 13], [16, 13], [1, 6], [10, 9], [26, 10], [3, 13]], windows: [[4, 0], [21, 0], [12, 0, 'x'], [10, 7, 'x'], [3, 7, 'x']], start: [6, 4],
     },
     C: {
       w: 34, h: 17,
       rooms: [{ id: 'quarto', name: 'Quarto', x: 1, y: 1, w: 9, h: 7, floor: 'wood' }, { id: 'escritorio', name: 'Escritório', x: 11, y: 1, w: 8, h: 7, floor: 'wood2' }, { id: 'estudio', name: 'Estúdio', x: 20, y: 1, w: 13, h: 7, floor: 'studio' }, { id: 'banheiro', name: 'Banheiro', x: 1, y: 9, w: 6, h: 7, floor: 'tile' }, { id: 'sala', name: 'Sala', x: 8, y: 9, w: 13, h: 7, floor: 'wood' }, { id: 'cozinha', name: 'Cozinha', x: 22, y: 9, w: 11, h: 7, floor: 'tile2' }],
       doors: [[10, 4], [19, 4], [5, 8], [14, 8], [26, 8], [7, 12], [21, 12]], entry: [14, 16],
       objs: { cama: [1, 1, 3, 2, 2, 3], mesa: [12, 1, 5, 1, 14, 2], luz: [18, 1, 1, 1], bike: [11, 6, 1, 1, 12, 6], chuveiro: [3, 9, 2, 2, 3, 11], vaso: [1, 9, 1, 1], pia_b: [1, 13, 1, 1, 2, 13], geladeira: [32, 9, 1, 1, 32, 10], fogao: [28, 9, 2, 1, 28, 10], pia: [23, 9, 2, 1, 23, 10], cafeteira: [22, 9, 1, 1, 22, 10], sofa: [14, 14, 5, 1, 16, 13], tv: [15, 9, 3, 1, 16, 13], armario: [32, 14, 1, 2, 31, 15], porta: [14, 16, 1, 1, 14, 15], guarda: [7, 1, 2, 1], mesa_jantar: [26, 13, 3, 1, 26, 12], estudio: [22, 2, 9, 4, 26, 6] },
-      decoWall: [[3, 'quarto'], [15, 'escritorio'], [10, 'sala'], [17, 'sala'], [6, 'quarto'], [24, 'estudio'], [29, 'estudio'], [25, 'cozinha']], decoFloor: [[9, 7], [8, 15], [20, 15], [22, 15], [18, 7], [1, 7], [9, 10], [32, 12], [6, 15], [1, 15], [20, 10], [11, 10], [19, 15], [8, 10]], windows: [[4, 0], [14, 0, 'x'], [24, 0], [29, 0], [3, 8, 'x'], [27, 8, 'x']], start: [6, 5],
+      decoWall: [[15, 'escritorio'], [17, 'escritorio'], [24, 'estudio'], [29, 'estudio'], [3, 'quarto'], [10, 'sala'], [17, 'sala'], [6, 'quarto'], [25, 'cozinha']], decoFloor: [[11, 1], [18, 7], [18, 5], [9, 7], [8, 15], [20, 15], [22, 15], [1, 7], [9, 10], [32, 12], [6, 15], [1, 15], [20, 10], [11, 10], [19, 15], [8, 10]], windows: [[4, 0], [14, 0, 'x'], [24, 0], [29, 0], [3, 8, 'x'], [27, 8, 'x']], start: [6, 5],
     },
   };
   H.LAY = LAY;
@@ -863,6 +863,33 @@
 
   // ---------- luzes ----------
   // sol entrando pelas janelas (no Brasil o sol fica ao norte), desenhado logo depois do piso
+  // chuva em volta da casa (no quintal e na rua; dentro de casa não chove): gotas caindo, pingos no chão e céu nublado
+  const fr = v => v - Math.floor(v);
+  const chuvaFora = (c, t, x0, y0, x1, y1) => {
+    if (!chovendo()) return;
+    atZ(c, 0, () => {
+      c.save(); c.beginPath(); c.rect(x0, y0, x1 - x0, y1 - y0); c.rect(0, 0, lay.w * T, lay.h * T); c.clip('evenodd');
+      c.fillStyle = 'rgba(18,26,40,.22)'; c.fillRect(x0, y0, x1 - x0, y1 - y0);
+      const W = x1 - x0, Hh = y1 - y0;
+      // pingos batendo no chão (anéis que abrem e somem)
+      c.lineWidth = 1;
+      for (let i = 0; i < 70; i++) {
+        const per = 0.7 + fr(Math.sin(i * 3.7) * 9137.1) * 0.6, ph = fr(t / per + fr(Math.sin(i * 7.3) * 4271.9));
+        const k = Math.floor(t / per + fr(Math.sin(i * 7.3) * 4271.9));
+        const x = x0 + fr(Math.sin(i * 12.9898 + k * 1.7) * 43758.5453) * W, y = y0 + fr(Math.sin(i * 78.233 + k * 2.3) * 24634.6345) * Hh;
+        c.strokeStyle = 'rgba(205,222,255,' + (0.5 * (1 - ph)).toFixed(3) + ')';
+        c.beginPath(); c.ellipse(x, y, 1 + ph * 6, 0.6 + ph * 3.4, 0, 0, 6.3); c.stroke();
+      }
+      // gotas caindo (riscos inclinados)
+      c.strokeStyle = 'rgba(205,222,255,.42)'; c.beginPath();
+      for (let i = 0; i < 260; i++) {
+        const rx = fr(Math.sin(i * 12.9898) * 43758.5453), ry = fr(Math.sin(i * 78.233) * 24634.6345), rv = 0.7 + fr(Math.sin(i * 39.34) * 1234.5) * 0.6;
+        const x = x0 + fr(rx + t * 0.04) * W, y = y0 + fr(ry + t * 0.9 * rv) * Hh;
+        c.moveTo(x, y); c.lineTo(x - 3, y + 13);
+      }
+      c.stroke(); c.restore();
+    });
+  };
   const sunPass = c => {
     const dk = dayK(); if (dk <= 0.01) return;
     atZ(c, 0, () => {
@@ -936,6 +963,7 @@
     // tudo o que tem altura, do mais longe da câmera para o mais perto
     const dist = (x0, y0, x1, y1) => { const dx = Math.max(x0 - V.cx, 0, V.cx - x1), dy = Math.max(y0 - V.cy, 0, V.cy - y1); return dx * dx + dy * dy; };
     const vx0 = V.cx - vw / 2 - 2 * T, vy0 = V.cy - vh / 2 - 2 * T, vx1 = V.cx + vw / 2 + 2 * T, vy1 = V.cy + vh / 2 + 2 * T;
+    chuvaFora(c, t, vx0, vy0, vx1, vy1);
     const inView = (x0, y0, x1, y1) => x1 > vx0 && x0 < vx1 && y1 > vy0 && y0 < vy1;
     const list = [];
     walls.forEach(w => { const x0 = w.x * T, y0 = w.y * T; if (inView(x0, y0, x0 + T, y0 + T)) list.push({ d: dist(x0, y0, x0 + T, y0 + T), w }); });
