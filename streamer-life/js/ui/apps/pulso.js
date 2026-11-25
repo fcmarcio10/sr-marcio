@@ -215,27 +215,37 @@
   LUI.actions = () => {
     const L = SL.Live.cur; if (!L) return; const G = SL.G; const el = $('#lv-actions'); if (!el) return;
     const g = D.gameById(L.game); const contracts = SL.Sponsors.active();
-    const sig = JSON.stringify([L.risky > 0, L.focus, !!L.poll, !!L.challenge, L.ev.mic, L.ev.net > 0, L.ev.paused, L.followersOnly, contracts.length, G.ch.pulso.afil, !!L.ev.ad, SL.Live.chatMode(), !!(L.ev.celeb && !L.ev.celeb.greeted)]);
+    const adFalta = Math.ceil(SL.Live.adEspera());
+    const sig = JSON.stringify([L.risky > 0, L.focus, !!L.poll, !!L.challenge, L.ev.mic, L.ev.net > 0, L.ev.paused, L.followersOnly, contracts.length, G.ch.pulso.afil, !!L.ev.ad, adFalta, SL.Live.chatMode(), !!(L.ev.celeb && !L.ev.celeb.greeted)]);
     if (el.dataset.sig === sig) return; el.dataset.sig = sig;
     const b = (k, label, icon, cls, title) => `<button class="btn ${cls || ''}" data-la="${k}" title="${esc(title || '')}">${ic(icon, 15)}${label}</button>`;
     const k = (key, label, icon, cls, title) => `<button class="lbtn ${cls || ''}" data-la="${key}" title="${esc(title || label)}">${ic(icon, 15)}<span>${label}</span></button>`;
     // live simples: você fala sozinho e o Bigode (moderador) cuida do chat; ficam só estes botões
     const modo = SL.Live.chatMode(); const modoTxt = { todos: 'Chat livre', seguidores: 'Só seguidores', emotes: 'Só emojis' }[modo];
-    const acts = [k('challenge', L.challenge ? 'Em desafio' : 'Desafio', 'trophy', L.challenge ? 'on' : ''), k('ad', L.ev.ad ? 'No intervalo' : 'Anúncios', 'ads', L.ev.ad ? 'on' : '', 'Intervalo de anúncios de 30, 60 ou 120 segundos')];
+    const acts = [k('challenge', L.challenge ? 'Em desafio' : 'Desafio', 'trophy', L.challenge ? 'on' : ''), k('ad', L.ev.ad ? 'No intervalo' : adFalta > 0 ? 'Anúncios · ' + adFalta + ' min' : 'Anúncios', 'ads', L.ev.ad ? 'on' : adFalta > 0 ? 'espera' : '', 'Intervalo de anúncios de 30, 60 ou 120 segundos')];
     if (contracts.length) acts.push(k('sponsor', 'Patrocínio', 'brief', '', 'Mencionar patrocinador'));
     acts.push(k('chatmode', modoTxt, 'shield', modo !== 'todos' ? 'on' : '', 'Quem pode escrever no chat'));
     el.innerHTML = `<div class="lgrid g${acts.length}">${acts.join('')}</div>`;
     const ctl = $('#lv-ctl'); if (ctl && !ctl.firstChild) ctl.innerHTML = `<span class="speeds lv-speeds">${UI.speedBtns()}</span><button class="btn live sm" data-la="end">${ic('stop', 14)} Encerrar live</button>`;
   };
+  // menu da live: título e itens podem ser funções; enquanto aberto ele se atualiza sozinho
+  // (ex.: o tempo de espera dos anúncios acaba e as opções liberam sem fechar e abrir de novo)
   const menu = (anchor, title, items) => {
     const r = anchor.getBoundingClientRect(); const host = $('#overlay-live');
     const m = document.createElement('div'); m.className = 'ctx'; m.style.position = 'fixed';
-    m.innerHTML = `<h4>${esc(title)}</h4>` + items.map((it, i) => `<button class="opt" data-i="${i}" ${it.disabled ? 'disabled' : ''}>${ic(it.icon || 'chevR', 15)}<span>${esc(it.label)}${it.desc ? '<span class="why" style="color:var(--muted)">' + esc(it.desc) + '</span>' : ''}</span></button>`).join('');
+    let lista = [], sig = '';
+    const monta = () => {
+      const t = typeof title === 'function' ? title() : title; lista = typeof items === 'function' ? items() : items;
+      const html = `<h4>${esc(t)}</h4>` + lista.map((it, i) => `<button class="opt" data-i="${i}" ${it.disabled ? 'disabled' : ''}>${ic(it.icon || 'chevR', 15)}<span>${esc(it.label)}${it.desc ? '<span class="why" style="color:var(--muted)">' + esc(it.desc) + '</span>' : ''}</span></button>`).join('');
+      if (html === sig) return; sig = html; m.innerHTML = html;
+    };
+    monta();
     host.appendChild(m); m.style.left = Math.max(10, Math.min(r.left, innerWidth - m.offsetWidth - 10)) + 'px'; m.style.top = (r.top - m.offsetHeight - 6 >= 10 ? r.top - m.offsetHeight - 6 : Math.min(r.bottom + 6, innerHeight - m.offsetHeight - 10)) + 'px';
-    const close = () => { m.remove(); document.removeEventListener('mousedown', out); };
+    const timer = (typeof items === 'function' || typeof title === 'function') ? setInterval(() => { if (!document.body.contains(m) || !SL.Live.cur) return close(); monta(); }, 400) : null;
+    const close = () => { clearInterval(timer); m.remove(); document.removeEventListener('mousedown', out); };
     const out = e => { if (!m.contains(e.target)) close(); };
     setTimeout(() => document.addEventListener('mousedown', out), 0);
-    $$('.opt', m).forEach(o => o.onclick = () => { close(); const res = items[+o.dataset.i].fn(); if (typeof res === 'string') UI.err(res); LUI.actions(); });
+    m.addEventListener('click', e => { const o = e.target.closest('.opt'); if (!o || o.disabled) return; close(); const res = lista[+o.dataset.i].fn(); if (typeof res === 'string') UI.err(res); LUI.actions(); });
   };
   LUI.actionClick = e => {
     const t = e.target.closest('[data-la]'); if (!t) return; const LVs = SL.Live; const L = LVs.cur; if (!L) return; const k = t.dataset.la;
@@ -249,8 +259,9 @@
     if (k === 'challenge') return menu(t, 'Desafio', LVs.CHALLENGES.map(c => ({ label: c.label, desc: c.desc, icon: 'trophy', fn: () => LVs.challenge(c.id) })));
     if (k === 'game') return menu(t, 'Trocar para', D.games.filter(x => x.id !== L.game).map(x => { const cs = SL.Equip.canStream(x, L.quality); return { label: x.name, desc: cs.ok ? x.cat : cs.reason, icon: 'gamepad', disabled: !cs.ok, fn: () => { const r = LVs.changeGame(x.id); $('#lv-g').textContent = ''; return r; } }; }));
     if (k === 'pause') LVs.pause();
-    if (k === 'sponsor') return menu(t, 'Patrocinador', SL.Sponsors.active().map(c => { const b = D.brandById(c.brand); const d = c.deliv.find(x => x.k === 'live'); const falta = SL.Sponsors.espera(c); return { label: b.name, desc: !d ? 'sem menções no contrato' : d.done >= d.n ? 'menções já cumpridas' : d.done + '/' + d.n + ' menções · mínimo ' + d.minV + ' pessoas' + (falta > 0 ? ' · próxima em ' + falta + ' min' : ''), icon: 'brief', disabled: !d || d.done >= d.n, fn: () => LVs.sponsor(c.id) }; }));
-    if (k === 'ad') { const falta = LVs.adEspera(); return menu(t, falta > 0 ? 'Anúncios (próximo em ' + falta + ' min)' : 'Intervalo de anúncios', LVs.AD_OPCOES.map(o => ({ label: o.label, icon: 'ads', desc: '≈ ' + U.money(LVs.adValor(o.s, L.viewers)) + ' · cai na conta segunda', disabled: falta > 0 || !!L.ev.ad, fn: () => LVs.ad(o.s) }))); }
+    if (k === 'sponsor') return menu(t, 'Patrocinador', () => SL.Sponsors.active().map(c => { const b = D.brandById(c.brand); const d = c.deliv.find(x => x.k === 'live'); const falta = SL.Sponsors.espera(c); return { label: b.name, desc: !d ? 'sem menções no contrato' : d.done >= d.n ? 'menções já cumpridas' : d.done + '/' + d.n + ' menções · mínimo ' + d.minV + ' pessoas' + (falta > 0 ? ' · próxima em ' + falta + ' min' : ''), icon: 'brief', disabled: !d || d.done >= d.n, fn: () => LVs.sponsor(c.id) }; }));
+    if (k === 'ad') return menu(t, () => { const L2 = LVs.cur; const falta = Math.ceil(LVs.adEspera()); return L2 && L2.ev.ad ? 'Intervalo passando agora' : falta > 0 ? 'Anúncios (próximo em ' + falta + ' min)' : 'Intervalo de anúncios'; },
+      () => { const L2 = LVs.cur; if (!L2) return []; const falta = LVs.adEspera(); return LVs.AD_OPCOES.map(o => ({ label: o.label, icon: 'ads', desc: '≈ ' + U.money(LVs.adValor(o.s, L2.viewers)) + ' · cai na conta no fim da live', disabled: falta > 0 || !!L2.ev.ad, fn: () => LVs.ad(o.s) })); });
     if (k === 'fonly') LVs.toggleFollowersOnly();
     if (k === 'chatmode') return menu(t, 'Quem pode escrever no chat', [['todos', 'Todos', 'Chat aberto', 'chat'], ['seguidores', 'Só seguidores', 'Menos trolls, menos gente nova falando', 'shield'], ['emotes', 'Só emojis', 'Sem textos: só emojis, sem trolls', 'star']].map(([id, label, desc, icon]) => ({ label: label + (LVs.chatMode() === id ? ' (agora)' : ''), desc, icon, fn: () => LVs.setChatMode(id) })));
     if (k === 'mic') LVs.fixMic();

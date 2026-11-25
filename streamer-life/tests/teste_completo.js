@@ -123,6 +123,12 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await page.click('#lv-dock [data-lw="anuncios"]'); await page.waitForTimeout(300);
   ok('trocar para Anúncios na mesma janelinha', await ev(() => document.querySelectorAll('#overlay-live .lv-win').length === 1 && /Anúncios/.test(document.querySelector('#overlay-live .lv-win-h').textContent)));
   await page.click('#overlay-live .lv-win [data-lwx]'); await page.waitForTimeout(150);
+  await ev(() => { const L = SL.Live.cur; L.lastAd = L.min; }); await page.waitForTimeout(700);
+  await page.click('[data-la="ad"]'); await page.waitForTimeout(250);
+  const adTravado = await ev(() => [...document.querySelectorAll('#overlay-live .ctx .opt')].every(o => o.disabled));
+  await ev(() => { const L = SL.Live.cur; L.lastAd = L.min - 30; }); await page.waitForTimeout(900);
+  ok('menu de anúncios aberto libera sozinho quando acaba a espera (sem fechar e abrir)', adTravado && await ev(() => [...document.querySelectorAll('#overlay-live .ctx .opt')].every(o => !o.disabled)));
+  await page.keyboard.press('Escape'); await page.mouse.click(5, 300); await page.waitForTimeout(150);
   ok('fechar a janelinha da live', await ev(() => !document.querySelector('#overlay-live .lv-win')));
   let answered = 0, welcomed = 0;
   for (let i = 0; i < 24; i++) {
@@ -175,7 +181,7 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   ok('chat tem mensagens na tela', L1.chatDom > 3 && L1.msgs > 5, { dom: L1.chatDom, msgs: L1.msgs });
   ok('mensagens contextuais (momentos do jogo e saudações)', L1.intents.includes('greet') && (L1.intents.includes('moment') || L1.moments > 0), L1.intents);
   ok('Bigode (moderador) responde, dá boas-vindas e agradece sozinho', await ev(() => SL.Live.cur.chat.some(m => m.kind === 'mod' && m.u === 'Bigode')), await ev(() => SL.Live.cur.chat.filter(m => m.kind === 'mod').slice(-3).map(m => m.raw)));
-  ok('live simples: só Desafio, Anúncios, Chat (e Patrocínio com contrato)', await ev(() => { const t = [...document.querySelectorAll('#lv-actions .lbtn span')].map(s => s.textContent); return t.length <= 4 && t.includes('Desafio') && t.includes('Anúncios') && !t.includes('Conversar') && !t.includes('Piada'); }));
+  ok('live simples: só Desafio, Anúncios, Chat (e Patrocínio com contrato)', await ev(() => { const t = [...document.querySelectorAll('#lv-actions .lbtn span')].map(s => s.textContent); return t.length <= 4 && t.includes('Desafio') && t.some(x => x.startsWith('Anúncios')) && !t.includes('Conversar') && !t.includes('Piada'); }));
   await ev(() => { window.__vozes = []; const o = SL.audio.superchat; SL.audio.superchat = id => { window.__vozes.push(id); o(id); }; const L = SL.Live.cur; const v = SL.Viewers.byId([...L.present.keys()][0]); SL.Live.donate(v, 3, ''); });
   await page.waitForTimeout(300);
   ok('doação abaixo de R$ 5 não tem voz', await ev(() => window.__vozes.length === 0));

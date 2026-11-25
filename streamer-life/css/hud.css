@@ -933,3 +933,4 @@ body.reduce-motion .win { animation: none; }
 .lv-win-b .tw-side { display: none; } .lv-win-b .tw-nav, .lv-win-b .tw-saldo, .lv-win-b .tw-busca { display: none; } .lv-win-b .tw-banner { height: 80px; } .lv-win-b .tw-sobre { grid-template-columns: 1fr 1fr; } .lv-win-b .tw-corpo, .lv-win-b .tw-canal { padding-left: 14px; padding-right: 14px; } .lv-win-b .tw-tabs { padding: 0 10px; overflow-x: auto; }
 .lv-win-b .ml-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .lv-win-b .app-head .brandbar { display: none; } .lv-win-b .app-head { padding-top: 6px; padding-bottom: 6px; }
+.lbtn.espera { opacity: .62; }

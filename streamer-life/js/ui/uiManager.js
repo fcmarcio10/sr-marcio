@@ -184,8 +184,41 @@
   UI.focusWin = w => { wins.forEach(x => { x.focus = false; x.el.classList.remove('focus'); }); w.focus = true; w.el.classList.add('focus'); w.el.style.zIndex = ++zTop; UI.renderTaskbar(); };
   UI.closeWin = (w, silent) => { const a = SL.Apps[w.app]; if (a.onClose) a.onClose(w.ctx); w.unsub.forEach(([ev, fn]) => SL.bus.off(ev, fn)); w.el.remove(); wins.splice(wins.indexOf(w), 1); UI.renderTaskbar(); if (!silent && SL.audio) SL.audio.play('close'); };
 
+  // ---------- atualização ao vivo (nov/2026): tudo o que está aberto se atualiza sozinho ----------
+  // A cada 0,5 s olha cada app aberto (janela do PC, celular e janelinha da live). Apps com sig() redesenham
+  // quando o que mostram muda; os outros, quando muda algo geral (dinheiro, seguidores, live, anúncios...).
+  // Não redesenha com o botão do mouse apertado nem com um campo de texto em uso (o clique nunca se perde).
+  const ctxs = new Set();
+  let apertado = false;
+  document.addEventListener('pointerdown', () => { apertado = true; }, true);
+  const solta = () => setTimeout(() => { apertado = false; }, 0);
+  document.addEventListener('pointerup', solta, true); document.addEventListener('pointercancel', solta, true);
+  UI.sigGeral = () => {
+    const G = SL.G; if (!G) return '';
+    const c = G.ch; const L = SL.Live && SL.Live.cur;
+    return [Math.round(G.money), c.pulso.f, c.vision.f, c.clipz.f, c.connect.f, c.pulso.subs, Math.round(c.pulso.bal * 100), c.pulso.afil, G.lives.length, G.videos.length, G.edits.length, G.raw.length, G.posts.length, G.notifs.length, G.equip.deliveries.length,
+      L ? [Math.ceil(SL.Live.adEspera()), L.ev.ad ? 1 : 0, L.stats.fol, L.stats.subs, Math.round(L.stats.don)].join(',') : 0, G.act ? G.act.id : '', G.flags.mealReady ? 1 : 0].join('|');
+  };
+  UI.atualizaAbertos = () => {
+    if (!SL.G || apertado) return;
+    const foco = document.activeElement;
+    const geral = UI.sigGeral();
+    ctxs.forEach(ctx => {
+      if (!document.body.contains(ctx.host)) { ctxs.delete(ctx); return; }
+      if (!ctx.host.offsetParent) return; // minimizada ou escondida
+      if (foco && ctx.host.contains(foco) && /INPUT|TEXTAREA|SELECT/.test(foco.tagName)) return;
+      const a = SL.Apps[ctx.app]; if (!a) return;
+      let s; try { s = a.sig ? a.sig(ctx) : geral; } catch (e) { return; }
+      if (ctx._auto === undefined) { ctx._auto = s; return; }
+      if (s === ctx._auto) return;
+      ctx._auto = s; if (a.sig) ctx._sig = s;
+      ctx.render();
+    });
+  };
+  setInterval(UI.atualizaAbertos, 500);
   const makeCtx = (app, host, args, mode) => {
     const ctx = { app, args: args || {}, st: {}, mode, host };
+    ctxs.add(ctx);
     ctx.render = () => {
       const a = SL.Apps[app]; const sc = $('.app-body, .app-split > section', host); const top = sc ? sc.scrollTop : 0;
       const sc2 = $('.chat', host); const atBottom = sc2 ? sc2.scrollHeight - sc2.scrollTop - sc2.clientHeight < 30 : true;

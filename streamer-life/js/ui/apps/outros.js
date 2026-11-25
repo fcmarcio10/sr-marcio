@@ -134,10 +134,10 @@ ${G.flags.mealReady ? `<div class="card" style="border-color:var(--ok)"><div cla
   SL.Apps.anuncios = {
     title: 'Anúncios', short: 'Anúncios', icon: 'ads', color: 'linear-gradient(135deg,#9146ff,#5a2bb8)', order: 2, pc: true, phone: true, w: 640, h: 620,
     watch: ['ads', 'money', 'live:start', 'live:end', 'live:minute'],
-    sig() { const L = SL.Live.cur; const P = SL.G.ch.pulso; return [!!L, L ? Math.round(L.viewers) : 0, L ? SL.Live.adEspera() : 0, L && L.ev.ad ? 1 : 0, Math.round(P.bal * 100), (P.ads || []).length].join('|'); },
+    sig() { const L = SL.Live.cur; const P = SL.G.ch.pulso; return [!!L, L ? Math.round(L.viewers) : 0, L ? Math.ceil(SL.Live.adEspera()) : 0, L && L.ev.ad ? 1 : 0, Math.round(P.bal * 100), (P.ads || []).length].join('|'); },
     render(el, ctx) {
       const G = SL.G; const P = G.ch.pulso; const L = SL.Live.cur; const LV = SL.Live;
-      const falta = L ? LV.adEspera() : 0; const passando = !!(L && L.ev.ad);
+      const falta = L ? Math.ceil(LV.adEspera()) : 0; const passando = !!(L && L.ev.ad);
       const pode = L && !falta && !passando;
       const v = L ? Math.round(L.viewers) : 0;
       const status = !L ? `<div class="card ad-st">${ic('info', 16)}<span>Os anúncios só passam durante a live. Entre ao vivo pelo OBS Studio e volte aqui (ou use o botão <b>Anúncios</b> da live).</span></div>`
