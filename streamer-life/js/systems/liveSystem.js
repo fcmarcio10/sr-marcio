@@ -249,8 +249,6 @@
     { id: 'sc_69', t: 'Mãe, se você tiver assistindo: eu não gastei o dinheiro todo, juro!', z: 1 },
     { id: 'sc_70', t: 'Toma, pra você contratar um técnico. De jogo, de vida, de qualquer coisa!', z: 1 },
   ];
-  // vozes do Bigode (bg_1 boas-vindas, bg_2 follow, bg_3 superchat, bg_4 silenciou troll) e do público (pb_1..3 jogada, pb_4 deu ruim)
-  const voz = id => SL.bus.emit('live:voz', { id });
 
   // ---------- momentos de decisão (sugestão 1): escolha rápida com 2 botões e tempo ----------
   // "a" arrisca (pode virar o melhor momento da live ou um fracasso engraçado: os dois viram corte); "b" joga seguro.
@@ -291,13 +289,13 @@
         res = { ok: true, txt: 'Deu certo! O chat foi à loucura.' };
         L.hype = U.clamp(L.hype + 18, 0, 100); reactAll('momento_ok', 0.5);
         const m = Object.assign({ type: 'epic', txt: 'Arriscou e deu certo: ' + mo.a.toLowerCase(), int: 0.9, funny: 0.15, good: true, big: true, mt: 'você arriscou ao vivo e deu muito certo', clip: 0.9 }, ag);
-        L.moments.push(m); L.best.push(m); voz(U.pick(['pb_1', 'pb_2', 'pb_3']));
+        L.moments.push(m); L.best.push(m);
         SL.Rep.mod({ popularidade: 0.3 });
       } else {
         res = { ok: false, txt: 'Deu tudo errado... mas o chat amou rir.' };
         L.hype = U.clamp(L.hype + 7, 0, 100); reactAll('momento_fail', 0.5);
         const m = Object.assign({ type: 'funny', txt: 'Arriscou e deu tudo errado', int: 0.65, funny: 0.95, good: false, mt: 'você arriscou ao vivo e passou vergonha', clip: 0.78 }, ag);
-        L.moments.push(m); L.best.push(m); voz('pb_4');
+        L.moments.push(m); L.best.push(m);
       }
     } else {
       L.fala = { t: mo.fb, at: performance.now() };
@@ -327,7 +325,6 @@
     const dons = L.donations.filter(d => !d.thanked && L.min - d.at >= 1).slice(0, 3);
     if (dons.length) {
       modSay(dons.length === 1 ? 'Valeu demais pelo superchat de ' + U.money(dons[0].amount) + ', @' + dons[0].u + '! :coracao:' : 'Valeu pelos superchats, ' + lista(dons.map(d => '@' + d.u)) + '! :coracao:');
-      voz('bg_3');
       dons.forEach(d => { d.thanked = true; const v = d.vid && SL.Viewers.byId(d.vid); if (v) { v.loy = U.clamp(v.loy + 3, 0, 100); const st = sat(v, 0.2); if (st) st.thanked = true; } });
     }
     // o resto: no máximo uma mensagem a cada 2 minutos, juntando quem chegou e quem seguiu
@@ -352,7 +349,7 @@
     }
     if (seg.length) { partes.push('Valeu pelo follow, ' + lista(seg.map(v => '@' + v.u)) + '!'); seg.forEach(v => { v.loy = U.clamp(v.loy + 2, 0, 100); sat(v, 0.05); }); }
     if (insc.length) { partes.push('Obrigado pela inscrição, ' + lista(insc.map(v => '@' + v.u)) + '!'); insc.forEach(v => { v.loy = U.clamp(v.loy + 3, 0, 100); sat(v, 0.08); }); }
-    if (partes.length) { modSay(partes.join(' ') + ' :coracao:'); L.modUlt = L.min; voz(seg.length ? 'bg_2' : 'bg_1'); }
+    if (partes.length) { modSay(partes.join(' ') + ' :coracao:'); L.modUlt = L.min; }
   };
   // modos do chat: todos, só seguidores ou só emojis
   LV.EMOTES = [':hype:', ':fogo:', ':palmas:', ':gg:', ':riso:', ':coracao:', ':nossa:', ':susto:'];
@@ -544,7 +541,7 @@
     const hasMod = true;   // o Bigode modera sempre
     if (L.trolls.size && hasMod && U.chance(0.5)) {
       const tid = [...L.trolls][0]; const tv = SL.Viewers.byId(tid);
-      if (tv && L.present.has(tid)) { sys('mod', SL.Chat.fill(U.pick(D.chat.mod), null, {}), { u: LV.MOD.u, c: LV.MOD.c }); L.present.delete(tid); sys('alert', '@' + tv.u + ' foi silenciado(a) pela moderação'); voz('bg_4'); }
+      if (tv && L.present.has(tid)) { sys('mod', SL.Chat.fill(U.pick(D.chat.mod), null, {}), { u: LV.MOD.u, c: LV.MOD.c }); L.present.delete(tid); sys('alert', '@' + tv.u + ' foi silenciado(a) pela moderação'); }
       L.trolls.delete(tid);
     }
     if (L.trolls.size && !hasMod && L.toxic > 3 && U.chance(0.3)) { L.hype = U.clamp(L.hype - 2, 0, 100); }

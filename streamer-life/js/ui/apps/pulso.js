@@ -253,7 +253,6 @@
   };
   // superchat: som e voz (fila no SL.audio, um por vez)
   SL.bus.on('live:superchat', s => { if (SL.audio && SL.audio.superchat) SL.audio.superchat(s.id); });
-  SL.bus.on('live:voz', s => { if (SL.audio && SL.audio.voz) SL.audio.voz(s.id); });
   LUI.finish = reason => { const sum = SL.Live.end(reason); if (sum && LUI._shown !== sum) LUI.summary(sum); };
   SL.bus.on('live:end', sum => { const had = !!$('#overlay-live').firstChild; LUI.close(); if (had && sum) { LUI._shown = sum; LUI.summary(sum); } });
 

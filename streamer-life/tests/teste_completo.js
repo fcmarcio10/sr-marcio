@@ -140,14 +140,14 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   // 3 velocidades em todo lugar; levantar do PC com a live no ar e voltar
   ok('velocidades (pausa, normal, 3x) só aparecem com a live no ar', await ev(() => document.querySelectorAll('#lv-ctl [data-speed]').length === 3 && !document.querySelector('.taskbar .tb-speeds').hidden));
   // momento de decisão: 2 botões com tempo; arriscar vira momento forte (ou fracasso engraçado) e o público grita
-  await ev(() => { window.__voz = []; const o = SL.audio.voz; SL.audio.voz = id => { window.__voz.push(id); o(id); }; const L = SL.Live.cur; L.momento = null; L.momEm = L.min + 1; SL.debug.skip(1); });
+  await ev(() => { const L = SL.Live.cur; L.momento = null; L.momEm = L.min + 1; SL.debug.skip(1); });
   await page.waitForTimeout(400);
   const mom = await ev(() => { const el = document.getElementById('lv-mom'); return { vis: !!el && !el.hidden, bt: el ? el.querySelectorAll('[data-mom]').length : 0, t: el ? el.textContent : '' }; });
   ok('momento de decisão aparece na tela da live com 2 botões', mom.vis && mom.bt === 2, mom);
   await shot('08a_momento');
   if (mom.bt) await page.click('#lv-mom [data-mom="a"]');
   await page.waitForTimeout(300);
-  ok('arriscar vira momento da live e o público reage com voz', await ev(() => { const L = SL.Live.cur; return !L.momento && !!L.momRes && L.best.some(m => /^Arriscou/.test(m.txt)) && window.__voz.some(v => /^pb_/.test(v)); }), await ev(() => window.__voz));
+  ok('arriscar vira momento da live (sem voz: só superchat fala)', await ev(() => { const L = SL.Live.cur; return !L.momento && !!L.momRes && L.best.some(m => /^Arriscou/.test(m.txt)) && !SL.audio.voz && !Object.keys(SL.SONS).some(k => /^(bg|pb)_/.test(k)); }));
   ok('sem escolher, o momento some sozinho (joga seguro)', await ev(() => { const L = SL.Live.cur; L.momEm = L.min + 1; SL.debug.skip(1); const tinha = !!L.momento; if (L.momento) L.momento.gasto = 99999; return tinha; }) && await page.waitForFunction(() => !SL.Live.cur.momento, null, { timeout: 3000 }).then(() => true).catch(() => false));
   await page.click('.taskbar [data-sair]'); await page.waitForTimeout(400);
   ok('sair do PC com a live no ar: ela continua e aparece a janelinha da live', await ev(() => !SL.UI.pcOpen() && !!SL.Live.cur && SL.Live.cur.away && !document.querySelector('#hud .hud-live').hidden));
@@ -161,7 +161,10 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   ok('mensagens contextuais (momentos do jogo e saudações)', L1.intents.includes('greet') && (L1.intents.includes('moment') || L1.moments > 0), L1.intents);
   ok('Bigode (moderador) responde, dá boas-vindas e agradece sozinho', await ev(() => SL.Live.cur.chat.some(m => m.kind === 'mod' && m.u === 'Bigode')), await ev(() => SL.Live.cur.chat.filter(m => m.kind === 'mod').slice(-3).map(m => m.raw)));
   ok('live simples: só Desafio, Anúncios, Chat (e Patrocínio com contrato)', await ev(() => { const t = [...document.querySelectorAll('#lv-actions .lbtn span')].map(s => s.textContent); return t.length <= 4 && t.includes('Desafio') && t.includes('Anúncios') && !t.includes('Conversar') && !t.includes('Piada'); }));
-  await ev(() => { window.__vozes = []; const o = SL.audio.superchat; SL.audio.superchat = id => { window.__vozes.push(id); o(id); }; const L = SL.Live.cur; const v = SL.Viewers.byId([...L.present.keys()][0]); SL.Live.donate(v, 20, ''); });
+  await ev(() => { window.__vozes = []; const o = SL.audio.superchat; SL.audio.superchat = id => { window.__vozes.push(id); o(id); }; const L = SL.Live.cur; const v = SL.Viewers.byId([...L.present.keys()][0]); SL.Live.donate(v, 3, ''); });
+  await page.waitForTimeout(300);
+  ok('doação abaixo de R$ 5 não tem voz', await ev(() => window.__vozes.length === 0));
+  await ev(() => { const L = SL.Live.cur; const v = SL.Viewers.byId([...L.present.keys()][0]); SL.Live.donate(v, 5, ''); });
   await page.waitForTimeout(800);
   ok('superchat com voz (ElevenLabs), som e destaque no chat', await ev(() => window.__vozes.length >= 1 && /^sc_/.test(window.__vozes[0]) && !!document.querySelector('#lv-chat .cm.superchat') && !!(SL.SONS && SL.SONS.sc_som)));
   await page.click('[data-la="end"]'); await page.waitForTimeout(200); await page.click('.modal .mf .btn.danger'); await page.waitForTimeout(600);

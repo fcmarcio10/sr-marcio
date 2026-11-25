@@ -64,15 +64,6 @@
     }, it.som ? 1000 : 0);
   };
   A.superchat = id => { if (filaSc.filter(x => x.som).length < 3) filaSc.push({ id, som: true }); proximoSc(); };
-  // vozes da live sem o som do superchat: Bigode (no máximo uma a cada 25 s) e o público gritando
-  let ultBigode = -1e9;
-  A.voz = id => {
-    const agora = performance.now();
-    if (/^bg_/.test(id)) { if (agora - ultBigode < 25000 || filaSc.length >= 2) return; ultBigode = agora; }
-    else if (filaSc.length >= 3) return;
-    if (/^pb_/.test(id)) filaSc.unshift({ id, vol: 0.9 }); else filaSc.push({ id, vol: 0.9 });
-    proximoSc();
-  };
   A.paraSuperchats = () => { filaSc.length = 0; };
 
   // nov/2026: efeitos refeitos (sinos suaves com eco curto, cliques macios e "whoosh" em vez de ondas quadradas)
