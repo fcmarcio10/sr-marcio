@@ -28,11 +28,12 @@
           <div class="tw-corpo">${this[st.tab](ctx)}</div></main></div></div>`;
       // retratos: você e os canais recomendados
       $$('canvas[data-ava]', el).forEach(cv => { const id = cv.dataset.ava; const look = id === 'eu' ? G.player.look : (D.creatorById(id) || {}).look; if (look) SL.Avatar.toCanvas(cv, look, { bg: id === 'eu' ? '#5b2bb8' : '#2a2d36', scale: 1.1 }); });
+      if (SL.Capa) requestAnimationFrame(() => SL.Capa.pintar(el));
       if (st.tab === 'painel') { const cv = $('#tw-chart', el); if (cv) UI.chart(cv, [{ data: G.lives.slice(-20).map(l => l.avg), color: ROXO }, { data: G.lives.slice(-20).map(l => l.peak), color: '#ff4d5e', fill: false }], { labels: G.lives.slice(-20).map((l, i, a) => '#' + (G.lives.length - a.length + i + 1)) }); }
     },
     vod(l, i) {
       const g = D.gameById(l.game) || { name: '', color: ROXO }; const n = SL.G.lives.indexOf(l) + 1;
-      return `<div class="tw-vod"><div class="tw-th" style="--c:${g.color}"><b>${esc(g.name)}</b><span class="tw-dur">${hms(l.dur)}</span><span class="tw-vis">${U.num(Math.round(l.uniq || l.peak * 1.6))} visualizações</span><span class="tw-dia">${SL.Clock.ago(l.t0)}</span></div><div class="tw-vi"><b class="ellipsis">${esc(l.title || 'Live #' + n)}</b><small>${esc(SL.G.player.channel)}</small><span class="tw-tag">${esc(g.name)}</span></div></div>`;
+      return `<div class="tw-vod"><div class="tw-th" style="--c:${g.color}"><canvas class="tw-capa" data-capa="${l.game}"></canvas><b>${esc(g.name)}</b><span class="tw-dur">${hms(l.dur)}</span><span class="tw-vis">${U.num(Math.round(l.uniq || l.peak * 1.6))} visualizações</span><span class="tw-dia">${SL.Clock.ago(l.t0)}</span></div><div class="tw-vi"><b class="ellipsis">${esc(l.title || 'Live #' + n)}</b><small>${esc(SL.G.player.channel)}</small><span class="tw-tag">${esc(g.name)}</span></div></div>`;
     },
     inicio(ctx) {
       const G = SL.G; const P = G.ch.pulso; const L = SL.Live.cur; const ult = G.lives.slice(-4).reverse();

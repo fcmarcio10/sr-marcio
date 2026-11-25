@@ -1,23 +1,23 @@
-/* Catálogos: jogos, equipamentos, móveis, comidas, casas, lugares da cidade. Nomes e marcas são inventados. */
+/* Catálogos: jogos (nomes oficiais, nov/2026, a pedido do dono; capas desenhadas em render/capas.js), equipamentos, móveis, comidas, casas, lugares da cidade. Marcas de equipamento continuam inventadas. */
 'use strict';
 (function (SL) {
   const D = SL.D;
 
   // demand = quanto o jogo exige do computador; pop = popularidade base; sat = saturação (quantos streamers disputam)
   D.games = [
-    { id: 'golplaca', name: 'Gol de Placa 27', cat: 'Esporte', sim: 'futebol', demand: 45, pop: 70, sat: 0.72, rpm: 1.0, color: '#2f9e5b', tags: ['futebol', 'esporte', 'competitivo'] },
-    { id: 'zonafinal', name: 'Zona Final', cat: 'Battle royale', sim: 'br', demand: 66, pop: 92, sat: 0.93, rpm: 1.05, color: '#e0702a', tags: ['fps', 'battle royale', 'tiro', 'competitivo'] },
-    { id: 'corredor13', name: 'Corredor 13', cat: 'Terror', sim: 'terror', demand: 54, pop: 56, sat: 0.5, rpm: 1.1, color: '#7a2b3a', tags: ['terror', 'suspense', 'sustos'] },
-    { id: 'turbo', name: 'Turbo Asfalto', cat: 'Corrida', sim: 'corrida', demand: 58, pop: 44, sat: 0.42, rpm: 1.0, color: '#d8432f', tags: ['corrida', 'carros', 'velocidade'] },
-    { id: 'lendas', name: 'Lendas da Arena', cat: 'MOBA', sim: 'moba', demand: 36, pop: 80, sat: 0.86, rpm: 0.95, color: '#3a6fd8', tags: ['moba', 'estratégia', 'competitivo'] },
-    { id: 'blocolandia', name: 'Blocolândia', cat: 'Sandbox', sim: 'sandbox', demand: 28, pop: 76, sat: 0.8, rpm: 0.9, color: '#5fae3e', tags: ['construção', 'sandbox', 'sobrevivência'] },
-    { id: 'punho', name: 'Punho Final', cat: 'Luta', sim: 'luta', demand: 34, pop: 36, sat: 0.32, rpm: 0.95, color: '#c33b8a', tags: ['luta', 'combos', 'competitivo'] },
-    { id: 'xeque', name: 'Xeque Rápido', cat: 'Xadrez', sim: 'xadrez', demand: 6, pop: 30, sat: 0.28, rpm: 1.2, color: '#8a7a5c', tags: ['xadrez', 'estratégia', 'tabuleiro'] },
-    { id: 'fazendinha', name: 'Fazendinha Feliz', cat: 'Simulação', sim: 'fazenda', demand: 20, pop: 40, sat: 0.38, rpm: 1.0, color: '#e2b23a', tags: ['fazenda', 'relaxante', 'simulação'] },
-    { id: 'estrela', name: 'Reino de Estrela', cat: 'RPG', sim: 'rpg', demand: 0, pop: 64, sat: 0.55, rpm: 1.15, color: '#6b4fd8', tags: ['rpg', 'aventura', 'história'], console: true },
-    { id: 'pixel', name: 'Pixel Saltitante', cat: 'Retrô / speedrun', sim: 'retro', demand: 5, pop: 26, sat: 0.18, rpm: 1.0, color: '#2bb3a6', tags: ['retrô', 'speedrun', 'plataforma'] },
-    { id: 'conversa', name: 'Só Conversando', cat: 'Conversa', sim: 'conversa', demand: 4, pop: 82, sat: 0.9, rpm: 1.1, color: '#8b5cf6', tags: ['conversa', 'bate-papo', 'vida'], nongame: true },
-    { id: 'react', name: 'Reagindo a vídeos', cat: 'Reação', sim: 'react', demand: 12, pop: 62, sat: 0.72, rpm: 1.0, color: '#ff5a36', tags: ['react', 'reação', 'humor'], nongame: true },
+    { id: 'golplaca', name: 'FIFA 27', cat: 'Esporte', sim: 'futebol', demand: 45, pop: 70, sat: 0.72, rpm: 1.0, color: '#2f9e5b', tags: ['fifa', 'futebol', 'esporte', 'competitivo'] },
+    { id: 'zonafinal', name: 'Fortnite', cat: 'Battle royale', sim: 'br', demand: 66, pop: 92, sat: 0.93, rpm: 1.05, color: '#e0702a', tags: ['fortnite', 'battle royale', 'tiro', 'competitivo'] },
+    { id: 'corredor13', name: 'Resident Evil Requiem', cat: 'Terror', sim: 'terror', demand: 54, pop: 56, sat: 0.5, rpm: 1.1, color: '#7a2b3a', tags: ['resident evil', 'terror', 'suspense', 'sustos'] },
+    { id: 'turbo', name: 'Forza Horizon 6', cat: 'Corrida', sim: 'corrida', demand: 58, pop: 44, sat: 0.42, rpm: 1.0, color: '#d8432f', tags: ['forza', 'corrida', 'carros', 'velocidade'] },
+    { id: 'lendas', name: 'League of Legends', cat: 'MOBA', sim: 'moba', demand: 36, pop: 80, sat: 0.86, rpm: 0.95, color: '#3a6fd8', tags: ['lol', 'moba', 'estratégia', 'competitivo'] },
+    { id: 'blocolandia', name: 'Minecraft', cat: 'Sandbox', sim: 'sandbox', demand: 28, pop: 76, sat: 0.8, rpm: 0.9, color: '#5fae3e', tags: ['minecraft', 'construção', 'sandbox', 'sobrevivência'] },
+    { id: 'punho', name: 'Street Fighter 6', cat: 'Luta', sim: 'luta', demand: 34, pop: 36, sat: 0.32, rpm: 0.95, color: '#c33b8a', tags: ['street fighter', 'luta', 'combos', 'competitivo'] },
+    { id: 'xeque', name: 'Chess.com', cat: 'Xadrez', sim: 'xadrez', demand: 6, pop: 30, sat: 0.28, rpm: 1.2, color: '#8a7a5c', tags: ['xadrez', 'estratégia', 'tabuleiro'] },
+    { id: 'fazendinha', name: 'Stardew Valley', cat: 'Simulação', sim: 'fazenda', demand: 20, pop: 40, sat: 0.38, rpm: 1.0, color: '#e2b23a', tags: ['stardew', 'fazenda', 'relaxante', 'simulação'] },
+    { id: 'estrela', name: 'GTA 6', cat: 'Ação / mundo aberto', sim: 'rpg', tela: 'gta', demand: 0, pop: 64, sat: 0.55, rpm: 1.15, color: '#6b4fd8', tags: ['gta', 'mundo aberto', 'ação', 'história'], console: true },
+    { id: 'pixel', name: 'Tetris', cat: 'Puzzle / speedrun', sim: 'retro', tela: 'tetris', demand: 5, pop: 26, sat: 0.18, rpm: 1.0, color: '#2bb3a6', tags: ['tetris', 'puzzle', 'speedrun', 'retrô'] },
+    { id: 'conversa', name: 'Conversando', cat: 'Conversa', sim: 'conversa', demand: 4, pop: 82, sat: 0.9, rpm: 1.1, color: '#8b5cf6', tags: ['conversa', 'bate-papo', 'vida'], nongame: true },
+    { id: 'react', name: 'React', cat: 'Reação', sim: 'react', demand: 12, pop: 62, sat: 0.72, rpm: 1.0, color: '#ff5a36', tags: ['react', 'reação', 'humor'], nongame: true },
   ];
   D.gameById = id => D.games.find(g => g.id === id);
 

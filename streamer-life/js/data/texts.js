@@ -153,7 +153,7 @@
   T.npcMsgs = {
     mae: ['Filho(a), você está se alimentando direito?', 'Vi sua live ontem! Não entendi nada, mas fiquei orgulhosa.', 'Liga pra sua mãe de vez em quando, viu?', 'Fiz aquele bolo que você gosta. Passa aqui?', 'Não fica acordado(a) até tarde, isso faz mal.', 'Minhas amigas da costura agora te seguem, haha'],
     duda: ['Bora tomar um café essa semana?', 'Vi teu último vídeo! A thumbnail podia ser melhor, posso te ajudar.', 'Tô com saudade das nossas conversas', 'Tem um show sábado, topa?'],
-    rafa: ['Bora jogar Zona Final hoje à noite?', 'Chegou peça nova na loja, se quiser trocar o PC te faço preço', 'Tua live ontem travou um pouco, quer que eu dê uma olhada no PC?', 'Vi um corte teu no TikTok, kkkkk'],
+    rafa: ['Bora jogar Fortnite hoje à noite?', 'Chegou peça nova na loja, se quiser trocar o PC te faço preço', 'Tua live ontem travou um pouco, quer que eu dê uma olhada no PC?', 'Vi um corte teu no TikTok, kkkkk'],
     partner: ['Tô com saudade. A gente se vê hoje?', 'Pensando em você', 'Você tá trabalhando demais, sabia?', 'Bora sair esse fim de semana?'],
     crush: ['Oi! Foi bom conversar com você aquele dia.', 'Vi seu canal, muito legal!', 'Tá fazendo o quê de bom?'],
   };

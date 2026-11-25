@@ -145,6 +145,39 @@
     if (s && s.boss) { ctx.fillStyle = '#5a1a2a'; ctx.beginPath(); ctx.ellipse(w * 0.62, h * 0.72, w * 0.08, h * 0.16, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#ffe066'; ctx.beginPath(); ctx.arc(w * 0.6, h * 0.66, 4, 0, 7); ctx.arc(w * 0.64, h * 0.66, 4, 0, 7); ctx.fill(); }
     if (s) txt(ctx, 'Nv. ' + s.lvl, w * 0.04, h * 0.07, Math.round(h * 0.035), '#fff', 'left', 800);
   };
+  // Tetris: poço com peças caindo, linhas sendo completadas, próxima peça e pontuação
+  G.tetris = (ctx, w, h, s, t) => {
+    ctx.fillStyle = grad(ctx, 0, 0, 0, h, ['#0b0b1e', '#151538']); ctx.fillRect(0, 0, w, h);
+    const S = h / 22, cols = 10, px = w / 2 - S * cols / 2, py = h * 0.04;
+    ctx.fillStyle = '#05050c'; ctx.fillRect(px - 3, py - 3, S * cols + 6, S * 20 + 6); ctx.strokeStyle = '#3a3a7a'; ctx.lineWidth = 2; ctx.strokeRect(px - 3, py - 3, S * cols + 6, S * 20 + 6);
+    const cores = ['#00e5ff', '#ffd400', '#b04aff', '#2ee86a', '#ff3b3b', '#2f6bff', '#ff8a00'];
+    const bloco = (gx, gy, cor) => { const x = px + gx * S, y = py + gy * S; ctx.fillStyle = cor; ctx.fillRect(x + 1, y + 1, S - 2, S - 2); ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fillRect(x + 1, y + 1, S - 2, S * 0.18); };
+    const ciclo = Math.floor(t / 6); const alt = 5 + (ciclo % 4);
+    for (let y = 0; y < alt; y++) for (let x = 0; x < cols; x++) if (((x * 7 + y * 5 + ciclo) % 9) !== 0) bloco(x, 19 - y, cores[(x + y + ciclo) % 7]);
+    const f = (t % 6) / 6; const gy = Math.floor(f * (19 - alt - 1)); const gx = 3 + Math.floor(Math.sin(t * 0.8) * 2 + 2);
+    const pecas = [[[0, 0], [1, 0], [2, 0], [3, 0]], [[0, 0], [1, 0], [0, 1], [1, 1]], [[0, 0], [1, 0], [2, 0], [1, 1]], [[1, 0], [2, 0], [0, 1], [1, 1]]];
+    const pc = pecas[ciclo % 4]; pc.forEach(([dx, dy]) => bloco(gx + dx, gy + dy, cores[ciclo % 7]));
+    if (f > 0.9) { ctx.fillStyle = 'rgba(255,255,255,' + ((f - 0.9) * 8) + ')'; ctx.fillRect(px, py + (19 - 0) * S, S * cols, S); }
+    const lx = px + S * cols + w * 0.04; txt(ctx, 'PRÓXIMA', lx, h * 0.1, Math.round(h * 0.035), '#9a9ad8', 'left', 800);
+    pecas[(ciclo + 1) % 4].forEach(([dx, dy]) => { ctx.fillStyle = cores[(ciclo + 1) % 7]; ctx.fillRect(lx + dx * S * 0.8, h * 0.14 + dy * S * 0.8, S * 0.75, S * 0.75); });
+    txt(ctx, 'PONTOS', lx, h * 0.34, Math.round(h * 0.035), '#9a9ad8', 'left', 800); txt(ctx, String(12000 + ciclo * 800 + Math.floor(f * 100) * 10), lx, h * 0.4, Math.round(h * 0.05), '#fff', 'left', 800);
+    txt(ctx, 'NÍVEL ' + (5 + (ciclo % 10)), lx, h * 0.5, Math.round(h * 0.04), '#ffd400', 'left', 800);
+    txt(ctx, 'TETRIS', px - w * 0.04, h * 0.1, Math.round(h * 0.06), '#00e5ff', 'right', 900);
+  };
+  // GTA 6: cidade de praia ao entardecer, carro na avenida, palmeiras, mapinha e "procurado"
+  G.gta = (ctx, w, h, s, t) => {
+    ctx.fillStyle = grad(ctx, 0, 0, 0, h * 0.6, ['#ff6fa8', '#ff9a5a', '#ffd08a']); ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(255,240,190,.9)'; ctx.beginPath(); ctx.arc(w * 0.7, h * 0.38, h * 0.08, 0, 7); ctx.fill();
+    for (let i = 0; i < 16; i++) { const bx = ((i * w / 12 - t * 18) % (w + 120) + w + 120) % (w + 120) - 60; const bh = h * (0.14 + ((i * 37) % 10) / 40); ctx.fillStyle = '#3a2450'; ctx.fillRect(bx, h * 0.55 - bh, w / 14, bh); ctx.fillStyle = 'rgba(255,220,140,.55)'; for (let j = 0; j < 5; j++) ctx.fillRect(bx + 4, h * 0.55 - bh + 6 + j * (bh / 6), w / 40, 3); }
+    ctx.fillStyle = '#2a2a33'; ctx.fillRect(0, h * 0.55, w, h * 0.45);
+    ctx.fillStyle = '#ffd36b'; for (let i = 0; i < 10; i++) { const x = ((i * w / 6 - t * 220) % (w + 100) + w + 100) % (w + 100) - 50; ctx.fillRect(x, h * 0.76, w / 14, h * 0.012); }
+    for (let i = 0; i < 6; i++) { const x = ((i * w / 4 - t * 120) % (w + 200) + w + 200) % (w + 200) - 100; ctx.strokeStyle = '#2a1840'; ctx.lineWidth = h * 0.012; ctx.beginPath(); ctx.moveTo(x, h * 0.56); ctx.quadraticCurveTo(x + 6, h * 0.42, x + 2, h * 0.3); ctx.stroke(); ctx.fillStyle = '#2a1840'; for (let k = 0; k < 6; k++) { ctx.save(); ctx.translate(x + 2, h * 0.3); ctx.rotate(-Math.PI + k * Math.PI / 5); ctx.beginPath(); ctx.ellipse(h * 0.04, 0, h * 0.045, h * 0.01, 0.25, 0, 7); ctx.fill(); ctx.restore(); } }
+    const cy = h * 0.8 + Math.sin(t * 8) * 1.5; ctx.fillStyle = '#e0306a'; rr(ctx, w * 0.36, cy - h * 0.06, w * 0.26, h * 0.08, h * 0.02); ctx.fill(); ctx.fillStyle = '#1a1424'; rr(ctx, w * 0.42, cy - h * 0.1, w * 0.13, h * 0.05, h * 0.015); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(w * 0.41, cy + h * 0.02, h * 0.03, 0, 7); ctx.arc(w * 0.57, cy + h * 0.02, h * 0.03, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.beginPath(); ctx.arc(w * 0.09, h * 0.85, h * 0.1, 0, 7); ctx.fill(); ctx.strokeStyle = '#8af'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(w * 0.09, h * 0.82); ctx.lineTo(w * 0.1, h * 0.87); ctx.lineTo(w * 0.08, h * 0.87); ctx.closePath(); ctx.fill();
+    const est = s && s.boss ? 3 : 1; for (let i = 0; i < 5; i++) txt(ctx, '★', w * (0.95 - i * 0.035), h * 0.08, Math.round(h * 0.045), i < est ? '#fff' : 'rgba(255,255,255,.25)', 'right', 900, 'Arial');
+    txt(ctx, 'R$ ' + (12000 + (s ? s.area * 3500 : 0)).toLocaleString('pt-BR'), w * 0.95, h * 0.15, Math.round(h * 0.045), '#7CFC9A', 'right', 800);
+  };
   G.retro = (ctx, w, h, s, t) => {
     ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = '#5c94fc'; ctx.fillRect(0, 0, w, h); const bs = h / 14;
@@ -194,7 +227,8 @@
     if (deco.includes('led')) { const hue = (t * 20) % 360; ctx.fillStyle = 'hsla(' + hue + ',90%,60%,.28)'; ctx.fillRect(0, h * 0.1, w, h * 0.04); const g = ctx.createLinearGradient(0, h * 0.1, 0, h * 0.5); g.addColorStop(0, 'hsla(' + hue + ',90%,60%,.18)'); g.addColorStop(1, 'transparent'); ctx.fillStyle = g; ctx.fillRect(0, h * 0.1, w, h * 0.4); }
     if (deco.includes('estante')) { ctx.fillStyle = '#5a3a2a'; ctx.fillRect(w * 0.72, h * 0.15, w * 0.22, h * 0.6); ctx.fillStyle = '#3a2418'; for (let i = 0; i < 4; i++) ctx.fillRect(w * 0.72, h * (0.28 + i * 0.13), w * 0.22, h * 0.015); const r = U.mulberry(3); for (let i = 0; i < 10; i++) { ctx.fillStyle = D.shirtColors[i % D.shirtColors.length]; ctx.fillRect(w * (0.74 + r() * 0.17), h * (0.2 + Math.floor(i / 3) * 0.13), w * 0.02, h * 0.07); } }
     if (deco.includes('neon') && G0) { ctx.save(); ctx.shadowColor = '#ff3d81'; ctx.shadowBlur = 18; txt(ctx, G0.player.channel, w * 0.06, h * 0.2, Math.round(h * 0.08), '#ff7ab0', 'left', 800); ctx.restore(); }
-    if (deco.includes('poster')) { ctx.fillStyle = '#e0702a'; ctx.fillRect(w * 0.08, h * 0.32, w * 0.12, h * 0.26); ctx.fillStyle = '#1a1a22'; ctx.fillRect(w * 0.1, h * 0.36, w * 0.08, h * 0.12); }
+    if (deco.includes('poster') && SL.Capa) { const id = (SL.Creators && SL.Creators.playerMainGame && SL.Creators.playerMainGame()) || 'blocolandia'; const g = D.gameById(id); const pw = h * 0.2, ph = pw * 4 / 3; ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(w * 0.085 + 3, h * 0.3 + 4, pw, ph); ctx.fillStyle = '#eee'; ctx.fillRect(w * 0.085 - 2, h * 0.3 - 2, pw + 4, ph + 4); ctx.drawImage(SL.Capa.img(g && !g.nongame ? id : 'blocolandia'), w * 0.085, h * 0.3, pw, ph); }
+    if (G0 && G0.placas && SL.Capa && SL.Placas) SL.Placas.lista().forEach((pl, i) => { const pw = h * 0.15, ph = pw * 1.3, px = w * (0.62 + i * 0.1), py = h * 0.08; ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(px + 3, py + 4, pw, ph); ctx.drawImage(SL.Capa.placa(pl.id, G0.player.channel), px, py, pw, ph); });
     if (deco.includes('quadro')) { ctx.fillStyle = '#efe6d6'; ctx.fillRect(w * 0.26, h * 0.12, w * 0.14, h * 0.18); ctx.fillStyle = '#3b82f6'; ctx.beginPath(); ctx.arc(w * 0.31, h * 0.2, h * 0.04, 0, 7); ctx.fill(); ctx.fillStyle = '#ff5a36'; ctx.fillRect(w * 0.33, h * 0.18, w * 0.05, h * 0.08); }
     if (deco.includes('planta')) { ctx.fillStyle = '#7a4a2a'; ctx.fillRect(w * 0.04, h * 0.7, w * 0.06, h * 0.1); ctx.fillStyle = '#3f8f3a'; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.ellipse(w * 0.07 + Math.cos(i) * w * 0.02, h * 0.62 - i * h * 0.02, w * 0.02, h * 0.05, i, 0, 7); ctx.fill(); } }
     if (studio) { ctx.fillStyle = 'rgba(255,255,255,.04)'; for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) ctx.fillRect(w * 0.5 + i * w * 0.04, h * 0.1 + j * h * 0.07, w * 0.035, h * 0.06); }
@@ -263,7 +297,7 @@
     } else if (g.sim === 'conversa' || L.layout === 'camera') {
       if (L.away) camVazia(ctx, 0, 0, w, h); else P.webcam(ctx, 0, 0, w, h, { expr, t: tSec });
     } else {
-      G[g.sim](ctx, w, h, L.sim, L.away ? (L._awayT || (L._awayT = tSec)) : tSec, {});
+      G[g.tela || g.sim](ctx, w, h, L.sim, L.away ? (L._awayT || (L._awayT = tSec)) : tSec, {});
       if (!L.away) L._awayT = 0;
       if (L.cam && L.layout !== 'sem') {
         const cw = L.layout === 'dividida' ? w * 0.42 : w * 0.24, ch = cw * 0.75;
@@ -337,7 +371,7 @@
     const sim = SL.GameSim.make(g.id); const r = U.mulberry(U.hash(String(o.seed || o.title || 'x')));
     for (let i = 0; i < (th.scene || 0) + 3; i++) SL.GameSim.sims[g.sim].step(sim, { skill: 0.5, perf: 1, char: 50 }, []);
     if (g.sim === 'conversa' || o.vlog) { c.fillStyle = grad(c, 0, 0, w, h, ['hsl(' + Math.round(r() * 360) + ',55%,40%)', '#12141c']); c.fillRect(0, 0, w, h); }
-    else G[g.sim](c, w, h, sim, r() * 20, {});
+    else G[g.tela || g.sim](c, w, h, sim, r() * 20, {});
     c.fillStyle = 'rgba(0,0,0,.15)'; c.fillRect(0, 0, w, h);
     const look = o.look || (SL.G && SL.G.player.look) || A.randomLook(r);
     c.save(); c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 12; A.portrait(c, look, w * 0.24, h * 0.72, h * 0.95, { expr: th.expr || 'surpreso' }); c.restore();

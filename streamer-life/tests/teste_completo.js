@@ -101,6 +101,11 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await ev(() => { SL.debug.skip(60 * 26); SL.debug.fill(); });
   ok('entrega chega e equipa', await ev(() => SL.G.equip.setup.microfone === 'mic_usb'));
 
+  // 4a. jogos com nome oficial, capas e placa do YouTube
+  ok('jogos com nomes oficiais e capa desenhada', await ev(() => ['FIFA 27', 'Fortnite', 'Minecraft', 'Tetris', 'Forza Horizon 6', 'GTA 6'].every(n => SL.D.games.some(g => g.name === n)) && SL.D.games.every(g => SL.Capa.img(g.id).width === 240)));
+  ok('placa de prata do YouTube com 100 mil inscritos (vai para a parede do escritório)', await ev(() => { const f = SL.G.ch.vision.f; SL.G.ch.vision.f = 100000; SL.Goals.check(); const ok = !!(SL.G.placas && SL.G.placas.prata) && !SL.G.placas.ouro && SL.HomeScene.objects().some(o => o.kind === 'placa'); SL.G.ch.vision.f = f; return ok; }));
+  await page.waitForTimeout(700); await fechaJanelas();
+
   // 4b. peças do PC e app da Twitch
   ok('peças do PC somam desempenho (só em PC de mesa)', await ev(() => { const a = SL.Equip.stats().perf; SL.G.equip.owned.gpu_2 = { cond: 100, t: 0 }; SL.G.equip.setup.gpu = 'gpu_2'; const nb = SL.Equip.stats().perf; const tinha = SL.G.equip.setup.computador; SL.G.equip.owned.pc_entrada = { cond: 100, t: 0 }; SL.G.equip.setup.computador = 'pc_entrada'; const d = SL.Equip.stats().perf; SL.G.equip.setup.computador = tinha; delete SL.G.equip.setup.gpu; delete SL.G.equip.owned.gpu_2; delete SL.G.equip.owned.pc_entrada; return nb === a && d === 42 + 15; }));
   await page.click('.dicon[data-app="loja"]'); await page.waitForTimeout(300); await page.click('.win [data-act="tab"][data-t="pecas"]'); await page.waitForTimeout(300);
@@ -114,7 +119,7 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await ev(() => { SL.debug.toHour(20); SL.debug.fill(); });
   await page.click('.dicon[data-app="pulso"]'); await page.waitForTimeout(400);
   await page.click('.win [data-act="game"][data-g="xeque"]');
-  await page.fill('#lv-title', 'Primeira live! Desafio de Xeque Rápido até vencer');
+  await page.fill('#lv-title', 'Primeira live! Desafio de Chess.com até vencer');
   await shot('07_pulso_setup');
   await page.click('.win [data-act="start"]'); await page.waitForTimeout(600);
   ok('live começa e estúdio abre', await ev(() => !!SL.Live.cur && !document.getElementById('overlay-live').hidden));
@@ -201,7 +206,7 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   // 6. segunda e terceira lives: memória dos espectadores
   for (let k = 0; k < 2; k++) {
     await ev(() => { SL.debug.skip(60 * 23); SL.debug.toHour(20); SL.debug.fill(); });
-    await ev(() => SL.Live.start({ game: 'xeque', title: 'Voltamos! Xeque Rápido com o chat', desc: 'todo dia às 20h', quality: '720p', planned: 90, announce: true }));
+    await ev(() => SL.Live.start({ game: 'xeque', title: 'Voltamos! Chess.com com o chat', desc: 'todo dia às 20h', quality: '720p', planned: 90, announce: true }));
     for (let i = 0; i < 9; i++) await ev(() => { SL.debug.skip(10); SL.G.needs.sono = Math.max(SL.G.needs.sono, 60); const L = SL.Live.cur; const q = L.questions.find(x => !x.done); if (q) SL.Live.answer(q.msgId, SL.Chat.ANSWERS[q.type][0].id); });
     await ev(() => SL.LiveUI.finish());
     await page.waitForTimeout(300); await fechaJanelas();

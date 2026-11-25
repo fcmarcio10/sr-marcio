@@ -284,4 +284,14 @@
     if (txt !== hintKey) { hintKey = txt; hintAt = performance.now(); h.textContent = txt; }
     h.classList.toggle('gone', !txt || performance.now() - hintAt > 14000 || (G.loc.area === 'casa' && SL.HomeScene.moving()));
   };
+  // placa do YouTube chegando: janela com a placa (se estiver ao vivo, mostra quando a live acabar)
+  let placaFila = [];
+  const mostraPlaca = id => {
+    const G = SL.G; if (!G) return; const nome = SL.Placas.NOMES[id];
+    const m = UI.modal({ title: 'Chegou a sua ' + nome + '!', icon: 'trophy', cls: 'placa-modal', html: `<div class="placa-box"><canvas width="400" height="520"></canvas><p>O YouTube mandou a ${nome} para <b>${U.esc(G.player.channel)}</b>. Ela já está pendurada na parede do escritório e aparece atrás de você nas lives.</p></div>`, buttons: [{ label: 'Que demais!', cls: 'primary' }] });
+    const cv = m.el.querySelector('canvas'); if (cv && SL.Capa) cv.getContext('2d').drawImage(SL.Capa.placa(id, G.player.channel), 0, 0, 400, 520);
+    if (UI.confetti) UI.confetti(); if (SL.audio) SL.audio.play('levelup');
+  };
+  SL.bus.on('placa', id => { if (SL.Live && SL.Live.cur) placaFila.push(id); else setTimeout(() => mostraPlaca(id), 300); });
+  SL.bus.on('live:end', () => { const f = placaFila; placaFila = []; f.forEach((id, i) => setTimeout(() => mostraPlaca(id), 1500 + i * 400)); });
 })(window.SL);

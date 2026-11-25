@@ -116,8 +116,9 @@ ${G.flags.mealReady ? `<div class="card" style="border-color:var(--ok)"><div cla
       const G = SL.G; const a = G.act; const playing = a && a.id === 'pc_lazer';
       el.innerHTML = `<div class="app"><div class="app-head"><h2>${ic('gamepad', 16)} Biblioteca</h2><span class="tiny muted">Jogar sozinho treina a habilidade em jogos (sem câmera, sem público).</span></div><div class="app-body">
         ${playing ? `<div class="card row"><span class="acc">${ic('gamepad', 20)}</span><div class="grow"><b>${esc(a.label)}</b><div class="bar thin"><i data-actprog style="width:${SL.Life.progress() * 100}%"></i></div><small class="tiny muted" data-actfim></small></div><button class="btn sm" data-act="stop">Parar</button></div>` : ''}
-        <div class="lib">${D.games.map(g => { const cs = SL.Equip.canStream(g, '480p'); return `<div class="lib-g ${cs.ok ? '' : 'no'}"><span class="lib-c" style="background:${g.color}"></span><div class="grow"><b>${esc(g.name)}</b><small>${esc(g.cat)}${cs.ok ? '' : ' · ' + esc(cs.reason || 'indisponível')}</small></div>
-          <button class="btn sm" data-act="play" data-g="${g.id}" ${cs.ok && !playing ? '' : 'disabled'}>${ic('play', 14)} Jogar 1h</button><button class="btn sm live" data-act="stream" data-g="${g.id}" ${cs.ok ? '' : 'disabled'}>${ic('live', 14)} Live</button></div>`; }).join('')}</div></div></div>`;
+        <div class="st-lib">${D.games.map(g => { const cs = SL.Equip.canStream(g, '480p'); return `<div class="st-g ${cs.ok ? '' : 'no'}"><div class="st-capa"><canvas data-capa="${g.id}"></canvas>${g.console ? '<span class="st-tag">Console</span>' : ''}</div><b class="ellipsis" title="${esc(g.name)}">${esc(g.name)}</b><small class="ellipsis">${esc(g.cat)}${cs.ok ? '' : ' · ' + esc(cs.reason || 'indisponível')}</small>
+          <div class="st-bts"><button class="btn sm" data-act="play" data-g="${g.id}" ${cs.ok && !playing ? '' : 'disabled'}>${ic('play', 13)} Jogar 1h</button><button class="btn sm live" data-act="stream" data-g="${g.id}" ${cs.ok ? '' : 'disabled'}>${ic('live', 13)} Live</button></div></div>`; }).join('')}</div></div></div>`;
+      if (SL.Capa) requestAnimationFrame(() => SL.Capa.pintar(el));
     },
     act(a, ds, ctx) {
       if (a === 'stop') { SL.Life.stop(false); ctx.render(); return; }

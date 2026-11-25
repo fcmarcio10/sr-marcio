@@ -101,7 +101,7 @@
       const dpr = Math.min(2, devicePixelRatio || 1); const w = cv.clientWidth || 130, h = cv.clientHeight || 230; cv.width = w * dpr; cv.height = h * dpr;
       const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
       const g = D.gameById(game) || D.games[0]; const sim = SL.GameSim.make(g.id); for (let i = 0; i < 2 + Math.floor(r() * 4); i++) SL.GameSim.sims[g.sim].step(sim, { skill: 0.5, perf: 1, char: 50 }, []);
-      c.save(); c.translate(-w * 0.45, 0); SL.Preview.GAMES[g.sim](c, w * 1.9, h, sim, r() * 20, {}); c.restore();
+      c.save(); c.translate(-w * 0.45, 0); SL.Preview.GAMES[g.tela || g.sim](c, w * 1.9, h, sim, r() * 20, {}); c.restore();
       const look = v ? G.player.look : (SL.Social.author(f.author).look || SL.Avatar.randomLook(r));
       SL.Avatar.portrait(c, look, w / 2, h * 0.86, w * 0.7, { expr: U.pick(['rindo', 'surpreso', 'feliz']) });
     },
@@ -167,7 +167,7 @@
         st.preview = { id: 'preview', photo: { kind: st.photo, place: G.loc.place, setup: { dual: !!(SL.Equip.item('monitor') || {}).dual, mic: !!SL.Equip.item('microfone'), light: !!SL.Equip.item('iluminacao') } } };
         body = `<div class="row wrap">${opts.map(o => `<button class="chip ${st.photo === o.id ? 'on' : ''}" data-act="photo" data-v="${o.id}">${esc(o.label)}</button>`).join('')}</div><span class="tiny muted">${G.loc.area === 'casa' ? 'Na rua você pode fotografar o lugar onde está.' : 'Em casa dá para mostrar o setup.'}</span><canvas class="photo" data-photo="preview" style="max-width:420px;border-radius:12px;width:100%;aspect-ratio:16/10"></canvas><div class="field"><label>Legenda</label><input class="input" data-f="ptext" maxlength="160" value="${esc(st.text || '')}" placeholder="Legenda da foto"></div>`;
       }
-      if (st.kind === 'enquete') body = `<div class="field"><label>Pergunta</label><input class="input" data-f="pq" maxlength="80" value="${esc(st.pq || 'Qual jogo vocês querem na próxima live?')}"></div><div class="grid3">${[0, 1, 2].map(i => `<input class="input" data-f="po${i}" maxlength="30" value="${esc((st.po || [])[i] || ['Zona Final', 'Corredor 13', 'Gol de Placa 27'][i])}">`).join('')}</div>`;
+      if (st.kind === 'enquete') body = `<div class="field"><label>Pergunta</label><input class="input" data-f="pq" maxlength="80" value="${esc(st.pq || 'Qual jogo vocês querem na próxima live?')}"></div><div class="grid3">${[0, 1, 2].map(i => `<input class="input" data-f="po${i}" maxlength="30" value="${esc((st.po || [])[i] || ['Fortnite', 'Resident Evil', 'FIFA 27'][i])}">`).join('')}</div>`;
       if (st.kind === 'anuncio') body = `<p class="small muted">O anúncio vira compromisso: quem vir vai esperar a live nesse horário.</p><div class="row wrap">${[[0, 20], [0, 22], [1, 19], [1, 20], [1, 21], [2, 20]].filter(([d, h]) => d > 0 || h > SL.Clock.hour()).map(([d, h]) => `<button class="chip ${st.ann === d + ',' + h ? 'on' : ''}" data-act="ann" data-v="${d},${h}">${d === 0 ? 'Hoje' : d === 1 ? 'Amanhã' : SL.Clock.fmtDay(SL.Clock.day() + d)} ${h}h</button>`).join('')}</div>`;
       return `<div class="feed"><div class="card col"><div class="row wrap">${kinds.map(([k, l, i]) => `<button class="chip ${st.kind === k ? 'on' : ''}" data-act="kind" data-v="${k}">${ic(i, 13)} ${l}</button>`).join('')}</div>${body}<div class="row end"><span class="tiny muted grow">${U.num(G.ch.connect.f)} seguidores no Instagram</span><button class="btn primary" data-act="post">${ic('send', 14)} Publicar</button></div></div></div>`;
     },

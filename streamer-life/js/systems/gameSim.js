@@ -28,7 +28,7 @@
         const pg = 0.22 + k.skill * 0.2 + (k.risky ? 0.08 : 0) - (1 - k.perf) * 0.12;
         if (U.chance(pg)) {
           s.a++;
-          if (U.chance(0.12 + (k.risky ? 0.1 : 0))) out.push(M('golaco', `GOLAÇO de bicicleta! ${s.a}x${s.b}`, 0.95, { good: true, big: true, mt: 'você fez aquele golaço de bicicleta no Gol de Placa' }));
+          if (U.chance(0.12 + (k.risky ? 0.1 : 0))) out.push(M('golaco', `GOLAÇO de bicicleta! ${s.a}x${s.b}`, 0.95, { good: true, big: true, mt: 'você fez aquele golaço de bicicleta no FIFA' }));
           else out.push(M('gol', U.pick(['Gol de cabeça', 'Gol de fora da área', 'Gol de contra-ataque', 'Gol de pênalti', 'Gol de falta']) + `! ${s.a}x${s.b}`, 0.7, { good: true }));
         } else if (U.chance(0.55)) {
           const absurd = U.chance(0.16);
@@ -44,7 +44,7 @@
         } else out.push(M('defesa', 'Seu goleiro faz uma defesaça!', 0.45, { good: true }));
       }
       if (U.chance(0.05)) out.push(M('cartao', 'Cartão amarelo por carrinho', 0.25));
-      if (U.chance(0.012)) out.push(M('bug', 'O jogador atravessou a trave (bug)', 0.6, { funny: 0.9, mt: 'o jogador atravessou a trave no Gol de Placa' }));
+      if (U.chance(0.012)) out.push(M('bug', 'O jogador atravessou a trave (bug)', 0.6, { funny: 0.9, mt: 'o jogador atravessou a trave no FIFA' }));
     },
   };
 
@@ -65,12 +65,12 @@
         if (U.chance(pw)) {
           const n = U.chance(0.15 + (k.risky ? 0.1 : 0)) ? 3 : U.chance(0.3) ? 2 : 1;
           s.kills += n; s.alive = Math.max(1, s.alive - n);
-          if (s.alive <= 3 && U.chance(0.5)) out.push(M('clutch', `Clutch! Venceu um contra três`, 0.9, { good: true, big: true, mt: 'você fez aquele clutch de um contra três no Zona Final' }));
-          else if (n >= 3) out.push(M('multikill', `Abate triplo!`, 0.85, { good: true, big: true, mt: 'você fez aquele abate triplo no Zona Final' }));
+          if (s.alive <= 3 && U.chance(0.5)) out.push(M('clutch', `Clutch! Venceu um contra três`, 0.9, { good: true, big: true, mt: 'você fez aquele clutch de um contra três no Fortnite' }));
+          else if (n >= 3) out.push(M('multikill', `Abate triplo!`, 0.85, { good: true, big: true, mt: 'você fez aquele abate triplo no Fortnite' }));
           else out.push(M('kill', n === 2 ? U.pick(['Abate duplo na ponte', 'Abate duplo no telhado']) : U.pick(['Derrubou ', 'Mandou pro lobby: ', 'Headshot em ']) + U.pick(OPP), 0.5, { good: true }));
         } else {
           s.phase = 'fim'; s.best = Math.min(s.best, s.alive);
-          if (U.chance(0.12)) out.push(M('morte_boba', 'Caiu do prédio sozinho', 0.7, { funny: 0.92, good: false, mt: 'você caiu do prédio sozinho no Zona Final' }));
+          if (U.chance(0.12)) out.push(M('morte_boba', 'Caiu do prédio sozinho', 0.7, { funny: 0.92, good: false, mt: 'você caiu do prédio sozinho no Fortnite' }));
           else out.push(M('morte', `Eliminado em ${s.alive}º lugar`, s.alive < 10 ? 0.55 : 0.4, { good: false }));
           return;
         }
@@ -86,7 +86,7 @@
     answer: s => `capítulo ${s.ch}`,
     step: (s, k, out) => {
       s.prog += U.rf(3, 7) * (0.7 + k.skill * 0.5);
-      if (U.chance(0.15)) out.push(M('jumpscare', 'SUSTO! Algo pulou na tela', 0.78, { funny: 0.75, big: U.chance(0.3), mt: 'você deu aquele grito com o susto do Corredor 13' }));
+      if (U.chance(0.15)) out.push(M('jumpscare', 'SUSTO! Algo pulou na tela', 0.78, { funny: 0.75, big: U.chance(0.3), mt: 'você deu aquele grito com o susto do Resident Evil' }));
       else if (U.chance(0.1)) out.push(M('susto_falso', 'Era só um gato derrubando um vaso', 0.35, { funny: 0.5 }));
       if (U.chance(0.08)) {
         if (U.chance(0.55 + k.skill * 0.3)) out.push(M('perseguicao', 'Fugiu da criatura por um triz', 0.65, { good: true }));
@@ -94,7 +94,7 @@
       }
       if (U.chance(0.1)) { s.prog += 8; out.push(M('puzzle', 'Resolveu o enigma da porta', 0.35, { good: true })); }
       if (s.prog >= 100) {
-        if (s.ch >= 6) { out.push(M('vitoria', 'ZEROU o Corredor 13!', 1, { good: true, big: true, mt: 'você zerou o Corredor 13 ao vivo' })); s.ch = 1; s.prog = 0; }
+        if (s.ch >= 6) { out.push(M('vitoria', 'ZEROU o Resident Evil!', 1, { good: true, big: true, mt: 'você zerou o Resident Evil ao vivo' })); s.ch = 1; s.prog = 0; }
         else { s.ch++; s.prog = 0; out.push(M('capitulo', `Capítulo ${s.ch} começou`, 0.45, { good: true })); }
       }
     },
@@ -111,7 +111,7 @@
       if (U.chance(0.07)) out.push(M('volta_rapida', 'Volta mais rápida da corrida', 0.5, { good: true }));
       if (s.t % 2 === 0) s.lap++;
       if (s.lap > s.laps) {
-        if (s.pos === 1) { s.wins++; out.push(M('vitoria_corrida', 'Venceu a corrida!', 0.9, { good: true, big: true, mt: 'você venceu aquela corrida de virada no Turbo Asfalto' })); }
+        if (s.pos === 1) { s.wins++; out.push(M('vitoria_corrida', 'Venceu a corrida!', 0.9, { good: true, big: true, mt: 'você venceu aquela corrida de virada no Forza' })); }
         else if (s.pos <= 3) out.push(M('podio', `Terminou no pódio: ${s.pos}º`, 0.5, { good: true }));
         else out.push(M('lose', `Terminou em ${s.pos}º`, 0.3, { good: false }));
         sims.corrida.init(s);
@@ -130,7 +130,7 @@
       if (U.chance(0.12)) { if (U.chance(0.45 + k.skill * 0.3)) { s.edge += 2; out.push(M('team_win', 'Luta de equipe vencida', 0.6, { good: true })); } else { s.edge -= 2; out.push(M('team_lose', 'Perdeu a luta de equipe', 0.5, { good: false })); } }
       if (U.chance(0.07)) { s.edge += 1; out.push(M('objetivo', 'Pegou o dragão', 0.45, { good: true })); }
       if (U.chance(0.05)) out.push(M('troll_aliado', 'Aliado entregou o jogo de propósito', 0.5, { funny: 0.75 }));
-      if (U.chance(0.02 + (k.risky ? 0.03 : 0))) out.push(M('epic', 'Jogada épica: roubou o barão sozinho', 0.95, { good: true, big: true, mt: 'você roubou o barão sozinho no Lendas da Arena' }));
+      if (U.chance(0.02 + (k.risky ? 0.03 : 0))) out.push(M('epic', 'Jogada épica: roubou o barão sozinho', 0.95, { good: true, big: true, mt: 'você roubou o barão sozinho no LoL' }));
       if (s.t >= 13) {
         const win = U.chance(U.clamp(0.5 + s.edge * 0.07 + k.skill * 0.1, 0.1, 0.92));
         if (win) { s.w++; out.push(M('vitoria', 'Vitória! Destruiu o núcleo inimigo', 0.85, { good: true, big: true })); } else { s.l++; out.push(M('lose', 'Derrota. O núcleo caiu', 0.5, { good: false })); }
@@ -149,7 +149,7 @@
       if (U.chance(0.05)) out.push(M('diamante', 'Achou diamante na mina!', 0.7, { good: true }));
       if (U.chance(0.045)) { s.prog = Math.max(0, s.prog - 20); out.push(M('explosao', 'O bicho verde explodiu metade da construção', 0.72, { funny: 0.92, good: false, mt: 'o bicho verde explodiu seu ' + s.proj })); }
       if (U.chance(0.02)) out.push(M('morte_boba', 'Caiu na lava com tudo no inventário', 0.62, { funny: 0.85, good: false }));
-      if (s.prog >= 100) { s.done++; out.push(M('projeto', `Terminou o ${s.proj}!`, 0.82, { good: true, big: true, mt: 'você terminou aquele ' + s.proj + ' na Blocolândia' })); s.proj = U.pick(['castelo', 'fazenda automática', 'ponte gigante', 'casa na árvore', 'navio pirata', 'estádio']); s.prog = 0; }
+      if (s.prog >= 100) { s.done++; out.push(M('projeto', `Terminou o ${s.proj}!`, 0.82, { good: true, big: true, mt: 'você terminou aquele ' + s.proj + ' na Minecraft' })); s.proj = U.pick(['castelo', 'fazenda automática', 'ponte gigante', 'casa na árvore', 'navio pirata', 'estádio']); s.prog = 0; }
     },
   };
 
@@ -162,7 +162,7 @@
       if (U.chance(0.5)) {
         if (U.chance(0.42 + k.skill * 0.3 + (k.focus ? 0.05 : 0))) {
           s.r[0]++;
-          if (U.chance(0.06)) out.push(M('perfect', 'PERFECT! Sem tomar dano', 0.9, { good: true, big: true, mt: 'você deu aquele perfect no Punho Final' }));
+          if (U.chance(0.06)) out.push(M('perfect', 'PERFECT! Sem tomar dano', 0.9, { good: true, big: true, mt: 'você deu aquele perfect no Street Fighter' }));
           else out.push(M('round_win', 'Round ganho', 0.35, { good: true }));
         } else { s.r[1]++; out.push(M('round_lose', 'Perdeu o round', 0.3, { good: false })); }
       }
@@ -181,7 +181,7 @@
     step: (s, k, out) => {
       s.mv += U.ri(4, 7);
       if (s.mv < 8) { out.push(M('abertura', 'Abertura italiana', 0.15)); return; }
-      if (U.chance(0.07 + (k.risky ? 0.06 : 0))) { s.adv += 2; out.push(M('sacrificio', 'Sacrificou a dama!', 0.82, { good: true, big: true, mt: 'você sacrificou a dama e ganhou no Xeque Rápido' })); }
+      if (U.chance(0.07 + (k.risky ? 0.06 : 0))) { s.adv += 2; out.push(M('sacrificio', 'Sacrificou a dama!', 0.82, { good: true, big: true, mt: 'você sacrificou a dama e ganhou no Chess.com' })); }
       if (U.chance(0.1 - k.skill * 0.06)) { s.adv -= 2; out.push(M('erro_xadrez', 'Deixou a torre de graça', 0.45, { funny: 0.45, good: false })); }
       s.adv += U.chance(0.5 + k.skill * 0.2) ? 0.5 : -0.5;
       if (s.mv > 45) {
@@ -201,24 +201,24 @@
       if (U.chance(0.3)) s.dayN++;
       if (U.chance(0.16)) { s.gold += U.ri(50, 300); out.push(M('colheita', 'Colheita de abóboras gigantes', 0.38, { good: true })); }
       if (U.chance(0.07)) out.push(M('animal', 'Nasceu um bezerrinho', 0.35, { good: true }));
-      if (U.chance(0.03)) out.push(M('festival', 'Festival da colheita na vila', 0.55, { good: true, mt: 'você ganhou o festival da colheita na Fazendinha' }));
+      if (U.chance(0.03)) out.push(M('festival', 'Festival da colheita na vila', 0.55, { good: true, mt: 'você ganhou o festival da colheita na Stardew' }));
       if (U.chance(0.012)) out.push(M('bug', 'A galinha subiu no telhado e sumiu (bug)', 0.5, { funny: 0.85 }));
     },
   };
 
   sims.rpg = {
     init: s => { s.lvl = s.lvl || 1; s.boss = 0; s.area = s.area || 1; },
-    status: s => s.boss ? `Luta contra o chefe da área ${s.area}` : `Nível ${s.lvl} · área ${s.area}`,
+    status: s => s.boss ? `Missão de assalto ${s.area}` : `Nível ${s.lvl} · missão ${s.area}`,
     answer: s => `nível ${s.lvl}, área ${s.area}`,
     step: (s, k, out) => {
       if (s.boss) {
-        if (U.chance(0.48 + k.skill * 0.35)) { s.boss = 0; s.area++; out.push(M('chefe_ok', 'Derrotou o chefe!', 0.92, { good: true, big: true, mt: 'você derrotou aquele chefe no Reino de Estrela' })); }
-        else { s.boss = 0; out.push(M('morte', 'O chefe venceu desta vez', 0.55, { good: false })); }
+        if (U.chance(0.48 + k.skill * 0.35)) { s.boss = 0; s.area++; out.push(M('chefe_ok', 'Completou a missão!', 0.92, { good: true, big: true, mt: 'você fechou aquela missão no GTA 6' })); }
+        else { s.boss = 0; out.push(M('morte', 'A missão deu errado desta vez', 0.55, { good: false })); }
         return;
       }
       if (U.chance(0.1)) { s.lvl++; out.push(M('level', `Subiu para o nível ${s.lvl}`, 0.3, { good: true })); }
-      if (U.chance(0.06)) out.push(M('cena', 'Cena emocionante da história', 0.68, { mt: 'aquela cena que fez o chat chorar no Reino de Estrela' }));
-      if (U.chance(0.07)) { s.boss = 1; out.push(M('chefe', 'Um chefe apareceu!', 0.55)); }
+      if (U.chance(0.06)) out.push(M('cena', 'Cena emocionante da história', 0.68, { mt: 'aquela cena que fez o chat chorar no GTA 6' }));
+      if (U.chance(0.07)) { s.boss = 1; out.push(M('chefe', 'Começou uma missão de assalto!', 0.55)); }
     },
   };
 
@@ -229,12 +229,12 @@
     step: (s, k, out) => {
       if (!s.run) { s.run = 1; s.tries++; s.split = 0; out.push(M('run', 'Nova tentativa de speedrun', 0.2)); return; }
       s.split++;
-      if (U.chance(0.18 - k.skill * 0.1)) { s.run = 0; out.push(M('erro_bobo', 'Caiu no primeiro buraco. Reset!', 0.55, { funny: 0.85, good: false })); return; }
+      if (U.chance(0.18 - k.skill * 0.1)) { s.run = 0; out.push(M('erro_bobo', 'Empilhou errado e perdeu. Reset!', 0.55, { funny: 0.85, good: false })); return; }
       if (U.chance(0.25)) out.push(M('split_bom', 'Split no verde, ritmo de recorde', 0.45, { good: true }));
       if (s.split >= 5) {
         const time = s.pb + U.ri(-25, 30) - Math.round(k.skill * 15);
         s.run = 0;
-        if (time < s.pb) { s.pb = time; out.push(M('recorde', 'NOVO RECORDE PESSOAL!', 1, { good: true, big: true, mt: 'você bateu aquele recorde no Pixel Saltitante' })); }
+        if (time < s.pb) { s.pb = time; out.push(M('recorde', 'NOVO RECORDE PESSOAL!', 1, { good: true, big: true, mt: 'você bateu aquele recorde no Tetris' })); }
         else out.push(M('lose', 'Terminou a run, sem recorde', 0.3));
       }
     },

@@ -106,7 +106,7 @@
     },
     compat() {
       const pcs = D.equip.filter(e => e.slot === 'computador');
-      return `<div class="card"><h3>Compatibilidade com os jogos (720p)</h3><div class="tablewrap"><table class="table"><tr><th>Jogo</th>${pcs.map(p => `<th>${esc(p.name.replace('PC ', ''))}</th>`).join('')}</tr>${D.games.filter(g => !g.console).map(g => `<tr><td class="small">${esc(g.name)}</td>${pcs.map(p => { const f = Math.min(1, p.perf / (g.demand + 15 + 4)); return `<td class="n ${f >= 0.95 ? 'ok' : f >= 0.75 ? 'warn' : 'bad'}">${f >= 0.95 ? 'liso' : f >= 0.75 ? 'trava às vezes' : 'trava muito'}</td>`; }).join('')}</tr>`).join('')}</table></div><p class="tiny muted">Reino de Estrela é exclusivo de console: precisa do VortexStation 5 e de uma placa de captura.</p></div>`;
+      return `<div class="card"><h3>Compatibilidade com os jogos (720p)</h3><div class="tablewrap"><table class="table"><tr><th>Jogo</th>${pcs.map(p => `<th>${esc(p.name.replace('PC ', ''))}</th>`).join('')}</tr>${D.games.filter(g => !g.console).map(g => `<tr><td class="small">${esc(g.name)}</td>${pcs.map(p => { const f = Math.min(1, p.perf / (g.demand + 15 + 4)); return `<td class="n ${f >= 0.95 ? 'ok' : f >= 0.75 ? 'warn' : 'bad'}">${f >= 0.95 ? 'liso' : f >= 0.75 ? 'trava às vezes' : 'trava muito'}</td>`; }).join('')}</tr>`).join('')}</table></div><p class="tiny muted">GTA 6 é exclusivo de console: precisa do VortexStation 5 e de uma placa de captura.</p></div>`;
     },
     casa(ctx, phys) {
       const G = SL.G; const st = ctx.st; st.fslot = st.fslot || 'cama';

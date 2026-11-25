@@ -934,3 +934,21 @@ body.reduce-motion .win { animation: none; }
 .lv-win-b .ml-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .lv-win-b .app-head .brandbar { display: none; } .lv-win-b .app-head { padding-top: 6px; padding-bottom: 6px; }
 .lbtn.espera { opacity: .62; }
+
+/* ===== capas dos jogos e placas do YouTube (nov/2026) ===== */
+.gp { padding-left: 54px !important; min-height: 64px; }
+.gp .gc.gc-capa { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); width: 39px; height: 52px; bottom: auto; border-radius: 4px; box-shadow: 0 3px 8px rgba(0, 0, 0, .4); }
+.st-lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.st-g { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.st-g.no { opacity: .5; }
+.st-capa { position: relative; aspect-ratio: 3 / 4; border-radius: 6px; overflow: hidden; background: #1b2838; box-shadow: 0 6px 16px rgba(0, 0, 0, .45); transition: transform .15s, box-shadow .15s; }
+.st-g:hover .st-capa { transform: translateY(-3px) scale(1.02); box-shadow: 0 10px 24px rgba(0, 0, 0, .55), 0 0 0 2px #66c0f4; }
+.st-capa canvas { width: 100%; height: 100%; display: block; }
+.st-tag { position: absolute; right: 6px; bottom: 8px; background: rgba(0, 0, 0, .75); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
+.st-g b { font-size: 12.5px; margin-top: 4px; } .st-g small { font-size: 11px; color: var(--muted); }
+.st-bts { display: flex; gap: 4px; } .st-bts .btn { flex: 1; padding-left: 4px; padding-right: 4px; font-size: 11px; }
+.tw-capa { position: absolute; right: 8px; top: 8px; width: 34px; height: 45px; border-radius: 3px; box-shadow: 0 3px 8px rgba(0, 0, 0, .5); }
+.placa-box { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.placa-box canvas { width: 200px; height: 260px; filter: drop-shadow(0 14px 30px rgba(0, 0, 0, .6)); animation: placaIn .6s cubic-bezier(.2, .8, .3, 1.2); }
+@keyframes placaIn { from { opacity: 0; transform: translateY(20px) scale(.9) rotate(-3deg); } to { opacity: 1; transform: none; } }
+.placa-box p { font-size: 13px; margin: 0; color: var(--muted); } .placa-box p b { color: var(--text, #fff); }

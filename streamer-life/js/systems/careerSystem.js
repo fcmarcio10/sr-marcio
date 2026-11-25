@@ -77,6 +77,17 @@
   SL.bus.on('live:end', () => CR.evaluate());
 
   // ---------- objetivos ----------
+  // Placas do YouTube (como na vida real: prata com 100 mil, ouro com 1 milhão e diamante com 10 milhões de inscritos).
+  // TikTok e Twitch não dão placa. A placa fica pendurada na parede do escritório e aparece atrás de você na live.
+  const PL = SL.Placas = {};
+  PL.NOMES = { prata: 'Placa de Prata', ouro: 'Placa de Ouro', diamante: 'Placa de Diamante' };
+  PL.lista = () => { const g = G(); const p = (g && g.placas) || {}; return ['prata', 'ouro', 'diamante'].filter(k => p[k]).map(k => ({ id: k, nome: PL.NOMES[k], dia: p[k] })); };
+  PL.ganha = id => {
+    const G0 = G(); G0.placas = G0.placas || {}; if (G0.placas[id]) return;
+    G0.placas[id] = SL.Clock.day() + 1;
+    SL.notify({ cat: 'carreira', icon: 'trophy', title: 'Chegou a sua ' + PL.NOMES[id] + ' do YouTube!', text: 'Ela já está pendurada na parede do escritório.', sound: 'levelup' });
+    SL.bus.emit('placa', id); SL.bus.emit('home');
+  };
   const GO = SL.Goals = {};
   const tf = () => SL.Social.totalFollowers();
   const ownsPc = t => Object.keys(G().equip.owned).some(id => { const e = D.equipById(id); return e && e.slot === 'computador' && e.tier >= t; });
@@ -93,11 +104,14 @@
     { id: 'v100', r: 800, g: 'Carreira', title: 'Live com 100 pessoas ao mesmo tempo', prog: () => [G().ch.pulso.peak, 100] },
     { id: 'mon', r: 1500, g: 'Carreira', title: 'Monetizar o canal no YouTube', hint: '1.000 inscritos e 4.000 horas assistidas.', check: () => G().ch.vision.mon },
     { id: 'f10k', r: 3000, g: 'Carreira', title: 'Alcançar 10 mil inscritos no YouTube', prog: () => [G().ch.vision.f, 10000] },
+    { id: 'yt_prata', r: 5000, g: 'Carreira', title: 'Ganhar a Placa de Prata do YouTube', hint: '100 mil inscritos no YouTube. A placa vai para a parede do escritório.', prog: () => [G().ch.vision.f, 100000], placa: 'prata' },
     { id: 'viral', r: 2500, g: 'Carreira', title: 'Ter um vídeo com 100 mil visualizações', prog: () => [Math.max(0, ...G().videos.map(v => v.views)), 100000] },
     { id: 'v1000', r: 4000, g: 'Carreira', title: 'Live com 1.000 espectadores simultâneos', prog: () => [G().ch.pulso.peak, 1000] },
     { id: 'f100k', r: 10000, g: 'Carreira', title: 'Alcançar 100 mil seguidores', prog: () => [tf(), 100000] },
+    { id: 'yt_ouro', r: 20000, g: 'Carreira', title: 'Ganhar a Placa de Ouro do YouTube', hint: '1 milhão de inscritos no YouTube.', prog: () => [G().ch.vision.f, 1000000], placa: 'ouro' },
     { id: 'top10', r: 8000, g: 'Carreira', title: 'Entrar no top 10 do ranking de criadores', check: () => SL.Creators.ranking().findIndex(x => x.me) < 10 },
     { id: 'f1m', r: 30000, g: 'Carreira', title: 'Chegar a 1 milhão de seguidores', prog: () => [tf(), 1000000] },
+    { id: 'yt_diamante', r: 60000, g: 'Carreira', title: 'Ganhar a Placa de Diamante do YouTube', hint: '10 milhões de inscritos no YouTube.', prog: () => [G().ch.vision.f, 10000000], placa: 'diamante' },
     { id: 'top1', r: 50000, g: 'Carreira', title: 'Ser o maior criador de conteúdo do ranking', check: () => SL.Creators.ranking()[0].me },
     { id: 'pcpro', r: 2000, g: 'Conquistas da vida', title: 'Comprar um computador profissional', check: () => ownsPc(4) },
     { id: 'equipe', r: 1500, g: 'Conquistas da vida', title: 'Montar uma equipe (2 contratados)', prog: () => [G().staff.length, 2] },
@@ -118,6 +132,7 @@
       if (ok) {
         G0.goals[g.id] = SL.Clock.day();
         if (g.r) SL.Econ.add(g.r, 'outros', 'Prêmio da meta: ' + g.title);
+        if (g.placa) PL.ganha(g.placa);
         SL.notify({ cat: 'carreira', icon: 'trophy', title: 'Meta cumprida' + (g.r ? ': +' + U.money0(g.r) : ''), text: g.title, sound: 'success' });
         if (SL.audio) SL.audio.play('success');
       }

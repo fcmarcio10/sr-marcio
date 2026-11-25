@@ -175,7 +175,7 @@
       }
       case 'question': {
         q = o.qtype || C.questionType(v, ctx);
-        if (q === 'pedido') { const og = D.gameById(v.fg); ctx = Object.assign({}, ctx, { og: og ? og.name : 'Xeque Rápido' }); qd = { game: v.fg }; }
+        if (q === 'pedido') { const og = D.gameById(v.fg); ctx = Object.assign({}, ctx, { og: og ? og.name : 'Chess.com' }); qd = { game: v.fg }; }
         if (q === 'opiniao') { const cr = U.pick(D.creators.filter(c => !c.small)); ctx = Object.assign({}, ctx, { cr: cr.name }); qd = { creator: cr.id }; }
         const pool = LL.q[q]; const p = C.pick(pool, v, 'q' + q); line = p ? { tone: 'q', text: p.text } : null; break;
       }
