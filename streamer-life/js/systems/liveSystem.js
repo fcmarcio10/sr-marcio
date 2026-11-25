@@ -31,13 +31,23 @@
 
   const pushMsg = (msg, delayFrac) => {
     const L = LV.cur; if (!L || !msg) return;
-    // modo só emojis: qualquer fala de espectador vira emojis
-    if (L.emoteOnly && msg.kind === 'msg' && msg.vid && !/^(:[a-z]+:\s?)+$/.test(msg.raw || '')) { msg.raw = U.shuffle(LV.EMOTES.slice()).slice(0, U.ri(1, 3)).join(' '); msg.html = SL.Chat.html(msg.raw); msg.q = null; msg.intent = 'emote'; }
+    if (!LV.filtraModo(L, msg)) return;
     const msPerMin = 1000 / (SL.Clock.rate() || 0.25);
     LV.queue.push({ at: performance.now() + (delayFrac == null ? U.rand() : delayFrac) * msPerMin * 0.95, msg });
     L.chat.push(msg); if (L.chat.length > 220) L.chat.splice(0, L.chat.length - 220);
     L.stats.msgs++;
     if (msg.vid) { const st = L.present.get(msg.vid); if (st) st.lastMsg = L.min; const v = SL.Viewers.byId(msg.vid); if (v) v.m.msg++; }
+  };
+  // modos do chat valem para toda fala de espectador (doações e superchats sempre passam)
+  const PASSA = ['donation', 'mod', 'streamer', 'superchat'];
+  LV.filtraModo = (L, msg) => {
+    if (!msg.vid || PASSA.includes(msg.kind)) return true;
+    const v = SL.Viewers.byId(msg.vid); if (v && (v.mod || v.npc)) return true;
+    if (L.followersOnly && !(v && v.fol)) return false;       // quem não segue não consegue escrever
+    if (L.emoteOnly && !/^(:[a-z]+:\s?)+$/.test((msg.raw || '').trim())) {
+      msg.raw = U.shuffle(LV.EMOTES.slice()).slice(0, U.ri(1, 3)).join(' '); msg.html = SL.Chat.html(msg.raw); msg.q = null; msg.qd = null; msg.intent = 'emote'; if (msg.kind !== 'reply_got') msg.kind = 'msg';
+    }
+    return true;
   };
   LV.flush = () => {
     const now = performance.now(); const out = [];
@@ -101,7 +111,10 @@
     if (G0.ch.catHist[g.id] === undefined && G0.ch.pulso.livesN > 3) show *= 0.85;
     const buzz = SL.Videos ? SL.Videos.buzz() : { k: 0 }; show *= 1 + buzz.k; L.buzz = buzz.k > 0.04 ? buzz.plat : null;
     const total = anonF * show + (buzz.k > 0.04 ? Math.round(buzz.k * 8) : 0);
-    for (let m = 0; m < L.planned + 30; m++) L.anonPlan[m] = total * (Math.exp(-m / 15) - Math.exp(-(m + 1) / 15));
+    // chegada dos seguidores: 45% logo no começo (aviso da live) e o resto aos poucos durante a live toda
+    // (antes todos chegavam nos primeiros ~30 min e o público caía rápido depois do pico)
+    const dur = Math.max(40, L.planned || 120), cauda = dur * 0.8;
+    for (let m = 0; m < dur + 30; m++) L.anonPlan[m] = total * (0.45 * (Math.exp(-m / 12) - Math.exp(-(m + 1) / 12)) + 0.55 * (Math.exp(-m / cauda) - Math.exp(-(m + 1) / cauda)) / (1 - Math.exp(-(dur + 30) / cauda)));
     SL.Life.start('live');
     G0.flags.liveToday = day;
     SL.bus.emit('live:start', L);
@@ -411,6 +424,8 @@
     L.followersOnly = modo === 'seguidores'; L.emoteOnly = modo === 'emotes'; G().ch.pulso.followersOnly = L.followersOnly;
     if (L.followersOnly) { L.trolls.forEach(id => { const v = SL.Viewers.byId(id); if (v && !v.fol) L.present.delete(id); }); L.trolls.clear(); }
     if (L.emoteOnly) L.trolls.clear();
+    // o que já estava na fila para aparecer também segue o modo novo
+    LV.queue = LV.queue.filter(q => q.msg.kind === 'streamer' || LV.filtraModo(L, q.msg));
     sys('alert', modo === 'seguidores' ? 'Chat só para seguidores' : modo === 'emotes' ? 'Chat só com emojis' : 'Chat aberto para todos');
   };
 
@@ -480,7 +495,7 @@
       else L.anon++;
     }
     // saída do público agregado
-    const stayAnon = 8 + 30 * Math.pow(L.contentQ / 100, 1.2) + L.hype / 10;
+    const stayAnon = 12 + 38 * Math.pow(L.contentQ / 100, 1.2) + L.hype / 8 + Math.min(10, L.min / 12);   // quem fica um tempo tende a ficar mais
     const leaveN = Math.min(L.anon, U.poisson(L.anon / stayAnon));
     L.anon -= leaveN;
     // seguidores e inscrições vindos do agregado
@@ -520,7 +535,7 @@
       if (v.npc) e = Math.max(e, 0.72);
       st.sat = U.clamp(st.sat * 0.85 + e * 0.15, 0, 1);
       // ir embora
-      let stay = 6 + v.pa * 38 + v.loy * 0.55 + (st.sat - 0.5) * 60;
+      let stay = 9 + v.pa * 42 + v.loy * 0.6 + (st.sat - 0.5) * 60 + Math.min(12, st.mins / 5);   // quem já ficou um tempo se acomoda
       let hd = Math.abs(hour - v.hr); hd = Math.min(hd, 24 - hd); if (hd > 4) stay *= 0.6;
       if (v.npc) stay = Math.max(stay, 60);
       stay = U.clamp(stay, 4, 260);
@@ -934,15 +949,20 @@
   LV.adEspera = () => { const L = LV.cur; if (!L || L.lastAd == null) return 0; return Math.max(0, LV.AD_ESPERA - (L.min - L.lastAd)); };
   // Mod AutoAnúncios (compra única, D.software 'auto_ads'): roda o intervalo sozinho.
   // modo 'logo': assim que libera, roda outro (como o dono faz à mão: espera um terminar e coloca outro).
-  // modo 'cada': a cada N minutos do jogo. 'inicio': minutos de live antes do primeiro intervalo.
-  // (Versão final: o dono quer limite de 2 intervalos por hora, e o de 120 s só 1 vez por hora. Ainda não aplicado.)
+  // modo 'hora': 2 por hora (um a cada 30 min); com o de 120 s, só 1 por hora. 'inicio': minutos de live antes do primeiro.
+  // (Versão final: lembrar o dono se o limite de 2 por hora deve valer sempre, também no "um atrás do outro".)
   LV.temAutoAd = () => !!(G().equip.soft && G().equip.soft.auto_ads);
-  LV.autoCfg = () => { const P = G().ch.pulso; return P.autoAd || (P.autoAd = { on: true, seg: 60, modo: 'logo', cada: 20, inicio: 5 }); };
+  LV.autoCfg = () => { const P = G().ch.pulso; const c = P.autoAd || (P.autoAd = { on: true, seg: 60, modo: 'logo', inicio: 5 }); if (c.modo === 'cada') c.modo = 'hora'; return c; };
+  LV.autoLimite = c => c.seg === 120 ? 1 : 2;     // intervalos por hora no modo 'hora'
   LV.autoMinute = () => {
     const L = LV.cur; if (!L || !LV.temAutoAd()) return;
     const c = LV.autoCfg(); if (!c.on || L.ev.ad || LV.adEspera() > 0) return;
     if (L.min < (c.inicio || 0)) return;
-    if (c.modo === 'cada' && L.min - (L.lastAd != null ? L.lastAd : 0) < c.cada) return;
+    if (c.modo === 'hora') {
+      const lim = LV.autoLimite(c); const hist = (L.adHist || []).filter(m => L.min - m < 60);
+      if (hist.length >= lim) return;                                        // já passou o limite desta hora
+      if (L.lastAd != null && L.min - L.lastAd < 60 / lim) return;           // espalha: um a cada 30 min (ou 60 com o de 120 s)
+    }
     if (!LV.ad(c.seg)) L.stats.autoAds = (L.stats.autoAds || 0) + 1;
   };
   LV.ad = seg => {
@@ -951,7 +971,7 @@
     const falta = LV.adEspera(); if (falta > 0) return 'Espere ' + falta + ' min para outro intervalo de anúncios.';
     if (L.ev.ad) return 'Já tem um intervalo de anúncios passando.';
     const P = G().ch.pulso;
-    touch(); L.stats.ads++; L.lastAd = L.min;
+    touch(); L.stats.ads++; L.lastAd = L.min; (L.adHist = L.adHist || []).push(L.min);
     const rev = Math.round(LV.adValor(o.s, L.viewers) * U.rf(0.85, 1.15) * 100) / 100;
     L.stats.adRev += rev; P.bal += rev;
     (P.ads = P.ads || []).unshift({ t: G().time.t, s: o.s, v: Math.round(L.viewers), rev }); if (P.ads.length > 30) P.ads.length = 30;

@@ -1039,3 +1039,35 @@ body.reduce-motion .win { animation: none; }
   .ml-row { gap: 12px; padding: 12px; } .ml-row .ml-foto { width: 96px; height: 96px; } .ml-row .ml-nome { font-size: 14px; } .ml-app .ml-pv b { font-size: 18px; }
   .ml-app .ml-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } .ml-app .ml-hero { padding: 16px; } .ml-app .ml-hero b { font-size: 19px; } .ml-app .ml-hero-ic { display: none; }
 }
+.ml-app .ml-logo .ml-logo-t { width: auto; height: auto; border-radius: 0; background: none; display: block; color: #2d3277; }
+.ml-app .ml-pv { flex-wrap: wrap; row-gap: 0; } .ml-app .ml-pv b { white-space: nowrap; }
+
+/* ===== celular: apps sem cortar (nov/2026) — a tela do celular é um "container", as regras de tela estreita valem lá dentro ===== */
+.phone .pbody { container-type: inline-size; container-name: tel; }
+.phone .app-head { flex-wrap: wrap; row-gap: 6px; }
+.phone .app-head .tabs { margin-left: 0; width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.phone .app-head .tabs .tab { flex: none; white-space: nowrap; }
+.phone .app-body { overflow-x: hidden; }
+.phone .app-body > * { max-width: 100%; }
+@container tel (max-width: 520px) {
+  .tw-side { display: none; } .tw-nav, .tw-saldo { display: none; } .tw-sobre { grid-template-columns: 1fr 1fr; } .tw-banner { height: 90px; } .tw-canal { padding: 10px 12px; flex-wrap: wrap; } .tw-corpo { padding: 12px; }
+  .tw-wrap, .tw-main { grid-template-columns: 1fr !important; }
+  .ml-app .ml-top { grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 8px 10px; } .ml-app .ml-saldo { display: none; } .ml-app .ml-logo-t { display: none !important; }
+  .ml-busca-pg { grid-template-columns: 1fr; } .ml-filtros { position: static; flex-direction: row; flex-wrap: wrap; gap: 6px; } .ml-filtros h2 { width: 100%; font-size: 18px; } .ml-filtros h4, .ml-filtros > small { display: none; } .ml-fl, .ml-chk { background: #fff; border-radius: 14px; padding: 4px 10px; font-size: 12px; }
+  .ml-row { gap: 10px; padding: 10px; } .ml-row .ml-foto { width: 84px; height: 84px; } .ml-row .ml-nome { font-size: 13px; } .ml-app .ml-pv b { font-size: 17px; }
+  .ml-app .ml-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .ml-app .ml-hero { padding: 14px; } .ml-app .ml-hero b { font-size: 17px; } .ml-app .ml-hero-ic { display: none; }
+  .ml-app .ml-atalhos { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; } .ml-app .ml-atalhos button { padding: 8px 2px; font-size: 10px; } .ml-app .ml-atalhos span { width: 34px; height: 34px; }
+  .ml-app .ml-body { padding: 10px !important; gap: 10px; } .ml-app .ml-sec { padding: 12px; } .ml-app .ml-info { padding: 8px 10px 10px; }
+  .ml-det { grid-template-columns: 1fr; }
+  .grid2, .grid3, .grid4 { grid-template-columns: 1fr 1fr; }
+}
+@container tel (max-width: 520px) {
+  .tw-tabs { overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; } .tw-tabs > * { flex: none; white-space: nowrap; font-size: 13px; padding-left: 8px; padding-right: 8px; }
+  .app-head .tabs .tab { font-size: 12px; padding: 4px 8px; }
+}
+/* live mais simples: só "Clima da live" (com palavra) e "Sua energia"; no máximo 2 avisos */
+.meter-row.simples { gap: 22px; }
+.meter-row.simples .meter.clima .bar { width: 160px; }
+.meter-row.simples #m-txt { font-size: 12px; font-weight: 700; min-width: 86px; }
+/* ícones no estilo dos apps de verdade (js/core/appLogos.js) */
+svg.app-logo { display: block; width: 100%; height: 100%; }

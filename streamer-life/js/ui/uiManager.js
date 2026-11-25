@@ -147,7 +147,7 @@
   UI.renderDesktopIcons = () => {
     const box = $('#overlay-pc .desk-icons'); if (!box) return;
     // só redesenha quando algo muda (antes era a cada segundo e um clique podia se perder)
-    const html = UI.appList('pc').map(id => { const a = SL.Apps[id]; const b = a.badge ? a.badge() : 0; return `<button class="dicon" data-app="${id}"><div class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 22)}${b ? '<span class="dot"></span>' : ''}</div><span>${U.esc(a.title)}</span></button>`; }).join('');
+    const html = UI.appList('pc').map(id => { const a = SL.Apps[id]; const b = a.badge ? a.badge() : 0; const tl = SL.appTile(id, a, 22); return `<button class="dicon" data-app="${id}"><div class="ai" style="${tl.style}">${tl.inner}${b ? '<span class="dot"></span>' : ''}</div><span>${U.esc(a.title)}</span></button>`; }).join('');
     UI.renderWidgets();
     if (box._html === html) return; box._html = html; box.innerHTML = html;
     if (!box._click) { box._click = true; box.addEventListener('click', e => { const b = e.target.closest('[data-app]'); if (b) UI.openApp(b.dataset.app); }); }
@@ -169,7 +169,7 @@
   // menu Iniciar com todos os apps do PC
   UI.renderStart = () => {
     const sm = $('#overlay-pc .start-menu'); if (!sm) return; const G = SL.G;
-    sm.innerHTML = `<div class="sm-h"><canvas class="sm-ava"></canvas><div><b>${U.esc(G.player.channel)}</b><small>${U.esc(SL.Career.tierName())}</small></div></div><div class="sm-grid">${UI.appList('pc').map(id => { const a = SL.Apps[id]; return `<button class="sm-app" data-app="${id}"><span class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 20)}</span><span>${U.esc(a.title)}</span></button>`; }).join('')}</div><div class="sm-f"><button class="btn sm danger" data-off>${UI.ic('exit', 15)} Desligar o PC</button></div>`;
+    sm.innerHTML = `<div class="sm-h"><canvas class="sm-ava"></canvas><div><b>${U.esc(G.player.channel)}</b><small>${U.esc(SL.Career.tierName())}</small></div></div><div class="sm-grid">${UI.appList('pc').map(id => { const a = SL.Apps[id]; const tl = SL.appTile(id, a, 20); return `<button class="sm-app" data-app="${id}"><span class="ai" style="${tl.style}">${tl.inner}</span><span>${U.esc(a.title)}</span></button>`; }).join('')}</div><div class="sm-f"><button class="btn sm danger" data-off>${UI.ic('exit', 15)} Desligar o PC</button></div>`;
     SL.Avatar.toCanvas($('.sm-ava', sm), G.player.look, { scale: 1 });
     sm.querySelectorAll('[data-app]').forEach(b => b.onclick = () => { sm.hidden = true; UI.openApp(b.dataset.app); });
     $('[data-off]', sm).onclick = () => { sm.hidden = true; UI.closePC('desligar'); };
@@ -265,7 +265,7 @@
     const w = Math.min(a.w || 900, W0 - 40), h = Math.min(a.h || 600, H0 - 30);
     const off = (wins.length % 5) * 26;
     el.style.width = w + 'px'; el.style.height = h + 'px'; el.style.left = Math.round(U.clamp((W0 - w) / 2 + off, 8, Math.max(8, W0 - w - 8))) + 'px'; el.style.top = Math.round(U.clamp((H0 - h) / 2 + off - 10, 8, Math.max(8, H0 - h - 8))) + 'px';
-    el.innerHTML = `<div class="wh"><div class="wi" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 13)}</div><b>${U.esc(a.title)}</b><button class="ibtn" data-min title="Minimizar">${UI.ic('minimize', 15)}</button><button class="ibtn" data-max title="Maximizar">${UI.ic('maximize', 14)}</button><button class="ibtn" data-close title="Fechar">${UI.ic('x', 15)}</button></div><div class="wb"></div><div class="resize"></div>`;
+    el.innerHTML = `<div class="wh"><div class="wi" style="${SL.appTile(id, a, 13).style}">${SL.appTile(id, a, 13).inner}</div><b>${U.esc(a.title)}</b><button class="ibtn" data-min title="Minimizar">${UI.ic('minimize', 15)}</button><button class="ibtn" data-max title="Maximizar">${UI.ic('maximize', 14)}</button><button class="ibtn" data-close title="Fechar">${UI.ic('x', 15)}</button></div><div class="wb"></div><div class="resize"></div>`;
     area.appendChild(el);
     const body = $('.wb', el);
     const win = { id: U.uid('w'), app: id, el, min: false, focus: false, unsub: [] };
@@ -321,7 +321,7 @@
     if (!id) {
       phoneCtx = null;
       const G = SL.G;
-      fresh.innerHTML = `<div class="phone-home"><div><div class="big-t">${U.esc(G.player.channel)}</div><div class="muted">${U.num(SL.Social.totalFollowers())} seguidores · ${U.money0(G.money)}</div></div><div class="app-grid">${UI.appList('phone').map(k => { const a = SL.Apps[k]; const b = a.badge ? a.badge() : 0; return `<button class="dicon" data-app="${k}"><div class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 22)}${b ? '<span class="badge">' + (b > 99 ? '99+' : b) + '</span>' : ''}</div><span>${U.esc(a.short || a.title)}</span></button>`; }).join('')}</div></div>`;
+      fresh.innerHTML = `<div class="phone-home"><div><div class="big-t">${U.esc(G.player.channel)}</div><div class="muted">${U.num(SL.Social.totalFollowers())} seguidores · ${U.money0(G.money)}</div></div><div class="app-grid">${UI.appList('phone').map(k => { const a = SL.Apps[k]; const b = a.badge ? a.badge() : 0; const tl = SL.appTile(k, a, 22); return `<button class="dicon" data-app="${k}"><div class="ai" style="${tl.style}">${tl.inner}${b ? '<span class="badge">' + (b > 99 ? '99+' : b) + '</span>' : ''}</div><span>${U.esc(a.short || a.title)}</span></button>`; }).join('')}</div></div>`;
       $$('[data-app]', fresh).forEach(b => b.onclick = () => UI.phoneApp(b.dataset.app));
       return;
     }

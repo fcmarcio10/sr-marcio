@@ -154,10 +154,10 @@
     ov.innerHTML = `<div class="studio">
       <div class="live-main">
         <div class="live-top"><span class="onair"><i></i>AO VIVO</span><div class="ttl"><b class="ellipsis" id="lv-t"></b><small id="lv-g"></small></div>
-          <div class="lstats"><div class="lstat v"><b id="ls-v">0</b><span>assistindo</span></div><div class="lstat"><b id="ls-f">+0</b><span>seguidores</span></div><div class="lstat"><b id="ls-s">0</b><span>inscrições</span></div><div class="lstat"><b id="ls-d">R$ 0</b><span>doações</span></div><div class="lstat"><b id="ls-t">0:00</b><span>no ar</span></div></div><div class="lctl" id="lv-ctl"></div></div>
+          <div class="lstats"><div class="lstat v"><b id="ls-v">0</b><span>assistindo</span></div><div class="lstat"><b id="ls-f">+0</b><span>seguidores</span></div><div class="lstat" id="ls-s-box" ${SL.G.ch.pulso.afil ? '' : 'hidden'}><b id="ls-s">0</b><span>inscrições</span></div><div class="lstat"><b id="ls-d">R$ 0</b><span>doações</span></div><div class="lstat"><b id="ls-t">0:00</b><span>no ar</span></div></div><div class="lctl" id="lv-ctl"></div></div>
         <div class="preview-wrap" id="lv-wrap"><div class="preview-box" id="lv-box"><canvas id="lv-cv"></canvas><div class="alerts" id="lv-al"></div><div class="mom" id="lv-mom" hidden></div></div></div>
-        <div class="meter-row"><div class="meter" title="Empolgação do chat">${ic('fire', 14)}<span>Empolgação</span><div class="bar"><i id="m-h"></i></div></div><div class="meter" title="Qualidade do conteúdo agora">${ic('star', 14)}<span>Conteúdo</span><div class="bar"><i id="m-c"></i></div></div><div class="meter" title="Qualidade técnica">${ic('cpu', 14)}<span>Técnica</span><div class="bar"><i id="m-t"></i></div></div><div class="meter" title="Sua energia">${ic('energy', 14)}<span>Você</span><div class="bar"><i id="m-e"></i></div></div><span id="m-issues" class="row gap4"></span></div>
-        <div class="lv-dock" id="lv-dock"><span class="lv-dock-t">Apps</span>${LUI.JANELA_APPS.filter(id => SL.Apps[id]).map(id => { const a = SL.Apps[id]; return `<button data-lw="${id}" title="Abrir ${esc(a.title)} sem sair da live"><span class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${ic(a.icon, 13)}</span><span>${esc(a.short || a.title)}</span></button>`; }).join('')}</div>
+        <div class="meter-row simples"><div class="meter clima" title="Como o público está gostando agora (empolgação + conteúdo)">${ic('fire', 14)}<span>Clima da live</span><div class="bar"><i id="m-h"></i></div><b id="m-txt">—</b></div><div class="meter" title="Seu cansaço: com sono o PC desliga">${ic('energy', 14)}<span>Sua energia</span><div class="bar"><i id="m-e"></i></div></div><span id="m-issues" class="row gap4"></span></div>
+        <div class="lv-dock" id="lv-dock"><span class="lv-dock-t">Apps</span>${LUI.JANELA_APPS.filter(id => SL.Apps[id]).map(id => { const a = SL.Apps[id]; return `<button data-lw="${id}" title="Abrir ${esc(a.title)} sem sair da live"><span class="ai" style="${SL.appTile(id, a, 13).style}">${SL.appTile(id, a, 13).inner}</span><span>${esc(a.short || a.title)}</span></button>`; }).join('')}</div>
       </div>
       <div class="live-side"><div class="sh">${ic('chat', 16)}<b class="grow">Chat</b><span class="tiny muted" id="lv-rate"></span></div><div class="actions" id="lv-actions"></div><div class="chat-tip tiny muted">O Bigode (moderador) cuida do chat. Clique num comentário só se quiser responder.</div><div class="chat" id="lv-chat"></div><div class="pending" id="lv-pend"></div>
         <form class="chat-input" id="lv-form"><input class="input" id="lv-in" maxlength="120" placeholder="Escrever no chat como ${esc(G.player.user)}" autocomplete="off"><button class="btn primary sm">${ic('send', 14)}</button></form></div>
@@ -182,7 +182,7 @@
     const main = $('#overlay-live .live-main'); if (!main) return;
     LUI.fechaJanela();
     const w = document.createElement('div'); w.className = 'lv-win';
-    w.innerHTML = `<div class="lv-win-h"><span class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${ic(a.icon, 13)}</span><b class="grow">${esc(a.title)}</b><span class="tiny muted">a live continua</span><button class="ibtn" data-lwx title="Fechar">${ic('x', 15)}</button></div><div class="lv-win-b"></div>`;
+    w.innerHTML = `<div class="lv-win-h"><span class="ai" style="${SL.appTile(id, a, 13).style}">${SL.appTile(id, a, 13).inner}</span><b class="grow">${esc(a.title)}</b><span class="tiny muted">a live continua</span><button class="ibtn" data-lwx title="Fechar">${ic('x', 15)}</button></div><div class="lv-win-b"></div>`;
     main.appendChild(w);
     const ctx = UI.makeCtx(id, $('.lv-win-b', w), args || {}, 'live');
     const unsub = (a.watch || []).map(ev => { const fn = () => { if (LUI._jan && LUI._jan.ctx === ctx) ctx.rr(); }; SL.bus.on(ev, fn); return [ev, fn]; });
@@ -212,7 +212,7 @@
     L.hype = U.clamp(L.hype + 1.5, 0, 100);
     const low = text.toLowerCase();
     const named = [...L.present.values()].map(st => SL.Viewers.byId(st.id)).filter(Boolean).find(v => low.includes('@' + v.u) || low.includes(v.u));
-    if (named) { const st = L.present.get(named.id); st.replied = true; st.repliedAt = L.min; st.sat = U.clamp(st.sat + 0.15, 0, 1); named.m.rep++; setTimeout(() => { if (SL.Live.cur && SL.Live.cur.present.has(named.id)) { const r = SL.Chat.say(named, 'react', SL.Live.ctx(), { kind: 'reply_got' }); if (r) { SL.Live.cur.chat.push(r); buf.push(r); } } }, 900); }
+    if (named) { const st = L.present.get(named.id); st.replied = true; st.repliedAt = L.min; st.sat = U.clamp(st.sat + 0.15, 0, 1); named.m.rep++; setTimeout(() => { if (SL.Live.cur && SL.Live.cur.present.has(named.id)) { const r = SL.Chat.say(named, 'react', SL.Live.ctx(), { kind: 'reply_got' }); if (r && SL.Live.filtraModo(SL.Live.cur, r)) { SL.Live.cur.chat.push(r); buf.push(r); } } }, 900); }
     else if (/\?$/.test(text)) SL.Live.reactAll('talk_ok', 0.25);
   };
   LUI.actions = () => {
@@ -438,9 +438,12 @@
       $('#ls-t').textContent = Math.floor(L.min / 60) + ':' + String(L.min % 60).padStart(2, '0');
       $('#lv-g').textContent = D.gameById(L.game).name + ' · ' + SL.GameSim.status(L.sim);
       const setBar = (id, v, col) => { const b = $(id); if (b) { b.style.width = U.clamp(v, 0, 100) + '%'; if (col) b.style.background = col; } };
-      setBar('#m-h', L.hype, '#ff7a1a'); setBar('#m-c', L.contentQ, '#8b5cf6'); setBar('#m-t', L.tech.overall, L.tech.overall < 40 ? 'var(--bad)' : '#4cc3ff'); setBar('#m-e', Math.min(G.needs.energia, G.needs.sono), '#ffe066');
+      const clima = L.hype * 0.55 + L.contentQ * 0.45; const cl = clima >= 70 ? ['Pegando fogo', '#ff5a1f'] : clima >= 50 ? ['Animada', '#ff9a1a'] : clima >= 30 ? ['Morna', '#e9c46a'] : ['Parada', '#8a8fa3'];
+      setBar('#m-h', clima, cl[1]); const mt = $('#m-txt'); if (mt && mt.textContent !== cl[0]) { mt.textContent = cl[0]; mt.style.color = cl[1]; }
+      setBar('#m-e', Math.min(G.needs.energia, G.needs.sono), G.needs.energia < 30 ? 'var(--bad)' : '#ffe066');
+      const sb = $('#ls-s-box'); if (sb) sb.hidden = !G.ch.pulso.afil;
       const iss = []; if (L.silence > 6) iss.push(ic('micOff', 13) + ' Você está quieto(a) há ' + L.silence + ' min'); if (L.ev.mic) iss.push(ic('mic', 13) + ' Sem áudio'); if (L.ev.net > 0) iss.push(ic('wifiOff', 13) + ' Rede instável'); if (L.tech.fps < 0.8) iss.push(ic('cpu', 13) + ' PC no limite'); if (L.trolls.size) iss.push(ic('alert', 13) + ' Troll no chat'); if (G.needs.sede < 20 || G.needs.fome < 20) iss.push(ic('food', 13) + ' Fome/sede: faça uma pausa');
-      const ie = $('#m-issues'); const ih = iss.map(x => `<span class="issue">${SL.Chat.fill(x, null, {})}</span>`).join(''); if (ie.dataset.h !== ih) { ie.innerHTML = ih; ie.dataset.h = ih; }
+      const ie = $('#m-issues'); const ih = iss.slice(0, 2).map(x => `<span class="issue">${SL.Chat.fill(x, null, {})}</span>`).join(''); if (ie.dataset.h !== ih) { ie.innerHTML = ih; ie.dataset.h = ih; }
       $('#lv-rate').textContent = L.stats.msgs ? Math.round(L.stats.msgs / Math.max(1, L.min)) + ' msgs/min' : '';
       LUI.pending(); LUI.actions();
     }
