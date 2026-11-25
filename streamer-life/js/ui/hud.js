@@ -99,6 +99,7 @@
   HUD.goToPC = () => {
     const G = SL.G;
     if (G.loc.area !== 'casa') return UI.err('O computador está em casa.');
+    { const b = SL.Life.pcBloqueio(); if (b) return UI.alert('Cuide da sua saúde', b, 'health'); }
     const o = SL.HomeScene.objects().find(x => x.id === 'mesa');
     SL.HomeScene.goToObject(o, () => UI.openPC());
   };

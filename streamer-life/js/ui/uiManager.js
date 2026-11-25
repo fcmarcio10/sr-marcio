@@ -95,6 +95,7 @@
     const G = SL.G;
     if (G.loc.area !== 'casa') return UI.err('O computador fica em casa.');
     if (!SL.Equip.item('computador')) return UI.err('Seu computador está quebrado. Conserte ou compre outro (pelo celular: app Loja).');
+    { const b = SL.Life.pcBloqueio(); if (b) { UI.alert('Cuide da sua saúde', b, 'health'); return; } }
     if (G.act && G.act.id !== 'usar_pc' && G.act.id !== 'live' && !SL.Life.ACT[G.act.id].pc) { if (SL.Life.ACT[G.act.id].sleep) return UI.err('Você está dormindo.'); SL.Life.stop(false); }
     if (SL.HomeScene) { const d = SL.HomeScene.objects().find(o => o.id === 'mesa'); if (d) SL.HomeScene.placeAt('mesa'); }
     // voltou para o PC com a live no ar: volta a jogar ao vivo
@@ -111,6 +112,15 @@
   };
   // mode 'sair': levanta do PC (com a live no ar, ela continua enquanto você estiver em casa)
   // mode 'desligar': desliga o PC (com a live no ar, pergunta e encerra a live)
+  // fome, sede ou sono: o PC desliga sozinho (encerra a live e para a edição)
+  UI.pcSaude = () => {
+    const b = SL.Life.pcBloqueio(); if (!b || !UI.pcOpen()) return;
+    document.querySelectorAll('#modals .modal.criar').forEach(m => { const bg = m.closest('.modal-bg'); if (bg) bg.remove(); }); document.body.classList.remove('criar-open');
+    if (SL.Live && SL.Live.cur) SL.LiveUI.finish('saude');
+    const G = SL.G; if (G.act && G.act.id !== 'usar_pc' && SL.Life.ACT[G.act.id] && SL.Life.ACT[G.act.id].pc) SL.Life.stop(false);
+    UI.closePC();
+    UI.alert('O PC desligou', b, 'health');
+  };
   UI.closePC = mode => {
     const ov = $('#overlay-pc'); if (ov.hidden) return;
     const L = SL.Live && SL.Live.cur;

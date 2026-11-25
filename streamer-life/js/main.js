@@ -83,7 +83,7 @@
     SL.HUD.update();
     if (now - lastSlow > 250) {
       lastSlow = now;
-      UI.checkDecisions(); SL.HUD.placePanel(); SL.HUD.stageOverlay(); if (G.resumo) SL.HUD.resumoSemana();
+      UI.pcSaude(); UI.checkDecisions(); SL.HUD.placePanel(); SL.HUD.stageOverlay(); if (G.resumo) SL.HUD.resumoSemana();
       if (SL.audio.ambiente) { const a = G.act; SL.audio.ambiente({ chuva: !!G.flags.chuva, fora: G.loc.area !== 'casa', teclado: !!(a && ['editar', 'freela', 'estudar'].includes(a.id)), live: !!SL.Live.cur }); }
       if (pcOpen) {
         const ts = $('#overlay-pc .tb-speeds'); if (ts) { const ar = !!SL.Live.cur; if (ts.hidden === ar) ts.hidden = !ar; }

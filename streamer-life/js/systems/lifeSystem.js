@@ -44,6 +44,15 @@
     return U.clamp(c, 5, 100);
   };
 
+  L.GASTO = { fome: 2.5, sede: 2.5, energia: 2.8 };
+  // com fome, sede ou sono o PC desliga e não liga até você se cuidar (pedido do dono)
+  L.pcBloqueio = () => {
+    const n = G().needs; const p = [];
+    if (n.fome < 20) p.push('com fome'); if (n.sede < 20) p.push('com sede'); if (L.tiredLevel() >= 2) p.push('com sono');
+    if (!p.length) return null;
+    const o = { 'com fome': 'coma alguma coisa', 'com sede': 'beba água', 'com sono': 'durma um pouco' };
+    return 'Você está ' + p.join(' e ').replace(/ e (?=.* e )/, ', ') + '. Cuide da sua saúde primeiro: ' + p.map(x => o[x]).join(', ') + '.';
+  };
   L.warnings = () => {
     const n = G().needs, w = [];
     if (n.fome < 20) w.push('Com fome'); if (n.sede < 20) w.push('Com sede');
@@ -259,6 +268,8 @@
       if (n.fome < 8 || n.sede < 8) d.energia -= 6 / 60;
       if (lf.caf > 0) { if (d.energia < 0) d.energia *= 0.5; if (--lf.caf === 0) d.energia -= 6; }
     }
+    // nov/2026 (pedido do dono): fome e sede gastam 2,5x mais devagar e o cansaço 2,8x mais devagar
+    if (d.fome < 0) d.fome /= L.GASTO.fome; if (d.sede < 0) d.sede /= L.GASTO.sede; if (d.energia < 0) d.energia /= L.GASTO.energia;
     L.mod(d);
     // atividade
     if (a) {

@@ -228,13 +228,19 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await page.click('.win [data-act="tab"][data-t="feed"]'); await page.waitForTimeout(300); await shot('12_connect_feed');
 
   // 9. contas e banco
-  await ev(() => { SL.debug.money(3000); const d = SL.Clock.day(); SL.debug.skip(((SL.Clock.dayForDayOfMonth(d, 10) - d) * 1440) + 600); });
+  await ev(() => { SL.debug.money(3000); const d = SL.Clock.day(); SL.debug.skip(((SL.Clock.dayForDayOfMonth(d, 10) - d) * 1440) + 600); SL.debug.fill(); });
+  await fechaJanelas(); await ev(() => { if (!SL.UI.pcOpen()) SL.UI.openPC(); });
   const bank = await ev(() => ({ paid: SL.G.ledger.some(l => /Aluguel/.test(l.desc) && l.v < 0), money: SL.G.money, pend: SL.Econ.pending().length }));
   ok('aluguel pago no vencimento (débito automático)', bank.paid, bank);
   await page.waitForTimeout(300); await fechaJanelas();
   await page.click('.dicon[data-app="banco"]'); await page.waitForTimeout(300); await shot('13_banco');
 
   await page.waitForTimeout(300); await fechaJanelas();
+  await ev(() => { SL.G.needs.fome = 10; }); await page.waitForTimeout(800);
+  ok('com fome o PC desliga e avisa para cuidar da saúde', await ev(() => !SL.UI.pcOpen() && /saúde/.test(document.querySelector('.modal') ? document.querySelector('.modal').textContent : '')));
+  await fechaJanelas(); await ev(() => SL.UI.openPC()); await page.waitForTimeout(300);
+  ok('com fome o PC não liga', await ev(() => !SL.UI.pcOpen() && !!SL.Life.pcBloqueio()));
+  await fechaJanelas(); await ev(() => SL.debug.fill());
   // 10. cidade, lugar e relacionamento
   await ev(() => { SL.UI.closePC(); if (SL.G.act) SL.Life.stop(false); SL.debug.fill(); SL.debug.toHour(10); SL.debug.fill(); });
   await ev(() => { SL.City.goOutside(); SL.City.travel('cafeteria', 'onibus'); });
