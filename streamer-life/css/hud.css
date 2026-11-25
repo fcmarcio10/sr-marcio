@@ -1082,3 +1082,10 @@ svg.app-logo { display: block; width: 100%; height: 100%; }
 .ref-am { width: 100%; height: 54px; border-radius: 7px; border: 1px solid rgba(0,0,0,.25); }
 .ref-it b { font-size: 12.5px; } .ref-it small { font-size: 11px; color: var(--muted); line-height: 1.25; } .ref-it em { font-style: normal; font-size: 12px; font-weight: 700; color: #35d39a; }
 .ref-it[disabled] em { color: var(--muted); } .ref-it.on em { color: #35d39a; }
+/* Mod de Cortes (editor contratado) */
+.ct-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.ct-ed { display: flex; flex-direction: column; gap: 8px; } .ct-ed.on { border-color: #35d39a; }
+.ct-ed .btn { margin-top: auto; }
+.ct-ava { width: 40px; height: 40px; border-radius: 50%; background: var(--panel3, #262a36); flex: none; }
+.ct-info { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); }
+.ct-atual { border-color: var(--accent); display: flex; flex-direction: column; gap: 8px; }

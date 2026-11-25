@@ -186,4 +186,32 @@ ${G.flags.mealReady ? `<div class="card" style="border-color:var(--ok)"><div cla
       if (a === 'rodar') { const e = SL.Live.ad(+ds.s); if (e) return e; UI.toast({ title: 'Intervalo de anúncios', text: ds.s + ' segundos rodando na live.', icon: 'ads', cat: 'canal' }, 'cash'); return ctx.render(); }
     },
   };
+
+  // Mod de Cortes: contratar um editor que posta cortes da live no YouTube e no TikTok
+  SL.Apps.cortes = {
+    title: 'Mod de Cortes', short: 'Cortes', icon: 'scissors', color: 'linear-gradient(135deg,#ff7a1a,#e0306a)', order: 4.5, pc: true, phone: true, w: 760, h: 640,
+    watch: ['staff', 'money', 'videos', 'live:end'],
+    sig() { const s = SL.G.cortador; return [JSON.stringify(s || {}), Math.floor(SL.G.money)]; },
+    render(el, ctx) {
+      const C = SL.Cortador, s = C.estado(), ed = C.atual(), G = SL.G, esc = SL.U.esc, ic = SL.UI.ic, U = SL.U;
+      const meus = ed ? G.videos.filter(v => v.cortador).slice(-6).reverse() : [];
+      const dias = s ? SL.Clock.day() - s.desde : 0;
+      const topo = ed ? `<div class="card ct-atual"><div class="row gap8"><canvas class="ct-ava" data-ct="${ed.id}"></canvas><div class="grow"><b>${esc(ed.nome)}</b> <span class="tag">${esc(ed.nivel)}</span><div class="tiny muted">Trabalha para você ${dias ? 'há ' + dias + (dias === 1 ? ' dia' : ' dias') : 'desde hoje'} · ${s.feitos} cortes postados · ${U.money(ed.semana)} por semana</div></div><button class="btn sm danger" data-act="demitir">Demitir</button></div>
+          <div class="mod-l"><span>Onde ele posta</span><div class="row wrap gap4"><button class="chip ${s.redes.vision ? 'on' : ''}" data-act="rede" data-v="vision">YouTube</button><button class="chip ${s.redes.clipz ? 'on' : ''}" data-act="rede" data-v="clipz">TikTok</button></div></div>
+          <div class="tiny muted">Depois de cada live (de pelo menos 10 min) ele posta ${ed.porRede} corte${ed.porRede > 1 ? 's' : ''} em cada rede marcada, além dos cortes automáticos. O salário sai a cada 7 dias do jogo; sem dinheiro, ele vai embora.</div></div>`
+        : `<div class="card ad-st">${ic('scissors', 16)}<span>Contrate um editor e ele cria e posta cortes da sua live no <b>YouTube</b> e no <b>TikTok</b> sozinho, depois de cada live. Você paga por semana.</span></div>`;
+      const lista = C.EDITORES.map(e => { const atual = s && s.id === e.id, sem = G.money < e.semana; return `<div class="card ct-ed ${atual ? 'on' : ''}"><div class="row gap8"><canvas class="ct-ava" data-ct="${e.id}"></canvas><div class="grow"><b>${esc(e.nome)}</b> <span class="tag">${esc(e.nivel)}</span><div class="tiny muted">${esc(e.desc)}</div></div></div>
+        <div class="ct-info"><span><b>${e.porRede}</b> corte${e.porRede > 1 ? 's' : ''} por rede a cada live</span><span>Edição <b>${e.base >= 78 ? 'ótima' : e.base >= 64 ? 'boa' : 'simples'}</b></span><span class="ok"><b>${U.money(e.semana)}</b> / semana</span></div>
+        <button class="btn sm ${atual ? 'ml-off-bt' : 'primary'}" data-act="contratar" data-v="${e.id}" ${atual || sem ? 'disabled' : ''}>${atual ? 'Trabalhando para você' : sem ? 'Saldo insuficiente' : s ? 'Trocar por ' + esc(e.nome.split(' ')[0]) : 'Contratar'}</button></div>`; }).join('');
+      const feitos = meus.length ? `<div class="card col gap4"><b class="small">Últimos cortes dele</b><div class="list">${meus.map(v => `<div class="li"><span class="tag">${v.plat === 'clipz' ? 'TikTok' : 'YouTube'}</span><div class="grow small ellipsis">${esc(v.title)}</div><span class="tiny muted mono">${U.num(v.views)} views</span></div>`).join('')}</div></div>` : '';
+      el.innerHTML = `<div class="app"><div class="app-head"><h2>${ic('scissors', 16)} Mod de Cortes</h2><span class="tiny muted" style="margin-left:auto">Editor que posta por você</span></div><div class="app-body col gap8">${topo}<b class="small">${s ? 'Outros editores' : 'Escolha um editor'}</b><div class="ct-lista">${lista}</div>${feitos}</div></div>`;
+      UI.$$('canvas[data-ct]', el).forEach(cv => { const e = C.editor(cv.dataset.ct); if (e) SL.Avatar.toCanvas(cv, C.lookDe(e), { scale: 1 }); });
+    },
+    act(a, ds, ctx) {
+      const C = SL.Cortador;
+      if (a === 'contratar') { const e = C.contratar(ds.v); if (e) return e; SL.audio.play('cash'); return ctx.render(); }
+      if (a === 'demitir') return UI.confirm('Demitir o editor', 'Os cortes extras param na próxima live. A semana já paga não volta.', () => { C.demitir(); ctx.render(); }, 'Demitir', true);
+      if (a === 'rede') { const s = C.estado(); C.setRede(ds.v, !s.redes[ds.v]); return ctx.render(); }
+    },
+  };
 })(window.SL);

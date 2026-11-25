@@ -1051,7 +1051,7 @@
     // material bruto para cortes
     const rawLive = SL.Videos ? SL.Videos.addRaw({ kind: 'live', game: L.game, minutes: dur, quality: Math.round(avgQ * 0.65 + L.tech.overall * 0.35), moments: L.best.slice(0, 8).map(m => ({ type: m.type, txt: m.txt, int: m.int, funny: m.funny, mt: m.mt, clip: m.clip, big: !!m.big })), live: L.id, title: L.title }) : null;
     // cortes automáticos no TikTok e no YouTube assim que a live acaba (pedido do dono)
-    const cortes = rawLive && dur >= 10 ? SL.Videos.autoCortes(rawLive.id) : [];
+    const cortes = rawLive && dur >= 10 ? SL.Videos.autoCortes(rawLive.id).concat(SL.Cortador ? SL.Cortador.aposLive(rawLive.id) : []) : [];   // + os do Mod de Cortes (editor contratado)
     SL.Life.skillUp('carisma', dur / 60 * 0.5); SL.Life.skillUp('jogo', dur / 60 * 0.35);
     // reputação
     if (L.toxic > 6 && L.trolls.size) SL.Rep.mod({ imagem: -1 });
