@@ -4,6 +4,10 @@
 (function (SL) {
   const U = SL.U, D = SL.D;
   const LV = SL.Live = {};
+  // requisitos da Twitch (mostrados no app da Twitch e no OBS): média das últimas 7 lives (afiliado) e 10 (parceiro)
+  LV.media = n => { const a = SL.G.ch.avgViewers.slice(-n); return a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0; };
+  LV.reqAfiliado = () => { const P = SL.G.ch.pulso; return [{ id: 'f', nome: 'Ter 50 seguidores', v: P.f, meta: 50 }, { id: 'h', nome: 'Transmitir por 8 horas', v: P.hours, meta: 8, horas: 1 }, { id: 'd', nome: 'Fazer live em 7 dias diferentes', v: P.livesN, meta: 7 }, { id: 'm', nome: 'Média de 3 espectadores', v: LV.media(7), meta: 3, media: 1 }]; };
+  LV.reqParceiro = () => { const P = SL.G.ch.pulso; return [{ id: 'f', nome: 'Ter 15 mil seguidores', v: P.f, meta: 15000 }, { id: 'h', nome: 'Transmitir por 150 horas', v: P.hours, meta: 150, horas: 1 }, { id: 'm', nome: 'Média de 75 espectadores', v: LV.media(10), meta: 75, media: 1 }]; };
   const G = () => SL.G;
   LV.cur = null; LV.queue = []; LV.CAP_PRESENT = 45; LV.MSG_CAP_MIN = 34;
 
@@ -968,8 +972,8 @@
     // repasse na hora (antes era toda segunda-feira): doações, inscrições e anúncios caem na conta
     if (P.bal >= 0.01) { const v = Math.round(P.bal * 100) / 100; P.bal = 0; SL.Econ.add(v, 'doacoes', 'Repasse da Twitch (live)'); sum.pago = v; }
     // afiliado
-    if (!P.afil && P.f >= 50 && P.livesN >= 7 && avg >= 3) { P.afil = true; SL.notify({ cat: 'carreira', icon: 'star', title: 'Você virou afiliado(a) da Twitch!', text: 'Agora seus espectadores podem se inscrever e você pode rodar anúncios.' }); if (SL.audio) SL.audio.play('levelup'); }
-    if (P.afil && !P.parc && P.f >= 15000 && P.hours >= 150 && G0.ch.avgViewers.slice(-10).reduce((a, b) => a + b, 0) / Math.min(10, G0.ch.avgViewers.length) >= 75) { P.parc = true; SL.notify({ cat: 'carreira', icon: 'crown', title: 'Parceria Twitch aprovada!', text: 'Selo de parceiro, 1440p e repasse maior.' }); }
+    if (!P.afil && LV.reqAfiliado().every(r => r.v >= r.meta)) { P.afil = true; SL.notify({ cat: 'carreira', icon: 'star', title: 'Você virou afiliado(a) da Twitch!', text: 'Agora seus espectadores podem se inscrever e você pode rodar anúncios.' }); if (SL.audio) SL.audio.play('levelup'); }
+    if (P.afil && !P.parc && LV.reqParceiro().every(r => r.v >= r.meta)) { P.parc = true; SL.notify({ cat: 'carreira', icon: 'crown', title: 'Parceria Twitch aprovada!', text: 'Selo de parceiro, 1440p e repasse maior.' }); }
     if (record) SL.notify({ cat: 'canal', icon: 'trophy', title: 'Recorde de público!', text: 'Pico de ' + U.int(L.peak) + ' pessoas ao mesmo tempo.' });
     SL.bus.emit('live:end', sum);
     if (SL.Goals) SL.Goals.check();

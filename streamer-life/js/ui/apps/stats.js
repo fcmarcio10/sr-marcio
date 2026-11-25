@@ -8,7 +8,7 @@
     watch: ['career', 'goals', 'rep', 'tick:day'],
     render(el, ctx) {
       const st = ctx.st; if (ctx.args && ctx.args.tab && !st.used) { st.used = 1; st.tab = ctx.args.tab; }
-      st.tab = st.tab || 'carreira';
+      st.tab = st.tab || (ctx.args && ctx.args.tab) || 'carreira';
       const tabs = [['carreira', 'Carreira'], ['seguidores', 'Seguidores'], ['reputacao', 'Reputação'], ['ranking', 'Ranking'], ['objetivos', 'Objetivos'], ['historico', 'Acontecimentos']];
       el.innerHTML = `<div class="app"><div class="app-head"><h2>${ic('stats', 16)} Estatísticas</h2><div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab]()}</div></div>`;
       const cv = el.querySelector('#st-f'); if (cv) { const d = SL.G.stats.days.slice(-60); UI.chart(cv, [{ data: d.map(x => x.f.p), color: '#8b5cf6' }, { data: d.map(x => x.f.v), color: '#ff5a36', fill: false }, { data: d.map(x => x.f.c), color: '#19d3c5', fill: false }, { data: d.map(x => x.f.n), color: '#3b82f6', fill: false }], { labels: d.map(() => '') }); }

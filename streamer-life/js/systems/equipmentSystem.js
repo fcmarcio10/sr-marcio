@@ -20,11 +20,26 @@
   Q.isBlackFriday = () => SL.Clock.md() === '11-26' || SL.Clock.md() === '11-27';
   Q.price = it => Math.round(it.price * (Q.isBlackFriday() ? 0.7 : 1));
 
+  // Peças do PC de mesa (processador, placa de vídeo, RAM, SSD, fonte, refrigeração).
+  // No notebook não dá para trocar peça. Fonte fraca para a placa de vídeo: a placa rende só 40%.
+  Q.PECAS = ['cpu', 'gpu', 'ram', 'ssd', 'fonte', 'cooler'];
+  Q.pecas = () => {
+    const pc = Q.item('computador'); const r = { perf: 0, render: 0, w: 0, need: 0, supply: 0, fraca: false, desktop: !!(pc && pc.tier >= 1), cool: 0 };
+    if (!r.desktop) return r;
+    const cpu = Q.item('cpu'), gpu = Q.item('gpu'), fonte = Q.item('fonte'), cool = Q.item('cooler');
+    r.need = 120 + (cpu ? cpu.w : 65) + (gpu ? gpu.w : 0); r.supply = fonte ? fonte.pw : pc.w + 140;
+    r.fraca = !!gpu && r.need > r.supply; r.cool = cool ? cool.cool : 0;
+    Q.PECAS.forEach(k => { const it = Q.item(k); if (!it) return; const m = k === 'gpu' && r.fraca ? 0.4 : 1; r.perf += (it.perf || 0) * m; r.render += (it.render || 0) * m; r.w += it.w || 0; });
+    r.perf = Math.round(r.perf); r.render = Math.round(r.render);
+    return r;
+  };
+
   // Atributos somados do setup atual
   Q.stats = () => {
     const G0 = G(), s = {};
     const pc = Q.item('computador');
-    s.perf = pc ? pc.perf : 0; s.render = pc ? pc.render : 0; s.watts = pc ? pc.w : 0;
+    const pb = Q.pecas(); s.pecas = pb;
+    s.perf = pc ? Math.min(100, pc.perf + pb.perf) : 0; s.render = pc ? Math.min(100, pc.render + pb.render) : 0; s.watts = pc ? pc.w + pb.w : 0;
     const mic = Q.item('microfone'); s.audio = mic ? mic.audio : (pc ? 14 : 0);
     const cam = Q.item('webcam'); s.video = cam ? cam.video : (pc && pc.id === 'pc_note' ? 16 : 0);
     s.hasCam = !!cam || (pc && pc.id === 'pc_note');
@@ -103,7 +118,8 @@
     if (!curIt || (it.tier || 0) >= (curIt.tier || 0) || Q.isBroken(cur)) G0.equip.setup[it.slot] = id;
     G0.flags.lastUpgrade = G0.time.t; G0.flags.lastUpgradeSlot = it.slot;
     SL.bus.emit('equip');
-    SL.notify({ cat: 'vida', icon: (D.equipSlots.find(s => s.id === it.slot) || {}).icon || 'shop', title: 'Novo equipamento instalado', text: it.name + ' já está no seu setup.' });
+    const peca = it.peca && !Q.pecas().desktop;
+    SL.notify({ cat: 'vida', icon: (D.equipSlots.concat(D.pecaSlots).find(s => s.id === it.slot) || {}).icon || 'shop', title: it.peca ? 'Peça instalada no PC' : 'Novo equipamento instalado', text: peca ? it.name + ' está guardada: peça só funciona num PC de mesa.' : it.name + ' já está no seu setup.' });
   };
   Q.use = id => { const it = D.equipById(id); if (!it || !Q.owns(id)) return; G().equip.setup[it.slot] = id; SL.bus.emit('equip'); };
   Q.sell = id => {
@@ -163,7 +179,7 @@
       const id = G0.equip.setup[slot]; if (!id || Q.isBroken(id)) continue;
       const it = D.equipById(id); const o = G0.equip.owned[id]; if (!o) continue;
       o.cond = U.clamp(o.cond - hours * 0.05, 20, 100);
-      const p = (1 - it.rel) * (hours / 5) * (1.6 - o.cond / 100);
+      const p = (1 - it.rel) * (hours / 5) * (1.6 - o.cond / 100) * (slot === 'computador' || Q.PECAS.includes(slot) ? 1 - Q.pecas().cool * 0.2 : 1);
       if (U.chance(p)) {
         G0.equip.broken[id] = SL.Clock.day();
         SL.bus.emit('equip');

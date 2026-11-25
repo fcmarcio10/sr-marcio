@@ -74,6 +74,36 @@
     { id: 'captura', name: 'Placa de captura', icon: 'capture' }, { id: 'vlogcam', name: 'Câmera de vlog', icon: 'cam' },
     { id: 'console', name: 'Console', icon: 'gamepad' },
   ];
+  // Peças para montar o PC de mesa (nov/2026): somam desempenho (perf) e renderização (render) ao computador.
+  // A placa de vídeo gasta energia (w); fonte fraca segura a placa (ver Equip.pecas).
+  D.equip.push(
+    { id: 'cpu_3', slot: 'cpu', peca: 1, name: 'Processador Núcleo 3 (4 núcleos)', brand: 'Núcleo', price: 650, perf: 4, render: 6, w: 65, rel: 0.999, tier: 1, desc: 'Básico, mas já ajuda o PC a respirar.' },
+    { id: 'cpu_5', slot: 'cpu', peca: 1, name: 'Processador Núcleo 5 (6 núcleos)', brand: 'Núcleo', price: 1300, perf: 8, render: 10, w: 65, rel: 0.999, tier: 2, desc: 'Joga e transmite ao mesmo tempo sem engasgar.' },
+    { id: 'cpu_7', slot: 'cpu', peca: 1, name: 'Processador Núcleo 7 (8 núcleos)', brand: 'Núcleo', price: 2400, perf: 12, render: 16, w: 105, rel: 0.999, tier: 3, desc: 'Muitos núcleos: edição bem mais rápida.' },
+    { id: 'cpu_9', slot: 'cpu', peca: 1, name: 'Processador Núcleo 9 (16 núcleos)', brand: 'Núcleo', price: 4200, perf: 15, render: 24, w: 170, rel: 0.999, tier: 4, desc: 'Topo de linha. Renderiza vídeo num piscar de olhos.' },
+    { id: 'gpu_1', slot: 'gpu', peca: 1, name: 'Placa de vídeo Raio 1650 (4 GB)', brand: 'Raio', price: 1100, perf: 8, render: 3, w: 75, rel: 0.998, tier: 1, desc: 'Roda os jogos leves e médios com folga.' },
+    { id: 'gpu_2', slot: 'gpu', peca: 1, name: 'Placa de vídeo Raio 3060 (12 GB)', brand: 'Raio', price: 2300, perf: 15, render: 6, w: 170, rel: 0.998, tier: 2, desc: 'A queridinha dos streamers: 1080p liso.' },
+    { id: 'gpu_3', slot: 'gpu', peca: 1, name: 'Placa de vídeo Raio 4070 Super (12 GB)', brand: 'Raio', price: 4600, perf: 22, render: 9, w: 220, rel: 0.998, tier: 3, desc: 'Jogo pesado no máximo e live sem perder quadro.' },
+    { id: 'gpu_4', slot: 'gpu', peca: 1, name: 'Placa de vídeo Raio 4090 (24 GB)', brand: 'Raio', price: 12000, perf: 30, render: 14, w: 450, rel: 0.998, tier: 4, desc: 'A mais forte do mercado. Precisa de fonte boa.' },
+    { id: 'ram_8', slot: 'ram', peca: 1, name: 'Memória RAM 8 GB DDR4', brand: 'Memora', price: 180, perf: 2, render: 3, rel: 0.999, tier: 1, desc: 'O mínimo para abrir o jogo e o OBS juntos.' },
+    { id: 'ram_16', slot: 'ram', peca: 1, name: 'Memória RAM 16 GB DDR4', brand: 'Memora', price: 380, perf: 4, render: 6, rel: 0.999, tier: 2, desc: 'Jogo, live, chat e navegador sem travar.' },
+    { id: 'ram_32', slot: 'ram', peca: 1, name: 'Memória RAM 32 GB DDR5 RGB', brand: 'Memora', price: 900, perf: 6, render: 10, rel: 0.999, tier: 3, desc: 'Sobra memória para editar vídeo longo.' },
+    { id: 'ram_64', slot: 'ram', peca: 1, name: 'Memória RAM 64 GB DDR5 RGB', brand: 'Memora', price: 1900, perf: 7, render: 15, rel: 0.999, tier: 4, desc: 'Para quem edita em 4K com vários programas abertos.' },
+    { id: 'ssd_1', slot: 'ssd', peca: 1, name: 'SSD 480 GB SATA', brand: 'Rápido', price: 230, perf: 1, render: 4, rel: 0.998, tier: 1, desc: 'O PC liga em segundos e o jogo carrega rápido.' },
+    { id: 'ssd_2', slot: 'ssd', peca: 1, name: 'SSD NVMe 1 TB', brand: 'Rápido', price: 520, perf: 1, render: 8, rel: 0.998, tier: 2, desc: 'Muito mais rápido para abrir e salvar vídeos.' },
+    { id: 'ssd_3', slot: 'ssd', peca: 1, name: 'SSD NVMe 2 TB Gen4', brand: 'Rápido', price: 1100, perf: 2, render: 12, rel: 0.999, tier: 3, desc: 'Espaço de sobra para as gravações das lives.' },
+    { id: 'fonte_1', slot: 'fonte', peca: 1, name: 'Fonte 500 W 80 Plus', brand: 'Volt', price: 320, pw: 500, rel: 0.998, tier: 1, desc: 'Aguenta placa de vídeo simples.' },
+    { id: 'fonte_2', slot: 'fonte', peca: 1, name: 'Fonte 750 W Gold', brand: 'Volt', price: 690, pw: 750, rel: 0.999, tier: 2, desc: 'Energia estável para placas fortes.' },
+    { id: 'fonte_3', slot: 'fonte', peca: 1, name: 'Fonte 1000 W Platinum', brand: 'Volt', price: 1400, pw: 1000, rel: 0.999, tier: 3, desc: 'Segura qualquer placa de vídeo.' },
+    { id: 'cooler_1', slot: 'cooler', peca: 1, name: 'Cooler a ar Torre', brand: 'Gelo', price: 180, perf: 1, cool: 1, rel: 0.999, tier: 1, desc: 'O PC esquenta menos e quebra menos.' },
+    { id: 'cooler_2', slot: 'cooler', peca: 1, name: 'Water cooler 240 mm', brand: 'Gelo', price: 650, perf: 2, cool: 2, rel: 0.999, tier: 2, desc: 'Processador fresquinho mesmo em live longa.' },
+    { id: 'cooler_3', slot: 'cooler', peca: 1, name: 'Water cooler 360 mm RGB', brand: 'Gelo', price: 1200, perf: 3, cool: 3, rel: 0.999, tier: 3, desc: 'Silencioso, gelado e cheio de luz.' },
+  );
+  D.pecaSlots = [
+    { id: 'cpu', name: 'Processador', icon: 'cpu' }, { id: 'gpu', name: 'Placa de vídeo', icon: 'monitor' },
+    { id: 'ram', name: 'Memória RAM', icon: 'capture' }, { id: 'ssd', name: 'SSD', icon: 'folder' },
+    { id: 'fonte', name: 'Fonte', icon: 'energy' }, { id: 'cooler', name: 'Refrigeração', icon: 'sparkle' },
+  ];
 
   D.internet = [
     { id: 'net50', name: 'Plano 50 Mega', up: 6, stab: 0.86, price: 89 },

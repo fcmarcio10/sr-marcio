@@ -101,6 +101,15 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await ev(() => { SL.debug.skip(60 * 26); SL.debug.fill(); });
   ok('entrega chega e equipa', await ev(() => SL.G.equip.setup.microfone === 'mic_usb'));
 
+  // 4b. peças do PC e app da Twitch
+  ok('peças do PC somam desempenho (só em PC de mesa)', await ev(() => { const a = SL.Equip.stats().perf; SL.G.equip.owned.gpu_2 = { cond: 100, t: 0 }; SL.G.equip.setup.gpu = 'gpu_2'; const nb = SL.Equip.stats().perf; const tinha = SL.G.equip.setup.computador; SL.G.equip.owned.pc_entrada = { cond: 100, t: 0 }; SL.G.equip.setup.computador = 'pc_entrada'; const d = SL.Equip.stats().perf; SL.G.equip.setup.computador = tinha; delete SL.G.equip.setup.gpu; delete SL.G.equip.owned.gpu_2; delete SL.G.equip.owned.pc_entrada; return nb === a && d === 42 + 15; }));
+  await page.click('.dicon[data-app="loja"]'); await page.waitForTimeout(300); await page.click('.win [data-act="tab"][data-t="pecas"]'); await page.waitForTimeout(300);
+  ok('loja tem a aba Peças do PC com foto de cada peça', await ev(() => document.querySelectorAll('.win .pc-pecas .pc-peca').length === 6 && document.querySelectorAll('.win canvas[data-foto^="equip|cpu_"]').length === 4));
+  await ev(() => document.querySelectorAll('.win [data-close]').forEach(x => x.click()));
+  await page.click('.dicon[data-app="twitch"]'); await page.waitForTimeout(300); await page.click('.win [data-act="tab"][data-t="conquistas"]'); await page.waitForTimeout(300);
+  ok('app da Twitch com o caminho para afiliado (4 requisitos) e parceiro', await ev(() => document.querySelectorAll('.win .tw-cam').length === 2 && document.querySelectorAll('.win .tw-cam:first-child .tw-req').length === 4));
+  await ev(() => document.querySelectorAll('.win [data-close]').forEach(x => x.click()));
+
   // 5. primeira live
   await ev(() => { SL.debug.toHour(20); SL.debug.fill(); });
   await page.click('.dicon[data-app="pulso"]'); await page.waitForTimeout(400);
@@ -109,6 +118,12 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await shot('07_pulso_setup');
   await page.click('.win [data-act="start"]'); await page.waitForTimeout(600);
   ok('live começa e estúdio abre', await ev(() => !!SL.Live.cur && !document.getElementById('overlay-live').hidden));
+  await page.click('#lv-dock [data-lw="banco"]'); await page.waitForTimeout(300);
+  ok('app do banco abre numa janelinha dentro da live (a live não minimiza)', await ev(() => !!document.querySelector('#overlay-live .lv-win .lv-win-b .app') && !document.getElementById('overlay-live').hidden && !!SL.Live.cur));
+  await page.click('#lv-dock [data-lw="anuncios"]'); await page.waitForTimeout(300);
+  ok('trocar para Anúncios na mesma janelinha', await ev(() => document.querySelectorAll('#overlay-live .lv-win').length === 1 && /Anúncios/.test(document.querySelector('#overlay-live .lv-win-h').textContent)));
+  await page.click('#overlay-live .lv-win [data-lwx]'); await page.waitForTimeout(150);
+  ok('fechar a janelinha da live', await ev(() => !document.querySelector('#overlay-live .lv-win')));
   let answered = 0, welcomed = 0;
   for (let i = 0; i < 24; i++) {
     if (i >= 12) break;

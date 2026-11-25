@@ -37,7 +37,7 @@
       const st = ctx.st; const phys = ctx.args && ctx.args.physical;
       if (ctx.args && ctx.args.tab && !st.used) { st.used = 1; st.tab = ctx.args.tab; }
       st.tab = st.tab || 'equip';
-      const tabs = phys ? (st.tab === 'casa' ? [['casa', 'Casa&Lar']] : [['equip', 'MegaByte']]) : [['equip', 'Equipamentos'], ['casa', 'Casa e decoração'], ['servicos', 'Internet e programas'], ['veiculos', 'Veículos'], ['imoveis', 'Imóveis']];
+      const tabs = phys ? (st.tab === 'casa' ? [['casa', 'Casa&Lar']] : [['equip', 'MegaByte'], ['pecas', 'Peças do PC']]) : [['equip', 'Equipamentos'], ['pecas', 'Peças do PC'], ['casa', 'Casa e decoração'], ['servicos', 'Internet e programas'], ['veiculos', 'Veículos'], ['imoveis', 'Imóveis']];
       const loja = phys ? (st.tab === 'casa' ? 'Casa&Lar · loja física' : 'MegaByte · loja física') : 'Mercado Livre';
       el.innerHTML = `<div class="app ml-app"><div class="ml-top"><div class="ml-logo"><span>${ic('shop', 16)}</span>${loja}</div><div class="ml-saldo">Seu saldo <b>${U.money0(SL.G.money)}</b></div></div><nav class="ml-tabs">${tabs.map(([k, l]) => `<button class="${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</nav><div class="app-body ml-body">${SL.Equip.isBlackFriday() ? '<div class="ml-bf"><b>BLACK FRIDAY</b> 30% de desconto em tudo hoje</div>' : ''}${this[st.tab](ctx, phys)}</div></div>`;
       requestAnimationFrame(() => SL.Produto.pintar(el));
@@ -51,6 +51,20 @@
         <div class="ml-grid">${items.map(it => this.card(it, cur, phys)).join('')}</div>
         ${st.slot === 'computador' ? this.compat() : ''}`;
     },
+    // montar o PC: processador, placa de vídeo, memória, SSD, fonte e refrigeração
+    pecas(ctx, phys) {
+      const st = ctx.st; st.pslot = st.pslot || 'cpu'; const G = SL.G; const pc = SL.Equip.item('computador'); const pb = SL.Equip.pecas(); const s = SL.Equip.stats();
+      const cur = D.equipById(G.equip.setup[st.pslot]);
+      const items = D.equip.filter(e => e.slot === st.pslot);
+      const linha = sl => { const it = SL.Equip.item(sl.id); return `<div class="pc-peca ${it ? 'tem' : ''}" data-act="pslot" data-v="${sl.id}">${ic(sl.icon, 15)}<span><small>${sl.name}</small><b>${it ? esc(it.name.replace(/^(Processador|Placa de vídeo|Memória RAM) /, '')) : 'vazio'}</b></span></div>`; };
+      const barra = (nome, base, extra) => `<div class="pc-bar"><span>${nome}</span><div class="bar"><i style="width:${Math.min(100, base)}%"></i><i class="mais" style="left:${Math.min(100, base)}%;width:${Math.max(0, Math.min(100 - base, extra))}%"></i></div><b>${Math.min(100, base + extra)}</b></div>`;
+      return `<div class="pc-monta"><div class="pc-monta-h"><div><small>Seu PC</small><b>${pc ? esc(pc.name) : 'Sem computador'}</b></div>${pb.desktop ? '' : '<span class="tag warn">Notebook não aceita peças: compre um PC de mesa</span>'}${pb.fraca ? '<span class="tag bad">Fonte fraca: a placa de vídeo rende só 40%</span>' : ''}</div>
+        <div class="pc-pecas">${D.pecaSlots.map(linha).join('')}</div>
+        ${pc ? barra('Desempenho', pc.perf, pb.perf) + barra('Renderização', pc.render, pb.render) : ''}
+        ${pb.desktop ? `<div class="tiny muted">Energia: precisa de ${pb.need} W, a fonte entrega ${pb.supply} W${pb.cool ? ' · refrigeração diminui a chance de quebrar' : ''}. Desempenho atual: <b>${s.perf}</b> (jogos e live) · renderização <b>${s.render}</b> (edição de vídeo).</div>` : ''}</div>
+        <div class="ml-cats">${D.pecaSlots.map(x => `<button class="${st.pslot === x.id ? 'on' : ''}" data-act="pslot" data-v="${x.id}">${ic(x.icon, 14)}<span>${x.name}</span></button>`).join('')}</div>
+        <div class="ml-grid">${items.map(it => this.card(it, cur, phys)).join('')}</div>`;
+    },
     botoesEquip(it, phys) {
       const G = SL.G; const owned = !!G.equip.owned[it.id]; const using = G.equip.setup[it.slot] === it.id; const broken = SL.Equip.isBroken(it.id);
       return `${!owned || broken ? `<button class="btn sm primary" data-act="buy" data-v="${it.id}" ${G.money < SL.Equip.price(it) ? 'disabled' : ''}>${phys ? 'Comprar e levar' : 'Comprar agora'}</button>` : ''}${owned && !using && !broken ? `<button class="btn sm" data-act="use" data-v="${it.id}">Usar</button>` : ''}${broken && phys ? `<button class="btn sm" data-act="fix" data-v="${it.id}">Consertar ${U.money0(SL.Equip.repairCost(it.id))}</button>` : ''}${owned && it.price ? `<button class="btn sm ghost" data-act="sell" data-v="${it.id}">Vender</button>` : ''}`;
@@ -58,6 +72,7 @@
     card(it, cur, phys) {
       const G = SL.G; const owned = !!G.equip.owned[it.id]; const using = G.equip.setup[it.slot] === it.id; const broken = SL.Equip.isBroken(it.id);
       const k = Object.keys(ATTR).find(x => it[x] != null && x !== 'game'); const d = k && cur && cur[k] != null && !using ? it[k] - cur[k] : 0;
+      if (it.peca) return cartao({ tipo: 'equip', it, ver: true, owned, marca: it.brand, selo: broken ? 'Quebrada' : using ? 'Instalada' : owned ? 'Guardada' : (it.tier >= 4 ? 'Topo de linha' : it.tier === 2 ? 'Mais vendido' : ''), seloCls: broken ? 'bad' : using ? 'ok' : owned ? '' : 'top', sub: this.pecaTxt(it), frete: owned && !broken ? '' : freteDe(phys), botoes: this.botoesEquip(it, phys) });
       return cartao({ tipo: 'equip', it, ver: true, owned, marca: it.brand, selo: broken ? 'Quebrado' : using ? 'Em uso' : owned ? 'Guardado' : (it.tier >= 3 ? 'Profissional' : nota(it) >= 4.7 ? 'Mais vendido' : ''), seloCls: broken ? 'bad' : using ? 'ok' : owned ? '' : 'top', sub: d ? `<span class="${d > 0 ? 'up' : 'down'}">${d > 0 ? '+' : ''}${d} de ${ATTR[k].toLowerCase()} em relação ao seu</span>` : '', frete: owned && !broken ? '' : freteDe(phys), botoes: this.botoesEquip(it, phys) });
     },
     // janela com a foto grande, descrição, ficha técnica e comparação
@@ -67,8 +82,9 @@
       if (k === 'equip') {
         it = D.equipById(id); const cur = D.equipById(G.equip.setup[it.slot]); const using = cur && cur.id === it.id;
         desc = esc(it.desc);
-        ficha = Object.keys(ATTR).filter(x => it[x] != null).map(x => barra(ATTR[x], it[x], x === 'game' ? 8 : 100, cur && cur[x] != null && !using ? it[x] - cur[x] : 0)).join('');
-        if (it.rel) ficha += `<div class="ml-ficha-t">Confiabilidade <b>${it.rel >= 0.998 ? 'alta' : it.rel >= 0.995 ? 'média' : 'baixa'}</b>${it.w ? ' · consumo <b>' + it.w + ' W</b>' : ''}</div>`;
+        ficha = it.peca ? `<div class="ml-ficha-t">${esc(this.pecaTxt(it))}</div>` + (cur && !using ? `<div class="ml-ficha-t">No lugar de: <b>${esc(cur.name)}</b></div>` : '') + (SL.Equip.pecas().desktop ? '' : '<div class="ml-ficha-t bad">Seu notebook não aceita peças: ela fica guardada até você ter um PC de mesa.</div>')
+          : Object.keys(ATTR).filter(x => it[x] != null).map(x => barra(ATTR[x], it[x], x === 'game' ? 8 : 100, cur && cur[x] != null && !using ? it[x] - cur[x] : 0)).join('');
+          if (it.rel && !it.peca) ficha += `<div class="ml-ficha-t">Confiabilidade <b>${it.rel >= 0.998 ? 'alta' : it.rel >= 0.995 ? 'média' : 'baixa'}</b>${it.w ? ' · consumo <b>' + it.w + ' W</b>' : ''}</div>`;
         if (cur && !using) ficha += `<div class="ml-ficha-t">Comparando com o seu: <b>${esc(cur.name)}</b></div>`;
         bts = this.botoesEquip(it, phys);
       } else if (k === 'furn') {
@@ -80,6 +96,10 @@
       const m = UI.modal({ title: it.name, icon: 'shop', wide: true, cls: 'ml-modal', html: `<div class="ml-det"><div class="ml-det-foto"><canvas class="pfoto" data-foto="${k}|${it.id}"></canvas></div><div class="ml-det-info"><div class="ml-vend">${esc(it.brand || vendedor(it))} · Loja oficial</div><div class="ml-nota">${estrelas(nota(it))}<span>${nota(it).toFixed(1).replace('.', ',')} · ${fmtN(avaliacoes(it))} avaliações</span></div><div class="ml-preco big">${p < it.price ? `<s>${U.money0(it.price)}</s>` : ''}<b>${U.money0(p)}</b></div>${p >= 200 ? `<div class="ml-parc">em <b>${p >= 2000 ? 12 : 10}x ${U.money(p / (p >= 2000 ? 12 : 10))}</b> sem juros</div>` : ''}<div class="ml-frete">${ic('check', 12)} ${freteDe(phys)}</div><p class="ml-desc">${desc}</p>${ficha ? `<div class="ml-ficha"><h4>Ficha técnica</h4>${ficha}</div>` : ''}<div class="ml-bts">${bts}</div></div></div>`, onRender: mm => requestAnimationFrame(() => SL.Produto.pintar(mm.el)) });
       // os botões de dentro usam as mesmas ações do app
       m.el.addEventListener('click', e => { const t = e.target.closest('[data-act]'); if (!t) return; SL.audio.play('click'); const r = this.act(t.dataset.act, t.dataset, ctx); m.close(); if (typeof r === 'string') UI.err(r); });
+    },
+    pecaTxt(it) {
+      const p = []; if (it.perf) p.push('+' + it.perf + ' desempenho'); if (it.render) p.push('+' + it.render + ' renderização'); if (it.pw) p.push(it.pw + ' W'); if (it.slot === 'gpu') p.push('gasta ' + it.w + ' W'); if (it.cool) p.push('quebra menos');
+      return p.join(' · ');
     },
     descMovel(f) {
       return { cama: 'Recupera o cansaço ' + Math.round((f.sleep || 1) * 100) + '% mais rápido', geladeira: 'Guarda ' + f.cap + ' porções de comida', fogao: 'Comida ' + Math.round((f.cook || 1) * 100) + '% melhor', mesa: 'Produção +' + (f.prod || 0) + '%', cadeira: 'Conforto ' + f.comfort + ' (aparece atrás de você na live)', sofa: 'Descanso melhor', tv: 'Lazer e tendências', chuveiro: 'Banho melhor', cafeteira: 'Café em casa', bike: 'Exercício em casa', acustica: '+' + f.audio + ' de áudio nas lives', deco: '+' + f.decor + ' de decoração' + (f.cam ? ', +' + f.cam + ' no cenário da câmera' : '') }[f.slot] || '';
@@ -118,6 +138,7 @@
       if (a === 'ver') return this.ver(ds.k, ds.v, ctx, phys);
       if (a === 'tab') { st.tab = ds.t; ctx.resetScroll = true; return ctx.render(); }
       if (a === 'slot') { st.slot = ds.v; return ctx.render(); }
+      if (a === 'pslot') { st.pslot = ds.v; return ctx.render(); }
       if (a === 'fslot') { st.fslot = ds.v; return ctx.render(); }
       if (a === 'buy') return done(SL.Equip.buy(ds.v, phys ? 'na_hora' : 'entrega'));
       if (a === 'use') { SL.Equip.use(ds.v); return ctx.render(); }

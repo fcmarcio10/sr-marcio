@@ -135,7 +135,7 @@
     if (SL.audio) SL.audio.play('close');
   };
   UI.buildDesktop = ov => {
-    ov.innerHTML = `<div class="desktop"><canvas class="wall"></canvas><div class="desk-area"><div class="desk-icons"></div></div><div class="start-menu" hidden></div><div class="taskbar"><button class="tb-start" data-start title="Iniciar: todos os aplicativos">${UI.ic('window', 18)}<span>Iniciar</span></button><div class="tb-wins row gap4"></div><div class="tray"><div class="speeds tb-speeds" hidden title="Velocidade da live">${UI.speedBtns()}</div>${UI.ic('wifi', 15)}<button class="tb-out" data-sair title="Levantar do PC (a live continua se estiver no ar)">${UI.ic('exit', 15)}<span>Sair do PC</span></button><button class="tb-off" data-desligar title="Desligar o PC">${UI.ic('power', 16)}</button></div></div></div>`;
+    ov.innerHTML = `<div class="desktop"><canvas class="wall"></canvas><div class="desk-area"><div class="desk-icons"></div><div class="desk-widgets"></div></div><div class="start-menu" hidden></div><div class="taskbar"><button class="tb-start" data-start title="Iniciar: todos os aplicativos">${UI.ic('window', 18)}<span>Iniciar</span></button><div class="tb-wins row gap4"></div><div class="tray"><div class="speeds tb-speeds" hidden title="Velocidade da live">${UI.speedBtns()}</div>${UI.ic('wifi', 15)}<button class="tb-out" data-sair title="Levantar do PC (a live continua se estiver no ar)">${UI.ic('exit', 15)}<span>Sair do PC</span></button><button class="tb-off" data-desligar title="Desligar o PC">${UI.ic('power', 16)}</button></div></div></div>`;
     const sm = $('.start-menu', ov);
     // com a live aberta, o menu Iniciar ficava escondido atrás dela: a live minimiza antes
     $('[data-start]', ov).onclick = e => { e.stopPropagation(); if (sm.hidden && SL.LiveUI && SL.LiveUI.visible()) SL.LiveUI.minimize(); if (sm.hidden) UI.renderStart(); sm.hidden = !sm.hidden; };
@@ -148,8 +148,23 @@
     const box = $('#overlay-pc .desk-icons'); if (!box) return;
     // só redesenha quando algo muda (antes era a cada segundo e um clique podia se perder)
     const html = UI.appList('pc').map(id => { const a = SL.Apps[id]; const b = a.badge ? a.badge() : 0; return `<button class="dicon" data-app="${id}"><div class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${UI.ic(a.icon, 22)}${b ? '<span class="dot"></span>' : ''}</div><span>${U.esc(a.title)}</span></button>`; }).join('');
+    UI.renderWidgets();
     if (box._html === html) return; box._html = html; box.innerHTML = html;
     if (!box._click) { box._click = true; box.addEventListener('click', e => { const b = e.target.closest('[data-app]'); if (b) UI.openApp(b.dataset.app); }); }
+  };
+  // widgets da área de trabalho (nov/2026): seu canal, saldo e próxima meta; clicar abre o app
+  UI.renderWidgets = () => {
+    const box = $('#overlay-pc .desk-widgets'); const G = SL.G; if (!box || !G) return;
+    const c = G.ch; const P = c.pulso; const m = SL.Goals.atual(); const mk = SL.Clock.monthKey(); const mes = G.month[mk] || { in: {} };
+    const entrou = Object.values(mes.in || {}).reduce((a, b) => a + b, 0);
+    const L = SL.Live && SL.Live.cur;
+    const redes = [['Twitch', P.f, '#9146ff'], ['YouTube', c.vision.f, '#ff3d3d'], ['TikTok', c.clipz.f, '#25f4ee'], ['Instagram', c.connect.f, '#e1306c']];
+    const html = `<button class="wg wg-canal" data-wapp="twitch"><div class="wg-h"><canvas class="wg-ava"></canvas><div><b>${U.esc(G.player.channel)}</b><small>${L ? '<span class="wg-live">AO VIVO</span> ' + U.int(L.viewers) + ' assistindo' : P.parc ? 'Parceiro(a) da Twitch' : P.afil ? 'Afiliado(a) da Twitch' : U.esc(SL.Career.tierName())}</small></div></div><div class="wg-redes">${redes.map(([n, v, cor]) => `<span><i style="background:${cor}"></i>${n}<b>${U.num(v)}</b></span>`).join('')}</div></button>
+      <button class="wg wg-saldo" data-wapp="banco"><small>Saldo</small><b>${U.money0(G.money)}</b><small class="ok">+${U.money0(entrou)} este mês</small></button>
+      ${m ? `<button class="wg wg-meta" data-wapp="stats"><small>Próxima meta</small><b>${U.esc(m.g.title)}</b><div class="wg-bar"><i style="width:${Math.round(m.s.p * 100)}%"></i></div>${m.g.r ? `<small>Prêmio ${U.money0(m.g.r)}</small>` : ''}</button>` : ''}`;
+    if (box._html === html) return; box._html = html; box.innerHTML = html;
+    const cv = $('.wg-ava', box); if (cv) SL.Avatar.toCanvas(cv, G.player.look, { bg: '#5b2bb8', scale: 1.1 });
+    if (!box._click) { box._click = true; box.addEventListener('click', e => { const b = e.target.closest('[data-wapp]'); if (b) { if (SL.audio) SL.audio.play('click'); UI.openApp(b.dataset.wapp, b.dataset.wapp === 'stats' ? { tab: 'objetivos' } : undefined); } }); }
   };
   // menu Iniciar com todos os apps do PC
   UI.renderStart = () => {
@@ -192,6 +207,7 @@
     return ctx;
   };
 
+  UI.makeCtx = (app, host, args, mode) => makeCtx(app, host, args, mode);
   UI.openApp = (id, args) => {
     const a = SL.Apps[id]; if (!a) return;
     if (UI.screen !== 'game') return;
@@ -211,7 +227,7 @@
   };
   UI.newWin = (id, args) => {
     const a = SL.Apps[id]; const area = $('#overlay-pc .desk-area');
-    const el = document.createElement('div'); el.className = 'win';
+    const el = document.createElement('div'); el.className = 'win'; el.style.setProperty('--app-bg', a.color);
     const W0 = area.clientWidth, H0 = area.clientHeight;
     const w = Math.min(a.w || 900, W0 - 40), h = Math.min(a.h || 600, H0 - 30);
     const off = (wins.length % 5) * 26;

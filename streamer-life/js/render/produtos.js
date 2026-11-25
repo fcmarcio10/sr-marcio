@@ -111,6 +111,54 @@
   };
 
   // ---------- casa ----------
+  // ---------- peças do PC ----------
+  const fan = (c, x, y, r, cor) => { c.fillStyle = '#16181c'; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.fillStyle = '#2b2e35'; for (let i = 0; i < 7; i++) { c.save(); c.translate(x, y); c.rotate(i * 0.9); c.beginPath(); c.ellipse(r * 0.45, 0, r * 0.42, r * 0.17, 0.5, 0, 7); c.fill(); c.restore(); } c.fillStyle = cor || '#3a3d44'; c.beginPath(); c.arc(x, y, r * 0.24, 0, 7); c.fill(); c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, r - 1, 0, 7); c.stroke(); };
+  D_.cpu = (c, it) => {
+    sombra(c, 160, 196, 80, 10);
+    c.fillStyle = '#1f6b3a'; rr(c, 100, 64, 120, 120, 6); c.fill();
+    c.fillStyle = '#c9a64a'; for (let i = 0; i < 14; i++) { c.fillRect(104 + i * 8.4, 180, 3, 6); c.fillRect(104 + i * 8.4, 62, 3, 4); }
+    c.fillStyle = lin(c, 112, 76, 208, 172, ['#e7e9ec', '#b9bdc4', '#eef0f2']); rr(c, 112, 76, 96, 96, 6); c.fill();
+    c.fillStyle = '#2b2e35'; c.font = '800 15px Inter, Arial'; c.textAlign = 'center'; c.fillText('NÚCLEO', 160, 118); c.font = '900 26px Inter, Arial'; c.fillStyle = it.tier >= 4 ? '#c0392b' : it.tier >= 3 ? '#8b5cf6' : '#3b82f6'; c.fillText(String(it.tier * 2 + 1), 160, 150);
+    brilho(c, 118, 80, 50, 6, 0.4);
+  };
+  D_.gpu = (c, it) => {
+    const n = it.tier >= 3 ? 3 : it.tier >= 2 ? 2 : 1; const w = 160 + n * 30; const x0 = 160 - w / 2;
+    sombra(c, 160, 186, w * 0.55, 10);
+    c.fillStyle = '#c9a64a'; c.fillRect(x0 + 30, 168, w * 0.45, 8);
+    c.fillStyle = lin(c, 0, 92, 0, 168, ['#3a3e47', '#1c1e23']); rr(c, x0, 92, w, 76, 10); c.fill();
+    for (let i = 0; i < n; i++) fan(c, x0 + w / (n * 2) * (1 + i * 2), 130, 28, it.tier >= 4 ? '#c0392b' : '#5b606a');
+    if (it.tier >= 2) rgb(c, x0 + 10, 95, w - 20, 3, 0);
+    c.fillStyle = '#9aa1ab'; c.fillRect(x0 + w - 4, 88, 8, 84);
+  };
+  D_.ram = (c, it) => {
+    sombra(c, 160, 196, 110, 10);
+    const pente = (y, k) => { c.fillStyle = '#1f6b3a'; c.fillRect(48, y + 36, 224, 22); c.fillStyle = '#c9a64a'; for (let i = 0; i < 40; i++) c.fillRect(52 + i * 5.4, y + 56, 3, 5); c.fillStyle = it.tier >= 3 ? lin(c, 48, 0, 272, 0, ['#2b2e35', '#4a4f5a', '#2b2e35']) : '#16181c'; rr(c, 44, y, 232, 42, 4); c.fill(); if (it.tier >= 3) rgb(c, 46, y - 4, 228, 6, k); c.fillStyle = '#c9a64a'; c.font = '800 11px Inter, Arial'; c.textAlign = 'left'; c.fillText('MEMORA ' + (it.id.split('_')[1]) + 'GB', 58, y + 26); };
+    pente(70, 0); if (it.tier >= 2) pente(118, 1);
+  };
+  D_.ssd = (c, it) => {
+    sombra(c, 160, 186, 110, 9);
+    if (it.tier === 1) { c.fillStyle = lin(c, 0, 90, 0, 170, ['#3a3e47', '#1c1e23']); rr(c, 84, 84, 152, 98, 8); c.fill(); c.fillStyle = '#e8e8ec'; rr(c, 100, 100, 120, 50, 4); c.fill(); c.fillStyle = '#2b2e35'; c.font = '900 16px Inter, Arial'; c.textAlign = 'center'; c.fillText('RÁPIDO SSD', 160, 130); return; }
+    c.fillStyle = '#16181c'; rr(c, 40, 114, 240, 50, 4); c.fill(); c.fillStyle = '#c9a64a'; for (let i = 0; i < 9; i++) c.fillRect(42, 120 + i * 5, 6, 3);
+    c.fillStyle = '#2b2e35'; [70, 130, 190].forEach(x => { rr(c, x, 122, 48, 34, 3); c.fill(); });
+    c.fillStyle = it.tier >= 3 ? '#c0392b' : '#3b82f6'; c.fillRect(70, 150, 168, 4);
+    c.fillStyle = '#fff'; c.font = '800 11px Inter, Arial'; c.textAlign = 'left'; c.fillText('NVMe ' + (it.tier >= 3 ? '2TB' : '1TB'), 76, 142);
+  };
+  D_.fonte = (c, it) => {
+    sombra(c, 160, 198, 90, 10);
+    c.fillStyle = lin(c, 0, 70, 0, 190, ['#2b2e35', '#16181c']); rr(c, 86, 70, 148, 120, 8); c.fill();
+    c.strokeStyle = '#4a4f5a'; c.lineWidth = 2; c.beginPath(); c.arc(160, 126, 42, 0, 7); c.stroke(); for (let r = 10; r < 42; r += 8) { c.beginPath(); c.arc(160, 126, r, 0, 7); c.stroke(); }
+    c.fillStyle = it.tier >= 3 ? '#d6d9de' : it.tier >= 2 ? '#c9a64a' : '#8a8f99'; rr(c, 96, 172, 128, 12, 3); c.fill();
+    c.fillStyle = '#16181c'; c.font = '900 10px Inter, Arial'; c.textAlign = 'center'; c.fillText(it.pw + ' W', 160, 181);
+  };
+  D_.cooler = (c, it) => {
+    sombra(c, 160, 204, 100, 10);
+    if (it.tier === 1) { c.fillStyle = '#9aa1ab'; for (let i = 0; i < 18; i++) c.fillRect(118, 60 + i * 7, 84, 4); c.fillStyle = '#c87a3a'; [136, 152, 168, 184].forEach(x => c.fillRect(x, 186, 4, 18)); fan(c, 160, 122, 44, '#5b606a'); return; }
+    const n = it.tier >= 3 ? 3 : 2; const w = n * 70 + 20; const x0 = 160 - w / 2;
+    c.fillStyle = '#16181c'; rr(c, x0, 70, w, 76, 6); c.fill();
+    for (let i = 0; i < n; i++) { fan(c, x0 + 45 + i * 70, 108, 32, '#5b606a'); if (it.tier >= 3) { c.strokeStyle = ['#ff3d81', '#8b5cf6', '#4cc3ff'][i]; c.lineWidth = 3; c.beginPath(); c.arc(x0 + 45 + i * 70, 108, 32, 0, 7); c.stroke(); } }
+    c.strokeStyle = '#2b2e35'; c.lineWidth = 6; c.beginPath(); c.moveTo(x0 + 30, 146); c.quadraticCurveTo(x0 + 20, 186, 132, 184); c.moveTo(x0 + 50, 146); c.quadraticCurveTo(x0 + 44, 176, 140, 176); c.stroke();
+    c.fillStyle = '#2b2e35'; c.beginPath(); c.arc(160, 182, 22, 0, 7); c.fill(); c.fillStyle = it.tier >= 3 ? lin(c, 140, 0, 180, 0, ['#ff3d81', '#4cc3ff']) : '#9aa1ab'; c.beginPath(); c.arc(160, 182, 13, 0, 7); c.fill();
+  };
   const MV = {
     cama: (c, it) => {
       sombra(c, 160, 206, 140, 12);

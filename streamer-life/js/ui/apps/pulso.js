@@ -27,9 +27,9 @@
     watch: ['live:end', 'promises', 'tick:hour', 'equip', 'videos'],
     render(el, ctx) {
       const st = ctx.st; st.tab = st.tab || (ctx.args && ctx.args.tab) || 'transmitir';
-      const tabs = [['transmitir', 'Transmitir', 'live'], ['painel', 'Painel', 'stats'], ['comunidade', 'Comunidade', 'users'], ['monetizacao', 'Monetização', 'money']];
-      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#8b5cf6">${ic('pulso', 15)}</span>OBS Studio</div><div class="tabs">${tabs.map(([k, l, i]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${ic(i, 14)}${l}</button>`).join('')}</div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
-      if (st.tab === 'painel') { const cv = $('#pl-chart', el); if (cv) UI.chart(cv, [{ data: SL.G.lives.slice(-20).map(l => l.avg), color: '#8b5cf6' }, { data: SL.G.lives.slice(-20).map(l => l.peak), color: '#ff4d5e', fill: false }], { labels: SL.G.lives.slice(-20).map((l, i, a) => '#' + (SL.G.lives.length - a.length + i + 1)) }); }
+      if (st.tab === 'painel' || st.tab === 'monetizacao') st.tab = 'transmitir'; // foram para o app da Twitch
+      const tabs = [['transmitir', 'Transmitir', 'live'], ['comunidade', 'Comunidade', 'users']];
+      el.innerHTML = `<div class="app"><div class="app-head"><div class="brandbar"><span class="bl" style="background:#8b5cf6">${ic('pulso', 15)}</span>OBS Studio</div><div class="tabs">${tabs.map(([k, l, i]) => `<button class="tab ${st.tab === k ? 'on' : ''}" data-act="tab" data-t="${k}">${ic(i, 14)}${l}</button>`).join('')}<button class="tab" data-act="twitch">${ic('stats', 14)}Painel do canal (Twitch)</button></div></div><div class="app-body">${this[st.tab](ctx)}</div></div>`;
     },
     transmitir(ctx) {
       const G = SL.G; const st = ctx.st;
@@ -62,13 +62,6 @@
           </div>
         </div></div>`;
     },
-    painel() {
-      const G = SL.G; const P = G.ch.pulso; const lives = G.lives.slice().reverse();
-      const av = G.ch.avgViewers.slice(-10); const avg = av.length ? av.reduce((a, b) => a + b, 0) / av.length : 0;
-      return `<div class="statrow"><div class="card stat"><b>${U.num(P.f)}</b><span>Seguidores na Twitch</span></div><div class="card stat"><b>${U.num(P.subs)}</b><span>Inscritos ativos</span></div><div class="card stat"><b>${U.int(avg * 10) / 10 || 0}</b><span>Média (últimas 10 lives)</span></div><div class="card stat"><b>${U.num(P.peak)}</b><span>Recorde de público</span></div><div class="card stat"><b>${Math.round(P.hours)}h</b><span>Horas transmitidas</span></div><div class="card stat"><b>${P.parc ? 'Parceiro' : P.afil ? 'Afiliado' : 'Iniciante'}</b><span>Status na Twitch</span></div></div>
-        <div class="card"><div class="section-t"><h3>Público por live</h3><span class="tiny muted"><span style="color:#8b5cf6">média</span> · <span style="color:#ff4d5e">pico</span></span></div>${G.lives.length ? '<canvas class="chart" id="pl-chart"></canvas>' : '<div class="empty">Faça sua primeira live para ver o gráfico.</div>'}</div>
-        <div class="card"><h3>Histórico de lives</h3>${lives.length ? `<div class="tablewrap"><table class="table"><tr><th>Live</th><th>Jogo</th><th>Duração</th><th>Pico</th><th>Média</th><th>Seguidores</th><th>Doações</th><th>Qualidade</th></tr>${lives.slice(0, 40).map((l, i) => `<tr><td>#${G.lives.length - i}</td><td>${esc(D.gameById(l.game).name)}</td><td class="n">${U.dur(l.dur)}</td><td class="n">${U.int(l.peak)}</td><td class="n">${l.avg}</td><td class="n ok">+${U.int(l.fol)}</td><td class="n">${U.money(l.don)}</td><td class="n">${l.q}</td></tr>`).join('')}</table></div>` : '<div class="empty">Nenhuma live ainda.</div>'}</div>`;
-    },
     comunidade(ctx) {
       const G = SL.G; const st = ctx.st; st.cf = st.cf || 'todos'; st.q = st.q || '';
       let list = G.viewers.list.slice();
@@ -91,17 +84,11 @@
         ${v.m.saw.length ? `<div class="small muted">Esteve presente em ${v.m.saw.length} momentos marcantes do canal.</div>` : ''}
         <div class="row wrap">${v.ban ? `<button class="btn sm" data-act="unban" data-v="${v.id}">Desbanir</button>` : v.mod ? `<button class="btn sm" data-act="unmod" data-v="${v.id}">Remover moderação</button>` : `<button class="btn sm" data-act="mkmod" data-v="${v.id}">${ic('shield', 14)} Tornar moderador(a)</button>`}</div></div>`;
     },
-    monetizacao() {
-      const G = SL.G; const P = G.ch.pulso; const mk = SL.Clock.monthKey(); const m = G.month[mk] || { in: {} };
-      const req = [[P.f, 50, 'seguidores'], [P.livesN, 7, 'lives feitas'], [G.ch.avgViewers.slice(-10).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(10, G.ch.avgViewers.length)), 3, 'média de pessoas']];
-      return `<div class="statrow"><div class="card stat"><b class="ok">${U.money(P.bal)}</b><span>Saldo a receber (cai na conta no fim de cada live)</span></div><div class="card stat"><b>${U.money(m.in.doacoes || 0)}</b><span>Repasses da Twitch no mês</span></div><div class="card stat"><b>${U.num(P.subs)}</b><span>Inscrições ativas (R$ 3,95 cada por mês)</span></div></div>
-        <div class="card col"><h3>${P.afil ? ic('check', 16) + ' Você é afiliado(a)' : 'Programa de afiliados'}</h3>${P.afil ? '<p class="small muted">Seus espectadores podem se inscrever e você pode rodar anúncios durante a live (cada anúncio rende pela quantidade de pessoas, mas cansa o público).</p>' : req.map(([a, b, l]) => `<div class="attr">${l}<div class="bar"><i style="width:${Math.min(100, a / b * 100)}%"></i></div><b>${Math.floor(a)}/${b}</b></div>`).join('')}</div>
-        <div class="card col"><h3>Parceria Twitch</h3><p class="small muted">Exige 15 mil seguidores, 150 horas de live e média de 75 pessoas. Libera 1440p e o selo de parceiro.</p>${[[P.f, 15000, 'seguidores'], [P.hours, 150, 'horas'], [G.ch.avgViewers.slice(-10).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(10, G.ch.avgViewers.length)), 75, 'média']].map(([a, b, l]) => `<div class="attr">${l}<div class="bar"><i style="width:${Math.min(100, a / b * 100)}%"></i></div><b>${U.num(a)}</b></div>`).join('')}</div>`;
-    },
     act(a, ds, ctx, ev, t) {
       const st = ctx.st; const f = st.form; const G = SL.G;
       if (a === 'tab') { st.tab = ds.t; ctx.resetScroll = true; return ctx.render(); }
       if (a === 'reopen') return SL.LiveUI.restore();
+      if (a === 'twitch') return UI.openApp('twitch');
       if (a === 'game') { const g = D.gameById(ds.g); const cs = SL.Equip.canStream(g, '480p'); if (!cs.ok) return cs.reason; f.game = ds.g; f.tags = f.tags.filter(x => SL.Algo.suggestTags(f.game).includes(x)); return ctx.render(); }
       if (a === 'idea') { f.title = U.pick(TITLE_IDEAS).replace('{g}', D.gameById(f.game).name); SL.Life.skillUp('marketing', 0.02); return ctx.render(); }
       if (a === 'tag') { const i = f.tags.indexOf(ds.v); if (i >= 0) f.tags.splice(i, 1); else if (f.tags.length < 6) f.tags.push(ds.v); return ctx.render(); }
@@ -167,6 +154,7 @@
           <div class="lstats"><div class="lstat v"><b id="ls-v">0</b><span>assistindo</span></div><div class="lstat"><b id="ls-f">+0</b><span>seguidores</span></div><div class="lstat"><b id="ls-s">0</b><span>inscrições</span></div><div class="lstat"><b id="ls-d">R$ 0</b><span>doações</span></div><div class="lstat"><b id="ls-t">0:00</b><span>no ar</span></div></div><div class="lctl" id="lv-ctl"></div></div>
         <div class="preview-wrap" id="lv-wrap"><div class="preview-box" id="lv-box"><canvas id="lv-cv"></canvas><div class="alerts" id="lv-al"></div><div class="mom" id="lv-mom" hidden></div></div></div>
         <div class="meter-row"><div class="meter" title="Empolgação do chat">${ic('fire', 14)}<span>Empolgação</span><div class="bar"><i id="m-h"></i></div></div><div class="meter" title="Qualidade do conteúdo agora">${ic('star', 14)}<span>Conteúdo</span><div class="bar"><i id="m-c"></i></div></div><div class="meter" title="Qualidade técnica">${ic('cpu', 14)}<span>Técnica</span><div class="bar"><i id="m-t"></i></div></div><div class="meter" title="Sua energia">${ic('energy', 14)}<span>Você</span><div class="bar"><i id="m-e"></i></div></div><span id="m-issues" class="row gap4"></span></div>
+        <div class="lv-dock" id="lv-dock"><span class="lv-dock-t">Apps</span>${LUI.JANELA_APPS.filter(id => SL.Apps[id]).map(id => { const a = SL.Apps[id]; return `<button data-lw="${id}" title="Abrir ${esc(a.title)} sem sair da live"><span class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${ic(a.icon, 13)}</span><span>${esc(a.short || a.title)}</span></button>`; }).join('')}</div>
       </div>
       <div class="live-side"><div class="sh">${ic('chat', 16)}<b class="grow">Chat</b><span class="tiny muted" id="lv-rate"></span></div><div class="actions" id="lv-actions"></div><div class="chat-tip tiny muted">O Bigode (moderador) cuida do chat. Clique num comentário só se quiser responder.</div><div class="chat" id="lv-chat"></div><div class="pending" id="lv-pend"></div>
         <form class="chat-input" id="lv-form"><input class="input" id="lv-in" maxlength="120" placeholder="Escrever no chat como ${esc(G.player.user)}" autocomplete="off"><button class="btn primary sm">${ic('send', 14)}</button></form></div>
@@ -177,11 +165,39 @@
     LUI.actions();
     $('#lv-actions').onclick = LUI.actionClick; $('#lv-ctl').onclick = LUI.actionClick;
     $('#lv-pend').onclick = LUI.pendClick;
+    $('#lv-dock').onclick = e => { const b = e.target.closest('[data-lw]'); if (!b) return; SL.audio.play('click'); if (LUI._jan && LUI._jan.id === b.dataset.lw) return LUI.fechaJanela(); LUI.janela(b.dataset.lw); };
     $('#lv-mom').onclick = e => { const b = e.target.closest('[data-mom]'); if (!b) return; SL.audio.play('click'); SL.Live.decidir(b.dataset.mom); LUI.momento(); };
     $('#lv-chat').onclick = e => { const m = e.target.closest('[data-m]'); if (m) LUI.msgPop(m.dataset.m, m); };
     $('#lv-form').onsubmit = e => { e.preventDefault(); const v = $('#lv-in').value.trim(); if (!v) return; $('#lv-in').value = ''; LUI.typed(v); };
   };
-  LUI.close = () => { const ov = $('#overlay-live'); ov.hidden = true; ov.innerHTML = ''; LUI.minimized = false; document.body.classList.remove('live-open'); if (UI.renderTaskbar) UI.renderTaskbar(); };
+  // apps numa janelinha por cima da live (banco, anúncios, Twitch...), sem minimizar a transmissão
+  LUI.JANELA_APPS = ['twitch', 'anuncios', 'banco', 'mensagens', 'parcerias', 'rango', 'loja'];
+  LUI._jan = null;
+  LUI.janela = (id, args) => {
+    const a = SL.Apps[id]; if (!a) return;
+    if (LUI.minimized) LUI.restore();
+    const main = $('#overlay-live .live-main'); if (!main) return;
+    LUI.fechaJanela();
+    const w = document.createElement('div'); w.className = 'lv-win';
+    w.innerHTML = `<div class="lv-win-h"><span class="ai" style="background:${a.color};${a.fg ? 'color:' + a.fg : ''}">${ic(a.icon, 13)}</span><b class="grow">${esc(a.title)}</b><span class="tiny muted">a live continua</span><button class="ibtn" data-lwx title="Fechar">${ic('x', 15)}</button></div><div class="lv-win-b"></div>`;
+    main.appendChild(w);
+    const ctx = UI.makeCtx(id, $('.lv-win-b', w), args || {}, 'live');
+    const unsub = (a.watch || []).map(ev => { const fn = () => { if (LUI._jan && LUI._jan.ctx === ctx) ctx.rr(); }; SL.bus.on(ev, fn); return [ev, fn]; });
+    LUI._jan = { id, el: w, ctx, unsub };
+    $('[data-lwx]', w).onclick = () => { SL.audio.play('click'); LUI.fechaJanela(); };
+    // arrastar pela barra de cima
+    $('.lv-win-h', w).addEventListener('mousedown', e => {
+      if (e.target.closest('button')) return; const r = main.getBoundingClientRect(); const sx = e.clientX, sy = e.clientY, ox = w.offsetLeft, oy = w.offsetTop;
+      const mv = ev => { w.style.right = 'auto'; w.style.left = U.clamp(ox + ev.clientX - sx, 0, r.width - 120) + 'px'; w.style.top = U.clamp(oy + ev.clientY - sy, 0, r.height - 40) + 'px'; };
+      const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); };
+      window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
+    });
+    ctx.render();
+    $$('#lv-dock [data-lw]').forEach(b => b.classList.toggle('on', b.dataset.lw === id));
+    if (SL.audio) SL.audio.play('open');
+  };
+  LUI.fechaJanela = () => { const j = LUI._jan; if (!j) return; j.unsub.forEach(([e, f]) => SL.bus.off(e, f)); j.el.parentNode && j.el.parentNode.removeChild(j.el); LUI._jan = null; $$('#lv-dock [data-lw]').forEach(b => b.classList.remove('on')); };
+  LUI.close = () => { LUI.fechaJanela(); const ov = $('#overlay-live'); ov.hidden = true; ov.innerHTML = ''; LUI.minimized = false; document.body.classList.remove('live-open'); if (UI.renderTaskbar) UI.renderTaskbar(); };
   // a live é uma janela: dá para minimizar, usar outros apps e voltar pela aba "AO VIVO" da barra de tarefas
   LUI.minimized = false;
   LUI.visible = () => !$('#overlay-live').hidden;
