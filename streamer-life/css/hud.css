@@ -731,3 +731,15 @@ label.op-row { cursor: pointer; }
 .op-page { background: radial-gradient(1200px 600px at 80% -10%, var(--accent-soft), transparent), var(--bg); }
 .op-card { padding: 18px; }
 @media (max-width: 640px) { .opcoes { grid-template-columns: 1fr; } .op-abas { flex-direction: row; overflow-x: auto; } .op-abas button span { white-space: nowrap; } .op-row.col-m { flex-direction: column; align-items: flex-start; } .op-sl input[type=range] { width: 130px; } }
+
+/* ===== créditos (nov/2026) ===== */
+.modal.creditos .cr-box { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 10px 4px 4px; }
+.cr-logo { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+.cr-logo em { font-style: normal; color: var(--accent2); margin-left: 8px; }
+.cr-ver { font-size: 12px; color: var(--muted); }
+.cr-criador { display: inline-flex; align-items: center; gap: 10px; margin: 8px 0 4px; padding: 11px 22px; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 800; font-size: 14px; letter-spacing: .12em; text-decoration: none; transition: filter .15s, transform .15s; }
+.cr-criador:hover { filter: brightness(1.12); transform: translateY(-1px); }
+.cr-criador:focus-visible { outline: 2px solid var(--accent2); outline-offset: 3px; }
+.cr-criador .ig { flex: none; }
+.cr-aviso { font-size: 12px; color: var(--muted); max-width: 40ch; margin: 4px 0 0; }
+.cr-obg { font-size: 13px; font-weight: 600; margin: 0; }

@@ -75,28 +75,60 @@
   };
   A.paraSuperchats = () => { filaSc.length = 0; };
 
+  // nov/2026: efeitos refeitos (sinos suaves com eco curto, cliques macios e "whoosh" em vez de ondas quadradas)
+  let eco = null;
+  const saidaEco = () => {
+    if (eco || !ctx) return eco;
+    const d = ctx.createDelay(); d.delayTime.value = 0.13; const fb = ctx.createGain(); fb.gain.value = 0.22; const wet = ctx.createGain(); wet.gain.value = 0.25;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3200;
+    d.connect(lp); lp.connect(fb); fb.connect(d); lp.connect(wet); wet.connect(master); eco = d; return eco;
+  };
+  // sino: fundamental + oitava + quinta curtinha, com um pouco de eco
+  function sino(freq, dur, vol, when) {
+    if (!ctx) return; const t0 = ctx.currentTime + (when || 0); const e = saidaEco();
+    [[1, 1], [2, 0.35], [3, 0.12]].forEach(([m, k]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(freq * m, t0);
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol * k, t0 + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur / m);
+      o.connect(g); g.connect(master); if (e) g.connect(e); o.start(t0); o.stop(t0 + dur + 0.05);
+    });
+  }
+  // clique macio (como botão de interface de celular)
+  function toque(freq, vol, when) {
+    if (!ctx) return; const t0 = ctx.currentTime + (when || 0);
+    const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter(); o.type = 'triangle'; o.frequency.setValueAtTime(freq, t0); o.frequency.exponentialRampToValueAtTime(freq * 0.6, t0 + 0.05);
+    f.type = 'lowpass'; f.frequency.value = 2400; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.06);
+    o.connect(f); f.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 0.08);
+  }
+  // whoosh: ruído filtrado subindo ou descendo
+  function whoosh(dur, vol, de, ate, when) {
+    if (!ctx) return; const t0 = ctx.currentTime + (when || 0);
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate); const dd = buf.getChannelData(0); for (let i = 0; i < dd.length; i++) dd[i] = Math.random() * 2 - 1;
+    const sr = ctx.createBufferSource(); sr.buffer = buf; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.4; f.frequency.setValueAtTime(de, t0); f.frequency.exponentialRampToValueAtTime(ate, t0 + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + dur * 0.35); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    sr.connect(f); f.connect(g); g.connect(master); sr.start(t0);
+  }
   const SFX = {
-    click: () => tone(660, 0.05, 'triangle', 0.06),
-    hover: () => tone(900, 0.03, 'sine', 0.025),
-    open: () => { tone(520, 0.08, 'triangle', 0.07); tone(780, 0.1, 'triangle', 0.06, 0.05); },
-    close: () => { tone(700, 0.07, 'triangle', 0.06); tone(460, 0.09, 'triangle', 0.05, 0.05); },
-    notif: () => { tone(880, 0.12, 'sine', 0.12); tone(1320, 0.18, 'sine', 0.1, 0.09); },
-    msg: () => { tone(1046, 0.08, 'sine', 0.1); tone(1568, 0.12, 'sine', 0.08, 0.07); },
-    follow: () => { tone(784, 0.1, 'triangle', 0.12); tone(988, 0.1, 'triangle', 0.12, 0.08); tone(1318, 0.18, 'triangle', 0.12, 0.16); },
-    sub: () => { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, 'square', 0.05, i * 0.07)); },
-    donate: () => { tone(1568, 0.08, 'square', 0.06); tone(2093, 0.25, 'square', 0.06, 0.07); noise(0.25, 0.04, 0.05, 4000); },
-    cash: () => { tone(1318, 0.06, 'square', 0.05); tone(1760, 0.18, 'square', 0.05, 0.06); },
-    error: () => { tone(220, 0.15, 'sawtooth', 0.06); tone(180, 0.2, 'sawtooth', 0.06, 0.1); },
-    success: () => { [523, 659, 784].forEach((f, i) => tone(f, 0.14, 'triangle', 0.1, i * 0.08)); },
-    levelup: () => { [392, 523, 659, 784, 1046].forEach((f, i) => tone(f, 0.2, 'triangle', 0.1, i * 0.09)); },
-    raid: () => { tone(196, 0.4, 'sawtooth', 0.08, 0, 400); noise(0.5, 0.06, 0.05, 800); },
-    live: () => { tone(440, 0.15, 'square', 0.06); tone(660, 0.15, 'square', 0.06, 0.15); tone(880, 0.3, 'square', 0.06, 0.3); },
-    end: () => { tone(660, 0.2, 'triangle', 0.08); tone(440, 0.3, 'triangle', 0.08, 0.18); },
-    step: () => noise(0.03, 0.015, 0, 3000),
-    door: () => { tone(140, 0.15, 'sine', 0.12); noise(0.1, 0.04, 0.02, 600); },
-    pop: () => tone(1200, 0.05, 'sine', 0.06, 0, -500),
-    scare: () => { noise(0.4, 0.12, 0, 300); tone(90, 0.5, 'sawtooth', 0.08, 0, -40); },
-    goal: () => { noise(0.6, 0.07, 0, 500); [523, 784, 1046].forEach((f, i) => tone(f, 0.25, 'square', 0.05, i * 0.1)); },
+    click: () => toque(900, 0.05),
+    hover: () => toque(1400, 0.015),
+    open: () => { whoosh(0.18, 0.05, 600, 2200); sino(880, 0.25, 0.03, 0.05); },
+    close: () => { whoosh(0.16, 0.04, 2000, 500); },
+    notif: () => { sino(1046, 0.5, 0.06); sino(1568, 0.6, 0.045, 0.1); },
+    msg: () => { sino(1318, 0.3, 0.05); sino(1760, 0.35, 0.04, 0.08); },
+    follow: () => { [784, 988, 1318].forEach((f, i) => sino(f, 0.45, 0.05, i * 0.07)); },
+    sub: () => { [659, 784, 988, 1318].forEach((f, i) => sino(f, 0.6, 0.05, i * 0.08)); whoosh(0.4, 0.025, 3000, 8000, 0.2); },
+    donate: () => { sino(1568, 0.4, 0.06); sino(2093, 0.6, 0.05, 0.08); whoosh(0.3, 0.02, 5000, 9000, 0.05); },
+    cash: () => { toque(2400, 0.04); sino(1760, 0.35, 0.05, 0.04); sino(2637, 0.45, 0.04, 0.1); },
+    error: () => { const t = ctx.currentTime; [330, 247].forEach((f, i) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t + i * 0.12); g.gain.exponentialRampToValueAtTime(0.07, t + i * 0.12 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.12 + 0.18); o.connect(g); g.connect(master); o.start(t + i * 0.12); o.stop(t + i * 0.12 + 0.2); }); },
+    success: () => { [523, 659, 784, 1046].forEach((f, i) => sino(f, 0.5, 0.05, i * 0.07)); },
+    levelup: () => { [392, 523, 659, 784, 1046, 1318].forEach((f, i) => sino(f, 0.7, 0.05, i * 0.08)); whoosh(0.6, 0.03, 800, 6000, 0.1); },
+    raid: () => { whoosh(0.7, 0.07, 300, 3000); [262, 330, 392, 523].forEach((f, i) => sino(f, 0.6, 0.05, 0.25 + i * 0.08)); },
+    live: () => { [523, 784, 1046].forEach((f, i) => sino(f, 0.55, 0.055, i * 0.14)); },
+    end: () => { [784, 659, 523].forEach((f, i) => sino(f, 0.6, 0.05, i * 0.14)); },
+    step: () => noise(0.025, 0.012, 0, 2500),
+    door: () => { whoosh(0.35, 0.05, 400, 150); toque(180, 0.05, 0.25); },
+    pop: () => toque(1300, 0.06),
+    scare: () => { whoosh(0.5, 0.12, 200, 1200); tone(90, 0.5, 'sawtooth', 0.06, 0, -40); },
+    goal: () => { [523, 659, 784, 1046].forEach((f, i) => sino(f, 0.6, 0.06, i * 0.09)); whoosh(0.6, 0.04, 1000, 7000, 0.1); },
   };
   A.play = name => {
     if (!ctx || (SL.settings && SL.settings.volume === 0)) return;

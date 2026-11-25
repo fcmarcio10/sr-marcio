@@ -32,13 +32,26 @@
       if (m === 'novo') SC.creator();
       if (m === 'carregar') SC.load();
       if (m === 'config') SC.settings('title');
-      if (m === 'creditos') UI.modal({ title: 'Créditos', icon: 'star', html: `<div class="col gap8 small"><p><b>Streamer Life</b> · versão 0.4 em desenvolvimento.</p><p>Jogo, desenhos e sons do menu feitos no próprio código, sem imagens de fora.</p><p>Vozes do superchat, do Bigode e do público: ElevenLabs.</p><p class="muted">Todas as pessoas, canais e marcas do jogo são inventados. Os nomes dos aplicativos aparecem só como nome.</p></div>`, buttons: [{ label: 'Fechar', cls: 'primary' }] });
+      if (m === 'creditos') SC.creditos();
       if (m === 'sair') UI.confirm('Sair do jogo?', 'Seu progresso fica salvo no navegador.', () => { try { window.close(); } catch (e) { /* ignora */ } el.innerHTML = '<div class="tm-tchau"><b>Valeu por jogar!</b><span>Pode fechar esta aba. Para voltar, recarregue a página.</span></div>'; }, 'Sair');
     });
     const cv = $('canvas.bg', el); const look = meta && meta.look ? meta.look : SL.State.defaultLook();
     cancelAnimationFrame(titleRaf);
     const loop = t => { if (UI.screen !== 'title' || !cv.isConnected) return; SL.Preview.menuStreamer(cv, t / 1000, look); titleRaf = requestAnimationFrame(loop); };
     titleRaf = requestAnimationFrame(loop);
+  };
+
+  // ---------- créditos (nov/2026): só o essencial e o botão CRIADOR (abre o Instagram do criador) ----------
+  SC.CRIADOR_URL = 'https://www.instagram.com/marciomotta.777/';
+  const IG = '<svg class="ig" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>';
+  SC.creditos = () => {
+    const m = UI.modal({ title: 'Créditos', icon: 'star', cls: 'creditos', html: `<div class="cr-box">
+      <div class="cr-logo">STREAMER<em>LIFE</em></div>
+      <div class="cr-ver">Versão 0.4 · em desenvolvimento</div>
+      <a class="cr-criador" href="${SC.CRIADOR_URL}" target="_blank" rel="noopener noreferrer" data-criador>${IG}<span>CRIADOR</span></a>
+      <p class="cr-aviso">Todas as pessoas, canais, marcas e acontecimentos deste jogo são fictícios. Os nomes dos aplicativos aparecem só como nome.</p>
+      <p class="cr-obg">Obrigado por jogar!</p></div>`, buttons: [{ label: 'Fechar', cls: 'primary' }] });
+    const a = m.el.querySelector('[data-criador]'); if (a) a.addEventListener('click', () => { if (SL.audio) SL.audio.play('click'); });
   };
 
   // ---------- criação ----------

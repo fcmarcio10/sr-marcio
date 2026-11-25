@@ -30,6 +30,10 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   // 0. menu inicial simples
   ok('menu inicial: Jogar, Opções, Créditos e Sair com o streamer ao fundo', await ev(() => [...document.querySelectorAll('#scr-title .tm-menu .mb')].map(b => b.textContent).join(',') === 'Jogar,Opções,Créditos,Sair' && document.querySelector('#scr-title canvas.bg').width > 0));
   await shot('00_menu');
+  await page.click('[data-m="creditos"]'); await page.waitForTimeout(200);
+  ok('créditos com o botão CRIADOR (Instagram marciomotta.777)', await ev(() => { const a = document.querySelector('.modal [data-criador]'); return !!a && /CRIADOR/.test(a.textContent) && a.href === 'https://www.instagram.com/marciomotta.777/' && a.target === '_blank' && !/código|feito|ElevenLabs/i.test(document.querySelector('.modal').textContent); }));
+  await shot('00a_creditos'); await page.click('.modal .mf .btn.primary'); await page.waitForTimeout(150);
+  ok('70 falas de superchat com voz (40 novas de adolescentes)', await ev(() => SL.Live.SUPERCHATS.length === 70 && SL.Live.SUPERCHATS.every(x => SL.SONS[x.id]) && SL.Live.SUPERCHATS.filter(x => x.z).length === 40));
   await page.click('[data-m="config"]'); await page.waitForTimeout(200);
   ok('opções em abas (Som, Jogo, Tela, Dados) com chaves e barras', await ev(() => document.querySelectorAll('.op-abas button').length === 4 && document.querySelectorAll('.op-corpo .tgl').length >= 3 && document.querySelectorAll('.op-corpo input[type=range]').length >= 3));
   await page.click('[data-aba="tela"]'); await page.click('[data-cor="azul"]'); await page.waitForTimeout(150);
