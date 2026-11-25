@@ -42,8 +42,8 @@
   const PASSA = ['donation', 'mod', 'streamer', 'superchat'];
   LV.filtraModo = (L, msg) => {
     if (!msg.vid || PASSA.includes(msg.kind)) return true;
-    const v = SL.Viewers.byId(msg.vid); if (v && (v.mod || v.npc)) return true;
-    if (L.followersOnly && !(v && v.fol)) return false;       // quem não segue não consegue escrever
+    const v = SL.Viewers.byId(msg.vid); if (v && v.mod) return true;
+    if (L.followersOnly && !(v && (v.fol || v.npc))) return false;       // quem não segue não consegue escrever (amigos sempre seguem)
     if (L.emoteOnly && !/^(:[a-z]+:\s?)+$/.test((msg.raw || '').trim())) {
       msg.raw = U.shuffle(LV.EMOTES.slice()).slice(0, U.ri(1, 3)).join(' '); msg.html = SL.Chat.html(msg.raw); msg.q = null; msg.qd = null; msg.intent = 'emote'; if (msg.kind !== 'reply_got') msg.kind = 'msg';
     }

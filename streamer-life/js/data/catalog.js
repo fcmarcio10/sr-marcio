@@ -208,7 +208,30 @@
     { id: 'amigos', name: 'Casa da Duda', kind: 'amigos', x: 120, y: 250, icon: 'users', color: '#ffb547', open: [9, 23], host: 'duda' },
     { id: 'rafa', name: 'Casa do Rafa', kind: 'amigos', x: 860, y: 180, icon: 'users', color: '#ffb547', open: [10, 24], host: 'rafa' },
     { id: 'expo', name: 'Centro de Eventos Expo Norte', kind: 'expo', x: 870, y: 330, icon: 'flag', color: '#ff5a36', open: [9, 22] },
+    { id: 'construcao', name: 'Casa & Construção', kind: 'construcao', x: 520, y: 600, icon: 'wrench', color: '#f28c28', open: [7, 20] },
   ];
+  // Casa & Construção (nov/2026): piso e cor de parede de cada cômodo. Preço do piso por quadradinho do cômodo; tinta por cômodo.
+  D.pisos = [
+    { id: 'wood', name: 'Madeira clara', m2: 18, desc: 'Tábuas de madeira, aconchegante' },
+    { id: 'wood2', name: 'Madeira escura', m2: 22, desc: 'Tábuas escuras, ar de escritório' },
+    { id: 'vinilico', name: 'Vinílico cinza', m2: 26, desc: 'Imita madeira, moderno e silencioso' },
+    { id: 'tacos', name: 'Tacos antigos', m2: 24, desc: 'Tacos em espinha de peixe, estilo casa de vó' },
+    { id: 'tile', name: 'Cerâmica azulada', m2: 14, desc: 'Fácil de limpar, boa para banheiro' },
+    { id: 'tile2', name: 'Cerâmica bege', m2: 14, desc: 'Clássica de cozinha' },
+    { id: 'porcelanato', name: 'Porcelanato claro', m2: 38, desc: 'Peças grandes e brilhantes' },
+    { id: 'marmore', name: 'Mármore branco', m2: 64, desc: 'Luxo com veios cinza' },
+    { id: 'cimento', name: 'Cimento queimado', m2: 20, desc: 'Visual industrial' },
+    { id: 'carpete', name: 'Carpete grafite', m2: 16, desc: 'Macio e abafa o som da live' },
+    { id: 'studio', name: 'Piso emborrachado', m2: 28, desc: 'Escuro, de estúdio' },
+  ];
+  D.tintas = [
+    { id: 'lavanda', name: 'Lavanda', cor: '#8d84ad' }, { id: 'azul', name: 'Azul noite', cor: '#5d6b8a' }, { id: 'agua', name: 'Verde-água', cor: '#93bcc6' },
+    { id: 'caramelo', name: 'Caramelo', cor: '#c19c78' }, { id: 'areia', name: 'Areia', cor: '#d3be93' }, { id: 'grafite', name: 'Grafite', cor: '#3b4057' },
+    { id: 'branco', name: 'Branco gelo', cor: '#e4e4df' }, { id: 'cinza', name: 'Cinza concreto', cor: '#9a9c9f' }, { id: 'oliva', name: 'Verde oliva', cor: '#7d8a5a' },
+    { id: 'terracota', name: 'Terracota', cor: '#c0704e' }, { id: 'rosa', name: 'Rosa queimado', cor: '#c98a95' }, { id: 'mostarda', name: 'Mostarda', cor: '#d1a13a' },
+    { id: 'preto', name: 'Preto fosco', cor: '#2a2b30' }, { id: 'roxo', name: 'Roxo gamer', cor: '#5b3d9a' }, { id: 'turquesa', name: 'Turquesa', cor: '#2f8f95' },
+  ];
+  D.tintaPreco = 89.99;   // R$ por cômodo (2 latas e o pintor)
   D.placeById = id => D.places.find(p => p.id === id);
 
   D.transport = [

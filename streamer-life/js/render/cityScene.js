@@ -253,6 +253,15 @@
     amigos: { floor: '#7a6a5a', wall: '#ffb547', props: c => { c.fillStyle = '#4a5a8a'; c.fillRect(60, 200, 180, 50); c.fillStyle = '#0d0f14'; c.fillRect(400, 80, 160, 90); c.fillStyle = '#3b82f6'; c.fillRect(406, 86, 148, 78); c.fillStyle = 'rgba(200,120,160,.5)'; c.beginPath(); c.ellipse(320, 280, 120, 40, 0, 0, 7); c.fill(); } },
     expo: { floor: '#262a38', wall: '#ff5a36', props: c => { for (let i = 0; i < 5; i++) { c.fillStyle = ['#8b5cf6', '#ff5a36', '#19d3c5', '#3b82f6', '#ffb547'][i]; c.fillRect(30 + i * 125, 80, 105, 60); c.fillStyle = '#111'; c.fillRect(30 + i * 125, 140, 105, 30); } c.fillStyle = '#ff5a36'; c.fillRect(200, 250, 240, 40); } },
   };
+  // Casa & Construção: prateleiras de tinta, amostras de piso e o balcão
+  SCN.construcao = { floor: '#cfc8b8', wall: '#f28c28', props: c => {
+    const latas = ['#8d84ad', '#5d6b8a', '#93bcc6', '#c19c78', '#d3be93', '#e4e4df', '#7d8a5a', '#c0704e', '#c98a95', '#d1a13a', '#5b3d9a', '#2f8f95'];
+    for (let p = 0; p < 2; p++) { const x0 = 40 + p * 230; c.fillStyle = '#6a5a48'; c.fillRect(x0, 70, 200, 120); for (let r = 0; r < 3; r++) { c.fillStyle = '#8a7660'; c.fillRect(x0, 70 + r * 40 + 36, 200, 4); for (let i = 0; i < 6; i++) { const cor = latas[(i + r * 3 + p * 5) % latas.length]; c.fillStyle = '#d8d8d8'; c.fillRect(x0 + 8 + i * 32, 70 + r * 40 + 8, 24, 28); c.fillStyle = cor; c.fillRect(x0 + 8 + i * 32, 70 + r * 40 + 16, 24, 12); } } }
+    const pisos = ['#b07a4a', '#4a4e60', '#8e8c88', '#e2e0da', '#eceae6', '#969896', '#4a4d57', '#d5c8ad'];
+    for (let i = 0; i < 8; i++) { const x = 60 + (i % 4) * 110, y = 240 + Math.floor(i / 4) * 70; c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(x + 4, y + 4, 90, 52); c.fillStyle = pisos[i]; c.fillRect(x, y, 90, 52); c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 1; for (let k = 1; k < 3; k++) { c.beginPath(); c.moveTo(x, y + k * 17); c.lineTo(x + 90, y + k * 17); c.stroke(); } }
+    c.fillStyle = '#3a2a1e'; c.fillRect(520, 90, 110, 200); c.fillStyle = '#f28c28'; c.fillRect(520, 90, 110, 14); c.fillStyle = '#e8e2d0'; c.fillRect(540, 130, 70, 40);
+    c.fillStyle = '#9a9a9a'; c.fillRect(500, 320, 50, 40); c.fillStyle = '#7a7a7a'; c.fillRect(560, 330, 40, 30); c.fillStyle = '#b8a070'; c.fillRect(600, 310, 40, 50);
+  } };
   C.renderPlace = (c, cw, ch, t) => {
     const G = SL.G; const p = D.placeById(G.loc.place); if (!p) return;
     const s = SCN[p.kind] || SCN.parque; const VW = 660, VH = 400;
@@ -307,6 +316,9 @@
         if (!G.gym) act({ id: 'plano', label: 'Assinar plano mensal', desc: 'R$ 99/mês, treinos liberados', icon: 'dumbbell', price: 99, run: pay(99, 'lazer', 'Plano da academia (1º mês)', () => { G.gym = 1; return null; }) });
         act({ id: 'treinar', label: 'Treinar', desc: G.gym ? '1h · incluso no plano' : '1h · diária', icon: 'dumbbell', price: G.gym ? 0 : 25, run: G.gym ? life('academia') : pay(25, 'lazer', 'Diária da academia', life('academia')) });
         act({ id: 'vestiario', label: 'Banho no vestiário', desc: '15 min', icon: 'shower', run: life('banho') });
+        break;
+      case 'construcao':
+        act({ id: 'reforma', label: 'Trocar piso e pintar paredes', desc: 'Escolha o cômodo, o piso e a cor · fica pronto na hora', icon: 'home', ui: 'reforma' });
         break;
       case 'shopping':
         act({ id: 'passear', label: 'Passear', desc: '1h', icon: 'bag', run: life('passear') });

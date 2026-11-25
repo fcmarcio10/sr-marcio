@@ -160,11 +160,44 @@
     if (kind === 'loja_fisica') return UI.openPhone('loja', { physical: true, tab: 'equip' });
     if (kind === 'moveis_fisica') return UI.openPhone('loja', { physical: true, tab: 'casa' });
     if (kind === 'visual') return HUD.lookDialog(true);
+    if (kind === 'reforma') return HUD.reforma();
     if (kind === 'foto') return UI.openPhone('connect', { compose: true, photo: 'lugar' });
     if (kind === 'vlog') {
       const m = UI.modal({ title: 'Gravar vlog', icon: 'cam', sub: 'Câmera: ' + ((SL.Equip.item('vlogcam') || { name: 'celular comum' }).name), html: '<div class="col">' + [60, 120, 180].map(mn => `<button class="choice" data-mn="${mn}"><b>${U.dur(mn)} de gravação</b><small>Mais tempo = mais momentos para escolher</small></button>`).join('') + '</div>' });
       $$('[data-mn]', m.el).forEach(b => b.onclick = () => { m.close(); UI.err(SL.Videos.startRecording({ kind: 'vlog', minutes: +b.dataset.mn, place: G.loc.place })); });
     }
+  };
+  // ---------- Casa & Construção: piso e cor da parede de cada cômodo ----------
+  HUD.reforma = () => {
+    const H = SL.HomeScene, st = { room: null, aba: 'piso' };
+    const comodos = H.comodos(); st.room = comodos[0].id;
+    const amostraPiso = id => ({ wood: 'repeating-linear-gradient(0deg,#86603c 0 7px,#6f4e30 7px 8px)', wood2: 'repeating-linear-gradient(0deg,#4a4e60 0 7px,#3a3d4c 7px 8px)', vinilico: 'repeating-linear-gradient(0deg,#8e8c88 0 7px,#77756f 7px 8px)', tacos: 'repeating-linear-gradient(45deg,#96623a 0 6px,#7a4e2c 6px 7px)', tile: 'repeating-conic-gradient(#d3dce2 0 25%,#c6d0d7 0 50%) 0 0/16px 16px', tile2: 'repeating-conic-gradient(#e3d8c1 0 25%,#d5c8ad 0 50%) 0 0/16px 16px', porcelanato: 'linear-gradient(135deg,#f2f0ea,#dcd9d2)', marmore: 'linear-gradient(120deg,#eceae6 40%,#b8b8c0 42%,#eceae6 45%,#eceae6 70%,#c8c8d0 71%,#eceae6 73%)', cimento: 'radial-gradient(circle at 30% 40%,#a4a6a4,#8a8c8a)', carpete: '#4a4d57', studio: 'repeating-conic-gradient(#272a37 0 25%,#2c3040 0 50%) 0 0/16px 16px' }[id] || '#888');
+    const precoPiso = (p, r) => D.precoBR(p.m2 * r.w * r.h);
+    const html = () => {
+      const r = comodos.find(q => q.id === st.room); const pisoAtual = H.pisoDe(r), corAtual = H.corDe(r);
+      const tabs = `<div class="seg ref-tabs">${comodos.map(q => `<button class="${q.id === st.room ? 'on' : ''}" data-rc="${q.id}">${U.esc(q.name)}</button>`).join('')}</div>`;
+      const abas = `<div class="seg ref-tabs"><button class="${st.aba === 'piso' ? 'on' : ''}" data-ab="piso">Piso</button><button class="${st.aba === 'cor' ? 'on' : ''}" data-ab="cor">Cor da parede</button></div>`;
+      const lista = st.aba === 'piso'
+        ? `<div class="ref-grid">${D.pisos.map(p => { const atual = p.id === pisoAtual, pr = precoPiso(p, r), sem = SL.G.money < pr; return `<button class="ref-it ${atual ? 'on' : ''}" data-piso="${p.id}" ${atual || sem ? 'disabled' : ''}><span class="ref-am" style="background:${amostraPiso(p.id)}"></span><b>${U.esc(p.name)}</b><small>${U.esc(p.desc)}</small><em>${atual ? 'No cômodo' : sem ? 'Saldo insuficiente' : U.money(pr)}</em></button>`; }).join('')}</div>`
+        : `<div class="ref-grid cores">${D.tintas.map(tn => { const atual = tn.cor.toLowerCase() === String(corAtual).toLowerCase(), sem = SL.G.money < D.tintaPreco; return `<button class="ref-it ${atual ? 'on' : ''}" data-cor="${tn.id}" ${atual || sem ? 'disabled' : ''}><span class="ref-am" style="background:${tn.cor}"></span><b>${U.esc(tn.name)}</b><em>${atual ? 'Na parede' : sem ? 'Saldo insuficiente' : U.money(D.tintaPreco)}</em></button>`; }).join('')}</div>`;
+      return `<div class="col gap8 ref">${tabs}${abas}<div class="tiny muted">${U.esc(r.name)}: ${r.w * r.h} m² · piso cobrado por m² com a mão de obra; a tinta é por cômodo. Fica pronto na hora.</div>${lista}</div>`;
+    };
+    const m = UI.modal({ title: 'Casa & Construção', icon: 'home', sub: 'Saldo ' + U.money(SL.G.money), wide: true, html: html(), buttons: [{ label: 'Fechar' }] });
+    const body = m.el.querySelector('.mb') || m.el;
+    const redraw = () => { const box = body.querySelector('.ref'); if (box) box.outerHTML = html(); const sub = m.el.querySelector('.mh .muted'); if (sub) sub.textContent = 'Saldo ' + U.money(SL.G.money); };
+    m.el.addEventListener('click', e => {
+      const b = e.target.closest('[data-rc],[data-ab],[data-piso],[data-cor]'); if (!b || b.disabled) return;
+      SL.audio.play('click');
+      if (b.dataset.rc) st.room = b.dataset.rc;
+      else if (b.dataset.ab) st.aba = b.dataset.ab;
+      else {
+        const r = comodos.find(q => q.id === st.room); const ref = H.reforma(); ref[r.id] = ref[r.id] || {};
+        if (b.dataset.piso) { const p = D.pisos.find(x => x.id === b.dataset.piso); const pr = precoPiso(p, r); if (!SL.Econ.spend(pr, 'casa', 'Piso novo: ' + p.name + ' (' + r.name + ')')) return UI.err('Dinheiro insuficiente.'); ref[r.id].piso = p.id; UI.toast({ title: 'Piso trocado', text: r.name + ' agora com ' + p.name + '.', icon: 'home', cat: 'casa' }, 'cash'); }
+        else { const tn = D.tintas.find(x => x.id === b.dataset.cor); if (!SL.Econ.spend(D.tintaPreco, 'casa', 'Pintura: ' + tn.name + ' (' + r.name + ')')) return UI.err('Dinheiro insuficiente.'); ref[r.id].cor = tn.cor; UI.toast({ title: 'Parede pintada', text: r.name + ' agora em ' + tn.name + '.', icon: 'home', cat: 'casa' }, 'cash'); }
+        H.build(); SL.bus.emit('home');
+      }
+      redraw();
+    });
   };
   HUD.marketDialog = () => {
     const cart = {}; const L = SL.Life;

@@ -1071,3 +1071,14 @@ body.reduce-motion .win { animation: none; }
 .meter-row.simples #m-txt { font-size: 12px; font-weight: 700; min-width: 86px; }
 /* ícones no estilo dos apps de verdade (js/core/appLogos.js) */
 svg.app-logo { display: block; width: 100%; height: 100%; }
+/* Casa & Construção: piso e cor da parede por cômodo */
+.ref-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 52vh; overflow-y: auto; padding-right: 2px; }
+.ref-grid.cores { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+.ref-it { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2, rgba(255,255,255,.04)); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ref-it:hover:not([disabled]) { border-color: var(--accent); }
+.ref-it[disabled] { cursor: default; opacity: .55; }
+.ref-it.on { opacity: 1; border-color: #35d39a; box-shadow: inset 0 0 0 1px #35d39a; }
+.ref-am { width: 100%; height: 54px; border-radius: 7px; border: 1px solid rgba(0,0,0,.25); }
+.ref-it b { font-size: 12.5px; } .ref-it small { font-size: 11px; color: var(--muted); line-height: 1.25; } .ref-it em { font-style: normal; font-size: 12px; font-weight: 700; color: #35d39a; }
+.ref-it[disabled] em { color: var(--muted); } .ref-it.on em { color: #35d39a; }

@@ -205,7 +205,9 @@
     const G0 = SL.G; const deco = []; // decorações saíram do jogo (nov/2026, pedido do dono); as placas do YouTube continuam
     const studio = G0 && G0.home.studio; const it = G0 ? G0.home.items : {};
     const PAREDE = { kitnet: ['#3f3a4a', '#2b2734'], apto: ['#3b4252', '#282d38'], casa: ['#4a4038', '#332c26'], cobertura: ['#2f3d45', '#1f2a30'], mansao: ['#3d3a30', '#2a2820'] };
-    const hid = G0 ? G0.home.id : 'kitnet'; const par = PAREDE[hid] || PAREDE[Object.keys(PAREDE)[(hid || '').length % 5]];
+    const hid = G0 ? G0.home.id : 'kitnet'; let par = PAREDE[hid] || PAREDE[Object.keys(PAREDE)[(hid || '').length % 5]];
+    // parede pintada na Casa & Construção: a câmera da live mostra a cor nova do escritório (um pouco mais escura, luz de quarto)
+    const pint = G0 && G0.reforma && G0.reforma[hid] && G0.reforma[hid].escritorio && G0.reforma[hid].escritorio.cor; if (pint) par = [U.shade(pint, -0.3), U.shade(pint, -0.5)];
     ctx.fillStyle = grad(ctx, 0, 0, 0, h, studio ? ['#1d1838', '#120f22'] : par); ctx.fillRect(0, 0, w, h);
     // rodapé e chão
     ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(0, h * 0.9, w, h * 0.1); ctx.fillStyle = 'rgba(255,255,255,.05)'; ctx.fillRect(0, h * 0.9, w, Math.max(1, h * 0.006));

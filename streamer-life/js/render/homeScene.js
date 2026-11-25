@@ -102,9 +102,15 @@
   const roomAtTile = (x, y) => (grid && grid[y] && grid[y][x] && grid[y][x].room) || null;
   const roomNear = (x, y) => roomAtTile(x, y) || roomAtTile(x, y + 1) || roomAtTile(x + 1, y) || roomAtTile(x, y - 1) || roomAtTile(x - 1, y);
 
+  // reforma da casa (loja Casa & Construção): piso e cor da parede por cômodo, guardados por casa
+  H.reforma = () => { const G = SL.G; G.reforma = G.reforma || {}; return G.reforma[G.home.id] || (G.reforma[G.home.id] = {}); };
+  H.pisoDe = r => { const f = H.reforma()[r.id]; return (f && f.piso) || r.floor; };
+  H.corDe = r => { const f = H.reforma()[r.id]; return (f && f.cor) || ((SL.G.home.id === 'mae' ? PAINT_MAE : PAINT)[r.id]); };
+  H.comodos = () => { if (!lay) H.build(); return lay.rooms; };
   H.build = () => {
     const G = SL.G; const home = D.homeById(G.home.id); lay = LAY[home.layout];
-    const mae = G.home.id === 'mae'; const paint = mae ? PAINT_MAE : PAINT;
+    const mae = G.home.id === 'mae'; const paint = Object.assign({}, mae ? PAINT_MAE : PAINT);
+    const ref = H.reforma(); Object.keys(ref).forEach(k => { if (ref[k].cor) paint[k] = ref[k].cor; });   // Casa & Construção
     grid = [];
     for (let y = 0; y < lay.h; y++) { grid[y] = []; for (let x = 0; x < lay.w; x++) grid[y][x] = { t: 'wall', room: null }; }
     lay.rooms.forEach(r => { for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) grid[y][x] = { t: 'floor', room: r.id }; });
@@ -378,6 +384,25 @@
       const a = kind === 'tile' ? ['#d3dce2', '#c6d0d7'] : ['#e3d8c1', '#d5c8ad'];
       for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) { c.fillStyle = a[(x * 2 + i + y * 2 + j) % 2]; c.fillRect(X + i * 16, Y + j * 16, 16, 16); c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(X + i * 16 + 1, Y + j * 16 + 1, 14, 1); }
       c.fillStyle = kind === 'tile' ? '#97a4ad' : '#a89a80'; c.fillRect(X, Y, T, 0.8); c.fillRect(X, Y + 16, T, 0.8); c.fillRect(X, Y, 0.8, T); c.fillRect(X + 16, Y, 0.8, T);
+    } else if (kind === 'vinilico') {
+      for (let i = 0; i < 4; i++) { const row = y * 4 + i, off = hv(row, 5) * 96; let s0 = X; while (s0 < X + T) { const pi = Math.floor((s0 + off) / 96); const e = Math.min(X + T, (pi + 1) * 96 - off); const v = (hv(row, pi, 2) - 0.5) * 14; c.fillStyle = `rgb(${142 + v | 0},${140 + v | 0},${136 + v | 0})`; c.fillRect(s0, Y + i * 8, e - s0 + 0.4, 8); c.fillStyle = 'rgba(255,255,255,.06)'; c.fillRect(s0, Y + i * 8 + 3, e - s0, 0.6); if (e < X + T) { c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(e - 0.4, Y + i * 8, 0.8, 8); } s0 = e; } c.fillStyle = 'rgba(0,0,0,.18)'; c.fillRect(X, Y + i * 8 + 7.4, T, 0.6); }
+    } else if (kind === 'tacos') {
+      for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) { const v = (hv(x * 4 + i, y * 4 + j, 4) - 0.5) * 20; c.fillStyle = `rgb(${150 + v | 0},${98 + v * 0.8 | 0},${56 + v * 0.5 | 0})`; c.fillRect(X + i * 8, Y + j * 8, 8, 8); c.fillStyle = 'rgba(0,0,0,.28)'; if ((i + j) % 2) { c.fillRect(X + i * 8, Y + j * 8 + 2.6, 8, 0.5); c.fillRect(X + i * 8, Y + j * 8 + 5.3, 8, 0.5); } else { c.fillRect(X + i * 8 + 2.6, Y + j * 8, 0.5, 8); c.fillRect(X + i * 8 + 5.3, Y + j * 8, 0.5, 8); } c.fillRect(X + i * 8, Y + j * 8, 8, 0.5); c.fillRect(X + i * 8, Y + j * 8, 0.5, 8); }
+    } else if (kind === 'porcelanato') {
+      const v = (hv(x, y, 6) - 0.5) * 8; c.fillStyle = `rgb(${226 + v | 0},${224 + v | 0},${218 + v | 0})`; c.fillRect(X, Y, T, T);
+      c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.moveTo(X + 4, Y + 2); c.lineTo(X + 14, Y + 2); c.lineTo(X + 2, Y + 14); c.lineTo(X + 2, Y + 4); c.fill();
+      c.fillStyle = 'rgba(120,110,100,.45)'; c.fillRect(X, Y, T, 0.6); c.fillRect(X, Y, 0.6, T);
+    } else if (kind === 'marmore') {
+      c.fillStyle = '#eceae6'; c.fillRect(X, Y, T, T);
+      c.strokeStyle = 'rgba(120,120,128,.18)'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(X, Y + hv(x, y, 1) * T); c.bezierCurveTo(X + 10, Y + hv(x, y, 2) * T, X + 20, Y + hv(x, y, 3) * T, X + T, Y + hv(x + 1, y, 1) * T); c.stroke();
+      c.strokeStyle = 'rgba(160,160,170,.13)'; c.beginPath(); c.moveTo(X + hv(x, y, 4) * T, Y); c.quadraticCurveTo(X + 16, Y + 16, X + hv(x, y + 1, 4) * T, Y + T); c.stroke();
+      c.fillStyle = 'rgba(255,255,255,.25)'; c.fillRect(X + 2, Y + 2, 10, 1); c.fillStyle = 'rgba(150,150,150,.35)'; c.fillRect(X, Y, T, 0.5); c.fillRect(X, Y, 0.5, T);
+    } else if (kind === 'cimento') {
+      const v = (hv(x, y, 7) - 0.5) * 12; c.fillStyle = `rgb(${150 + v | 0},${152 + v | 0},${150 + v | 0})`; c.fillRect(X, Y, T, T);
+      for (let i = 0; i < 5; i++) { c.fillStyle = 'rgba(' + (hv(x, y, i + 9) > 0.5 ? '255,255,255,.06' : '0,0,0,.07') + ')'; c.beginPath(); c.ellipse(X + hv(x, i, 1) * T, Y + hv(i, y, 2) * T, 3 + hv(x, y, i) * 6, 2 + hv(y, x, i) * 4, 0, 0, 7); c.fill(); }
+      if (x % 3 === 0) { c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(X, Y, 0.7, T); } if (y % 3 === 0) { c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(X, Y, T, 0.7); }
+    } else if (kind === 'carpete') {
+      c.fillStyle = '#4a4d57'; c.fillRect(X, Y, T, T); for (let i = 0; i < 26; i++) { c.fillStyle = hv(x * 31 + i, y, 3) > 0.5 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.09)'; c.fillRect(X + hv(i, x, y) * T, Y + hv(y, i, x) * T, 1.2, 1.2); }
     } else {
       c.fillStyle = '#272a37'; c.fillRect(X, Y, T, T); c.fillStyle = '#2c3040'; if ((x + y) % 2) c.fillRect(X, Y, T, T); c.fillStyle = 'rgba(255,255,255,.03)'; c.fillRect(X, Y, T, 0.7);
     }
@@ -389,9 +414,9 @@
     for (let y = 0; y < lay.h; y++) for (let x = 0; x < lay.w; x++) {
       const g = grid[y][x]; if (g.t === 'wall') continue;
       const rid = g.room || roomNear(x, y); const r = lay.rooms.find(q => q.id === rid);
-      floorTile(c, x, y, r ? r.floor : 'wood', mae);
+      floorTile(c, x, y, r ? H.pisoDe(r) : 'wood', mae);
     }
-    walls.forEach(w => { if (!(w.tr.N || w.tr.S || w.tr.E || w.tr.W)) return; const r = lay.rooms.find(q => q.id === roomNear(w.x, w.y) || q.id === roomNear(w.x + (w.tr.W ? -1 : w.tr.E ? 1 : 0), w.y + (w.tr.N ? -1 : w.tr.S ? 1 : 0))); floorTile(c, w.x, w.y, r ? r.floor : 'wood', mae); });
+    walls.forEach(w => { if (!(w.tr.N || w.tr.S || w.tr.E || w.tr.W)) return; const r = lay.rooms.find(q => q.id === roomNear(w.x, w.y) || q.id === roomNear(w.x + (w.tr.W ? -1 : w.tr.E ? 1 : 0), w.y + (w.tr.N ? -1 : w.tr.S ? 1 : 0))); floorTile(c, w.x, w.y, r ? H.pisoDe(r) : 'wood', mae); });
     doors.forEach(d => { c.fillStyle = '#6d5440'; if (d.horiz) { c.fillRect(d.a0, d.y * T + 12, d.a1 - d.a0, 8); c.fillStyle = 'rgba(255,255,255,.08)'; c.fillRect(d.a0, d.y * T + 12, d.a1 - d.a0, 1); } else c.fillRect(d.x * T + 12, d.a0, 8, d.a1 - d.a0); });
     // capacho na porta de entrada
     const [ex, ey] = lay.entry; c.fillStyle = '#5c4434'; rr(c, ex * T + 4, (ey - 1) * T + 14, T - 8, 16, 3); c.fill(); c.fillStyle = 'rgba(0,0,0,.18)'; for (let i = 0; i < 6; i++) c.fillRect(ex * T + 7 + i * 4, (ey - 1) * T + 16, 1.4, 12);
