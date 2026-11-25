@@ -508,13 +508,25 @@
         break;
       }
       case 'bike': {
-        const cx = X + 16;
-        box(c, cx - 3, Y + 4, cx + 3, Y + 28, 0, 6, '#2b2b30', '#3a3a40');
-        cyl(c, cx, Y + 7, 7, 4, 10, '#c0392b', '#e0503d');
-        box(c, cx - 2, Y + 21, cx + 2, Y + 25, 0, 20, '#2b2b30', '#3a3a40');
+        // bicicleta ergométrica (nov/2026, refeita e maior): pés com borracha, quadro prata, volante vermelho com disco,
+        // pedais girando, banco de couro, guidão com manoplas e painelzinho aceso
+        const cx = X + 16, ped = host ? t * 7 : 0;
+        box(c, cx - 14, Y + 1, cx + 14, Y + 5, 0, 3.5, '#5b606a', '#7d838e');
+        box(c, cx - 14, Y + 27, cx + 14, Y + 31, 0, 3.5, '#5b606a', '#7d838e');
+        [[cx - 14, Y + 1], [cx + 10, Y + 1], [cx - 14, Y + 27], [cx + 10, Y + 27]].forEach(([x, y]) => box(c, x, y, x + 4, y + 4, 0, 4, '#15161a', '#25272c'));
+        box(c, cx - 2.5, Y + 4, cx + 2.5, Y + 29, 3, 8, '#8e959f', '#c3c8cf');
+        box(c, cx - 6.5, Y + 4, cx + 6.5, Y + 17, 6, 22, '#c0392b', '#e95a45', { tf: (c2, x, y, w, h) => { c2.fillStyle = 'rgba(255,255,255,.28)'; c2.fillRect(x + 1.5, y + 1.5, w - 3, 1.8); c2.fillStyle = 'rgba(0,0,0,.18)'; c2.fillRect(x + 1.5, y + h - 3, w - 3, 1.5); } });
+        [-1, 1].forEach(sd => atZ(c, 15, () => { c.fillStyle = '#dfe3e8'; c.beginPath(); c.ellipse(cx + sd * 7, Y + 10.5, 1.4, 6, 0, 0, 7); c.fill(); c.fillStyle = '#8e959f'; c.beginPath(); c.ellipse(cx + sd * 7, Y + 10.5, 0.8, 2, 0, 0, 7); c.fill(); }));
+        atZ(c, 12, () => { const a1 = Math.sin(ped) * 5; c.strokeStyle = '#b9bfc7'; c.lineWidth = 1.8; c.beginPath(); c.moveTo(cx - 8, Y + 19.5 + a1); c.lineTo(cx + 8, Y + 19.5 - a1); c.stroke(); c.fillStyle = '#1b1c20'; c.fillRect(cx - 12, Y + 18 + a1, 4.4, 3.2); c.fillRect(cx + 7.6, Y + 18 - a1, 4.4, 3.2); c.fillStyle = '#e3e6ea'; c.beginPath(); c.arc(cx, Y + 19.5, 2.4, 0, 7); c.fill(); });
+        box(c, cx - 1.6, Y + 22, cx + 1.6, Y + 26, 8, 24, '#8e959f', '#c3c8cf');
         if (host) person(c, G.player.look, ps.x, ps.y, ps.ang, { sit: true, pedal: t });
-        else box(c, cx - 5, Y + 19, cx + 5, Y + 27, 20, 23, '#111111', '#222222');
-        box(c, cx - 12, Y + 3, cx + 12, Y + 6, 22, 25, '#2b2b30', '#45454d');
+        else atZ(c, 25, () => { c.fillStyle = '#16171a'; c.beginPath(); c.moveTo(cx, Y + 18.5); c.bezierCurveTo(cx + 3.2, Y + 19, cx + 6.4, Y + 24, cx + 5.6, Y + 28.5); c.lineTo(cx - 5.6, Y + 28.5); c.bezierCurveTo(cx - 6.4, Y + 24, cx - 3.2, Y + 19, cx, Y + 18.5); c.fill(); c.fillStyle = 'rgba(255,255,255,.18)'; c.beginPath(); c.ellipse(cx - 1.6, Y + 23.5, 1.2, 3, 0, 0, 7); c.fill(); });
+        box(c, cx - 1.6, Y + 5, cx + 1.6, Y + 8.5, 18, 29, '#8e959f', '#c3c8cf');
+        atZ(c, 30, () => {
+          c.strokeStyle = '#c3c8cf'; c.lineWidth = 2.6; c.lineCap = 'round'; c.beginPath(); c.moveTo(cx - 13, Y + 9.5); c.quadraticCurveTo(cx, Y + 2, cx + 13, Y + 9.5); c.stroke();
+          c.strokeStyle = '#111214'; c.lineWidth = 3.4; c.beginPath(); c.moveTo(cx - 13, Y + 9.5); c.lineTo(cx - 9.5, Y + 7.2); c.moveTo(cx + 9.5, Y + 7.2); c.lineTo(cx + 13, Y + 9.5); c.stroke();
+          c.fillStyle = '#1c1d22'; rr(c, cx - 5, Y + 2.6, 10, 5, 1.2); c.fill(); c.fillStyle = host ? '#5ee0a0' : '#3a8a6c'; c.fillRect(cx - 3.8, Y + 3.6, 7.6, 3);
+        });
         break;
       }
       case 'chuveiro': {
@@ -857,7 +869,19 @@
       atZ(c, 16.2, () => { c.fillStyle = '#ffe9a8'; c.fillRect(x0 + 65, y0 + 3, 3, 6); c.fillRect(x0 + 65, y0 + 21, 3, 6); c.fillStyle = '#a32020'; c.fillRect(x0, y0 + 3, 2.5, 6); c.fillRect(x0, y0 + 21, 2.5, 6); });
       void t;
     } else if (p.k === 'bikep') {
-      atZ(c, 10, () => { c.strokeStyle = '#2b2b30'; c.lineWidth = 2.5; c.beginPath(); c.arc(p.x - 10, p.y, 7, 0, 7); c.arc(p.x + 10, p.y, 7, 0, 7); c.stroke(); c.strokeStyle = '#ff5a36'; c.beginPath(); c.moveTo(p.x - 10, p.y); c.lineTo(p.x, p.y); c.lineTo(p.x + 10, p.y); c.stroke(); });
+      // bicicleta estacionada vista de cima: pneus finos, quadro colorido, guidão, banco e descanso
+      atZ(c, 0, () => { c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(p.x + 2, p.y + 3, 15, 3.4, 0, 0, 7); c.fill(); });
+      [-9, 9].forEach(dx => box(c, p.x + dx - 6, p.y - 1, p.x + dx + 6, p.y + 1, 0, 12, '#1a1b1f', '#2c2e34'));
+      atZ(c, 11, () => {
+        c.strokeStyle = '#ff5a36'; c.lineWidth = 1.8; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(p.x - 9, p.y); c.lineTo(p.x - 2, p.y); c.lineTo(p.x + 5, p.y); c.lineTo(p.x + 9, p.y); c.stroke();
+        c.strokeStyle = '#c9ced6'; c.lineWidth = 1; c.beginPath(); c.arc(p.x - 1, p.y, 2, 0, 7); c.stroke();
+      });
+      atZ(c, 13, () => {
+        c.strokeStyle = '#2a2c31'; c.lineWidth = 1.6; c.lineCap = 'round'; c.beginPath(); c.moveTo(p.x + 8, p.y - 5.5); c.lineTo(p.x + 8, p.y + 5.5); c.stroke();
+        c.strokeStyle = '#111'; c.lineWidth = 2.2; c.beginPath(); c.moveTo(p.x + 8, p.y - 5.5); c.lineTo(p.x + 8, p.y - 3.6); c.moveTo(p.x + 8, p.y + 3.6); c.lineTo(p.x + 8, p.y + 5.5); c.stroke();
+        c.fillStyle = '#16171a'; c.beginPath(); c.ellipse(p.x - 5, p.y, 2.6, 1.6, 0, 0, 7); c.fill();
+      });
     }
   };
 
