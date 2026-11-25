@@ -776,16 +776,31 @@
     atZ(c, sit ? 14 : 0.5, () => { c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(x + 2, y + 3, 11.5, 10, 0, 0, 7); c.fill(); });
     atZ(c, sit ? 17 : 6, () => {
       c.translate(x, y); c.rotate(ang);
-      const pc = sh(L.pants, -0.04), shoe = '#1f1f24';
+      const pc = sh(L.pants, -0.04), shoe = o.nude ? sh(L.skin, -0.08) : '#1f1f24';
       if (sit) {
         const pd = o.pedal ? Math.sin(o.pedal * 9) * 3 : 0;
+        c.fillStyle = sh(pc, -0.18); rr(c, -1.5, -8, 16 + pd, 7.4, 3.4); c.fill(); rr(c, -1.5, 0.6, 16 - pd, 7.4, 3.4); c.fill();
         c.fillStyle = pc; rr(c, -1, -7.5, 15 + pd, 6.4, 3); c.fill(); rr(c, -1, 1.1, 15 - pd, 6.4, 3); c.fill();
+        c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(1, -6.6, 11 + pd, 1.1); c.fillRect(1, 2, 11 - pd, 1.1);
         c.fillStyle = shoe; c.beginPath(); c.ellipse(15 + pd, -4.3, 3.4, 2.8, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(15 - pd, 4.3, 3.4, 2.8, 0, 0, 7); c.fill();
       } else {
-        const a = sw * 7.5;
-        c.fillStyle = pc; c.beginPath(); c.ellipse(a * 0.5, -4.2, 5.5, 3.3, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(-a * 0.5, 4.2, 5.5, 3.3, 0, 0, 7); c.fill();
-        c.fillStyle = shoe; c.beginPath(); c.ellipse(a + 2.5, -4.2, 3.6, 2.7, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(-a + 2.5, 4.2, 3.6, 2.7, 0, 0, 7); c.fill();
+        // pernas inteiras com a calça (antes eram só dois ovinhos e quase sempre só o sapato aparecia)
+        const a = sw * 8, perna = (fx, ly) => {
+          const x0 = Math.min(-2, fx - 2), x1 = Math.max(-2, fx) + 1;
+          c.fillStyle = sh(pc, -0.18); rr(c, x0 - 0.5, ly - 3.3, x1 - x0 + 1, 6.6, 3.2); c.fill();
+          c.fillStyle = pc; rr(c, x0, ly - 2.8, x1 - x0, 5.6, 2.8); c.fill();
+          c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(x0 + 1, ly - 2, x1 - x0 - 2, 1.1);
+          c.fillStyle = shoe; c.beginPath(); c.ellipse(fx + 2.6, ly, 3.8, 2.8, 0, 0, 7); c.fill();
+          if (!o.nude) { c.fillStyle = '#f2f2f2'; c.beginPath(); c.ellipse(fx + 4.6, ly, 1.6, 2.2, 0, -1.2, 1.2); c.fill(); c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(fx + 1.2, ly - 0.5, 2.2, 1); }
+        };
+        perna(5.5 + a, -3.9); perna(5.5 - a, 3.9);
       }
+    });
+    if (!sit) atZ(c, 19, () => {
+      c.translate(x, y); c.rotate(ang); const pc = sh(L.pants, -0.04);
+      c.fillStyle = sh(pc, -0.15); c.beginPath(); c.ellipse(2.4, 0, 6.6, 9.4, 0, 0, 7); c.fill();
+      c.fillStyle = pc; c.beginPath(); c.ellipse(2.6, 0, 5.9, 8.7, 0, 0, 7); c.fill();
+      if (!o.nude) { c.strokeStyle = '#2b2b30'; c.lineWidth = 1.4; c.beginPath(); c.ellipse(2.4, 0, 6, 8.8, 0, -1.25, 1.25); c.stroke(); c.fillStyle = '#c9b26a'; c.fillRect(7.6, -1.1, 1.3, 2.2); }
     });
     if (L.hair === 5) atZ(c, zs + 2, () => { c.translate(x, y); c.rotate(ang); c.fillStyle = sh(L.hairColor, -0.1); c.beginPath(); c.ellipse(-6, 0, 5.5, 8.5, 0, 0, 7); c.fill(); });
     atZ(c, zs, () => {
@@ -804,20 +819,28 @@
         c.beginPath(); c.ellipse(arm * 0.4, -10.5, 4.4, 3.8, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(-arm * 0.4, 10.5, 4.4, 3.8, 0, 0, 7); c.fill();
         hand(arm + 1.5, -11.2); hand(-arm + 1.5, 11.2);
       }
-      c.fillStyle = sh(L.shirt, -0.16); c.beginPath(); c.ellipse(0, 0, 7.6, 11.6, 0, 0, 7); c.fill();
-      c.fillStyle = L.shirt; c.beginPath(); c.ellipse(0.6, 0, 6.6, 10.6, 0, 0, 7); c.fill();
-      c.fillStyle = 'rgba(255,255,255,.1)'; c.beginPath(); c.ellipse(-1, -3, 3, 5, 0, 0, 7); c.fill();
+      const rx = sit ? 7.6 : 6.4;
+      c.fillStyle = sh(L.shirt, -0.16); c.beginPath(); c.ellipse(-0.6, 0, rx, 11.6, 0, 0, 7); c.fill();
+      c.fillStyle = L.shirt; c.beginPath(); c.ellipse(0, 0, rx - 1, 10.6, 0, 0, 7); c.fill();
+      c.fillStyle = 'rgba(255,255,255,.1)'; c.beginPath(); c.ellipse(-1.6, -3, 2.6, 5, 0, 0, 7); c.fill();
+      if (!o.nude) {
+        c.strokeStyle = sh(L.shirt, -0.28); c.lineWidth = 0.8; c.beginPath(); c.moveTo(-3, -8.6); c.quadraticCurveTo(0, -9.6, 3, -8.4); c.moveTo(-3, 8.6); c.quadraticCurveTo(0, 9.6, 3, 8.4); c.stroke();
+        c.fillStyle = sh(L.shirt, -0.3); c.beginPath(); c.moveTo(3.4, -3.2); c.quadraticCurveTo(6.8, 0, 3.4, 3.2); c.closePath(); c.fill();
+        c.fillStyle = sh(L.skin, -0.05); c.beginPath(); c.moveTo(4, -2.4); c.quadraticCurveTo(6.4, 0, 4, 2.4); c.closePath(); c.fill();
+      }
     });
     if (o.nude) atZ(c, zs + 2, () => { c.translate(x, y); c.rotate(ang); censura(c, L.skin, sit, o.t || 0); });
     atZ(c, zs + 7, () => { c.translate(x, y); c.rotate(ang); head(c, L); });
   };
   // mosaico de censura (como nos jogos de simulação): quadradinhos da cor da pele que tremem
   const censura = (c, skin, sit, t) => {
-    const cell = 3.4, fr = Math.floor(t * 5); const x0 = -9, x1 = sit ? 16 : 9, y0 = -11, y1 = 11;
+    // só um quadradinho de mosaico sobre o quadril (antes era uma caixa marrom cobrindo o corpo inteiro)
+    const cell = 2.3, fr = Math.floor(t * 4); const x0 = sit ? 3 : 2.5, x1 = sit ? 12.2 : 10.5, y0 = sit ? -6.2 : -5.2, y1 = -y0;
+    c.save(); c.beginPath(); rr(c, x0, y0, x1 - x0, y1 - y0, 2); c.clip();
     for (let i = 0; x0 + i * cell < x1; i++) for (let j = 0; y0 + j * cell < y1; j++) {
-      const v = (hv(i + fr, j, 3) - 0.5) * 0.34; c.fillStyle = sh(skin, v); c.fillRect(x0 + i * cell, y0 + j * cell, cell + 0.3, cell + 0.3);
+      const v = (hv(i + fr, j, 3) - 0.5) * 0.4; c.fillStyle = sh(skin, v - 0.06); c.fillRect(x0 + i * cell, y0 + j * cell, cell + 0.2, cell + 0.2);
     }
-    c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 0.6; c.strokeRect(x0, y0, x1 - x0, y1 - y0);
+    c.restore();
   };
   // o que o personagem leva nas mãos durante uma sequência
   const holdItem = (c, k) => {
