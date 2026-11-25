@@ -280,7 +280,7 @@
   HUD.stageOverlay = () => {
     const G = SL.G; const host = $('#stage-ui'); let h = $('.stage-hint', host);
     if (!h) { h = document.createElement('div'); h.className = 'stage-hint'; host.appendChild(h); }
-    const txt = G.loc.area === 'casa' ? 'WASD anda · chegue perto de um móvel e aperte E' : G.loc.area === 'cidade' ? (G.act && G.act.id === 'viagem' ? '' : 'Clique num lugar para ir até lá') : '';
+    const txt = SL.settings.tips === false ? '' : G.loc.area === 'casa' ? 'WASD anda · chegue perto de um móvel e aperte E' : G.loc.area === 'cidade' ? (G.act && G.act.id === 'viagem' ? '' : 'Clique num lugar para ir até lá') : '';
     if (txt !== hintKey) { hintKey = txt; hintAt = performance.now(); h.textContent = txt; }
     h.classList.toggle('gone', !txt || performance.now() - hintAt > 14000 || (G.loc.area === 'casa' && SL.HomeScene.moving()));
   };

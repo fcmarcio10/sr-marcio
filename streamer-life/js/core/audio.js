@@ -46,7 +46,7 @@
   A.arquivo = (id, vol) => {
     const src = SL.SONS && SL.SONS[id]; if (!src || typeof Audio === 'undefined') return null;
     const s = SL.settings || {}; const a = new Audio(src);
-    a.volume = Math.max(0, Math.min(1, (s.volume == null ? 0.6 : s.volume) * (vol == null ? 1 : vol)));
+    a.volume = Math.max(0, Math.min(1, (s.volume == null ? 0.6 : s.volume) * (vol == null ? 1 : vol) * (s.vozes == null ? 1 : s.vozes)));
     const p = a.play(); if (p && p.catch) p.catch(() => {});
     return a;
   };
@@ -118,10 +118,11 @@
   const pingo = () => { if (!ctx) return; tone(1800 + Math.random() * 1600, 0.04, 'sine', 0.012 + Math.random() * 0.01, 0, -900); };
   // uma tecla: clique curto com um pouco de corpo
   const tecla = (when, forte) => { noise(0.018, forte ? 0.05 : 0.032, when, 2400); tone(150 + Math.random() * 60, 0.025, 'triangle', forte ? 0.02 : 0.012, when); };
-  A.tecla = () => { if (!ctx || (SL.settings && SL.settings.volume === 0)) return; if (ctx.state === 'suspended') ctx.resume(); tecla(0, Math.random() < 0.12); };
+  A.tecla = () => { if (!ctx || (SL.settings && SL.settings.teclas === false) || (SL.settings && SL.settings.volume === 0)) return; if (ctx.state === 'suspended') ctx.resume(); tecla(0, Math.random() < 0.12); };
   // chamado pelo laço do jogo umas 4 vezes por segundo
   A.ambiente = st => {
     if (!ctx) return;
+    if (SL.settings && SL.settings.ambOn === false) st = Object.assign({}, st, { chuva: false, teclado: false });
     ambOn = st;
     if (st.chuva) ligaChuva();
     if (chuvaG) { const alvo = st.chuva ? (st.fora ? 0.05 : 0.11) : 0; chuvaG.gain.setTargetAtTime(alvo, ctx.currentTime, 1.2); if (st.chuva && Math.random() < 0.35) pingo(); }

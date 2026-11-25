@@ -30,6 +30,13 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   // 0. menu inicial simples
   ok('menu inicial: Jogar, Opções, Créditos e Sair com o streamer ao fundo', await ev(() => [...document.querySelectorAll('#scr-title .tm-menu .mb')].map(b => b.textContent).join(',') === 'Jogar,Opções,Créditos,Sair' && document.querySelector('#scr-title canvas.bg').width > 0));
   await shot('00_menu');
+  await page.click('[data-m="config"]'); await page.waitForTimeout(200);
+  ok('opções em abas (Som, Jogo, Tela, Dados) com chaves e barras', await ev(() => document.querySelectorAll('.op-abas button').length === 4 && document.querySelectorAll('.op-corpo .tgl').length >= 3 && document.querySelectorAll('.op-corpo input[type=range]').length >= 3));
+  await page.click('[data-aba="tela"]'); await page.click('[data-cor="azul"]'); await page.waitForTimeout(150);
+  ok('cor de destaque muda o jogo todo', await ev(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() === '#3b82f6'));
+  await page.click('[data-aba="dados"]'); await page.click('[data-op="padrao"]'); await page.click('.modal .mf .btn.danger'); await page.waitForTimeout(150);
+  ok('voltar ao padrão', await ev(() => SL.settings.cor === 'roxo'));
+  await shot('00b_opcoes'); await page.click('[data-back]'); await page.waitForTimeout(200);
   // 1. criação de personagem
   await page.click('[data-m="jogar"]'); await page.click('[data-m="novo"]');
   await page.fill('#f-name', 'Teste'); await page.click('[data-g="m"]');

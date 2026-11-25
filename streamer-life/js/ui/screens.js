@@ -133,37 +133,49 @@
   };
 
   // ---------- configurações ----------
+  // ---------- opções (nov/2026: refeitas em abas) ----------
+  SC.CORES = { roxo: ['#8b5cf6', '#b49dff'], azul: ['#3b82f6', '#93c5fd'], verde: ['#10b981', '#6ee7b7'], rosa: ['#ec4899', '#f9a8d4'], laranja: ['#f97316', '#fdba74'] };
+  SC.PADRAO = { volume: 0.6, music: 0.25, musicOn: true, vozes: 1, ambOn: true, teclas: true, autosave: true, reduceMotion: false, textScale: 1, chatCap: 6, tips: true, cor: 'roxo', blur: true };
+  SC.optTab = 'som';
   SC.settingsHTML = () => {
-    const s = SL.settings;
-    return `<div class="col gap16">
-      <div class="field"><label for="s-vol">Volume dos efeitos: <b id="s-vol-v">${Math.round(s.volume * 100)}%</b></label><input type="range" id="s-vol" min="0" max="1" step="0.05" value="${s.volume}"></div>
-      <label class="row"><input type="checkbox" id="s-mus" ${s.musicOn ? 'checked' : ''}> Música ambiente lo-fi</label>
-      <div class="field"><label for="s-musv">Volume da música</label><input type="range" id="s-musv" min="0" max="1" step="0.05" value="${s.music}"></div>
-      <label class="row"><input type="checkbox" id="s-auto" ${s.autosave !== false ? 'checked' : ''}> Salvamento automático (a cada dia no jogo e depois das lives)</label>
-      <label class="row"><input type="checkbox" id="s-rm" ${s.reduceMotion ? 'checked' : ''}> Reduzir animações</label>
-      <div class="field"><label>Tamanho do texto</label><div class="row">${[[0.9, 'Menor'], [1, 'Normal'], [1.12, 'Maior']].map(([v, l]) => `<button class="chip ${s.textScale === v ? 'on' : ''}" data-ts="${v}">${l}</button>`).join('')}</div></div>
-      <div class="field"><label>Velocidade do chat na live <span class="tiny muted">(também depende de quantas pessoas estão assistindo)</span></label><div class="row">${[[3, 'Calma'], [6, 'Normal'], [12, 'Frenética']].map(([v, l]) => `<button class="chip ${s.chatCap === v ? 'on' : ''}" data-cc="${v}">${l}</button>`).join('')}</div></div>
-    </div>`;
+    const s = SL.settings; const t = SC.optTab;
+    const tg = (id, on, nome, desc) => `<label class="op-row"><span class="op-t"><b>${nome}</b>${desc ? `<small>${desc}</small>` : ''}</span><span class="tgl"><input type="checkbox" data-tg="${id}" ${on ? 'checked' : ''}><i></i></span></label>`;
+    const sl = (id, v, nome, desc) => `<div class="op-row"><span class="op-t"><b>${nome}</b>${desc ? `<small>${desc}</small>` : ''}</span><span class="op-sl"><input type="range" min="0" max="1" step="0.05" value="${v}" data-sl="${id}" style="--p:${Math.round(v * 100)}%"><em>${Math.round(v * 100)}%</em></span></div>`;
+    const sg = (id, cur, ops, nome, desc) => `<div class="op-row col-m"><span class="op-t"><b>${nome}</b>${desc ? `<small>${desc}</small>` : ''}</span><span class="seg">${ops.map(([v, l]) => `<button class="${String(cur) === String(v) ? 'on' : ''}" data-sg="${id}" data-v="${v}">${l}</button>`).join('')}</span></div>`;
+    const abas = [['som', 'Som', 'music'], ['jogo', 'Jogo', 'gamepad'], ['tela', 'Tela', 'laptop'], ['dados', 'Dados', 'folder']];
+    let corpo = '';
+    if (t === 'som') corpo = sl('volume', s.volume, 'Volume geral', 'Efeitos, avisos e tudo do jogo') + tg('musicOn', s.musicOn, 'Música calma', 'Lo-fi tocando no fundo') + sl('music', s.music, 'Volume da música') + sl('vozes', s.vozes == null ? 1 : s.vozes, 'Vozes', 'Superchats, Bigode e público gritando') + tg('ambOn', s.ambOn !== false, 'Sons de fundo', 'Chuva na janela e teclado enquanto trabalha') + tg('teclas', s.teclas !== false, 'Som ao digitar', 'Uma tecla a cada letra que você escreve');
+    if (t === 'jogo') corpo = sg('chatCap', s.chatCap, [[3, 'Calmo'], [6, 'Normal'], [12, 'Agitado']], 'Ritmo do chat na live', 'Também depende de quantas pessoas estão assistindo') + tg('autosave', s.autosave !== false, 'Salvar sozinho', 'A cada poucos minutos e depois das lives') + tg('tips', s.tips !== false, 'Dicas na tela', 'Lembretes de teclas e do que fazer');
+    if (t === 'tela') corpo = sg('textScale', s.textScale, [[0.9, 'Menor'], [1, 'Normal'], [1.12, 'Maior']], 'Tamanho do texto') + `<div class="op-row col-m"><span class="op-t"><b>Cor de destaque</b><small>Botões, barras e detalhes</small></span><span class="cores">${Object.keys(SC.CORES).map(k => `<button class="cor ${(s.cor || 'roxo') === k ? 'on' : ''}" data-cor="${k}" style="--c:${SC.CORES[k][0]}" title="${k}"></button>`).join('')}</span></div>` + tg('blur', s.blur !== false, 'Painéis de vidro', 'Fundo desfocado atrás das janelas (desligue se o jogo ficar lento)') + tg('reduceMotion', !!s.reduceMotion, 'Menos animações', 'Janelas e avisos aparecem sem movimento');
+    if (t === 'dados') corpo = `<div class="op-row"><span class="op-t"><b>Salvamentos</b><small>${SL.Save.list().filter(x => !x.empty).length} de ${SL.Save.list().length} espaços em uso, tudo no seu navegador</small></span><button class="btn sm" data-op="carregar">Ver salvamentos</button></div>` + (SL.G ? `<div class="op-row"><span class="op-t"><b>Cópia de segurança</b><small>Código da partida atual para guardar</small></span><button class="btn sm" data-op="exportar">Exportar</button></div>` : '') + `<div class="op-row"><span class="op-t"><b>Voltar ao padrão</b><small>Só as opções; suas partidas não mudam</small></span><button class="btn sm red" data-op="padrao">Restaurar</button></div>`;
+    return `<div class="opcoes"><nav class="op-abas">${abas.map(([k, l, i]) => `<button class="${t === k ? 'on' : ''}" data-aba="${k}">${UI.ic(i, 16)}<span>${l}</span></button>`).join('')}</nav><div class="op-corpo">${corpo}</div></div>`;
   };
-  SC.bindSettings = root => {
+  SC.bindSettings = (root, redraw) => {
     const s = SL.settings; const save = () => { SL.Save.saveSettings(); SC.applySettings(); };
-    $('#s-vol', root).oninput = e => { s.volume = +e.target.value; $('#s-vol-v', root).textContent = Math.round(s.volume * 100) + '%'; save(); };
-    $('#s-mus', root).onchange = e => { s.musicOn = e.target.checked; save(); SL.audio.init(); SL.audio.music(s.musicOn); };
-    $('#s-musv', root).oninput = e => { s.music = +e.target.value; save(); };
-    $('#s-auto', root).onchange = e => { s.autosave = e.target.checked; save(); };
-    $('#s-rm', root).onchange = e => { s.reduceMotion = e.target.checked; save(); };
-    $$('[data-ts]', root).forEach(b => b.onclick = () => { s.textScale = +b.dataset.ts; save(); $$('[data-ts]', root).forEach(x => x.classList.toggle('on', x === b)); });
-    $$('[data-cc]', root).forEach(b => b.onclick = () => { s.chatCap = +b.dataset.cc; save(); $$('[data-cc]', root).forEach(x => x.classList.toggle('on', x === b)); });
+    const host = root.querySelector('.opcoes').parentNode;
+    const again = () => { host.innerHTML = SC.settingsHTML(); SC.bindSettings(root, redraw); };
+    host.onclick = e => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.aba) { SC.optTab = b.dataset.aba; SL.audio.play('click'); return again(); }
+      if (b.dataset.sg) { s[b.dataset.sg] = +b.dataset.v; save(); SL.audio.play('click'); return again(); }
+      if (b.dataset.cor) { s.cor = b.dataset.cor; save(); SL.audio.play('click'); return again(); }
+      if (b.dataset.op === 'carregar') { const md = root.closest && root.closest('.modal-bg'); if (md) md.remove(); return SC.load(SL.G ? 'game' : undefined); }
+      if (b.dataset.op === 'exportar') return SC.exportDialog();
+      if (b.dataset.op === 'padrao') return UI.confirm('Voltar ao padrão?', 'Volume, cores e outras opções voltam como eram no começo.', () => { Object.assign(s, SC.PADRAO); save(); SL.audio.init(); SL.audio.music(s.musicOn); again(); }, 'Restaurar', true);
+    };
+    root.querySelectorAll('[data-tg]').forEach(i => i.onchange = () => { s[i.dataset.tg] = i.checked; save(); if (i.dataset.tg === 'musicOn') { SL.audio.init(); SL.audio.music(s.musicOn); } });
+    root.querySelectorAll('[data-sl]').forEach(i => i.oninput = () => { s[i.dataset.sl] = +i.value; i.style.setProperty('--p', Math.round(i.value * 100) + '%'); i.nextElementSibling.textContent = Math.round(i.value * 100) + '%'; save(); });
   };
   SC.applySettings = () => {
-    const s = SL.settings; document.documentElement.style.setProperty('--ts', s.textScale);
-    document.body.classList.toggle('reduce-motion', !!s.reduceMotion); SL.audio.applyVolume();
+    const s = SL.settings; const r = document.documentElement.style; r.setProperty('--ts', s.textScale);
+    const c = SC.CORES[s.cor || 'roxo'] || SC.CORES.roxo; r.setProperty('--accent', c[0]); r.setProperty('--accent2', c[1]); r.setProperty('--b-roxo', c[0]); r.setProperty('--b-roxo-l', c[1]); r.setProperty('--accent-soft', c[0] + '29');
+    document.body.classList.toggle('reduce-motion', !!s.reduceMotion); document.body.classList.toggle('sem-vidro', s.blur === false); SL.audio.applyVolume();
   };
   SC.settings = from => {
-    if (from === 'game') { const m = UI.modal({ title: 'Configurações', icon: 'settings', html: SC.settingsHTML(), buttons: [{ label: 'Pronto', cls: 'primary' }] }); SC.bindSettings(m.el); return; }
+    if (from === 'game') { const m = UI.modal({ title: 'Opções', icon: 'settings', wide: true, html: SC.settingsHTML(), buttons: [{ label: 'Pronto', cls: 'primary' }] }); SC.bindSettings(m.el); return; }
     UI.show('settings');
     const el = $('#scr-settings');
-    el.innerHTML = `<div class="page"><div class="page-in" style="max-width:620px"><div class="page-head"><button class="ibtn" data-back>${UI.ic('left')}</button><h2>Configurações</h2></div><div class="card">${SC.settingsHTML()}</div></div></div>`;
+    el.innerHTML = `<div class="page op-page"><div class="page-in" style="max-width:760px"><div class="page-head"><button class="ibtn" data-back>${UI.ic('left')}</button><h2>Opções</h2></div><div class="card op-card">${SC.settingsHTML()}</div></div></div>`;
     SC.bindSettings(el);
     $('[data-back]', el).onclick = () => SC.title();
   };
