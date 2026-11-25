@@ -66,7 +66,7 @@ window.SL = window.SL || {};
   const nf1 = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
   const nfm = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   U.money = v => (v < 0 ? '-R$ ' : 'R$ ') + nfm.format(Math.abs(v));
-  U.money0 = v => (v < 0 ? '-R$ ' : 'R$ ') + nf0.format(Math.abs(Math.round(v)));
+  U.money0 = v => Math.abs(v - Math.round(v)) > 0.004 ? U.money(v) : (v < 0 ? '-R$ ' : 'R$ ') + nf0.format(Math.abs(Math.round(v))); // com centavos só quando tem (preços ,99)
   U.int = v => nf0.format(Math.round(v));
   U.num = v => {
     const a = Math.abs(v);

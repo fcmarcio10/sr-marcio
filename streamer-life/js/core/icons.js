@@ -57,6 +57,7 @@
     map: '<path d="m3 6.5 6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
     walk: '<circle cx="13" cy="4.5" r="1.8"/><path d="m10 21 2.5-6.5L15 17v4M9 11.5l2.5-3.5h2.5l2 3.5h2.5M12.5 14.5 13 8"/>',
     bus: '<rect x="4" y="3.5" width="16" height="14" rx="3"/><path d="M4 11h16M7 20.5v-3M17 20.5v-3"/><circle cx="8" cy="14.2" r="1" fill="currentColor"/><circle cx="16" cy="14.2" r="1" fill="currentColor"/>',
+    truck: '<path d="M2.5 6.5h11v9h-11z"/><path d="M13.5 9.5h4l3 3v3h-7z"/><circle cx="6.5" cy="17" r="1.8"/><circle cx="17" cy="17" r="1.8"/>',
     car: '<path d="M4 16.5v-4l2-5h12l2 5v4z"/><path d="M4 12.5h16"/><circle cx="7.5" cy="16.5" r="1.8"/><circle cx="16.5" cy="16.5" r="1.8"/>',
     bike: '<circle cx="6" cy="16" r="3.5"/><circle cx="18" cy="16" r="3.5"/><path d="M6 16l4-7h5l3 7M10 9 8.5 6.5H7M15 9l-1.5-2.5h2.5"/>',
     brief: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2M3 12.5h18"/>',

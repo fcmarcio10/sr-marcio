@@ -18,21 +18,21 @@
       rooms: [{ id: 'quarto', name: 'Quarto', x: 1, y: 1, w: 7, h: 5, floor: 'wood' }, { id: 'escritorio', name: 'Escritório', x: 9, y: 1, w: 6, h: 5, floor: 'wood2' }, { id: 'banheiro', name: 'Banheiro', x: 16, y: 1, w: 5, h: 5, floor: 'tile' }, { id: 'sala', name: 'Sala', x: 1, y: 7, w: 11, h: 5, floor: 'wood' }, { id: 'cozinha', name: 'Cozinha', x: 13, y: 7, w: 8, h: 5, floor: 'tile2' }],
       doors: [[4, 6], [10, 6], [18, 6], [12, 9], [8, 3]], entry: [6, 12],
       objs: { cama: [1, 1, 3, 2, 2, 3], mesa: [10, 1, 4, 1, 11, 2], luz: [14, 1, 1, 1], bike: [14, 4, 1, 1, 13, 4], chuveiro: [19, 1, 2, 2, 19, 3], vaso: [16, 1, 1, 1], pia_b: [16, 4, 1, 1, 17, 4], geladeira: [20, 7, 1, 1, 20, 8], fogao: [16, 7, 2, 1, 16, 8], pia: [14, 7, 2, 1, 14, 8], cafeteira: [13, 7, 1, 1, 13, 8], sofa: [5, 10, 4, 1, 6, 9], tv: [6, 7, 2, 1, 6, 9], armario: [20, 10, 1, 2, 19, 11], porta: [6, 12, 1, 1, 6, 11], guarda: [6, 1, 2, 1], mesa_jantar: [15, 10, 2, 1, 15, 9] },
-      decoWall: [[9, 'escritorio'], [14, 'escritorio'], [10, 'escritorio'], [13, 'escritorio'], [2, 'quarto'], [3, 'sala'], [9, 'sala'], [5, 'quarto']], neonX: 12, decoFloor: [[9, 1], [14, 5], [9, 5], [7, 5], [1, 11], [11, 11], [13, 11], [1, 5]], windows: [[3, 0], [17, 0], [8, 6, 'x'], [2, 6, 'x']], start: [5, 4],
+      decoWall: [[9, 'escritorio'], [14, 'escritorio'], [10, 'escritorio'], [13, 'escritorio'], [2, 'quarto'], [3, 'sala'], [9, 'sala'], [5, 'quarto']], neonX: 12, dirE: { neon: 2.2, posters: [4, 5] }, decoFloor: [[9, 1], [14, 5], [9, 5], [7, 5], [1, 11], [11, 11], [13, 11], [1, 5]], windows: [[3, 0], [17, 0], [8, 6, 'x'], [2, 6, 'x']], start: [5, 4],
     },
     B: {
       w: 28, h: 15,
       rooms: [{ id: 'quarto', name: 'Quarto', x: 1, y: 1, w: 9, h: 6, floor: 'wood' }, { id: 'escritorio', name: 'Escritório', x: 11, y: 1, w: 8, h: 6, floor: 'wood2' }, { id: 'banheiro', name: 'Banheiro', x: 20, y: 1, w: 7, h: 5, floor: 'tile' }, { id: 'sala', name: 'Sala', x: 1, y: 8, w: 14, h: 6, floor: 'wood' }, { id: 'cozinha', name: 'Cozinha', x: 16, y: 7, w: 11, h: 7, floor: 'tile2' }],
       doors: [[5, 7], [13, 7], [23, 6], [15, 10], [10, 3], [14, 7]], entry: [8, 14],
       objs: { cama: [1, 1, 3, 2, 2, 3], mesa: [12, 1, 5, 1, 14, 2], luz: [18, 1, 1, 1], bike: [17, 5, 1, 1, 16, 5], chuveiro: [24, 1, 2, 2, 24, 3], vaso: [20, 1, 1, 1], pia_b: [20, 4, 1, 1, 21, 4], geladeira: [26, 7, 1, 1, 26, 8], fogao: [20, 7, 2, 1, 20, 8], pia: [18, 7, 2, 1, 18, 8], cafeteira: [17, 7, 1, 1, 17, 8], sofa: [5, 12, 5, 1, 7, 11], tv: [6, 8, 3, 1, 7, 11], armario: [26, 12, 1, 2, 25, 13], porta: [8, 14, 1, 1, 8, 13], guarda: [7, 1, 2, 1], mesa_jantar: [20, 11, 3, 1, 20, 10] },
-      decoWall: [[11, 'escritorio'], [18, 'escritorio'], [13, 'escritorio'], [17, 'escritorio'], [3, 'quarto'], [3, 'sala'], [11, 'sala'], [6, 'quarto'], [18, 'cozinha']], neonX: 15, decoFloor: [[11, 1], [18, 6], [11, 6], [9, 6], [1, 13], [13, 13], [16, 13], [1, 6], [10, 9], [26, 10], [3, 13]], windows: [[4, 0], [21, 0], [12, 0, 'x'], [10, 7, 'x'], [3, 7, 'x']], start: [6, 4],
+      decoWall: [[11, 'escritorio'], [18, 'escritorio'], [13, 'escritorio'], [17, 'escritorio'], [3, 'quarto'], [3, 'sala'], [11, 'sala'], [6, 'quarto'], [18, 'cozinha']], neonX: 15, dirE: { neon: 2.2, posters: [4.1, 5.1, 6.1] }, decoFloor: [[11, 1], [18, 6], [11, 6], [9, 6], [1, 13], [13, 13], [16, 13], [1, 6], [10, 9], [26, 10], [3, 13]], windows: [[4, 0], [21, 0], [12, 0, 'x'], [10, 7, 'x'], [3, 7, 'x']], start: [6, 4],
     },
     C: {
       w: 34, h: 17,
       rooms: [{ id: 'quarto', name: 'Quarto', x: 1, y: 1, w: 9, h: 7, floor: 'wood' }, { id: 'escritorio', name: 'Escritório', x: 11, y: 1, w: 8, h: 7, floor: 'wood2' }, { id: 'estudio', name: 'Estúdio', x: 20, y: 1, w: 13, h: 7, floor: 'studio' }, { id: 'banheiro', name: 'Banheiro', x: 1, y: 9, w: 6, h: 7, floor: 'tile' }, { id: 'sala', name: 'Sala', x: 8, y: 9, w: 13, h: 7, floor: 'wood' }, { id: 'cozinha', name: 'Cozinha', x: 22, y: 9, w: 11, h: 7, floor: 'tile2' }],
       doors: [[10, 4], [19, 4], [5, 8], [14, 8], [26, 8], [7, 12], [21, 12]], entry: [14, 16],
       objs: { cama: [1, 1, 3, 2, 2, 3], mesa: [12, 1, 5, 1, 14, 2], luz: [18, 1, 1, 1], bike: [11, 6, 1, 1, 12, 6], chuveiro: [3, 9, 2, 2, 3, 11], vaso: [1, 9, 1, 1], pia_b: [1, 13, 1, 1, 2, 13], geladeira: [32, 9, 1, 1, 32, 10], fogao: [28, 9, 2, 1, 28, 10], pia: [23, 9, 2, 1, 23, 10], cafeteira: [22, 9, 1, 1, 22, 10], sofa: [14, 14, 5, 1, 16, 13], tv: [15, 9, 3, 1, 16, 13], armario: [32, 14, 1, 2, 31, 15], porta: [14, 16, 1, 1, 14, 15], guarda: [7, 1, 2, 1], mesa_jantar: [26, 13, 3, 1, 26, 12], estudio: [22, 2, 9, 4, 26, 6] },
-      decoWall: [[11, 'escritorio'], [18, 'escritorio'], [12, 'escritorio'], [13, 'escritorio'], [24, 'estudio'], [29, 'estudio'], [3, 'quarto'], [10, 'sala'], [17, 'sala'], [6, 'quarto'], [25, 'cozinha']], neonX: 16.5, decoFloor: [[11, 1], [18, 7], [18, 5], [9, 7], [8, 15], [20, 15], [22, 15], [1, 7], [9, 10], [32, 12], [6, 15], [1, 15], [20, 10], [11, 10], [19, 15], [8, 10]], windows: [[4, 0], [14, 0, 'x'], [24, 0], [29, 0], [3, 8, 'x'], [27, 8, 'x']], start: [6, 5],
+      decoWall: [[11, 'escritorio'], [18, 'escritorio'], [12, 'escritorio'], [13, 'escritorio'], [24, 'estudio'], [29, 'estudio'], [3, 'quarto'], [10, 'sala'], [17, 'sala'], [6, 'quarto'], [25, 'cozinha']], neonX: 16.5, dirE: { neon: 2.2, posters: [6, 7] }, decoFloor: [[11, 1], [18, 7], [18, 5], [9, 7], [8, 15], [20, 15], [22, 15], [1, 7], [9, 10], [32, 12], [6, 15], [1, 15], [20, 10], [11, 10], [19, 15], [8, 10]], windows: [[4, 0], [14, 0, 'x'], [24, 0], [29, 0], [3, 8, 'x'], [27, 8, 'x']], start: [6, 5],
     },
   };
   H.LAY = LAY;
@@ -132,11 +132,15 @@
     // decoração
     let wi = 0, fi = 0;
     (SL.Placas ? SL.Placas.lista() : []).forEach(pl => { const s = lay.decoWall[wi++]; if (!s) return; const r = lay.rooms.find(q => q.id === s[1]); objs.push({ id: 'placa_' + pl.id, kind: 'placa', placa: pl.id, label: pl.nome + ' do YouTube', wall: true, x: s[0], y: r.y - 1, w: 1, h: 1, z: 30 }); });
-    G.home.deco.forEach((id, idx) => {
+    // parede da direita do escritório: letreiro neon e pôsteres (pedido do dono: nada em cima do PC)
+    const esc = lay.rooms.find(q => q.id === 'escritorio'); const exD = esc.x + esc.w; const dirE = lay.dirE || { neon: esc.y + 1.2, posters: [] }; let pi = 0;
+    const naDireita = (o, cy, len) => Object.assign(o, { wall: true, lado: 'E', ex: exD, cy, x: exD - 0.65, y: cy - len / 2, w: 0.65, h: len, z: 30 });
+    // decorações saíram do jogo (nov/2026, pedido do dono: "ficou muito feio"); placas do YouTube continuam na parede
+    [].forEach((id, idx) => {
       const f = D.furnById(id); if (!f) return;
-      // letreiro neon: sempre no meio da parede de cima do escritório (onde a câmera da live pega)
-      if (f.kind === 'neon') { const r = lay.rooms.find(q => q.id === 'escritorio'); objs.push({ id: 'deco' + idx, kind: 'neon', label: f.name, wall: true, cx: lay.neonX || r.x + r.w / 2, x: (lay.neonX || r.x + r.w / 2) - 0.5, y: r.y - 1, w: 1, h: 1, z: 30, deco: idx }); return; }
-      if (['quadro', 'poster'].includes(f.kind)) { const s = lay.decoWall[wi++]; if (!s) return; const r = lay.rooms.find(q => q.id === s[1]); objs.push({ id: 'deco' + idx, kind: f.kind, label: f.name, wall: true, x: s[0], y: r.y - 1, w: 1, h: 1, z: 30, deco: idx }); }
+      if (f.kind === 'neon') { objs.push(naDireita({ id: 'deco' + idx, kind: 'neon', label: f.name, deco: idx }, dirE.neon, 2.2)); return; }
+      if (f.kind === 'poster' && pi < dirE.posters.length) { objs.push(naDireita({ id: 'deco' + idx, kind: 'poster', game: f.game, label: f.name, deco: idx }, dirE.posters[pi++], 0.7)); return; }
+      if (['quadro', 'poster'].includes(f.kind)) { const s = lay.decoWall[wi++]; if (!s) return; const r = lay.rooms.find(q => q.id === s[1]); objs.push({ id: 'deco' + idx, kind: f.kind, game: f.game, label: f.name, wall: true, x: s[0], y: r.y - 1, w: 1, h: 1, z: 30, deco: idx }); }
       else if (f.kind === 'led') objs.push({ id: 'deco' + idx, kind: 'led', label: f.name, glow: true, deco: idx, x: 0, y: 0, w: 0, h: 0, z: 0 });
       else { const s = lay.decoFloor[fi++]; if (!s) return; objs.push({ id: 'deco' + idx, kind: f.kind, label: f.name, x: s[0], y: s[1], w: f.kind === 'tapete' ? 2 : 1, h: 1, flat: f.kind === 'tapete', deco: idx, z: { planta: 34, luminaria: 50, estante: 52 }[f.kind] || 4, use: f.kind === 'planta' ? [s[0], Math.min(s[1] + 1, lay.h - 2)] : null }); }
     });
@@ -177,7 +181,7 @@
     // quadros, pôsteres, letreiro e placas: desenhados pendurados na parede por drawArte (depois dos móveis)
     const desk = objs.find(o => o.id === 'mesa');
     if (desk && G.home.items.acustica) for (let i = 0; i < desk.w; i++) { const w = wallAt(desk.x + i, desk.y - 1); if (w) w.dec.push({ face: 'S', fn: decFoam }); }
-    if (G.home.deco.includes('led')) { const er = lay.rooms.find(r => r.id === 'escritorio'); if (er) for (let i = 0; i < er.w; i++) { const w = wallAt(er.x + i, er.y - 1); if (w) w.dec.push({ face: 'S', fn: decLed }); } }
+    if (false) { const er = lay.rooms.find(r => r.id === 'escritorio'); if (er) for (let i = 0; i < er.w; i++) { const w = wallAt(er.x + i, er.y - 1); if (w) w.dec.push({ face: 'S', fn: decLed }); } }
     const pb = objs.find(o => o.id === 'pia_b');
     if (pb) { const d = pb.back; const w = wallAt(pb.x + (d === 'W' ? -1 : d === 'E' ? 1 : 0), pb.y + (d === 'N' ? -1 : d === 'S' ? 1 : 0)); if (w) w.dec.push({ face: pb.front, fn: decMirror }); }
     // portas
@@ -435,15 +439,24 @@
   const ARTE_Z = WALLZ - 5;
   // a arte fica "deitada" a partir da parede, um pouco achatada (como vista de cima, em ângulo)
   const ARTE_ACHATA = 0.62;
-  const arteBox = o => { const cx = (o.cx != null ? o.cx : o.x + 0.5) * T, y0 = (o.y + 1) * T + 0.5; const [w, h] = { poster: [22, 30], quadro: [28, 21], neon: [70, 20], placa: [23, 30] }[o.kind] || [24, 24]; return [cx - w / 2, y0, cx + w / 2, y0 + h * (o.kind === 'neon' ? 0.65 : ARTE_ACHATA)]; };
-  const posterJogo = () => { const id = SL.Creators && SL.Creators.playerMainGame && SL.Creators.playerMainGame(); return (id && SL.D.gameById(id) && !SL.D.gameById(id).nongame) ? id : 'blocolandia'; };
+  // cada arte tem uma origem na beira da parede e é desenhada em coordenadas locais: x ao longo da parede,
+  // y entrando no cômodo. Parede de cima: sem girar. Parede da direita: girada 90° (o topo da arte fica encostado na parede).
+  const ARTE_TAM = { poster: [22, 30], quadro: [28, 21], neon: [70, 20], placa: [23, 30] };
+  const arteGeo = o => {
+    const [w, h0] = ARTE_TAM[o.kind] || [24, 24]; const h = h0 * (o.kind === 'neon' ? 0.65 : ARTE_ACHATA);
+    if (o.lado === 'E') { const ox = o.ex * T - 0.5, oy = o.cy * T; return { ox, oy, rot: Math.PI / 2, w, h, box: [ox - h, oy - w / 2, ox, oy + w / 2] }; }
+    const ox = (o.cx != null ? o.cx : o.x + 0.5) * T, oy = (o.y + 1) * T + 0.5; return { ox, oy, rot: 0, w, h, box: [ox - w / 2, oy, ox + w / 2, oy + h] };
+  };
+  const arteBox = o => arteGeo(o).box;
+  const posterJogo = o => { const id = (o && o.game) || (SL.Creators && SL.Creators.playerMainGame && SL.Creators.playerMainGame()); return (id && SL.D.gameById(id) && !SL.D.gameById(id).nongame) ? id : 'blocolandia'; };
   function drawArte(c, o, t) {
-    const G = SL.G; const [x0, y0, x1, y1] = arteBox(o); const w = x1 - x0, h = y1 - y0;
-    atZ(c, ARTE_Z - 7, cc => { cc.fillStyle = 'rgba(0,0,0,.22)'; rr(cc, x0 + 1.5, y0 + 2, w, h, 2); cc.fill(); });
-    atZ(c, ARTE_Z, cc => {
+    const G = SL.G; const g = arteGeo(o); const w = g.w, h = g.h; const x0 = -w / 2, y0 = 0, x1 = w / 2;
+    const local = (z, fn) => atZ(c, z, cc => { cc.translate(g.ox, g.oy); if (g.rot) cc.rotate(g.rot); fn(cc); });
+    local(ARTE_Z - 7, cc => { cc.fillStyle = 'rgba(0,0,0,.22)'; rr(cc, x0 + 1.5, y0 + 2, w, h, 2); cc.fill(); });
+    local(ARTE_Z, cc => {
       if (o.kind === 'poster') {
         cc.fillStyle = '#e9e9ee'; cc.fillRect(x0 - 1, y0 - 1, w + 2, h + 2);
-        if (SL.Capa) cc.drawImage(SL.Capa.img(posterJogo()), x0, y0, w, h);
+        if (SL.Capa) cc.drawImage(SL.Capa.img(posterJogo(o)), x0, y0, w, h);
         cc.fillStyle = 'rgba(255,255,255,.12)'; cc.beginPath(); cc.moveTo(x0, y0); cc.lineTo(x0 + w * 0.6, y0); cc.lineTo(x0, y0 + h * 0.5); cc.closePath(); cc.fill();
         cc.fillStyle = '#bbb'; cc.fillRect(x0 + 1, y0 + 0.5, 2, 2); cc.fillRect(x1 - 3, y0 + 0.5, 2, 2);
       } else if (o.kind === 'placa') {
@@ -459,12 +472,12 @@
         const pisca = 0.85 + 0.15 * Math.sin(t * 9) * (Math.sin(t * 0.7) > 0.96 ? 1 : 0);
         cc.save(); cc.globalAlpha = pisca; cc.font = '800 11px Sora, Arial'; cc.textAlign = 'center'; cc.textBaseline = 'middle';
         const nome = G.player.channel.slice(0, 16);
-        cc.shadowColor = '#ff3d81'; cc.shadowBlur = 10; cc.fillStyle = '#ff7ab0'; cc.fillText(nome, (x0 + x1) / 2, y0 + h / 2 + 0.5, w - 8);
-        cc.shadowBlur = 3; cc.fillStyle = '#ffe3ef'; cc.fillText(nome, (x0 + x1) / 2, y0 + h / 2 + 0.5, w - 8); cc.restore();
-        const g = cc.createRadialGradient((x0 + x1) / 2, y0 + h, 2, (x0 + x1) / 2, y0 + h, w * 0.6); g.addColorStop(0, 'rgba(255,61,129,' + 0.18 * pisca + ')'); g.addColorStop(1, 'rgba(255,61,129,0)'); cc.fillStyle = g; cc.fillRect(x0 - w * 0.2, y0, w * 1.4, h * 2.2);
+        cc.shadowColor = '#ff3d81'; cc.shadowBlur = 10; cc.fillStyle = '#ff7ab0'; cc.fillText(nome, 0, y0 + h / 2 + 0.5, w - 8);
+        cc.shadowBlur = 3; cc.fillStyle = '#ffe3ef'; cc.fillText(nome, 0, y0 + h / 2 + 0.5, w - 8); cc.restore();
+        const gr = cc.createRadialGradient(0, y0 + h, 2, 0, y0 + h, w * 0.6); gr.addColorStop(0, 'rgba(255,61,129,' + 0.18 * pisca + ')'); gr.addColorStop(1, 'rgba(255,61,129,0)'); cc.fillStyle = gr; cc.fillRect(x0 - w * 0.2, y0, w * 1.4, h * 2.2);
       }
     });
-    hits.push(bboxOf(x0, y0, x1, y1, ARTE_Z - 1, ARTE_Z).concat(o));
+    const b = g.box; hits.push(bboxOf(b[0], b[1], b[2], b[3], ARTE_Z - 1, ARTE_Z).concat(o));
   }
   function decFoam(c, fp) { for (let i = 0; i < 3; i++) { fq(c, fp, 0.04 + i * 0.32, 0.32 + i * 0.32, 22, 52, i % 2 ? '#2c2c3c' : '#363650'); fq(c, fp, 0.08 + i * 0.32, 0.28 + i * 0.32, 36, 38, 'rgba(0,0,0,.25)'); } }
   function decLed(c, fp) { fq(c, fp, 0, 1, 52, 54.5, 'hsl(' + ((performance.now() / 1000 * 30) % 360) + ',90%,62%)'); }
@@ -982,7 +995,7 @@
     const glow = (wx, wy, wz, r, col, al) => { const p = P(wx, wy, wz); const rr0 = r * V.s; const g = c.createRadialGradient(p[0], p[1], 1, p[0], p[1], rr0); g.addColorStop(0, U.rgba(col, al)); g.addColorStop(1, U.rgba(col, 0)); c.fillStyle = g; c.fillRect(p[0] - rr0, p[1] - rr0, rr0 * 2, rr0 * 2); };
     if (pcOn && desk) glow((desk.x + desk.w / 2) * T, (desk.y + 1) * T, 30, 70, (SL.Live && SL.Live.cur) || (a && a.id === 'live') ? '#b04cff' : '#6f86ff', na * 0.55);
     if (tvOn && tv) glow((tv.x + tv.w / 2) * T, (tv.y + 1.5) * T, 30, 90, '#7fb3ff', na * 0.5);
-    if (G.home.deco.includes('led')) { const er = lay.rooms.find(r => r.id === 'escritorio'); if (er) glow((er.x + er.w / 2) * T, er.y * T + 12, 54, er.w * 16, '#' + ['c77dff', '7dd3ff', 'ff7ab0'][Math.floor(t / 3) % 3], na * 0.45); }
+    if (false) { const er = lay.rooms.find(r => r.id === 'escritorio'); if (er) glow((er.x + er.w / 2) * T, er.y * T + 12, 54, er.w * 16, '#' + ['c77dff', '7dd3ff', 'ff7ab0'][Math.floor(t / 3) % 3], na * 0.45); }
     objs.forEach(o => { if (o.kind === 'luminaria') glow(o.x * T + 16, o.y * T + 16, 46, 60, '#ffd28a', na * 0.5); if (o.kind === 'neon') glow(o.x * T + 16, (o.y + 1) * T + 4, 34, 40, '#ff3d81', na * 0.7); });
     const lz = SL.Equip.item('iluminacao'); if (lz && pcOn && desk) glow((desk.x + desk.w / 2) * T, (desk.y + 1.6) * T, 40, 60, '#fff6dc', 0.15 + na * 0.3);
     props.forEach(p => { if (p.k === 'lamp') glow(p.x, p.y + 20, 86, 60, '#ffe6a0', na * 0.6); });

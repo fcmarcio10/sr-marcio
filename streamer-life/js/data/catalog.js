@@ -155,6 +155,9 @@
     { id: 'neon', slot: 'deco', name: 'Letreiro neon com o nome do canal', price: 680, decor: 8, cam: 12, kind: 'neon' },
     { id: 'luminaria', slot: 'deco', name: 'Luminária de chão', price: 260, decor: 4, kind: 'luminaria' },
   ];
+  // pôsteres de jogo: você escolhe o jogo na loja (o 'poster' antigo fica só para salvamentos antigos)
+  D.furniture.find(f => f.id === 'poster').oculto = true;
+  D.games.filter(g => !g.nongame).forEach(g => D.furniture.push({ id: 'poster_' + g.id, slot: 'deco', name: 'Pôster ' + g.name, price: 60, decor: 3, kind: 'poster', game: g.id }));
   D.furnById = id => D.furniture.find(f => f.id === id);
 
   // Comidas do mercado. perish = dias até estragar (0 = não estraga)
@@ -262,4 +265,7 @@
     { md: '12-04', name: 'Prêmio Criadores do Ano', minTier: 3, fee: 0, days: 1 },
     { md: '02-20', name: 'Encontro de Streamers de Verão', minTier: 1, fee: 50, days: 1 },
   ];
+  // preços estilo Brasil (nov/2026, pedido do dono): tudo termina em ,99 (2600 vira 2.599,99; 3,50 vira 3,99)
+  D.precoBR = p => !(p > 0) ? p : p >= 10 ? Math.round(p) - 0.01 : Math.floor(p) + 0.99;
+  [D.equip, D.furniture, D.internet, D.software, D.foods, D.delivery, D.vehicles, D.courses, D.merch].forEach(lista => (lista || []).forEach(it => { if (it.price > 0) it.price = D.precoBR(it.price); }));
 })(window.SL);

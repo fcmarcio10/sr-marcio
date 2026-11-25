@@ -161,23 +161,30 @@
     const L = LV.cur, P = G().ch.pulso;
     // teto pelo tamanho do canal (sugestão 7): canal pequeno não recebe R$ 900 de uma vez
     const teto = LV.tetoDoacao();
-    amount = Math.round(Math.min(amount, teto) * 100) / 100;
+    amount = LV.valorBR(Math.min(amount, teto));
     P.bal += amount * 0.95; L.stats.don += amount; L.stats.donN++;
     if (v) { v.m.don += amount; v.m.ld = SL.Clock.day(); const st = L.present.get(v.id); if (st) st.thanked = false; }
     const u = v ? v.u : uName;
     // superchat: a partir de R$ 5 a mensagem é lida em voz alta (vozes gravadas no ElevenLabs)
     let sc = null;
-    if (amount >= 5) { L.scUsados = L.scUsados || []; const pool = LV.SUPERCHATS.filter(x => !L.scUsados.includes(x.id)); sc = U.pick(pool.length ? pool : LV.SUPERCHATS); L.scUsados.push(sc.id); text = sc.t; }
+    if (amount >= LV.scMin() - 0.001) { L.scUsados = L.scUsados || []; const pool = LV.SUPERCHATS.filter(x => !L.scUsados.includes(x.id)); sc = U.pick(pool.length ? pool : LV.SUPERCHATS); L.scUsados.push(sc.id); text = sc.t; }
     const msg = SL.Chat.msg(v, text, { kind: 'donation', amount, u, badges: v ? undefined : [] });
     if (sc) msg.sc = sc.id;
     pushMsg(msg, 0.1);
     L.donations.push({ msgId: msg.id, vid: v ? v.id : null, u, amount, at: L.min, thanked: false });
-    L.alerts.push({ k: 'don', u, amount, text: sc ? sc.t : '' });
+    if (!sc) L.alerts.push({ k: 'don', u, amount, text: '' }); // o superchat ganha o alerta próprio, junto com a voz (um atrás do outro)
     if (sc) SL.bus.emit('live:superchat', { id: sc.id, u, amount, text: sc.t }); else if (SL.audio) SL.audio.play('donate');
     L.hype = U.clamp(L.hype + Math.min(12, 2 + amount / 10), 0, 100);
   };
 
   LV.donate = donate;   // para testes e eventos
+  // superchat mínimo (você escolhe no OBS ou na Twitch): 4,99, 7,99 ou 9,99
+  LV.SC_MINIMOS = [4.99, 7.99, 9.99];
+  LV.scMin = () => { const v = G().ch.pulso.scMin; return LV.SC_MINIMOS.includes(v) ? v : 4.99; };
+  LV.setScMin = v => { if (LV.SC_MINIMOS.includes(+v)) G().ch.pulso.scMin = +v; };
+  // valores como as pessoas mandam de verdade: 1,99 · 2,99 · 4,99 · 5 · 7,99 · 9,99 · 10 · 14,99 · 19,99 · 20 · 29,99 · 49,99 · 50 · 99,99 · 100...
+  LV.VALORES = [1.99, 2, 2.99, 4.99, 5, 7.99, 9.99, 10, 14.99, 19.99, 20, 25, 29.99, 49.99, 50, 79.99, 99.99, 100, 149.99, 199.99, 250, 499.99, 500, 999.99];
+  LV.valorBR = v => { let best = LV.VALORES[0]; for (const x of LV.VALORES) if (Math.abs(x - v) < Math.abs(best - v)) best = x; return best; };
   LV.tetoDoacao = () => { const L = LV.cur, P = G().ch.pulso; return Math.max(25, Math.round(20 + P.f * 0.5 + (L ? L.viewers : 0) * 4)); };
   // falas de superchat com voz (audio/sc_1..sc_10.mp3, cada uma com uma voz diferente)
   LV.SUPERCHATS = [
@@ -252,6 +259,47 @@
     { id: 'sc_68', t: 'Bora, bora! Mostra pro chat que você não é tão ruim assim!', z: 1 },
     { id: 'sc_69', t: 'Mãe, se você tiver assistindo: eu não gastei o dinheiro todo, juro!', z: 1 },
     { id: 'sc_70', t: 'Toma, pra você contratar um técnico. De jogo, de vida, de qualquer coisa!', z: 1 },
+    // nov/2026: mais 40 (zoeira com o streamer e com a comunidade, estilo chat brasileiro de verdade)
+    { id: 'sc_71', t: 'Esse chat aqui é tudo desempregado, olha o horário que vocês tão aqui! Inclusive eu.', z: 2 },
+    { id: 'sc_72', t: 'Mandei esse superchat pro streamer pagar a conta de luz, porque essa ring light tá puxando energia do bairro inteiro!', z: 2 },
+    { id: 'sc_73', t: 'Chat, quem aí também tá vendo a live escondido no banheiro do trabalho? Só eu?', z: 2 },
+    { id: 'sc_74', t: 'Essa jogada aí foi igual o Wi-Fi da minha casa: caiu bem na melhor parte!', z: 2 },
+    { id: 'sc_75', t: 'Toma cinco real. Não gasta tudo em miojo, hein!', z: 2 },
+    { id: 'sc_76', t: 'O moderador tá mais ativo que o streamer! Promove o Bigode logo!', z: 2 },
+    { id: 'sc_77', t: 'Chat, alguém explica pro streamer que o inimigo é do outro lado!', z: 2 },
+    { id: 'sc_78', t: 'Mandei esse pix porque a professora disse pra investir no futuro. E o futuro é essa live!', z: 2 },
+    { id: 'sc_79', t: 'Essa live tá mais parada que fila de banco em dia de pagamento!', z: 2 },
+    { id: 'sc_80', t: 'Galera do chat, bora fazer uma vaquinha pro streamer comprar um mouse que funcione?', z: 2 },
+    { id: 'sc_81', t: 'Eu e mais três pessoas: a audiência oficial desse canal. Respeita a gente!', z: 2 },
+    { id: 'sc_82', t: 'Streamer, tua mira tá igual previsão do tempo: nunca acerta!', z: 2 },
+    { id: 'sc_83', t: 'Toma esse superchat pra você ligar pra sua mãe. Ela tá no chat perguntando se você jantou!', z: 2 },
+    { id: 'sc_84', t: 'Ô streamer, para de culpar o lag! O lag é você!', z: 2 },
+    { id: 'sc_85', t: 'Mandei o superchat e agora tô sem dinheiro pro busão. Vou ter que ir andando, mas valeu a pena!', z: 2 },
+    { id: 'sc_86', t: 'A comunidade desse canal é igual grupo da família: todo mundo fala e ninguém escuta!', z: 2 },
+    { id: 'sc_87', t: 'Streamer, tu tá jogando ou tá fazendo tutorial de como perder?', z: 2 },
+    { id: 'sc_88', t: 'Chat, segura que lá vem mais uma desculpa: o controle tá ruim!', z: 2 },
+    { id: 'sc_89', t: 'Esse superchat é patrocinado pela minha mesada. Valoriza, hein!', z: 2 },
+    { id: 'sc_90', t: 'Eu tava estudando pra prova, mas aí abri a live. Se eu tirar zero, a culpa é sua!', z: 2 },
+    { id: 'sc_91', t: 'Streamer, pisca duas vezes se você tá sendo obrigado a jogar isso!', z: 2 },
+    { id: 'sc_92', t: 'Mandei esse superchat só pra ver o moderador trabalhar. Vai, Bigode!', z: 2 },
+    { id: 'sc_93', t: 'Essa live tá tão boa que eu nem pulei os anúncios. Mentira, pulei sim!', z: 2 },
+    { id: 'sc_94', t: 'Chat, vamo combinar: quem perder a próxima vai ter que assistir essa live de novo!', z: 2 },
+    { id: 'sc_95', t: 'Streamer, teu microfone pega até o vizinho cantando no chuveiro!', z: 2 },
+    { id: 'sc_96', t: 'Já dei like, já segui, já mandei pix. Só falta você jogar bem!', z: 2 },
+    { id: 'sc_97', t: 'Essa jogada vai pro corte de fails, com certeza absoluta!', z: 2 },
+    { id: 'sc_98', t: 'Sinceramente, não sei quem é mais doido: a gente do chat ou o streamer.', z: 2 },
+    { id: 'sc_99', t: 'Toma, compra uma cadeira gamer. Essa de plástico já tá pedindo arrego!', z: 2 },
+    { id: 'sc_100', t: 'Streamer, eu fui pra escola, voltei, almocei... e tu ainda tá na mesma fase!', z: 2 },
+    { id: 'sc_101', t: 'Mandei dez reais. Cinco é pela live, e cinco é pra você parar de cantar!', z: 2 },
+    { id: 'sc_102', t: 'Se o streamer ganhar essa, eu raspo a cabeça. Pode ficar tranquilo, tô seguro.', z: 2 },
+    { id: 'sc_103', t: 'Galera que chegou agora: não liga não, ele é assim mesmo.', z: 2 },
+    { id: 'sc_104', t: 'Minha vó assiste a live com o volume no talo. Manda um oi pra Dona Cida!', z: 2 },
+    { id: 'sc_105', t: 'Esse superchat é pra você ir dormir, que amanhã tem escola. Ah, você não estuda? Melhor ainda!', z: 2 },
+    { id: 'sc_106', t: 'Fala, streamer! Minha mãe mandou dizer que a louça não vai se lavar sozinha. Ah, é pra mim? Tchau!', z: 2 },
+    { id: 'sc_107', t: 'O streamer joga igual meu avô dirige: devagar e no meio da pista!', z: 2 },
+    { id: 'sc_108', t: 'Esse cabelo aí é estilo ou foi o vento? Pergunta sincera, tá?', z: 2 },
+    { id: 'sc_109', t: 'Se essa live fosse comida, seria arroz sem sal. Mas eu como todo dia!', z: 2 },
+    { id: 'sc_110', t: 'Chat, quem pediu pizza aí? Porque o streamer tá entregando... entregando a partida!', z: 2 },
   ];
 
   // ---------- momentos de decisão (sugestão 1): escolha rápida com 2 botões e tempo ----------

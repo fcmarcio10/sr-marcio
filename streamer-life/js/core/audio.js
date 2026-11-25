@@ -51,20 +51,28 @@
     return a;
   };
   // superchat: toca o som e depois a voz; um de cada vez, sem falar por cima
-  const filaSc = []; let tocandoSc = false;
+  // cada superchat: som de chegada + alerta na tela (onStart), depois a voz; o próximo só começa quando o anterior termina
+  const filaSc = []; let tocandoSc = false, atualSc = null, somSc = null, timersSc = [], vezSc = 0;
   const proximoSc = () => {
     if (tocandoSc || !filaSc.length) return;
-    const it = filaSc.shift(); tocandoSc = true;
-    if (it.som) A.arquivo('sc_som', 0.85);
-    setTimeout(() => {
-      const a = A.arquivo(it.id, it.vol || 1);
-      const fim = () => { if (!tocandoSc) return; tocandoSc = false; setTimeout(proximoSc, 400); };
-      if (!a) return fim();
-      a.onended = fim; a.onerror = fim; setTimeout(fim, 9000);
-    }, it.som ? 1000 : 0);
+    const it = filaSc.shift(); tocandoSc = true; const vez = ++vezSc;
+    somSc = it.som ? A.arquivo('sc_som', 0.85) : null;
+    if (!somSc && it.som) A.play('donate');
+    if (it.onStart) try { it.onStart(); } catch (e) { /* tela fechada */ }
+    const fim = () => { if (vez !== vezSc || !tocandoSc) return; tocandoSc = false; atualSc = null; if (it.onEnd) try { it.onEnd(); } catch (e) { /* tela fechada */ } timersSc.push(setTimeout(proximoSc, 500)); };
+    timersSc.push(setTimeout(() => {
+      if (vez !== vezSc) return;
+      const a = A.arquivo(it.id, it.vol || 1); atualSc = a;
+      if (!a) { timersSc.push(setTimeout(fim, 3500)); return; }
+      a.onended = fim; a.onerror = fim; timersSc.push(setTimeout(fim, 12000));
+    }, it.som ? 1100 : 0));
   };
-  A.superchat = id => { if (filaSc.filter(x => x.som).length < 3) filaSc.push({ id, som: true }); proximoSc(); };
-  A.paraSuperchats = () => { filaSc.length = 0; };
+  A.superchat = (id, onStart, onEnd) => { if (filaSc.length < 8) filaSc.push({ id, som: true, onStart, onEnd }); proximoSc(); };
+  // corta na hora (live encerrada, PC desligado por sono/fome/sede, sair de casa)
+  A.paraSuperchats = () => {
+    filaSc.length = 0; vezSc++; tocandoSc = false; timersSc.forEach(clearTimeout); timersSc = [];
+    [atualSc, somSc].forEach(a => { if (a) { try { a.pause(); a.currentTime = 0; } catch (e) { /* já parou */ } } }); atualSc = somSc = null;
+  };
 
   // nov/2026: efeitos refeitos (sinos suaves com eco curto, cliques macios e "whoosh" em vez de ondas quadradas)
   let eco = null;

@@ -18,7 +18,7 @@
   Q.isBroken = id => !!G().equip.broken[id];
   Q.owns = id => !!G().equip.owned[id];
   Q.isBlackFriday = () => SL.Clock.md() === '11-26' || SL.Clock.md() === '11-27';
-  Q.price = it => Math.round(it.price * (Q.isBlackFriday() ? 0.7 : 1));
+  Q.price = it => Q.isBlackFriday() ? D.precoBR(it.price * 0.7) : it.price;
 
   // Peças do PC de mesa (processador, placa de vídeo, RAM, SSD, fonte, refrigeração).
   // No notebook não dá para trocar peça. Fonte fraca para a placa de vídeo: a placa rende só 40%.

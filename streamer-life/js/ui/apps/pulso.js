@@ -55,6 +55,7 @@
             <div class="field"><label>Duração planejada</label><div class="row wrap">${[60, 120, 180, 240].map(m => `<button class="chip ${f.planned === m ? 'on' : ''}" data-act="dur" data-v="${m}">${U.dur(m)}</button>`).join('')}</div></div>
             <label class="row small"><input type="checkbox" data-act="cam" ${f.cam ? 'checked' : ''} ${SL.Equip.stats().hasCam ? '' : 'disabled'}> Webcam ligada ${SL.Equip.stats().hasCam ? '' : '<span class="muted">(sem webcam)</span>'}</label>
             <label class="row small"><input type="checkbox" data-act="ann" ${f.announce ? 'checked' : ''}> Divulgar no Instagram ao começar</label>
+            <div class="field"><label>Superchat mínimo (a voz lê em voz alta)</label><div class="row wrap">${SL.Live.SC_MINIMOS.map(v => `<button class="chip ${SL.Live.scMin() === v ? 'on' : ''}" data-act="scmin" data-v="${v}">${U.money(v)}</button>`).join('')}</div></div>
           </div>
           <div class="card col"><h3>Antes de entrar</h3>
             <div class="row small"><span class="dot ${q.fps < 0.8 || q.netOk < 0.85 ? 'warn' : 'ok'}"></span><span class="grow">${q.issues.length ? q.issues.map(i => ({ lag: 'Seu PC está no limite: pode travar.', rede: 'Sua internet não aguenta essa qualidade.', cam: 'Câmera escura ou ruim.', mic: 'Sem microfone.' })[i]).join(' ') : 'Tudo certo para transmitir.'}</span></div>
@@ -90,6 +91,7 @@
       if (a === 'tab') { st.tab = ds.t; ctx.resetScroll = true; return ctx.render(); }
       if (a === 'reopen') return SL.LiveUI.restore();
       if (a === 'twitch') return UI.openApp('twitch');
+      if (a === 'scmin') { SL.Live.setScMin(ds.v); return ctx.render(); }
       if (a === 'game') { const g = D.gameById(ds.g); const cs = SL.Equip.canStream(g, '480p'); if (!cs.ok) return cs.reason; f.game = ds.g; f.tags = f.tags.filter(x => SL.Algo.suggestTags(f.game).includes(x)); return ctx.render(); }
       if (a === 'idea') { f.title = U.pick(TITLE_IDEAS).replace('{g}', D.gameById(f.game).name); SL.Life.skillUp('marketing', 0.02); return ctx.render(); }
       if (a === 'tag') { const i = f.tags.indexOf(ds.v); if (i >= 0) f.tags.splice(i, 1); else if (f.tags.length < 6) f.tags.push(ds.v); return ctx.render(); }
@@ -280,7 +282,21 @@
     return Math.min(modo.max, (0.06 + Math.sqrt(v) * 0.05 + v * 0.004) * modo.k * rapido);
   };
   // superchat: som e voz (fila no SL.audio, um por vez)
-  SL.bus.on('live:superchat', s => { if (SL.audio && SL.audio.superchat) SL.audio.superchat(s.id); });
+  SL.bus.on('live:superchat', s => {
+    if (!SL.audio || !SL.audio.superchat) return;
+    SL.audio.superchat(s.id, () => LUI.scAlerta(s, true), () => LUI.scAlerta(s, false));
+  });
+  // o alerta do superchat entra quando o som dele toca e sai quando a voz termina (nunca um por cima do outro)
+  LUI.scAlerta = (s, liga) => {
+    LUI._scOn = liga; const al = $('#lv-al'); if (!al) return;
+    al.querySelectorAll('.lalert.sc').forEach(x => x.remove());
+    if (!liga) { LUI._aqT = performance.now() + 400; return; }
+    al.querySelectorAll('.lalert').forEach(x => x.remove());
+    const d = document.createElement('div'); d.className = 'lalert sc';
+    d.innerHTML = '<span class="sc-al"><b>SUPERCHAT ' + U.money(s.amount) + '</b><span>@' + esc(s.u) + '</span><em>' + esc(s.text) + '</em></span>';
+    al.appendChild(d);
+  };
+  SL.bus.on('live:end', () => { LUI._scOn = false; if (SL.audio && SL.audio.paraSuperchats) SL.audio.paraSuperchats(); });
   LUI.finish = reason => { const sum = SL.Live.end(reason); if (sum && LUI._shown !== sum) LUI.summary(sum); };
   SL.bus.on('live:end', sum => { const had = !!$('#overlay-live').firstChild; LUI.close(); if (had && sum) { LUI._shown = sum; LUI.summary(sum); } });
 
@@ -412,7 +428,7 @@
       const scs = LUI._aq.filter(a => a.k === 'don'); if (scs.length) { LUI._aq = scs.concat(LUI._aq.filter(a => a.k !== 'don')); if (!(al.querySelector('.lalert.sc'))) LUI._aqT = 0; }
     }
     // um alerta por vez, como nos programas de live de verdade
-    if (al && LUI._aq && LUI._aq.length && now > (LUI._aqT || 0)) {
+    if (al && LUI._aq && LUI._aq.length && now > (LUI._aqT || 0) && !LUI._scOn) {
       LUI._aqT = now + 2600; const a = LUI._aq.shift(); al.innerHTML = '';
       [a].forEach(a => { const d = document.createElement('div'); d.className = 'lalert ' + a.k; d.innerHTML = a.k === 'follow' ? ic('follow', 16) + '@' + esc(a.u) + ' seguiu!' : a.k === 'sub' ? ic('sub', 16) + '@' + esc(a.u) + ' se inscreveu!' : '<span class="sc-al"><b>SUPERCHAT ' + U.money(a.amount) + '</b><span>@' + esc(a.u) + '</span>' + (a.text ? '<em>' + esc(a.text) + '</em>' : '') + '</span>'; if (a.k === 'don') { d.className = 'lalert sc'; LUI._aqT = performance.now() + 6500; } al.appendChild(d); setTimeout(() => d.remove(), a.k === 'don' ? 6500 : 4000); });
     }

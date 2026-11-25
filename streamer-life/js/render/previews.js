@@ -202,7 +202,7 @@
 
   // quarto/escritório atrás da câmera (o "cenário" da live)
   P.room = (ctx, w, h, t, o) => {
-    const G0 = SL.G; const deco = G0 ? G0.home.deco : [];
+    const G0 = SL.G; const deco = []; // decorações saíram do jogo (nov/2026, pedido do dono); as placas do YouTube continuam
     const studio = G0 && G0.home.studio; const it = G0 ? G0.home.items : {};
     const PAREDE = { kitnet: ['#3f3a4a', '#2b2734'], apto: ['#3b4252', '#282d38'], casa: ['#4a4038', '#332c26'], cobertura: ['#2f3d45', '#1f2a30'], mansao: ['#3d3a30', '#2a2820'] };
     const hid = G0 ? G0.home.id : 'kitnet'; const par = PAREDE[hid] || PAREDE[Object.keys(PAREDE)[(hid || '').length % 5]];
@@ -227,7 +227,8 @@
     if (deco.includes('led')) { const hue = (t * 20) % 360; ctx.fillStyle = 'hsla(' + hue + ',90%,60%,.28)'; ctx.fillRect(0, h * 0.1, w, h * 0.04); const g = ctx.createLinearGradient(0, h * 0.1, 0, h * 0.5); g.addColorStop(0, 'hsla(' + hue + ',90%,60%,.18)'); g.addColorStop(1, 'transparent'); ctx.fillStyle = g; ctx.fillRect(0, h * 0.1, w, h * 0.4); }
     if (deco.includes('estante')) { ctx.fillStyle = '#5a3a2a'; ctx.fillRect(w * 0.72, h * 0.15, w * 0.22, h * 0.6); ctx.fillStyle = '#3a2418'; for (let i = 0; i < 4; i++) ctx.fillRect(w * 0.72, h * (0.28 + i * 0.13), w * 0.22, h * 0.015); const r = U.mulberry(3); for (let i = 0; i < 10; i++) { ctx.fillStyle = D.shirtColors[i % D.shirtColors.length]; ctx.fillRect(w * (0.74 + r() * 0.17), h * (0.2 + Math.floor(i / 3) * 0.13), w * 0.02, h * 0.07); } }
     if (deco.includes('neon') && G0) { ctx.save(); ctx.shadowColor = '#ff3d81'; ctx.shadowBlur = 18; txt(ctx, G0.player.channel, w * 0.06, h * 0.2, Math.round(h * 0.08), '#ff7ab0', 'left', 800); ctx.restore(); }
-    if (deco.includes('poster') && SL.Capa) { const id = (SL.Creators && SL.Creators.playerMainGame && SL.Creators.playerMainGame()) || 'blocolandia'; const g = D.gameById(id); const pw = h * 0.2, ph = pw * 4 / 3; ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(w * 0.085 + 3, h * 0.3 + 4, pw, ph); ctx.fillStyle = '#eee'; ctx.fillRect(w * 0.085 - 2, h * 0.3 - 2, pw + 4, ph + 4); ctx.drawImage(SL.Capa.img(g && !g.nongame ? id : 'blocolandia'), w * 0.085, h * 0.3, pw, ph); }
+    const pst = deco.find(x => x === 'poster' || /^poster_/.test(x));
+    if (pst && SL.Capa) { const pf = D.furnById(pst); const id = (pf && pf.game) || (SL.Creators && SL.Creators.playerMainGame && SL.Creators.playerMainGame()) || 'blocolandia'; const g = D.gameById(id); const pw = h * 0.2, ph = pw * 4 / 3; ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(w * 0.085 + 3, h * 0.3 + 4, pw, ph); ctx.fillStyle = '#eee'; ctx.fillRect(w * 0.085 - 2, h * 0.3 - 2, pw + 4, ph + 4); ctx.drawImage(SL.Capa.img(g && !g.nongame ? id : 'blocolandia'), w * 0.085, h * 0.3, pw, ph); }
     if (G0 && G0.placas && SL.Capa && SL.Placas) SL.Placas.lista().forEach((pl, i) => { const pw = h * 0.15, ph = pw * 1.3, px = w * (0.62 + i * 0.1), py = h * 0.08; ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(px + 3, py + 4, pw, ph); ctx.drawImage(SL.Capa.placa(pl.id, G0.player.channel), px, py, pw, ph); });
     if (deco.includes('quadro')) { ctx.fillStyle = '#efe6d6'; ctx.fillRect(w * 0.26, h * 0.12, w * 0.14, h * 0.18); ctx.fillStyle = '#3b82f6'; ctx.beginPath(); ctx.arc(w * 0.31, h * 0.2, h * 0.04, 0, 7); ctx.fill(); ctx.fillStyle = '#ff5a36'; ctx.fillRect(w * 0.33, h * 0.18, w * 0.05, h * 0.08); }
     if (deco.includes('planta')) { ctx.fillStyle = '#7a4a2a'; ctx.fillRect(w * 0.04, h * 0.7, w * 0.06, h * 0.1); ctx.fillStyle = '#3f8f3a'; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.ellipse(w * 0.07 + Math.cos(i) * w * 0.02, h * 0.62 - i * h * 0.02, w * 0.02, h * 0.05, i, 0, 7); ctx.fill(); } }
