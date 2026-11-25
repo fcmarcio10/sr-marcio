@@ -192,7 +192,7 @@
 
   LV.donate = donate;   // para testes e eventos
   // superchat mínimo (você escolhe no OBS ou na Twitch): 4,99, 7,99 ou 9,99
-  LV.SC_MINIMOS = [4.99, 7.99, 9.99];
+  LV.SC_MINIMOS = [4.99, 7.99, 9.99, 14.99];
   LV.scMin = () => { const v = G().ch.pulso.scMin; return LV.SC_MINIMOS.includes(v) ? v : 4.99; };
   LV.setScMin = v => { if (LV.SC_MINIMOS.includes(+v)) G().ch.pulso.scMin = +v; };
   // valores como as pessoas mandam de verdade: 1,99 · 2,99 · 4,99 · 5 · 7,99 · 9,99 · 10 · 14,99 · 19,99 · 20 · 29,99 · 49,99 · 50 · 99,99 · 100...
@@ -548,7 +548,9 @@
       if (v.w >= 1 && U.chance(v.gen * v.w * 0.00063 * (st.sat + 0.2) * (bigNow ? 2.5 : 1) * (v.npc ? 0.3 : 1))) {
         const amt = U.clamp([0, 4, 8, 18, 45, 120][v.w] * U.lognorm(0, 0.5), 2, 2000);
         const t = SL.Chat.fill(U.pick(D.chat.donation), v, { u: U.pick(['a família', 'o chat', 'minha mãe', 'todo mundo']) });
-        donate(v, amt, t || 'Pela live!');
+        // nov/2026: superchats 30% mais raros (a doação que viraria superchat às vezes não vem)
+        const vira = LV.valorBR(Math.min(amt, LV.tetoDoacao())) >= LV.scMin() - 0.001;
+        if (!(vira && !v.npc && U.chance(LV.SC_CORTE))) donate(v, amt, t || 'Pela live!');
       }
       // falar
       if (msgBudget <= 0) return;
@@ -952,16 +954,25 @@
   // modo 'hora': 2 por hora (um a cada 30 min); com o de 120 s, só 1 por hora. 'inicio': minutos de live antes do primeiro.
   // (Versão final: lembrar o dono se o limite de 2 por hora deve valer sempre, também no "um atrás do outro".)
   LV.temAutoAd = () => !!(G().equip.soft && G().equip.soft.auto_ads);
-  LV.autoCfg = () => { const P = G().ch.pulso; const c = P.autoAd || (P.autoAd = { on: true, seg: 60, modo: 'logo', inicio: 5 }); if (c.modo === 'cada') c.modo = 'hora'; return c; };
-  LV.autoLimite = c => c.seg === 120 ? 1 : 2;     // intervalos por hora no modo 'hora'
+  LV.SC_CORTE = 0.3;
+  // configuração do mod: seg (30/60/120), porHora (0 = toda hora, um atrás do outro; 1 a 4 por hora), maxLive (0 = sem limite), inicio
+  LV.autoCfg = () => {
+    const P = G().ch.pulso; const c = P.autoAd || (P.autoAd = { on: true, seg: 60, porHora: 0, maxLive: 0, inicio: 5 });
+    if (c.porHora == null) c.porHora = c.modo === 'hora' || c.modo === 'cada' ? 2 : 0;
+    if (c.maxLive == null) c.maxLive = 0;
+    return c;
+  };
+  LV.autoLimite = c => c.porHora ? (c.seg === 120 ? 1 : c.porHora) : 0;     // o de 120 s só passa 1 vez por hora
   LV.autoMinute = () => {
     const L = LV.cur; if (!L || !LV.temAutoAd()) return;
     const c = LV.autoCfg(); if (!c.on || L.ev.ad || LV.adEspera() > 0) return;
     if (L.min < (c.inicio || 0)) return;
-    if (c.modo === 'hora') {
-      const lim = LV.autoLimite(c); const hist = (L.adHist || []).filter(m => L.min - m < 60);
+    if (c.maxLive && (L.stats.autoAds || 0) >= c.maxLive) return;          // já passou quantos você quer nesta live
+    const lim = LV.autoLimite(c);
+    if (lim) {
+      const hist = (L.adHist || []).filter(m => L.min - m < 60);
       if (hist.length >= lim) return;                                        // já passou o limite desta hora
-      if (L.lastAd != null && L.min - L.lastAd < 60 / lim) return;           // espalha: um a cada 30 min (ou 60 com o de 120 s)
+      if (L.lastAd != null && L.min - L.lastAd < 60 / lim) return;           // espalha pela hora (2 por hora = um a cada 30 min)
     }
     if (!LV.ad(c.seg)) L.stats.autoAds = (L.stats.autoAds || 0) + 1;
   };
