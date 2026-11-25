@@ -216,14 +216,14 @@
   LUI.actions = () => {
     const L = SL.Live.cur; if (!L) return; const G = SL.G; const el = $('#lv-actions'); if (!el) return;
     const g = D.gameById(L.game); const contracts = SL.Sponsors.active();
-    const adFalta = Math.ceil(SL.Live.adEspera());
-    const sig = JSON.stringify([L.risky > 0, L.focus, !!L.poll, !!L.challenge, L.ev.mic, L.ev.net > 0, L.ev.paused, L.followersOnly, contracts.length, G.ch.pulso.afil, !!L.ev.ad, adFalta, SL.Live.chatMode(), !!(L.ev.celeb && !L.ev.celeb.greeted)]);
+    const adFalta = Math.ceil(SL.Live.adEspera()); const adAuto = SL.Live.temAutoAd() && SL.Live.autoCfg().on;
+    const sig = JSON.stringify([L.risky > 0, L.focus, !!L.poll, !!L.challenge, L.ev.mic, L.ev.net > 0, L.ev.paused, L.followersOnly, contracts.length, G.ch.pulso.afil, !!L.ev.ad, adFalta, adAuto, SL.Live.chatMode(), !!(L.ev.celeb && !L.ev.celeb.greeted)]);
     if (el.dataset.sig === sig) return; el.dataset.sig = sig;
     const b = (k, label, icon, cls, title) => `<button class="btn ${cls || ''}" data-la="${k}" title="${esc(title || '')}">${ic(icon, 15)}${label}</button>`;
     const k = (key, label, icon, cls, title) => `<button class="lbtn ${cls || ''}" data-la="${key}" title="${esc(title || label)}">${ic(icon, 15)}<span>${label}</span></button>`;
     // live simples: você fala sozinho e o Bigode (moderador) cuida do chat; ficam só estes botões
     const modo = SL.Live.chatMode(); const modoTxt = { todos: 'Chat livre', seguidores: 'Só seguidores', emotes: 'Só emojis' }[modo];
-    const acts = [k('challenge', L.challenge ? 'Em desafio' : 'Desafio', 'trophy', L.challenge ? 'on' : ''), k('ad', L.ev.ad ? 'No intervalo' : adFalta > 0 ? 'Anúncios · ' + adFalta + ' min' : 'Anúncios', 'ads', L.ev.ad ? 'on' : adFalta > 0 ? 'espera' : '', 'Intervalo de anúncios de 30, 60 ou 120 segundos')];
+    const acts = [k('challenge', L.challenge ? 'Em desafio' : 'Desafio', 'trophy', L.challenge ? 'on' : ''), k('ad', L.ev.ad ? 'No intervalo' : (adFalta > 0 ? 'Anúncios · ' + adFalta + ' min' : 'Anúncios') + (adAuto ? ' · auto' : ''), 'ads', L.ev.ad ? 'on' : adFalta > 0 ? 'espera' : '', 'Intervalo de anúncios de 30, 60 ou 120 segundos')];
     if (contracts.length) acts.push(k('sponsor', 'Patrocínio', 'brief', '', 'Mencionar patrocinador'));
     acts.push(k('chatmode', modoTxt, 'shield', modo !== 'todos' ? 'on' : '', 'Quem pode escrever no chat'));
     el.innerHTML = `<div class="lgrid g${acts.length}">${acts.join('')}</div>`;

@@ -134,6 +134,7 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   await ev(() => { const L = SL.Live.cur; L.lastAd = L.min - 30; }); await page.waitForTimeout(900);
   ok('menu de anúncios aberto libera sozinho quando acaba a espera (sem fechar e abrir)', adTravado && await ev(() => [...document.querySelectorAll('#overlay-live .ctx .opt')].every(o => !o.disabled)));
   await page.keyboard.press('Escape'); await page.mouse.click(5, 300); await page.waitForTimeout(150);
+  ok('mod AutoAnúncios (compra única) roda o intervalo sozinho como foi configurado', await ev(() => { const LV = SL.Live, L = LV.cur; SL.G.money += 1000; const sem = LV.temAutoAd(); if (SL.Equip.buySoft('auto_ads')) return false; const c = LV.autoCfg(); c.on = true; c.seg = 30; c.modo = 'logo'; c.inicio = 0; L.ev.ad = null; L.lastAd = L.min - 30; LV.autoMinute(); const rodou = !!L.ev.ad && L.ev.ad.s === 30; L.ev.ad = null; c.modo = 'cada'; c.cada = 20; L.lastAd = L.min - 12; LV.autoMinute(); const esperou = !L.ev.ad; c.on = false; return !sem && rodou && esperou && !SL.D.software.find(x => x.id === 'auto_ads').monthly; }));
   ok('fechar a janelinha da live', await ev(() => !document.querySelector('#overlay-live .lv-win')));
   let answered = 0, welcomed = 0;
   for (let i = 0; i < 24; i++) {
@@ -159,9 +160,9 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   // anúncios de 30, 60 ou 120 segundos: dinheiro vai para o saldo da Twitch (repasse de segunda)
   await page.click('#lv-actions [data-la="ad"]'); await page.waitForTimeout(250);
   const opAds = await ev(() => document.querySelectorAll('#overlay-live .ctx .opt').length);
-  const balAntes = await ev(() => SL.G.ch.pulso.bal);
+  const balAntes = await ev(() => [SL.G.ch.pulso.bal, (SL.G.ch.pulso.ads || []).length]);
   await page.click('#overlay-live .ctx .opt[data-i="0"]'); await page.waitForTimeout(300);
-  ok('anúncios de 30/60/120 s na live pagam no saldo da Twitch', opAds === 3 && await ev(b => SL.G.ch.pulso.bal > b && (SL.G.ch.pulso.ads || []).length === 1, balAntes));
+  ok('anúncios de 30/60/120 s na live pagam no saldo da Twitch', opAds === 3 && await ev(b => SL.G.ch.pulso.bal > b[0] && (SL.G.ch.pulso.ads || []).length === b[1] + 1, balAntes));
   ok('chat no ritmo do público (poucas pessoas, chat calmo)', await ev(() => { const L = SL.Live.cur; const o = L.viewers; L.viewers = 5; const r = SL.LiveUI.chatRate(L); SL.settings.chatCap = 3; const c = SL.LiveUI.chatRate(L); SL.settings.chatCap = 6; L.viewers = o; return r < 0.3 && c < r; }));
   // 3 velocidades em todo lugar; levantar do PC com a live no ar e voltar
   ok('velocidades (pausa, normal, 3x) só aparecem com a live no ar', await ev(() => document.querySelectorAll('#lv-ctl [data-speed]').length === 3 && !document.querySelector('.taskbar .tb-speeds').hidden));

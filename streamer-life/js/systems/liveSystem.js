@@ -884,6 +884,19 @@
   LV.AD_ESPERA = 10;                               // minutos do jogo entre um intervalo e outro
   LV.adValor = (s, viewers) => (viewers || 0) * 0.003 * s * (G().ch.pulso.afil ? 1.25 : 1);   // R$ por intervalo (nov/2026: o dobro)
   LV.adEspera = () => { const L = LV.cur; if (!L || L.lastAd == null) return 0; return Math.max(0, LV.AD_ESPERA - (L.min - L.lastAd)); };
+  // Mod AutoAnúncios (compra única, D.software 'auto_ads'): roda o intervalo sozinho.
+  // modo 'logo': assim que libera, roda outro (como o dono faz à mão: espera um terminar e coloca outro).
+  // modo 'cada': a cada N minutos do jogo. 'inicio': minutos de live antes do primeiro intervalo.
+  // (Versão final: o dono quer limite de 2 intervalos por hora, e o de 120 s só 1 vez por hora. Ainda não aplicado.)
+  LV.temAutoAd = () => !!(G().equip.soft && G().equip.soft.auto_ads);
+  LV.autoCfg = () => { const P = G().ch.pulso; return P.autoAd || (P.autoAd = { on: true, seg: 60, modo: 'logo', cada: 20, inicio: 5 }); };
+  LV.autoMinute = () => {
+    const L = LV.cur; if (!L || !LV.temAutoAd()) return;
+    const c = LV.autoCfg(); if (!c.on || L.ev.ad || LV.adEspera() > 0) return;
+    if (L.min < (c.inicio || 0)) return;
+    if (c.modo === 'cada' && L.min - (L.lastAd != null ? L.lastAd : 0) < c.cada) return;
+    if (!LV.ad(c.seg)) L.stats.autoAds = (L.stats.autoAds || 0) + 1;
+  };
   LV.ad = seg => {
     const L = LV.cur; if (!L) return 'Os anúncios só passam durante a live.';
     const o = LV.AD_OPCOES.find(x => x.s === (seg || 60)) || LV.AD_OPCOES[1];
@@ -982,5 +995,5 @@
   };
   const sample = (arr, n) => { if (arr.length <= n) return arr.slice(); const out = []; for (let i = 0; i < n; i++) out.push(arr[Math.floor(i * arr.length / n)]); out.push(arr[arr.length - 1]); return out; };
 
-  SL.bus.on('tick:minute', () => { if (LV.cur) LV.minute(); });
+  SL.bus.on('tick:minute', () => { if (LV.cur) { LV.minute(); LV.autoMinute(); } });
 })(window.SL);

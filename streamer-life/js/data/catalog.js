@@ -114,6 +114,7 @@
     { id: 'editor_pro', name: 'Editor Corte Pro (assinatura)', price: 59, monthly: true, desc: 'Edição 15% melhor e 25% mais rápida.' },
     { id: 'overlays', name: 'Pacote de overlays animados', price: 140, monthly: false, desc: 'Visual da live mais profissional (+5 de qualidade visual).' },
     { id: 'bot_chat', name: 'Bot de moderação Vigia', price: 29, monthly: true, desc: 'Silencia trolls automaticamente e lembra do seu Instagram no chat.' },
+    { id: 'auto_ads', name: 'Mod AutoAnúncios', price: 390, monthly: false, desc: 'Roda os intervalos de anúncios sozinho durante a live, do jeito que você configurar no app Anúncios. Pagamento único.' },
   ];
 
   // Móveis e decoração da casa

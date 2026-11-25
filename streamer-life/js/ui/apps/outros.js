@@ -135,7 +135,7 @@ ${G.flags.mealReady ? `<div class="card" style="border-color:var(--ok)"><div cla
   SL.Apps.anuncios = {
     title: 'Anúncios', short: 'Anúncios', icon: 'ads', color: 'linear-gradient(135deg,#9146ff,#5a2bb8)', order: 2, pc: true, phone: true, w: 640, h: 620,
     watch: ['ads', 'money', 'live:start', 'live:end', 'live:minute'],
-    sig() { const L = SL.Live.cur; const P = SL.G.ch.pulso; return [!!L, L ? Math.round(L.viewers) : 0, L ? Math.ceil(SL.Live.adEspera()) : 0, L && L.ev.ad ? 1 : 0, Math.round(P.bal * 100), (P.ads || []).length].join('|'); },
+    sig() { const L = SL.Live.cur; const P = SL.G.ch.pulso; return [SL.Live.temAutoAd(), JSON.stringify(P.autoAd || {}), !!L, L ? Math.round(L.viewers) : 0, L ? Math.ceil(SL.Live.adEspera()) : 0, L && L.ev.ad ? 1 : 0, Math.round(P.bal * 100), (P.ads || []).length].join('|'); },
     render(el, ctx) {
       const G = SL.G; const P = G.ch.pulso; const L = SL.Live.cur; const LV = SL.Live;
       const falta = L ? Math.ceil(LV.adEspera()) : 0; const passando = !!(L && L.ev.ad);
@@ -151,11 +151,32 @@ ${G.flags.mealReady ? `<div class="card" style="border-color:var(--ok)"><div cla
         ${status}
         <div class="ad-ops">${opc}</div>
         <p class="tiny muted">Quanto mais longo o intervalo, mais você ganha e mais gente sai da live. Espere ${LV.AD_ESPERA} min do jogo entre um intervalo e outro.</p>
+        ${this.mod()}
         <div class="card row"><div class="grow"><div class="tiny muted">Saldo da Twitch a receber (anúncios, inscrições e doações)</div><b class="ok" style="font-size:1.3em">${U.money(P.bal)}</b></div><div class="tiny muted" style="text-align:right">Cai na sua conta<br><b>no fim da live</b></div></div>
         <div class="card col gap4"><b class="small">Últimos intervalos</b>${hist ? `<div class="list">${hist}</div>` : '<span class="tiny muted">Nenhum ainda.</span>'}<span class="tiny muted">Total com anúncios: ${U.money(P.adsTotal || 0)}</span></div>
       </div></div>`;
     },
-    act(a, ds, ctx) {
+    // Mod AutoAnúncios: compra única; liga/desliga, duração e quando passa
+    mod() {
+      const LV = SL.Live;
+      if (!LV.temAutoAd()) { const sw = SL.D.software.find(x => x.id === 'auto_ads'); return `<div class="card mod-ad"><div class="row"><span class="mod-ic">${ic('ads', 18)}</span><div class="grow"><b>Mod AutoAnúncios</b><div class="tiny muted">Roda os intervalos sozinho, do jeito que você configurar. Pagamento único, sem mensalidade.</div></div><button class="btn sm primary" data-act="comprarmod" ${SL.G.money < sw.price ? 'disabled' : ''}>Comprar ${U.money0(sw.price)}</button></div></div>`; }
+      const c = LV.autoCfg(); const L = LV.cur;
+      const chip = (act, v, cur, txt) => `<button class="chip ${String(cur) === String(v) ? 'on' : ''}" data-act="${act}" data-v="${v}">${txt}</button>`;
+      const quando = c.modo === 'logo' ? 'assim que liberar um novo intervalo (' + LV.AD_ESPERA + ' min depois do último)' : 'a cada ' + c.cada + ' min de live';
+      return `<div class="card mod-ad ${c.on ? 'on' : ''}"><div class="row"><span class="mod-ic">${ic('ads', 18)}</span><div class="grow"><b>Mod AutoAnúncios</b><div class="tiny muted">${c.on ? 'Ligado: intervalo de ' + c.seg + ' s ' + quando + '.' : 'Desligado: os anúncios só passam quando você mandar.'}</div></div><label class="tgl"><input type="checkbox" data-act="autoon" ${c.on ? 'checked' : ''}><i></i></label></div>
+        <div class="mod-l"><span>Duração</span><div class="row wrap gap4">${LV.AD_OPCOES.map(o => chip('autoseg', o.s, c.seg, o.s + ' s')).join('')}</div></div>
+        <div class="mod-l"><span>Quando passa</span><div class="row wrap gap4">${chip('automodo', 'logo', c.modo, 'Assim que liberar')}${[15, 20, 30].map(m => chip('autocada', m, c.modo === 'cada' ? c.cada : '', 'A cada ' + m + ' min')).join('')}</div></div>
+        <div class="mod-l"><span>Primeiro intervalo</span><div class="row wrap gap4">${[2, 5, 10].map(m => chip('autoini', m, c.inicio, 'Depois de ' + m + ' min')).join('')}</div></div>
+        ${L && L.stats.autoAds ? `<div class="tiny muted">Nesta live o mod já rodou ${L.stats.autoAds} ${L.stats.autoAds === 1 ? 'intervalo' : 'intervalos'}.</div>` : ''}</div>`;
+    },
+    act(a, ds, ctx, ev, t) {
+      const LV = SL.Live;
+      if (a === 'comprarmod') { const e = SL.Equip.buySoft('auto_ads'); if (e) return e; SL.audio.play('cash'); UI.toast({ title: 'Mod AutoAnúncios instalado', text: 'Configure aqui como os anúncios vão passar.', icon: 'ads', cat: 'sistema' }); return ctx.render(); }
+      if (a === 'autoon') { LV.autoCfg().on = t.checked; return ctx.render(); }
+      if (a === 'autoseg') { LV.autoCfg().seg = +ds.v; return ctx.render(); }
+      if (a === 'automodo') { LV.autoCfg().modo = 'logo'; return ctx.render(); }
+      if (a === 'autocada') { const c = LV.autoCfg(); c.modo = 'cada'; c.cada = +ds.v; return ctx.render(); }
+      if (a === 'autoini') { LV.autoCfg().inicio = +ds.v; return ctx.render(); }
       if (a === 'rodar') { const e = SL.Live.ad(+ds.s); if (e) return e; UI.toast({ title: 'Intervalo de anúncios', text: ds.s + ' segundos rodando na live.', icon: 'ads', cat: 'canal' }, 'cash'); return ctx.render(); }
     },
   };

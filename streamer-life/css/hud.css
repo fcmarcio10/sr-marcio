@@ -952,3 +952,9 @@ body.reduce-motion .win { animation: none; }
 .placa-box canvas { width: 200px; height: 260px; filter: drop-shadow(0 14px 30px rgba(0, 0, 0, .6)); animation: placaIn .6s cubic-bezier(.2, .8, .3, 1.2); }
 @keyframes placaIn { from { opacity: 0; transform: translateY(20px) scale(.9) rotate(-3deg); } to { opacity: 1; transform: none; } }
 .placa-box p { font-size: 13px; margin: 0; color: var(--muted); } .placa-box p b { color: var(--text, #fff); }
+
+/* mod AutoAnúncios (app Anúncios) */
+.mod-ad { display: flex; flex-direction: column; gap: 8px; border-color: rgba(145, 70, 255, .35); }
+.mod-ad.on { background: linear-gradient(135deg, rgba(145, 70, 255, .16), var(--panel2) 60%); border-color: rgba(145, 70, 255, .6); }
+.mod-ic { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: #9146ff; color: #fff; flex: none; }
+.mod-l { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .mod-l > span { font-size: 11.5px; color: var(--muted); min-width: 110px; }
