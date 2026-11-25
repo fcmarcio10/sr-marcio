@@ -1089,3 +1089,35 @@ svg.app-logo { display: block; width: 100%; height: 100%; }
 .ct-ava { width: 40px; height: 40px; border-radius: 50%; background: var(--panel3, #262a36); flex: none; }
 .ct-info { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); }
 .ct-atual { border-color: var(--accent); display: flex; flex-direction: column; gap: 8px; }
+/* revisão nov/2026: nada saindo da tela do celular */
+.tw-banner span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@container tel (max-width: 520px) {
+  .tw-banner span { font-size: 22px; }
+  .grid2, .grid3, .grid4 { grid-template-columns: 1fr !important; }
+}
+/* revisão nov/2026: sobreposições */
+/* cartão de decisão em cima: os alertas (superchat, seguidor) descem para não ficar um por cima do outro */
+.preview-box:has(.mom:not([hidden])) .alerts { top: 34%; }
+@media (max-width: 760px) {
+  /* live no celular: a tela do jogo com altura certa (16:9) e o resto rolando embaixo */
+  .studio { display: flex !important; flex-direction: column; overflow-y: auto; }
+  .studio .live-main { flex: none; }
+  .studio .preview-wrap { flex: none !important; height: 58vw; min-height: 180px; }
+  .studio .live-side { flex: none; min-height: 62vh; }
+  .live-top { flex-wrap: wrap; row-gap: 6px; }
+  /* avisos abaixo do quadro do canto (antes tapavam fome, sede e cansaço) */
+  #toasts { top: 128px !important; }
+  body.pc-open #toasts, body.live-open #toasts { top: auto !important; }
+}
+@media (max-width: 760px) {
+  .preview-box .alerts { width: 86%; }
+  .preview-box .lalert, .preview-box .lalert.sc { font-size: 11px; padding: 5px 10px; max-width: 100%; }
+  .preview-box .lalert.sc em { font-size: 11px; }
+  .preview-box:has(.mom:not([hidden])) .alerts { top: 42%; }
+  .preview-box .mom { padding: 6px 8px; } .preview-box .mom .mom-t { font-size: 11px; } .preview-box .mom .btn { height: 24px; font-size: 11px; }
+}
+@media (max-width: 760px) {
+  /* no celular a tela da live é pequena: o alerta fica numa linha (a frase aparece no chat e na voz) */
+  .preview-box .lalert.sc .sc-al { flex-direction: row; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+  .preview-box .lalert.sc em { display: none; }
+}

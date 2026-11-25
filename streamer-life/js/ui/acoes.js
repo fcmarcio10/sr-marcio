@@ -114,7 +114,6 @@
       case 'mesa_jantar': if (G.flags.mealReady) add('Comer o pedido', 'food', () => Seq.run([S.walk('mesa_jantar'), S.act('comer_pedido')], 'Comendo')); else add('Mesa vazia', 'info', null, 'peça comida no iFood', true); break;
       case 'bike': add('Pedalar', 'bike', life('bike'), '40 min'); break;
       case 'estudio': if (!G.home.studio) add('Construir o estúdio', 'sparkle', () => UI.confirm('Construir estúdio', 'A obra custa ' + U.money(D.STUDIO_COST) + ' e deixa as suas lives com cenário, som e imagem muito melhores.', () => UI.err(SL.Home.buildStudio()), 'Construir'), U.money0(D.STUDIO_COST)); else add('Usar o estúdio', 'live', () => UI.openPC()); break;
-      case 'planta': add('Regar', 'plant', life('regar')); add('Vender', 'coin', () => SL.Home.removeDeco(o.deco), '25% do valor'); break;
       case 'luz': add('Luz do setup', 'light', null, '', true); break;
       default: if (o.deco != null) add('Vender', 'coin', () => SL.Home.removeDeco(o.deco), '25% do valor');
     }

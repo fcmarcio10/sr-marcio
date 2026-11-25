@@ -239,7 +239,6 @@
   };
   C.placeAtScreen = (sx, sy) => { const x = (sx - cam.ox) / cam.s, y = (sy - cam.oy) / cam.s; let best = null; D.places.forEach(p => { if (Math.abs(p.x - x) < 15 && y > p.y - 27 && y < p.y + 21) best = p.id; }); return best; };
   C.setHover = id => { hoverPlace = id; };
-  C.placeScreen = id => { const p = D.placeById(id); return { x: cam.ox + p.x * cam.s, y: cam.oy + p.y * cam.s }; };
 
   // ---------- interior dos lugares ----------
   const SCN = {

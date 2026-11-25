@@ -283,9 +283,4 @@
     return out;
   };
   // gravação rápida (sem live): gera momentos para o material bruto
-  S.recordRun = (gameId, minutes, k) => {
-    const s = S.make(gameId); const all = [];
-    for (let i = 0; i < minutes; i++) { const ms = S.step(s, k); ms.forEach(m => { m.off = i; all.push(m); }); }
-    return all;
-  };
 })(window.SL);

@@ -164,7 +164,7 @@
   const subscribe = (v, gifted) => {
     const L = LV.cur, P = G().ch.pulso;
     v.sub = SL.Clock.day() + 30; v.subM = (v.subM || 0) + 1; v.loy = U.clamp(v.loy + 8, 0, 100);
-    P.bal += 3.95; L.stats.subs++; P.subs++;
+    P.bal += LV.subValor(); L.stats.subs++; P.subs++;
     sys('sub', '@' + v.u + ' se inscreveu' + (v.subM > 1 ? ' (' + v.subM + ' meses)' : '') + '!');
     (L.novasInsc = L.novasInsc || []).push(v.id);
     L.alerts.push({ k: 'sub', u: v.u });
@@ -389,7 +389,8 @@
     // superchats: agradece sempre (depois de 1 minuto, para você poder agradecer antes se quiser)
     const dons = L.donations.filter(d => !d.thanked && L.min - d.at >= 1).slice(0, 3);
     if (dons.length) {
-      modSay(dons.length === 1 ? 'Valeu demais pelo superchat de ' + U.money(dons[0].amount) + ', @' + dons[0].u + '! :coracao:' : 'Valeu pelos superchats, ' + lista(dons.map(d => '@' + d.u)) + '! :coracao:');
+      const nomeDon = d => d.amount >= LV.scMin() - 0.001 ? 'superchat' : 'doação';
+      modSay(dons.length === 1 ? 'Valeu demais pel' + (nomeDon(dons[0]) === 'doação' ? 'a doação' : 'o superchat') + ' de ' + U.money(dons[0].amount) + ', @' + dons[0].u + '! :coracao:' : 'Valeu pelo apoio, ' + lista(dons.map(d => '@' + d.u)) + '! :coracao:');
       dons.forEach(d => { d.thanked = true; const v = d.vid && SL.Viewers.byId(d.vid); if (v) { v.loy = U.clamp(v.loy + 3, 0, 100); const st = sat(v, 0.2); if (st) st.thanked = true; } });
     }
     // o resto: no máximo uma mensagem a cada 2 minutos, juntando quem chegou e quem seguiu
@@ -509,9 +510,9 @@
       if (rest > 0) { P.f += rest; L.stats.fol += rest; sys('follow', '+' + U.int(rest) + ' novos seguidores'); }
     }
     if (P.afil && L.anon > 0) {
-      const s = L.anon * 0.00035 * (L.hype / 50) * (L.contentQ / 60);
+      const s = L.anon * 0.00035 * (L.hype / 50) * (L.contentQ / 60) * LV.membroChance('pulso');
       const ns = Math.floor(s) + (U.chance(s % 1) ? 1 : 0);
-      if (ns > 0) { G0.ch.subCohorts.push({ n: ns, until: SL.Clock.day() + 30 }); P.bal += ns * 3.95; P.subs += ns; L.stats.subs += ns; sys('sub', ns === 1 ? '@' + SL.Viewers.genIdentity().u + ' se inscreveu!' : '+' + ns + ' novas inscrições'); if (SL.audio) SL.audio.play('sub'); }
+      if (ns > 0) { G0.ch.subCohorts.push({ n: ns, until: SL.Clock.day() + 30 }); P.bal += ns * LV.subValor(); P.subs += ns; L.stats.subs += ns; sys('sub', ns === 1 ? '@' + SL.Viewers.genIdentity().u + ' se inscreveu!' : '+' + ns + ' novas inscrições'); if (SL.audio) SL.audio.play('sub'); }
       const dr = L.anon * 0.0003 * (L.hype / 60);
       if (U.chance(Math.min(0.9, dr))) { const idt = SL.Viewers.genIdentity(); donate(null, U.clamp(U.lognorm(Math.log(10), 0.8), 2, 300), SL.Chat.fill(U.pick(D.chat.donation), null, { u: 'o chat' }) || 'Pela live!', idt.u); }
     }
@@ -543,7 +544,7 @@
       // seguir, inscrever, doar
       if (!v.fol && st.mins >= 5 && st.sat > 0.52 && U.chance((st.sat - 0.5) * 0.09 * (0.6 + v.int / 100))) follow(v);
       if (v.npc && !v.fol && st.mins >= 2) follow(v);
-      if (P.afil && v.fol && !v.sub && v.loy > 40 && v.w >= 2 && U.chance(0.0016 * v.w * v.gen * st.sat * (1 + L.hype / 100))) subscribe(v);
+      if (P.afil && v.fol && !v.sub && v.loy > 40 && v.w >= 2 && U.chance(0.0016 * v.w * v.gen * st.sat * (1 + L.hype / 100) * LV.membroChance('pulso'))) subscribe(v);
       const bigNow = moments.some(m => m.big);
       if (v.w >= 1 && U.chance(v.gen * v.w * 0.00063 * (st.sat + 0.2) * (bigNow ? 2.5 : 1) * (v.npc ? 0.3 : 1))) {
         const amt = U.clamp([0, 4, 8, 18, 45, 120][v.w] * U.lognorm(0, 0.5), 2, 2000);
@@ -955,6 +956,26 @@
   // (Versão final: lembrar o dono se o limite de 2 por hora deve valer sempre, também no "um atrás do outro".)
   LV.temAutoAd = () => !!(G().equip.soft && G().equip.soft.auto_ads);
   LV.SC_CORTE = 0.3;
+  // valor da inscrição de membro (Twitch e YouTube), escolhido pelo jogador: 4,99, 6,99 ou 9,99.
+  // O canal fica com 60% na Twitch e 70% no YouTube; mais caro = menos gente assina.
+  LV.MEMBRO_PRECOS = [4.99, 6.99, 9.99];
+  LV.membroPreco = plat => { const v = (G().ch[plat] || {}).membro; return LV.MEMBRO_PRECOS.includes(v) ? v : 6.99; };
+  LV.setMembroPreco = (plat, v) => { if (LV.MEMBRO_PRECOS.includes(+v) && G().ch[plat]) G().ch[plat].membro = +v; };
+  LV.membroChance = plat => ({ 4.99: 1.2, 6.99: 1, 9.99: 0.72 })[LV.membroPreco(plat)];
+  LV.subValor = () => Math.round(LV.membroPreco('pulso') * 0.6 * 100) / 100;
+  SL.bus.on('tick:day', day => {
+    const G0 = G(); if (!G0) return; const V = G0.ch.vision; if (!V.mon) return;
+    const preco = LV.membroPreco('vision'), parte = preco * 0.7;
+    const ficam = [];
+    (V.membCoortes || []).forEach(c => {
+      if (day < c.ate) return ficam.push(c);
+      const fica = Math.round(c.n * U.clamp(0.62 + (G0.rep.confianca - 50) / 250, 0.35, 0.9)); if (fica > 0) { ficam.push({ n: fica, ate: day + 30 }); V.bal += fica * parte; }
+    });
+    V.membCoortes = ficam;
+    const novos = V.f * 0.00012 * LV.membroChance('vision'); const n = Math.floor(novos) + (U.chance(novos % 1) ? 1 : 0);
+    if (n > 0) { V.membCoortes.push({ n, ate: day + 30 }); V.bal += n * parte; }
+    V.membros = V.membCoortes.reduce((s, c) => s + c.n, 0);
+  });
   // configuração do mod: seg (30/60/120), porHora (0 = toda hora, um atrás do outro; 1 a 4 por hora), maxLive (0 = sem limite), inicio
   LV.autoCfg = () => {
     const P = G().ch.pulso; const c = P.autoAd || (P.autoAd = { on: true, seg: 60, porHora: 0, maxLive: 0, inicio: 5 });

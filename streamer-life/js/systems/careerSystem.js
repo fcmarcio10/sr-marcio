@@ -24,11 +24,6 @@
     G0.ch.schedule.filter(s => s.day === day && !s.done).forEach(s => { if (!out.some(o => o.kind === 'promessa' && o.hour === s.hour)) out.push({ kind: 'live', title: 'Live agendada', hour: s.hour, day }); });
     return out.sort((a, b) => (a.hour == null ? -1 : a.hour) - (b.hour == null ? -1 : b.hour));
   };
-  Cal.upcoming = (n, fromDay) => {
-    const d0 = fromDay == null ? SL.Clock.day() : fromDay; const out = [];
-    for (let d = d0; d < d0 + 30 && out.length < n; d++) Cal.forDay(d).forEach(e => { if (out.length < n) out.push(e); });
-    return out;
-  };
   SL.bus.on('tick:day', day => { const G0 = G(); if (G0) G0.cal = G0.cal.filter(x => x.day >= day - 45); });
 
   // ---------- carreira ----------

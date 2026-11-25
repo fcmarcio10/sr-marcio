@@ -30,12 +30,6 @@
     return false;
   };
   R.partner = () => { const r = G().rel; for (const id in r) if (r[id].stage === 'namorando') return id; return null; };
-  R.socialBonus = () => {
-    const G0 = G(); const t = G0.time.t; let b = 0;
-    for (const id in G0.rel) { const r = G0.rel[id]; if (r.last && t - r.last < 1440 * 2 && r.aff > 20) b += 1.5; }
-    if (R.partner()) b += 5;
-    return Math.min(9, b);
-  };
   const remember = (r, a, o, text) => { r.hist.push({ t: G().time.t, a, o }); if (r.hist.length > 30) r.hist.shift(); if (text) { r.memo.push({ d: SL.Clock.day(), x: text }); if (r.memo.length > 8) r.memo.shift(); } };
   const updateStage = (id) => {
     const r = R.get(id); const def = R.def(id); const before = r.stage;

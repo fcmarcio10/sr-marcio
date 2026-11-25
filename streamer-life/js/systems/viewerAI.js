@@ -11,7 +11,6 @@
   V.list = () => G().viewers.list;
   V.reindex = () => { index = new Map(); V.list().forEach(v => index.set(v.id, v)); indexLen = V.list().length; };
   V.byId = id => { if (!index || indexLen !== V.list().length) V.reindex(); return index.get(id); };
-  V.byUser = u => V.list().find(v => v.u === u);
 
   const WORDS = D.userBits;
   V.genIdentity = () => {
@@ -193,7 +192,7 @@
       }
       if (v.sub && day >= v.sub) {
         const renew = U.clamp(0.5 + v.loy / 250 + (G0.rep.confianca - 50) / 300, 0.2, 0.95);
-        if (U.chance(renew) && P.afil) { v.sub = day + 30; v.subM++; P.bal += 3.95; }
+        if (U.chance(renew) && P.afil) { v.sub = day + 30; v.subM++; P.bal += SL.Live.subValor(); }
         else { v.sub = 0; subLost++; }
       }
     });
@@ -208,7 +207,7 @@
     G0.ch.subCohorts.forEach(c => {
       if (day >= c.until) {
         const renew = Math.round(c.n * U.clamp(0.55 + (G0.rep.confianca - 50) / 250, 0.3, 0.9));
-        if (renew > 0 && P.afil) { keep.push({ n: renew, until: day + 30 }); P.bal += renew * 3.95; }
+        if (renew > 0 && P.afil) { keep.push({ n: renew, until: day + 30 }); P.bal += renew * SL.Live.subValor(); }
         subLost += c.n - renew;
       } else keep.push(c);
     });

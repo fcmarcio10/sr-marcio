@@ -151,7 +151,7 @@
     G().equip.soft[id] = SL.Clock.day() + 1; SL.bus.emit('equip'); return null; // +1: comprado no dia 0 não pode virar 0 (falso)
   };
   // salvamentos antigos: programa comprado no dia 0 ficou guardado como 0 e parecia não comprado
-  SL.bus.on('loaded', () => { const s = G() && G().equip.soft; if (s) for (const k in s) if (s[k] === 0) s[k] = 1; });
+  SL.bus.on('loaded', () => { const s = G() && G().equip.soft; if (s) for (const k in s) if (s[k] === 0) s[k] = 1; if (G() && G().home) G().home.deco = []; });   // decorações saíram do jogo
   Q.buyVehicle = id => {
     const v = D.vehicles.find(x => x.id === id); if (!v || G().equip.vehicles.includes(id)) return 'Indisponível.';
     if (!SL.Econ.spend(v.price, 'transporte', v.name)) return 'Dinheiro insuficiente.';

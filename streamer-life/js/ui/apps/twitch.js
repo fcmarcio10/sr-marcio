@@ -70,11 +70,13 @@
     monetizacao() {
       const G = SL.G; const P = G.ch.pulso; const mk = SL.Clock.monthKey(); const m = G.month[mk] || { in: {} };
       return `<div class="tw-tiles"><div class="tw-tile"><b class="ok">${U.money(P.bal)}</b><small>Saldo a receber (cai no fim da live)</small></div><div class="tw-tile"><b>${U.money(m.in.doacoes || 0)}</b><small>Repasses da Twitch no mês</small></div><div class="tw-tile"><b>${U.num(P.subs)}</b><small>Inscrições ativas</small></div><div class="tw-tile"><b>${U.money(P.adsTotal || 0)}</b><small>Ganho com anúncios</small></div></div>
+        <div class="tw-box"><div class="tw-box-h"><b>Valor da inscrição (membro)</b><small>Quanto cada inscrito paga por mês. Você fica com 60%. Mais barato, mais gente assina.</small></div><div class="row wrap gap4">${SL.Live.MEMBRO_PRECOS.map(v => `<button class="chip ${SL.Live.membroPreco('pulso') === v ? 'on' : ''}" data-act="membro" data-p="pulso" data-v="${v}">${U.money(v)}/mês</button>`).join('')}</div></div>
         <div class="tw-box"><div class="tw-box-h"><b>Superchat mínimo</b><small>A partir desse valor a mensagem é lida em voz alta na live</small></div><div class="row wrap gap4">${SL.Live.SC_MINIMOS.map(v => `<button class="chip ${SL.Live.scMin() === v ? 'on' : ''}" data-act="scmin" data-v="${v}">${U.money(v)}</button>`).join('')}</div></div>
         ${P.afil ? `<div class="tw-box"><div class="tw-box-h"><b>Anúncios</b><small>Intervalos de 30, 60 ou 120 segundos durante a live</small></div><button class="btn sm tw-btn" data-act="ads">${ic('ads', 14)} Abrir Anúncios</button></div>` : `<div class="tw-box"><div class="tw-box-h"><b>Ganhe dinheiro com o canal</b><small>Vire afiliado(a) para liberar inscrições e anúncios</small></div><button class="btn sm" data-act="tab" data-t="conquistas">Ver o caminho para afiliado</button></div>`}`;
     },
     act(a, ds, ctx) {
       if (a === 'scmin') { SL.Live.setScMin(ds.v); return ctx.render(); }
+      if (a === 'membro') { SL.Live.setMembroPreco(ds.p, ds.v); return ctx.render(); }
       if (a === 'tab') { ctx.st.tab = ds.t; ctx.resetScroll = true; return ctx.render(); }
       if (a === 'obs') { if (SL.Live.cur && SL.LiveUI) { if (SL.LiveUI.fechaJanela) SL.LiveUI.fechaJanela(); return SL.LiveUI.restore(); } return UI.openApp('pulso'); }
       if (a === 'ads') return SL.LiveUI && SL.LiveUI.janela && SL.Live.cur ? SL.LiveUI.janela('anuncios') : UI.openApp('anuncios');

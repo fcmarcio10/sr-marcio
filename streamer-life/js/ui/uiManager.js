@@ -74,16 +74,6 @@
   };
 
   // ---------- menu de contexto ----------
-  UI.ctxMenu = (x, y, title, icon, opts) => {
-    UI.closeCtx();
-    const host = $('#stage-ui'); const el = document.createElement('div'); el.className = 'ctx';
-    el.innerHTML = `<h4>${UI.ic(icon || 'info', 15)}${U.esc(title)}</h4>` + opts.map((o, i) => `<button class="opt" data-i="${i}" ${o.disabled ? 'disabled' : ''}>${UI.ic(o.icon || 'chevR', 16)}<span>${U.esc(o.label)}${o.disabled && o.why ? '<span class="why">' + U.esc(o.why) + '</span>' : ''}</span>${o.sub ? '<small>' + U.esc(o.sub) + '</small>' : ''}</button>`).join('');
-    host.appendChild(el);
-    const W0 = host.clientWidth, H0 = host.clientHeight;
-    el.style.left = Math.min(Math.max(8, x), W0 - el.offsetWidth - 8) + 'px'; el.style.top = Math.min(Math.max(8, y), H0 - el.offsetHeight - 8) + 'px';
-    $$('.opt', el).forEach(b => b.onclick = e => { e.stopPropagation(); const o = opts[+b.dataset.i]; UI.closeCtx(); const r = o.fn && o.fn(); if (typeof r === 'string') UI.err(r); });
-    UI._ctx = el;
-  };
   UI.closeCtx = () => { document.body.classList.remove('menu-open'); if (UI._ctx) { UI._ctx.remove(); UI._ctx = null; } };
 
   // ---------- apps: computador e celular ----------
@@ -333,7 +323,6 @@
   };
 
   // ---------- central de notificações: fica no celular ----------
-  UI.toggleNotifs = () => UI.openPhone('notificacoes');
 
   // ---------- confete (subida de nível) ----------
   UI.confetti = () => {

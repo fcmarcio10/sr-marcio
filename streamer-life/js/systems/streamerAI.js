@@ -19,7 +19,6 @@
     const pool = def.vlog ? D.T.creatorTitles.vlog : def.tech ? D.T.creatorTitles.tech : D.T.creatorTitles[g ? g.sim : 'conversa'] || D.T.creatorTitles.conversa;
     return U.pick(pool).replace('{g}', g ? g.name : '').replace('{n}', U.ri(7, 31));
   };
-  AI.liveNow = () => G().creators.filter(c => c.live).map(c => ({ c, def: AI.def(c.id) }));
 
   const goLive = (c, def) => {
     const G0 = G(); const game = pickGame(def);

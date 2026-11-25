@@ -74,22 +74,6 @@ ${G.flags.mealReady ? `<div class="card" style="border-color:var(--ok)"><div cla
     act(a, ds) { if (a === 'go') { UI.closePhone(); if (SL.G.loc.area === 'casa') SL.City.goOutside(() => SL.HUD.travelDialog(ds.v)); else SL.HUD.travelDialog(ds.v); } },
   };
 
-  SL.Apps.ajustes = {
-    title: 'Ajustes', short: 'Ajustes', icon: 'settings', color: 'linear-gradient(135deg,#475069,#2a3142)', order: 99, pc: false, phone: false, w: 620, h: 620,
-    render(el) {
-      el.innerHTML = `<div class="app"><div class="app-head"><h2>${ic('settings', 16)} Ajustes</h2></div><div class="app-body"><div class="card"><h3>Salvar</h3><div class="row wrap">${['1', '2', '3'].map(s => `<button class="btn sm" data-act="save" data-v="${s}">${ic('save', 14)} Espaço ${s}</button>`).join('')}<button class="btn sm" data-act="exp">Exportar</button></div></div><div class="card">${SL.Screens.settingsHTML()}</div></div></div>`;
-      SL.Screens.bindSettings(el);
-    },
-    act(a, ds) {
-      if (a === 'save') { const e = SL.Save.write(ds.v); if (e) return e; UI.toast({ title: 'Jogo salvo', text: 'Espaço ' + ds.v, icon: 'save', cat: 'sistema' }, 'success'); }
-      if (a === 'exp') SL.Screens.exportDialog();
-    },
-  };
-})(window.SL);
-
-// Central de notificações: só no celular
-(function (SL) {
-  const U = SL.U, UI = SL.UI;
   SL.Apps.notificacoes = {
     title: 'Notificações', short: 'Avisos', icon: 'bell', color: 'linear-gradient(135deg,#5b6378,#30364a)', order: 17, pc: false, phone: true, watch: ['notif'],
     badge: () => SL.Notify.unread(),

@@ -7,7 +7,6 @@ window.SL = window.SL || {};
 
   U.clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   U.lerp = (a, b, t) => a + (b - a) * t;
-  U.approach = (v, target, rate) => v + (target - v) * rate;
 
   // Sorteio com semente (mulberry32). Pode ser semeado pelos testes.
   let seedState = (Date.now() ^ 0x9e3779b9) >>> 0;
@@ -31,7 +30,6 @@ window.SL = window.SL || {};
   U.rf = (a, b) => a + U.rand() * (b - a);
   U.chance = p => U.rand() < p;
   U.pick = arr => arr[Math.floor(U.rand() * arr.length)];
-  U.pickR = (arr, r) => arr[Math.floor(r() * arr.length)];
   U.wpick = (items, wfn) => {
     let tot = 0; const ws = items.map(it => { const w = Math.max(0, wfn ? wfn(it) : it.w); tot += w; return w; });
     if (tot <= 0) return items[Math.floor(U.rand() * items.length)];
@@ -84,7 +82,6 @@ window.SL = window.SL || {};
   };
   U.esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   U.cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-  U.plural = (n, um, varios) => U.int(n) + ' ' + (Math.round(n) === 1 ? um : varios);
   U.stripAccents = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 
   U.throttle = (fn, ms) => {

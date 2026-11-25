@@ -103,11 +103,6 @@
     const o = SL.HomeScene.objects().find(x => x.id === 'mesa');
     SL.HomeScene.goToObject(o, () => UI.openPC());
   };
-  HUD.leaveHome = () => {
-    const o = SL.HomeScene.objects().find(x => x.id === 'porta');
-    if (SL.G.act && SL.G.act.id !== 'usar_pc') return UI.err('Termine o que está fazendo primeiro.');
-    SL.HomeScene.goToObject(o, () => SL.City.goOutside());
-  };
 
   // ---------- visual (roupas) ----------
   HUD.lookDialog = paid => {

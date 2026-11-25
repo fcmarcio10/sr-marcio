@@ -138,10 +138,6 @@
     if (e.editor !== 'eu') return 'Este vídeo está com o editor contratado.';
     return SL.Life.start('editar', { edit: e.id, minutes: Math.min(minutes, e.work - e.done) }, { label: 'Editando vídeo' });
   };
-  VS.assignEditor = (editId, npcId) => {
-    const e = G().edits.find(x => x.id === editId); if (!e) return;
-    e.editor = npcId || 'eu'; SL.bus.emit('videos');
-  };
   VS.finalQuality = e => {
     const editQ = e.qN ? e.qAcc / e.qN : VS.editQualityNow(e);
     const mom = e.moments.length ? e.moments.reduce((a, m) => a + m.clip, 0) / e.moments.length * 100 : 30;

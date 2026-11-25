@@ -30,11 +30,9 @@
   C.day = t => Math.floor((t == null ? SL.G.time.t : t) / 1440);
   C.mod = t => ((t == null ? SL.G.time.t : t) % 1440 + 1440) % 1440;
   C.hour = t => Math.floor(C.mod(t) / 60);
-  C.hourF = t => C.mod(t) / 60;
   C.date = t => new Date(SL.State.START + C.day(t) * 86400000);
   C.dateOfDay = d => new Date(SL.State.START + d * 86400000);
   C.dow = t => C.date(t).getUTCDay();
-  C.dowOfDay = d => C.dateOfDay(d).getUTCDay();
   C.md = t => { const d = C.date(t); return String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); };
   C.mdOfDay = d => C.md(d * 1440);
   C.monthKey = t => { const d = C.date(t); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0'); };
@@ -45,7 +43,6 @@
   C.fmtDay = d => C.quando(d);
   C.fmtFull = t => C.quando(C.day(t));
   C.fmtStamp = t => C.ago(t);
-  C.period = t => { const h = C.hour(t); return h < 5 ? 'Madrugada' : h < 12 ? 'Manhã' : h < 18 ? 'Tarde' : 'Noite'; };
   C.ago = t => {
     const d = SL.G.time.t - t;
     if (d < 180) return 'agora há pouco';

@@ -53,18 +53,11 @@
     const o = { 'com fome': 'coma alguma coisa', 'com sede': 'beba água', 'com sono': 'durma um pouco' };
     return 'Você está ' + p.join(' e ').replace(/ e (?=.* e )/, ', ') + '. Cuide da sua saúde primeiro: ' + p.map(x => o[x]).join(', ') + '.';
   };
-  L.warnings = () => {
-    const n = G().needs, w = [];
-    if (n.fome < 20) w.push('Com fome'); if (n.sede < 20) w.push('Com sede');
-    const tl = L.tiredLevel(); if (tl >= 2) w.push(tl >= 3 ? 'Morrendo de sono' : 'Com sono');
-    return w;
-  };
 
   // ---------- cansaço ----------
   // 0 descansado, 1 cansado, 2 muito cansado, 3 exausto. Anda mais devagar, rende menos e pode cochilar na cadeira.
   L.tiredLevel = () => { const e = G().needs.energia; return e >= 45 ? 0 : e >= 25 ? 1 : e >= 10 ? 2 : 3; };
   L.TIRED = ['Descansado(a)', 'Cansado(a)', 'Com sono', 'Morrendo de sono'];
-  L.tiredValue = () => Math.round(100 - G().needs.energia);
   L.awakeHours = () => Math.floor(((G().life && G().life.awake) || 0) / 60);
   const PHYS = ['academia', 'bike', 'caminhar', 'limpar', 'turno_cafe'];
 
@@ -165,7 +158,6 @@
     end: (a, ok) => { const f = ok ? 1 : (G().time.t - a.t0) / 45; G().home.dirt = U.clamp(G().home.dirt - 60 * f, 0, 100); L.mod({ humor: 3 * f }); SL.bus.emit('home'); } });
   def('bike', { label: 'Pedalando na ergométrica', icon: 'bike', speed: 4, dur: 40, fx: { energia: -14, higiene: -18, estresse: -11, humor: 4 },
     minute: () => { L.skillUp('fisico', 0.05); L.mod({ saude: 0.03 }); } });
-  def('regar', { label: 'Regando as plantas', icon: 'plant', speed: 1, dur: 3, end: (a, ok) => { if (ok) { G().home.plants.last = SL.Clock.day(); L.mod({ humor: 1 }); } } });
   def('usar_pc', { label: 'Usando o computador', icon: 'monitor', speed: 0, pc: true, fx: { energia: -1.5 } });
   // nov/2026: estudo, freela, turno e evento levam metade do tempo (pedido do dono)
   def('estudar', { label: 'Estudando', icon: 'book', speed: 8, pc: true, work: true, fx: { energia: -4, estresse: 1.5 },
@@ -218,7 +210,6 @@
     end: (a, ok) => { if (SL.Rel) SL.Rel.playTogetherEnd(a.data, ok); } });
 
   L.can = id => !!ACT[id];
-  L.current = () => G().act;
   L.busy = () => !!G().act && G().act.id !== 'usar_pc';
 
   // começa uma atividade. Retorna mensagem de erro (string) ou null.
@@ -314,17 +305,5 @@
     // casa suja
     G0.home.dirt = U.clamp(G0.home.dirt + 6, 0, 100);
     if (G0.home.dirt > 70 && day % 3 === 0) SL.notify({ cat: 'vida', icon: 'broom', title: 'A casa está bagunçada', text: 'Casa suja deixa o humor baixo e aparece na câmera.' });
-    // plantas
-    const plants = G0.home.deco.filter(x => x === 'planta').length;
-    if (plants) {
-      const last = G0.home.plants.last != null ? G0.home.plants.last : day;
-      if (G0.home.plants.last == null) G0.home.plants.last = day;
-      if (day - last >= 7) {
-        const i = G0.home.deco.indexOf('planta'); if (i >= 0) G0.home.deco.splice(i, 1);
-        G0.home.plants.last = day;
-        SL.notify({ cat: 'vida', icon: 'plant', title: 'Uma planta morreu', text: 'Ela ficou uma semana sem água.' });
-        SL.bus.emit('home');
-      }
-    }
   });
 })(window.SL);

@@ -202,7 +202,7 @@
 
   // quarto/escritório atrás da câmera (o "cenário" da live)
   P.room = (ctx, w, h, t, o) => {
-    const G0 = SL.G; const deco = []; // decorações saíram do jogo (nov/2026, pedido do dono); as placas do YouTube continuam
+    const G0 = SL.G; // decorações saíram do jogo (nov/2026, pedido do dono); as placas do YouTube continuam
     const studio = G0 && G0.home.studio; const it = G0 ? G0.home.items : {};
     const PAREDE = { kitnet: ['#3f3a4a', '#2b2734'], apto: ['#3b4252', '#282d38'], casa: ['#4a4038', '#332c26'], cobertura: ['#2f3d45', '#1f2a30'], mansao: ['#3d3a30', '#2a2820'] };
     const hid = G0 ? G0.home.id : 'kitnet'; let par = PAREDE[hid] || PAREDE[Object.keys(PAREDE)[(hid || '').length % 5]];
@@ -222,18 +222,9 @@
     }
     // painel acústico
     if (it.acustica && !studio) { ctx.fillStyle = '#2a2a33'; for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) { ctx.fillRect(w * (0.27 + i * 0.045), h * (0.36 + j * 0.08), w * 0.04, h * 0.07); } }
-    // luminária de chão acesa
-    if (deco.includes('luminaria')) { const lx = w * 0.17; const gl = ctx.createRadialGradient(lx, h * 0.3, 1, lx, h * 0.3, h * 0.3); gl.addColorStop(0, 'rgba(255,220,150,.35)'); gl.addColorStop(1, 'rgba(255,220,150,0)'); ctx.fillStyle = gl; ctx.fillRect(lx - h * 0.3, 0, h * 0.6, h * 0.7); ctx.fillStyle = '#222'; ctx.fillRect(lx - w * 0.003, h * 0.32, w * 0.006, h * 0.58); ctx.fillStyle = '#f2e2c0'; ctx.beginPath(); ctx.moveTo(lx - w * 0.03, h * 0.33); ctx.lineTo(lx + w * 0.03, h * 0.33); ctx.lineTo(lx + w * 0.018, h * 0.25); ctx.lineTo(lx - w * 0.018, h * 0.25); ctx.closePath(); ctx.fill(); }
     // cama no canto (na casa pequena, o quarto é o escritório)
     if (it.cama && !studio && (hid === 'kitnet' || !G0.home.owned)) { const cor = it.cama === 'cama_premium' ? '#6b4fa0' : it.cama === 'cama_casal' ? '#2f6f8f' : '#8a6a4a'; ctx.fillStyle = '#5a3c28'; ctx.fillRect(w * 0.8, h * 0.74, w * 0.2, h * 0.17); ctx.fillStyle = '#e8e2d6'; ctx.fillRect(w * 0.81, h * 0.7, w * 0.19, h * 0.08); ctx.fillStyle = cor; ctx.fillRect(w * 0.81, h * 0.75, w * 0.19, h * 0.12); ctx.fillStyle = '#f4f0e8'; ctx.beginPath(); ctx.ellipse(w * 0.88, h * 0.7, w * 0.04, h * 0.03, 0, 0, 7); ctx.fill(); }
-    if (deco.includes('led')) { const hue = (t * 20) % 360; ctx.fillStyle = 'hsla(' + hue + ',90%,60%,.28)'; ctx.fillRect(0, h * 0.1, w, h * 0.04); const g = ctx.createLinearGradient(0, h * 0.1, 0, h * 0.5); g.addColorStop(0, 'hsla(' + hue + ',90%,60%,.18)'); g.addColorStop(1, 'transparent'); ctx.fillStyle = g; ctx.fillRect(0, h * 0.1, w, h * 0.4); }
-    if (deco.includes('estante')) { ctx.fillStyle = '#5a3a2a'; ctx.fillRect(w * 0.72, h * 0.15, w * 0.22, h * 0.6); ctx.fillStyle = '#3a2418'; for (let i = 0; i < 4; i++) ctx.fillRect(w * 0.72, h * (0.28 + i * 0.13), w * 0.22, h * 0.015); const r = U.mulberry(3); for (let i = 0; i < 10; i++) { ctx.fillStyle = D.shirtColors[i % D.shirtColors.length]; ctx.fillRect(w * (0.74 + r() * 0.17), h * (0.2 + Math.floor(i / 3) * 0.13), w * 0.02, h * 0.07); } }
-    if (deco.includes('neon') && G0) { ctx.save(); ctx.shadowColor = '#ff3d81'; ctx.shadowBlur = 18; txt(ctx, G0.player.channel, w * 0.06, h * 0.2, Math.round(h * 0.08), '#ff7ab0', 'left', 800); ctx.restore(); }
-    const pst = deco.find(x => x === 'poster' || /^poster_/.test(x));
-    if (pst && SL.Capa) { const pf = D.furnById(pst); const id = (pf && pf.game) || (SL.Creators && SL.Creators.playerMainGame && SL.Creators.playerMainGame()) || 'blocolandia'; const g = D.gameById(id); const pw = h * 0.2, ph = pw * 4 / 3; ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(w * 0.085 + 3, h * 0.3 + 4, pw, ph); ctx.fillStyle = '#eee'; ctx.fillRect(w * 0.085 - 2, h * 0.3 - 2, pw + 4, ph + 4); ctx.drawImage(SL.Capa.img(g && !g.nongame ? id : 'blocolandia'), w * 0.085, h * 0.3, pw, ph); }
     if (G0 && G0.placas && SL.Capa && SL.Placas) SL.Placas.lista().forEach((pl, i) => { const pw = h * 0.15, ph = pw * 1.3, px = w * (0.62 + i * 0.1), py = h * 0.08; ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(px + 3, py + 4, pw, ph); ctx.drawImage(SL.Capa.placa(pl.id, G0.player.channel), px, py, pw, ph); });
-    if (deco.includes('quadro')) { ctx.fillStyle = '#efe6d6'; ctx.fillRect(w * 0.26, h * 0.12, w * 0.14, h * 0.18); ctx.fillStyle = '#3b82f6'; ctx.beginPath(); ctx.arc(w * 0.31, h * 0.2, h * 0.04, 0, 7); ctx.fill(); ctx.fillStyle = '#ff5a36'; ctx.fillRect(w * 0.33, h * 0.18, w * 0.05, h * 0.08); }
-    if (deco.includes('planta')) { ctx.fillStyle = '#7a4a2a'; ctx.fillRect(w * 0.04, h * 0.7, w * 0.06, h * 0.1); ctx.fillStyle = '#3f8f3a'; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.ellipse(w * 0.07 + Math.cos(i) * w * 0.02, h * 0.62 - i * h * 0.02, w * 0.02, h * 0.05, i, 0, 7); ctx.fill(); } }
     if (studio) { ctx.fillStyle = 'rgba(255,255,255,.04)'; for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) ctx.fillRect(w * 0.5 + i * w * 0.04, h * 0.1 + j * h * 0.07, w * 0.035, h * 0.06); }
     // a sua cadeira, atrás de você
     if (it.cadeira) {
@@ -455,23 +446,5 @@
       txt(ctx, m[1], cxx + fs * 1.1 + nw, y, fs, '#e5e7eb', 'left', 500, 'Inter, Arial');
     }
     ctx.globalAlpha = 1;
-  };
-  P.titleBg = (cv, t) => {
-    const w = cv.clientWidth, h = cv.clientHeight; if (!w) return; if (cv.width !== w) { cv.width = w; cv.height = h; }
-    const c = cv.getContext('2d');
-    c.fillStyle = grad(c, 0, 0, 0, h, ['#0b0a1d', '#1a1035', '#2a1438']); c.fillRect(0, 0, w, h);
-    const r = U.mulberry(9);
-    for (let i = 0; i < 90; i++) { c.fillStyle = 'rgba(255,255,255,' + (0.2 + r() * 0.6) * (0.6 + Math.sin(t / 900 + i) * 0.4) + ')'; c.fillRect(r() * w, r() * h * 0.5, 1.5, 1.5); }
-    for (let layer = 0; layer < 2; layer++) {
-      let x = -20 + ((t * (layer ? 0.004 : 0.0015)) % 60);
-      const base = h * (layer ? 1 : 0.92);
-      while (x < w + 60) {
-        const bw = 30 + r() * 70, bh = h * (layer ? 0.15 + r() * 0.3 : 0.25 + r() * 0.35);
-        c.fillStyle = layer ? '#0a0a14' : '#151228'; c.fillRect(x, base - bh, bw, bh);
-        for (let wy = base - bh + 8; wy < base - 8; wy += 12) for (let wx = x + 6; wx < x + bw - 6; wx += 10) { if (r() < 0.32) { c.fillStyle = r() < 0.15 ? 'rgba(139,92,246,.75)' : 'rgba(255,214,140,' + (layer ? 0.55 : 0.3) + ')'; c.fillRect(wx, wy, 4, 6); } }
-        x += bw + 4;
-      }
-    }
-    const g = c.createRadialGradient(w * 0.75, h * 0.35, 10, w * 0.75, h * 0.35, w * 0.5); g.addColorStop(0, 'rgba(139,92,246,.25)'); g.addColorStop(1, 'transparent'); c.fillStyle = g; c.fillRect(0, 0, w, h);
   };
 })(window.SL);

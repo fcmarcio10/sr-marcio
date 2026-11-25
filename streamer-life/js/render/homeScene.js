@@ -138,18 +138,6 @@
     // decoração
     let wi = 0, fi = 0;
     (SL.Placas ? SL.Placas.lista() : []).forEach(pl => { const s = lay.decoWall[wi++]; if (!s) return; const r = lay.rooms.find(q => q.id === s[1]); objs.push({ id: 'placa_' + pl.id, kind: 'placa', placa: pl.id, label: pl.nome + ' do YouTube', wall: true, x: s[0], y: r.y - 1, w: 1, h: 1, z: 30 }); });
-    // parede da direita do escritório: letreiro neon e pôsteres (pedido do dono: nada em cima do PC)
-    const esc = lay.rooms.find(q => q.id === 'escritorio'); const exD = esc.x + esc.w; const dirE = lay.dirE || { neon: esc.y + 1.2, posters: [] }; let pi = 0;
-    const naDireita = (o, cy, len) => Object.assign(o, { wall: true, lado: 'E', ex: exD, cy, x: exD - 0.65, y: cy - len / 2, w: 0.65, h: len, z: 30 });
-    // decorações saíram do jogo (nov/2026, pedido do dono: "ficou muito feio"); placas do YouTube continuam na parede
-    [].forEach((id, idx) => {
-      const f = D.furnById(id); if (!f) return;
-      if (f.kind === 'neon') { objs.push(naDireita({ id: 'deco' + idx, kind: 'neon', label: f.name, deco: idx }, dirE.neon, 2.2)); return; }
-      if (f.kind === 'poster' && pi < dirE.posters.length) { objs.push(naDireita({ id: 'deco' + idx, kind: 'poster', game: f.game, label: f.name, deco: idx }, dirE.posters[pi++], 0.7)); return; }
-      if (['quadro', 'poster'].includes(f.kind)) { const s = lay.decoWall[wi++]; if (!s) return; const r = lay.rooms.find(q => q.id === s[1]); objs.push({ id: 'deco' + idx, kind: f.kind, game: f.game, label: f.name, wall: true, x: s[0], y: r.y - 1, w: 1, h: 1, z: 30, deco: idx }); }
-      else if (f.kind === 'led') objs.push({ id: 'deco' + idx, kind: 'led', label: f.name, glow: true, deco: idx, x: 0, y: 0, w: 0, h: 0, z: 0 });
-      else { const s = lay.decoFloor[fi++]; if (!s) return; objs.push({ id: 'deco' + idx, kind: f.kind, label: f.name, x: s[0], y: s[1], w: f.kind === 'tapete' ? 2 : 1, h: 1, flat: f.kind === 'tapete', deco: idx, z: { planta: 34, luminaria: 50, estante: 52 }[f.kind] || 4, use: f.kind === 'planta' ? [s[0], Math.min(s[1] + 1, lay.h - 2)] : null }); }
-    });
     objs.forEach(o => { if (o.wall || o.glow || o.flat) return; for (let y = o.y; y < o.y + o.h; y++) for (let x = o.x; x < o.x + o.w; x++) if (grid[y] && grid[y][x] && grid[y][x].t === 'floor') grid[y][x].block = true; });
     // de que lado está a parede de cada móvel (a frente fica do outro lado)
     objs.forEach(o => {
@@ -187,7 +175,6 @@
     // quadros, pôsteres, letreiro e placas: desenhados pendurados na parede por drawArte (depois dos móveis)
     const desk = objs.find(o => o.id === 'mesa');
     if (desk && G.home.items.acustica) for (let i = 0; i < desk.w; i++) { const w = wallAt(desk.x + i, desk.y - 1); if (w) w.dec.push({ face: 'S', fn: decFoam }); }
-    if (false) { const er = lay.rooms.find(r => r.id === 'escritorio'); if (er) for (let i = 0; i < er.w; i++) { const w = wallAt(er.x + i, er.y - 1); if (w) w.dec.push({ face: 'S', fn: decLed }); } }
     const pb = objs.find(o => o.id === 'pia_b');
     if (pb) { const d = pb.back; const w = wallAt(pb.x + (d === 'W' ? -1 : d === 'E' ? 1 : 0), pb.y + (d === 'N' ? -1 : d === 'S' ? 1 : 0)); if (w) w.dec.push({ face: pb.front, fn: decMirror }); }
     // portas
@@ -212,7 +199,6 @@
     floorCv = null; floorKey = ''; V.snap = true; lastRoom = null; lastAct = null;
   };
   H.objects = () => objs;
-  H.roomAt = (x, y) => roomAtTile(x, y);
   H.currentRoom = () => ch ? roomAtTile(Math.floor(ch.x / T), Math.floor(ch.y / T)) || roomNear(Math.floor(ch.x / T), Math.floor(ch.y / T)) : null;
 
   // ---------- caminho e movimento ----------
@@ -287,7 +273,6 @@
     if (a.id === 'beber') return at(ob('pia'));
     if (a.id === 'escovar') return at(ob('pia_b'));
     if (a.id === 'vaso') { const v = ob('vaso'); if (v) return { host: 'vaso', x: (v.x + 0.5) * T, y: v.y * T + 19, ang: Math.PI / 2, sit: true, nude: true }; }
-    if (a.id === 'regar') return at(objs.find(o => o.kind === 'planta'));
     return null;
   };
 
@@ -473,39 +458,19 @@
     const ox = (o.cx != null ? o.cx : o.x + 0.5) * T, oy = (o.y + 1) * T + 0.5; return { ox, oy, rot: 0, w, h, box: [ox - w / 2, oy, ox + w / 2, oy + h] };
   };
   const arteBox = o => arteGeo(o).box;
-  const posterJogo = o => { const id = (o && o.game) || (SL.Creators && SL.Creators.playerMainGame && SL.Creators.playerMainGame()); return (id && SL.D.gameById(id) && !SL.D.gameById(id).nongame) ? id : 'blocolandia'; };
   function drawArte(c, o, t) {
     const G = SL.G; const g = arteGeo(o); const w = g.w, h = g.h; const x0 = -w / 2, y0 = 0, x1 = w / 2;
     const local = (z, fn) => atZ(c, z, cc => { cc.translate(g.ox, g.oy); if (g.rot) cc.rotate(g.rot); fn(cc); });
     local(ARTE_Z - 7, cc => { cc.fillStyle = 'rgba(0,0,0,.22)'; rr(cc, x0 + 1.5, y0 + 2, w, h, 2); cc.fill(); });
     local(ARTE_Z, cc => {
-      if (o.kind === 'poster') {
-        cc.fillStyle = '#e9e9ee'; cc.fillRect(x0 - 1, y0 - 1, w + 2, h + 2);
-        if (SL.Capa) cc.drawImage(SL.Capa.img(posterJogo(o)), x0, y0, w, h);
-        cc.fillStyle = 'rgba(255,255,255,.12)'; cc.beginPath(); cc.moveTo(x0, y0); cc.lineTo(x0 + w * 0.6, y0); cc.lineTo(x0, y0 + h * 0.5); cc.closePath(); cc.fill();
-        cc.fillStyle = '#bbb'; cc.fillRect(x0 + 1, y0 + 0.5, 2, 2); cc.fillRect(x1 - 3, y0 + 0.5, 2, 2);
-      } else if (o.kind === 'placa') {
+      if (o.kind === 'placa') {
         if (SL.Capa) cc.drawImage(SL.Capa.placa(o.placa, G.player.channel), x0, y0, w, h);
         const brilho = 0.5 + 0.5 * Math.sin(t * 1.4 + o.x); cc.fillStyle = 'rgba(255,255,255,' + (0.05 + brilho * 0.08) + ')'; cc.fillRect(x0 + 3, y0 + 3, w - 6, h * 0.45);
-      } else if (o.kind === 'quadro') {
-        cc.fillStyle = '#6b4a2e'; cc.fillRect(x0 - 1.5, y0 - 1.5, w + 3, h + 3); cc.fillStyle = '#efe6d6'; cc.fillRect(x0, y0, w, h);
-        cc.fillStyle = '#3b82f6'; cc.beginPath(); cc.arc(x0 + w * 0.32, y0 + h * 0.42, h * 0.22, 0, 7); cc.fill();
-        cc.fillStyle = '#ff5a36'; cc.fillRect(x0 + w * 0.52, y0 + h * 0.2, w * 0.3, h * 0.55);
-        cc.fillStyle = '#ffb547'; cc.beginPath(); cc.moveTo(x0 + w * 0.12, y0 + h * 0.9); cc.lineTo(x0 + w * 0.42, y0 + h * 0.55); cc.lineTo(x0 + w * 0.7, y0 + h * 0.9); cc.closePath(); cc.fill();
-      } else if (o.kind === 'neon') {
-        cc.fillStyle = 'rgba(20,14,30,.78)'; rr(cc, x0, y0, w, h, 4); cc.fill(); cc.strokeStyle = 'rgba(255,255,255,.18)'; cc.lineWidth = 0.6; rr(cc, x0, y0, w, h, 4); cc.stroke();
-        const pisca = 0.85 + 0.15 * Math.sin(t * 9) * (Math.sin(t * 0.7) > 0.96 ? 1 : 0);
-        cc.save(); cc.globalAlpha = pisca; cc.font = '800 11px Sora, Arial'; cc.textAlign = 'center'; cc.textBaseline = 'middle';
-        const nome = G.player.channel.slice(0, 16);
-        cc.shadowColor = '#ff3d81'; cc.shadowBlur = 10; cc.fillStyle = '#ff7ab0'; cc.fillText(nome, 0, y0 + h / 2 + 0.5, w - 8);
-        cc.shadowBlur = 3; cc.fillStyle = '#ffe3ef'; cc.fillText(nome, 0, y0 + h / 2 + 0.5, w - 8); cc.restore();
-        const gr = cc.createRadialGradient(0, y0 + h, 2, 0, y0 + h, w * 0.6); gr.addColorStop(0, 'rgba(255,61,129,' + 0.18 * pisca + ')'); gr.addColorStop(1, 'rgba(255,61,129,0)'); cc.fillStyle = gr; cc.fillRect(x0 - w * 0.2, y0, w * 1.4, h * 2.2);
       }
     });
     const b = g.box; hits.push(bboxOf(b[0], b[1], b[2], b[3], ARTE_Z - 1, ARTE_Z).concat(o));
   }
   function decFoam(c, fp) { for (let i = 0; i < 3; i++) { fq(c, fp, 0.04 + i * 0.32, 0.32 + i * 0.32, 22, 52, i % 2 ? '#2c2c3c' : '#363650'); fq(c, fp, 0.08 + i * 0.32, 0.28 + i * 0.32, 36, 38, 'rgba(0,0,0,.25)'); } }
-  function decLed(c, fp) { fq(c, fp, 0, 1, 52, 54.5, 'hsl(' + ((performance.now() / 1000 * 30) % 360) + ',90%,62%)'); }
   function decMirror(c, fp) { fq(c, fp, 0.18, 0.82, 34, 54, '#9aa8b4'); fq(c, fp, 0.22, 0.78, 36, 52, '#c8dde8'); fq(c, fp, 0.3, 0.42, 38, 50, 'rgba(255,255,255,.35)'); }
 
   const drawWall = (c, w) => {
@@ -714,23 +679,6 @@
           atZ(c, 0.5, () => { c.strokeStyle = '#ffb547'; c.lineWidth = 2.5; c.setLineDash([10, 8]); c.strokeRect(X, Y, W, Hh); c.setLineDash([]); });
           for (let i = 0; i < 5; i++) { const bx = X + 26 + i * 50, by = Y + 30 + (i % 2) * 34; box(c, bx, by, bx + 30, by + 24, 0, 18 + (i % 3) * 6, '#9a7448', '#b88d5a', { tf: (c2, x, y, w, h) => { c2.fillStyle = 'rgba(230,210,160,.8)'; c2.fillRect(x, y + h / 2 - 2, w, 4); } }); }
         }
-        break;
-      }
-      case 'planta': {
-        const cx = X + 16, cy = Y + 18;
-        cyl(c, cx, cy, 8, 0, 12, '#9a5432', '#7a4026', c2 => { c2.fillStyle = '#4a3020'; c2.beginPath(); c2.arc(cx, cy, 6.4, 0, 7); c2.fill(); });
-        [[18, 11, 0], [24, 9, 0.8], [30, 7, 1.7]].forEach(([z, r0, rot]) => atZ(c, z, () => { for (let i = 0; i < 5; i++) { const a = rot + i * 1.26 + Math.sin(t * 0.8 + i) * 0.04; c.fillStyle = i % 2 ? '#3f9f4a' : '#4fb85a'; c.beginPath(); c.ellipse(cx + Math.cos(a) * r0 * 0.6, cy + Math.sin(a) * r0 * 0.6, r0 * 0.55, r0 * 0.24, a, 0, 7); c.fill(); } }));
-        break;
-      }
-      case 'luminaria': {
-        const cx = X + 16, cy = Y + 16;
-        cyl(c, cx, cy, 6, 0, 2, '#2a2a2a', '#3a3a3a');
-        box(c, cx - 1.2, cy - 1.2, cx + 1.2, cy + 1.2, 0, 42, '#2a2a2a', '#3a3a3a');
-        cyl(c, cx, cy, 8, 40, 50, '#e9dcb8', '#f6ecd0');
-        break;
-      }
-      case 'estante': {
-        box(c, X + 2, Y + 3, X + W - 2, Y + 15, 0, 52, '#5a3a2a', '#6d4836', { front: 'S', ff: (c2, fp) => { for (let i = 0; i < 4; i++) { fq(c2, fp, 0.06, 0.94, 4 + i * 12, 5.5 + i * 12, '#3a2418'); for (let j = 0; j < 4; j++) fq(c2, fp, 0.1 + j * 0.21, 0.24 + j * 0.21, 6 + i * 12, 13 + i * 12 - (j % 2) * 2, D.shirtColors[(i * 3 + j * 5) % 12]); } } });
         break;
       }
       default: break;
@@ -1035,7 +983,6 @@
     const desk = ob('mesa'); const tv = ob('tv');
     if (pcOn && desk) { const p = P((desk.x + desk.w / 2) * T, (desk.y + 1.2) * T, 30); hole(p[0], p[1], 120 * V.s / 2, 0.75); }
     if (tvOn && tv) { const p = P((tv.x + tv.w / 2) * T, (tv.y + 1.6) * T, 30); hole(p[0], p[1], 150 * V.s / 2, 0.75); }
-    objs.forEach(o => { if (o.kind === 'luminaria') { const p = P(o.x * T + 16, o.y * T + 16, 46); hole(p[0], p[1], 110 * V.s / 2, 0.9); } if (o.kind === 'neon') { const p = P(o.x * T + 16, (o.y + 1) * T + 8, 34); hole(p[0], p[1], 70 * V.s / 2, 0.7); } });
     props.forEach(p => { if (p.k === 'lamp') { const q2 = P(p.x, p.y + 20, 0); hole(q2[0], q2[1], 150 * V.s / 2, 0.85); } });
     c.drawImage(lc, 0, 0, V.W, V.H);
     // brilhos coloridos
@@ -1043,8 +990,6 @@
     const glow = (wx, wy, wz, r, col, al) => { const p = P(wx, wy, wz); const rr0 = r * V.s; const g = c.createRadialGradient(p[0], p[1], 1, p[0], p[1], rr0); g.addColorStop(0, U.rgba(col, al)); g.addColorStop(1, U.rgba(col, 0)); c.fillStyle = g; c.fillRect(p[0] - rr0, p[1] - rr0, rr0 * 2, rr0 * 2); };
     if (pcOn && desk) glow((desk.x + desk.w / 2) * T, (desk.y + 1) * T, 30, 70, (SL.Live && SL.Live.cur) || (a && a.id === 'live') ? '#b04cff' : '#6f86ff', na * 0.55);
     if (tvOn && tv) glow((tv.x + tv.w / 2) * T, (tv.y + 1.5) * T, 30, 90, '#7fb3ff', na * 0.5);
-    if (false) { const er = lay.rooms.find(r => r.id === 'escritorio'); if (er) glow((er.x + er.w / 2) * T, er.y * T + 12, 54, er.w * 16, '#' + ['c77dff', '7dd3ff', 'ff7ab0'][Math.floor(t / 3) % 3], na * 0.45); }
-    objs.forEach(o => { if (o.kind === 'luminaria') glow(o.x * T + 16, o.y * T + 16, 46, 60, '#ffd28a', na * 0.5); if (o.kind === 'neon') glow(o.x * T + 16, (o.y + 1) * T + 4, 34, 40, '#ff3d81', na * 0.7); });
     const lz = SL.Equip.item('iluminacao'); if (lz && pcOn && desk) glow((desk.x + desk.w / 2) * T, (desk.y + 1.6) * T, 40, 60, '#fff6dc', 0.15 + na * 0.3);
     props.forEach(p => { if (p.k === 'lamp') glow(p.x, p.y + 20, 86, 60, '#ffe6a0', na * 0.6); });
     c.restore();
