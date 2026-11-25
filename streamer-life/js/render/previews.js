@@ -372,6 +372,53 @@
     for (let i = 0; i < 4; i++) { c.strokeStyle = ['rgba(139,92,246,.35)', 'rgba(25,211,197,.22)', 'rgba(255,61,129,.18)', 'rgba(76,195,255,.15)'][i]; c.lineWidth = 2; c.beginPath(); for (let x = 0; x <= w; x += 12) { const y = h * (0.45 + i * 0.09) + Math.sin(x / (160 + i * 40) + t * 0.0003 * (i + 1) + i) * 40; x === 0 ? c.moveTo(x, y) : c.lineTo(x, y); } c.stroke(); }
     if (SL.G) { c.globalAlpha = 0.07; txt(c, SL.G.player.channel.toUpperCase(), w - 30, h - 70, Math.round(Math.min(90, w / 10)), '#fff', 'right', 800); c.globalAlpha = 1; }
   };
+  // fundo do menu: você ao vivo no seu quarto, com a moldura da live (AO VIVO, público e chat)
+  const MENU_CHAT = [['luisgameplays', 'que live boa!'], ['bia_ama', 'boa noite chat'], ['Bigode', 'Seja bem-vindo, chega mais!'], ['ze_trovao', 'joga demais'], ['carol.s', 'primeira vez aqui :)'], ['tetedev', 'qual o setup?'], ['mari_x', 'kkkkkkkk'], ['rafa_tecinfo', 'bora subir esse canal']];
+  P.menuStreamer = (cv, t, look) => {
+    const dpr = Math.min(2, window.devicePixelRatio || 1); const w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
+    if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // quarto (a mesma cena da câmera da live), desenhado mais à direita para o menu ficar livre à esquerda
+    const rw = w, rx = 0;
+    P.room(ctx, rw, h, t);
+    const cx = w * 0.66;
+    // luz de LED roxa e ring light
+    const led = ctx.createRadialGradient(cx, h * 0.45, 10, cx, h * 0.45, h * 0.7); led.addColorStop(0, 'rgba(139,92,246,.16)'); led.addColorStop(1, 'rgba(139,92,246,0)'); ctx.fillStyle = led; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(255,250,235,.75)'; ctx.lineWidth = Math.max(4, h * 0.012); ctx.beginPath(); ctx.arc(rx + rw * 0.9, h * 0.3, h * 0.08, 0, 7); ctx.stroke();
+    ctx.fillStyle = '#222'; ctx.fillRect(rx + rw * 0.9 - 2, h * 0.38, 4, h * 0.25);
+    // você (fala e ri de vez em quando)
+    const fase = Math.floor(t / 2.4) % 4; const expr = ['feliz', 'rindo', 'feliz', 'surpreso'][fase];
+    const s = h * 0.62; A.portrait(ctx, look, cx, h * 0.66 + Math.sin(t * 1.3) * 2, s, { expr });
+    // fone e microfone de braço
+    ctx.strokeStyle = '#15151b'; ctx.lineWidth = Math.max(5, s * 0.03); ctx.beginPath(); ctx.arc(cx, h * 0.66 - s * 0.12, s * 0.3, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+    ctx.strokeStyle = '#2a2a33'; ctx.lineWidth = Math.max(3, s * 0.012); ctx.beginPath(); ctx.moveTo(rx + rw * 0.99, h * 0.62); ctx.lineTo(cx + s * 0.5, h * 0.7); ctx.lineTo(cx + s * 0.36, h * 0.8); ctx.stroke();
+    ctx.fillStyle = '#1b1b22'; rr(ctx, cx + s * 0.3, h * 0.76, s * 0.09, s * 0.16, s * 0.04); ctx.fill();
+    // mesa e teclado com brilho
+    ctx.fillStyle = '#17141f'; ctx.fillRect(rx, h * 0.9, rw, h * 0.1); ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(rx, h * 0.9, rw, 2);
+    const kb = ctx.createLinearGradient(cx - s * 0.3, 0, cx + s * 0.3, 0); const hu = (t * 40) % 360; kb.addColorStop(0, 'hsla(' + hu + ',90%,60%,.55)'); kb.addColorStop(1, 'hsla(' + (hu + 120) + ',90%,60%,.55)');
+    ctx.fillStyle = kb; rr(ctx, cx - s * 0.32, h * 0.915, s * 0.64, h * 0.035, 4); ctx.fill();
+    // moldura da live
+    const pad = Math.max(14, w * 0.018); const fs = Math.max(11, Math.round(h * 0.018));
+    const vx = Math.max(rx + pad, w * 0.42);
+    ctx.font = '800 ' + fs + 'px Inter, Arial'; const tag = 'AO VIVO'; const tw = ctx.measureText(tag).width + fs * 1.8;
+    ctx.fillStyle = '#e5323e'; rr(ctx, vx, pad, tw, fs * 1.9, 5); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(vx + fs * 0.75, pad + fs * 0.95, fs * 0.28 * (0.7 + 0.3 * Math.sin(t * 5)), 0, 7); ctx.fill();
+    txt(ctx, tag, vx + fs * 1.25, pad + fs * 0.95, fs, '#fff', 'left', 800, 'Inter, Arial');
+    const vis = 1200 + Math.round(Math.sin(t * 0.3) * 80 + t * 2) % 400;
+    ctx.fillStyle = 'rgba(10,10,16,.7)'; rr(ctx, vx + tw + 8, pad, fs * 6.5, fs * 1.9, 5); ctx.fill();
+    txt(ctx, U.int(vis) + ' assistindo', vx + tw + 8 + fs * 0.7, pad + fs * 0.95, fs, '#fff', 'left', 700, 'Inter, Arial');
+    // chat subindo no canto
+    const cw = Math.min(w * 0.22, 300), cxx = w - cw - pad; const linhas = 5; const lh = fs * 2.2; const k = t / 2.2;
+    for (let i = 0; i < linhas; i++) {
+      const idx = Math.floor(k) + i; const m = MENU_CHAT[idx % MENU_CHAT.length]; const y = h - pad - (linhas - i - (k % 1)) * lh;
+      const a = Math.min(1, (i + 1 - (k % 1)) / 1.5); if (a <= 0) continue;
+      ctx.globalAlpha = a * 0.92; ctx.fillStyle = 'rgba(10,10,16,.72)'; rr(ctx, cxx, y - lh * 0.42, cw, lh * 0.84, 6); ctx.fill();
+      ctx.font = '700 ' + fs + 'px Inter, Arial'; const nw = ctx.measureText(m[0] + ':').width;
+      txt(ctx, m[0] + ':', cxx + fs * 0.7, y, fs, m[0] === 'Bigode' ? '#22c55e' : ['#c4b5fd', '#7dd3fc', '#fca5a5', '#fde68a'][idx % 4], 'left', 700, 'Inter, Arial');
+      txt(ctx, m[1], cxx + fs * 1.1 + nw, y, fs, '#e5e7eb', 'left', 500, 'Inter, Arial');
+    }
+    ctx.globalAlpha = 1;
+  };
   P.titleBg = (cv, t) => {
     const w = cv.clientWidth, h = cv.clientHeight; if (!w) return; if (cv.width !== w) { cv.width = w; cv.height = h; }
     const c = cv.getContext('2d');

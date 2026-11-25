@@ -27,8 +27,11 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   const url = 'file://' + path.join(__dirname, '..', 'index.html');
   await page.goto(url); await ev(() => localStorage.clear()); await page.reload(); await page.waitForTimeout(400);
 
+  // 0. menu inicial simples
+  ok('menu inicial: Jogar, Opções, Créditos e Sair com o streamer ao fundo', await ev(() => [...document.querySelectorAll('#scr-title .tm-menu .mb')].map(b => b.textContent).join(',') === 'Jogar,Opções,Créditos,Sair' && document.querySelector('#scr-title canvas.bg').width > 0));
+  await shot('00_menu');
   // 1. criação de personagem
-  await page.click('[data-m="novo"]');
+  await page.click('[data-m="jogar"]'); await page.click('[data-m="novo"]');
   await page.fill('#f-name', 'Teste'); await page.click('[data-g="m"]');
   await page.fill('#f-ch', 'CanalDoTeste'); await page.fill('#f-us', 'canal.teste');
   await page.click('[data-hair="3"]'); await page.click('[data-acc="1"]');
@@ -293,7 +296,7 @@ const ok = (name, cond, info) => { results.push({ name, ok: !!cond, info }); con
   const page2 = await ctx.newPage();
   page2.on('pageerror', e => errors.push('pageerror(2): ' + e.message));
   await page2.goto(url); await page2.waitForTimeout(400);
-  await page2.click('[data-m="carregar"]'); await page2.waitForTimeout(200);
+  await page2.click('[data-m="jogar"]'); await page2.click('[data-m="carregar"]'); await page2.waitForTimeout(200);
   await page2.screenshot({ path: path.join(out, '20_carregar.png') });
   await page2.click('[data-load="2"]'); await page2.waitForTimeout(500);
   const snap2 = await page2.evaluate(() => ({ t: SL.G.time.t, f: SL.G.ch.pulso.f, viewers: SL.G.viewers.list.length, vids: SL.G.videos.length, money: Math.round(SL.G.money), mem: SL.G.viewers.list.filter(v => v.m.v >= 2).map(v => v.u + ':' + v.m.v).slice(0, 5) }));

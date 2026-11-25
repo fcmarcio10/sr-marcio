@@ -627,3 +627,27 @@ body:has(#modals .modal-bg) #toasts .toast:not(.err) { opacity: 0; pointer-event
 @media (max-width: 760px) { .hud-meta { min-width: 0; max-width: 62vw; } .hud-meta .hm-r { display: none; } }
 
 .speeds[hidden], .tb-speeds[hidden] { display: none !important; }
+
+/* ===== menu inicial simples (nov/2026): fundo com você ao vivo, botões Jogar, Opções, Créditos e Sair ===== */
+#scr-title { display: block; background: #0b0a12; overflow: hidden; }
+#scr-title .tm-sombra { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(90deg, rgba(8,8,13,.95) 0%, rgba(8,8,13,.85) 28%, rgba(8,8,13,.2) 52%, rgba(8,8,13,0) 70%); }
+#scr-title .tm-col { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 30px; padding: 40px 16px 40px max(16px, 7vw); max-width: 440px; }
+.tm-logo { display: flex; flex-direction: column; gap: 12px; }
+.tm-logo h1 { font-size: clamp(44px, 6.2vw, 76px); font-weight: 800; letter-spacing: -0.035em; line-height: .9; margin: 0; }
+.tm-logo h1 em { font-style: normal; color: #a78bfa; }
+.tm-menu { display: flex; flex-direction: column; gap: 6px; width: min(260px, 100%); }
+.tm-menu .mb { appearance: none; text-align: left; font: inherit; font-size: 17px; font-weight: 600; letter-spacing: .01em; color: #e5e7eb; background: transparent; border: 0; border-left: 3px solid transparent; border-radius: 0 6px 6px 0; padding: 10px 14px; cursor: pointer; transition: background .15s, border-color .15s, color .15s, padding .15s; }
+.tm-menu .mb:hover, .tm-menu .mb:focus-visible { background: rgba(255,255,255,.07); border-left-color: #a78bfa; color: #fff; padding-left: 18px; outline: none; }
+.tm-menu .mb.main { color: #fff; background: #7c3aed; border-left-color: #c4b5fd; }
+.tm-menu .mb.main:hover { background: #8b5cf6; }
+.tm-menu .mb.sec { color: #9ca3af; font-size: 14px; }
+.tm-ult { font-size: 12.5px; color: #9ca3af; }
+.tm-foot { font-size: 11.5px; color: #6b7280; }
+.tm-tchau { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; text-align: center; gap: 8px; background: rgba(8,8,13,.92); }
+.tm-tchau b { font-size: 28px; } .tm-tchau span { color: #9ca3af; font-size: 13px; }
+@media (max-width: 760px) { #scr-title .tm-sombra { background: rgba(8,8,13,.72); } #scr-title .tm-col { max-width: none; } }
+
+/* ===== botões mais simples (nov/2026): planos, sem degradê, sombra ou relevo ===== */
+.btn, .gbtn, .lbtn, .slot-b, .choice, .cv-card, .cv-opt { box-shadow: none !important; background-image: none !important; text-shadow: none !important; }
+.btn { border-radius: 6px; font-weight: 600; letter-spacing: 0; }
+.btn:active, .gbtn:active, .lbtn:active { transform: none !important; filter: brightness(.92); }

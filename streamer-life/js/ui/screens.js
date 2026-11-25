@@ -7,34 +7,37 @@
   let titleRaf = null;
 
   // ---------- inicial ----------
-  SC.title = () => {
+  SC.title = sub => {
     UI.show('title');
     const el = $('#scr-title');
     const last = SL.Save.last(); const info = last ? SL.Save.readMeta(last) : null; const meta = info && info.meta;
-    el.innerHTML = `<canvas class="bg"></canvas>
-      <div class="title-col">
-        <div class="logo"><span class="dev-tag"><i></i>build de desenvolvimento 0.4</span><div class="mark">${UI.ic('pulso', 30)}<span>SIMULADOR DE VIDA DIGITAL</span></div><h1>STREAMER<br><em>LIFE</em></h1><p>Comece do zero num quarto simples. Faça lives, publique vídeos, cuide da sua vida e construa uma carreira na internet.</p></div>
-        <nav class="menu">
-          <button class="mi ${meta ? 'main' : ''}" data-m="continuar" ${meta ? '' : 'disabled'}>${UI.ic('play', 20)}<div><b>Continuar</b><small>${meta ? U.esc(meta.name + ' · ' + meta.day) : 'Nenhuma partida salva'}</small></div></button>
-          <button class="mi ${meta ? '' : 'main'}" data-m="novo">${UI.ic('plus', 20)}<div><b>Novo jogo</b><small>Criar personagem e canal</small></div></button>
-          <button class="mi" data-m="carregar">${UI.ic('folder', 20)}<div><b>Carregar partida</b><small>3 espaços + salvamento automático</small></div></button>
-          <button class="mi" data-m="config">${UI.ic('settings', 20)}<div><b>Configurações</b><small>Som, salvamento e acessibilidade</small></div></button>
-        </nav>
-        <div class="title-foot">Versão 0.4 · em desenvolvimento · Tudo fica salvo no seu navegador.</div>
-      </div>
-      <div class="title-side">${meta ? `<div class="last-card"><div class="upper">Última partida</div><div class="row" style="margin-top:8px"><canvas width="54" height="54" style="width:54px;height:54px;border-radius:50%"></canvas><div class="grow"><b>${U.esc(meta.channel)}</b><div class="muted small">${U.esc(meta.tier || '')}</div></div></div><div class="kv" style="margin-top:10px"><span>Seguidores</span><span>${U.num(meta.followers)}</span><span>Dinheiro</span><span>${U.money0(meta.money)}</span><span>Dia</span><span>${U.esc(meta.day.split(',')[0])}</span></div></div>` : ''}</div>`;
-    if (meta) SL.Avatar.toCanvas($('.last-card canvas', el), meta.look, { scale: 0.95 });
+    const bt = (m, txt, extra) => `<button class="mb ${extra || ''}" data-m="${m}">${txt}</button>`;
+    // menu principal: Jogar, Opções, Créditos e Sair. "Jogar" abre Continuar / Novo jogo / Carregar
+    const menu = sub === 'jogar'
+      ? (meta ? bt('continuar', 'Continuar', 'main') : '') + bt('novo', 'Novo jogo', meta ? '' : 'main') + bt('carregar', 'Carregar') + bt('voltar', 'Voltar', 'sec')
+      : bt('jogar', 'Jogar', 'main') + bt('config', 'Opções') + bt('creditos', 'Créditos') + bt('sair', 'Sair');
+    el.innerHTML = `<canvas class="bg"></canvas><div class="tm-sombra"></div>
+      <div class="tm-col">
+        <div class="tm-logo"><h1>STREAMER<br><em>LIFE</em></h1><span class="dev-tag"><i></i>build de desenvolvimento 0.4</span></div>
+        <nav class="tm-menu">${menu}</nav>
+        ${sub === 'jogar' && meta ? `<div class="tm-ult">Última partida: <b>${U.esc(meta.channel)}</b> · ${U.esc(meta.tier || '')}</div>` : ''}
+        <div class="tm-foot">Versão 0.4 · em desenvolvimento</div>
+      </div>`;
     $$('[data-m]', el).forEach(b => b.onclick = () => {
       SL.audio.init(); SL.audio.play('click');
       const m = b.dataset.m;
+      if (m === 'jogar') return SC.title('jogar');
+      if (m === 'voltar') return SC.title();
       if (m === 'continuar') { const err = SL.Save.load(SL.Save.last()); if (err) UI.alert('Não foi possível continuar', err, 'alert'); }
       if (m === 'novo') SC.creator();
       if (m === 'carregar') SC.load();
       if (m === 'config') SC.settings('title');
+      if (m === 'creditos') UI.modal({ title: 'Créditos', icon: 'star', html: `<div class="col gap8 small"><p><b>Streamer Life</b> · versão 0.4 em desenvolvimento.</p><p>Jogo, desenhos e sons do menu feitos no próprio código, sem imagens de fora.</p><p>Vozes do superchat, do Bigode e do público: ElevenLabs.</p><p class="muted">Todas as pessoas, canais e marcas do jogo são inventados. Os nomes dos aplicativos aparecem só como nome.</p></div>`, buttons: [{ label: 'Fechar', cls: 'primary' }] });
+      if (m === 'sair') UI.confirm('Sair do jogo?', 'Seu progresso fica salvo no navegador.', () => { try { window.close(); } catch (e) { /* ignora */ } el.innerHTML = '<div class="tm-tchau"><b>Valeu por jogar!</b><span>Pode fechar esta aba. Para voltar, recarregue a página.</span></div>'; }, 'Sair');
     });
-    const cv = $('canvas.bg', el);
+    const cv = $('canvas.bg', el); const look = meta && meta.look ? meta.look : SL.State.defaultLook();
     cancelAnimationFrame(titleRaf);
-    const loop = t => { if (UI.screen !== 'title') return; SL.Preview.titleBg(cv, t); titleRaf = requestAnimationFrame(loop); };
+    const loop = t => { if (UI.screen !== 'title' || !cv.isConnected) return; SL.Preview.menuStreamer(cv, t / 1000, look); titleRaf = requestAnimationFrame(loop); };
     titleRaf = requestAnimationFrame(loop);
   };
 
